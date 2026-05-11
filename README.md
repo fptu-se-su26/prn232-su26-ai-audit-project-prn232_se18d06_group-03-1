@@ -4,12 +4,12 @@
 
 | Item | Description |
 |---|---|
-| Course |  |
-| Class |  |
+| Course | PRN232  |
+| Class | SE18D06  |
 | Semester | SU26 |
-| Group |  |
-| Topic |  |
-| Repository |  |
+| Group | 03 |
+| Topic | Cookhub - Nền tảng chia sẻ công thức nấu ăn  |
+| Repository | prn232-su26-ai-audit-project-prn232_se18d06_group-03-1 |
 
 ---
 
@@ -17,11 +17,11 @@
 
 | No | Student ID | Full Name | GitHub Username | Role | Main Responsibility |
 |---:|---|---|---|---|---|
-| 1 |  |  |  | Leader |  |
-| 2 |  |  |  | Member |  |
-| 3 |  |  |  | Member |  |
-| 4 |  |  |  | Member |  |
-| 5 |  |  |  | Member |  |
+| 1 | DE180426 | Huynh Tien Duy  | DEVpowerLifter2004D | Leader |  |
+| 2 | DE180406 | Nguyen Nam Thang | thang1684NT  | Member |  |
+| 3 | DE180465 | Le Thanh Nguyen | LeThanhNguyen-dev | Member |  |
+| 4 | DE180479 | Nguyen Van Linh | lilwin51 | Member |  |
+| 5 | DE180783 | Dinh Van Thanh | thanhdv911 | Member |  |
 
 ---
 
