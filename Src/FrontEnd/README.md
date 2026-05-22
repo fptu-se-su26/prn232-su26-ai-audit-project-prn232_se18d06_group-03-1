@@ -1,6 +1,6 @@
-# CookingCommunicate Frontend
+# MoveVN Frontend
 
-Frontend nằm tại `Src/FrontEnd`, sử dụng React, TypeScript, Vite, Tailwind CSS, Axios và Zustand.
+Frontend nằm tại `src/frontend`, sử dụng React, TypeScript, Vite, Tailwind CSS, Axios và Zustand.
 
 ## Mục Đích
 
@@ -46,7 +46,7 @@ VITE_API_BASE_URL=http://localhost:5171
 ## Cấu Trúc Thư Mục
 
 ```text
-FrontEnd/
+frontend/
 |-- public/
 |   `-- vite.svg
 |-- src/

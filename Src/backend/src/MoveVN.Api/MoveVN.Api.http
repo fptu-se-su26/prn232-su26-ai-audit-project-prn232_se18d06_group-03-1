@@ -1,0 +1,6 @@
+@MoveVN.Api_HostAddress = http://localhost:5171
+
+GET {{MoveVN.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -8,7 +8,7 @@
 | Class | SE18D06  |
 | Semester | SU26 |
 | Group | 03 |
-| Topic | Cookhub - Nền tảng chia sẻ công thức nấu ăn  |
+| Topic | MoveVN |
 | Repository | prn232-su26-ai-audit-project-prn232_se18d06_group-03-1 |
 
 ---
@@ -29,6 +29,8 @@
 
 ```text
 src/
+  backend/
+  frontend/
 docs/
 .github/
 README.md

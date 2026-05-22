@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-05-22 - MoveVN rename and source split
+
+- Renamed project/folder references from `CookingCommunicate` to `MoveVN`.
+- Split source layout into `src/backend` and `src/frontend`.
+- Updated backend solution/project names to `MoveVN.*`.
+- Updated frontend package/app display name to `MoveVN`.
+- Verified with `dotnet test MoveVN.sln` and `corepack pnpm run build`.
 ## 1. Quy định ghi Changelog
 
 File này dùng để ghi lại các thay đổi quan trọng trong quá trình thực hiện bài tập, lab, assignment hoặc project.
