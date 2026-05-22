@@ -17,8 +17,8 @@ public static class ServiceCollectionExtensions
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString, sqlOptions =>
-                sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+            options.UseNpgsql(connectionString, npgsqlOptions =>
+                npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
         services
             .AddIdentity<ApplicationUser, ApplicationRole>(options =>

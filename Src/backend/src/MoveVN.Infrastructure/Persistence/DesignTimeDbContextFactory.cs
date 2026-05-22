@@ -29,8 +29,8 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
             ?? throw new InvalidOperationException("DB_CONNECTION environment variable is not configured.");
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseSqlServer(connectionString, sqlOptions =>
-            sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+        optionsBuilder.UseNpgsql(connectionString, npgsqlOptions =>
+            npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
 
         return new AppDbContext(optionsBuilder.Options);
     }
