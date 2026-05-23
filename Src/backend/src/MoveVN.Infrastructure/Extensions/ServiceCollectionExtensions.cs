@@ -1,5 +1,7 @@
 using MoveVN.Application.Interfaces;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Infrastructure.Identity;
+using MoveVN.Infrastructure.Identity.Services;
 using MoveVN.Infrastructure.Persistence;
 using MoveVN.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -35,6 +37,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(Persistence.Repositories.GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 
         return services;

@@ -1,5 +1,7 @@
 using MoveVN.Api.Extensions;
+using MoveVN.Api.Services;
 using MoveVN.Application;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Infrastructure.Extensions;
 using DotNetEnv;
 using FluentValidation.AspNetCore;
@@ -28,6 +30,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddFluentValidationAutoValidation(config => config.DisableDataAnnotationsValidation = true);
 builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();

@@ -1,4 +1,4 @@
-namespace MoveVN.Application.Interfaces;
+namespace MoveVN.Application.Modules.Auth.Interfaces;
 
 public interface IJwtTokenService
 {

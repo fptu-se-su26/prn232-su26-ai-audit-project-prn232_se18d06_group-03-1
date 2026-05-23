@@ -1,4 +1,4 @@
-using MoveVN.Application.Interfaces;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
