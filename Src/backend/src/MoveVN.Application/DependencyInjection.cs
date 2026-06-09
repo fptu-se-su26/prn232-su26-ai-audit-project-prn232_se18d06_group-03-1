@@ -1,5 +1,7 @@
 using AutoMapper;
 using FluentValidation;
+using MoveVN.Application.Modules.Admin.Interfaces;
+using MoveVN.Application.Modules.Admin.Services;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Auth.Services;
 using MoveVN.Application.Modules.Users.Interfaces;
@@ -22,6 +24,7 @@ public static class DependencyInjection
         services.AddSingleton(mapperConfig.CreateMapper());
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IUserService, UserService>();
 
         return services;

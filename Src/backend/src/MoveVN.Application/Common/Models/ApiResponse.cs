@@ -2,7 +2,9 @@ namespace MoveVN.Application.Common.Models;
 
 public class ApiResponse<T>
 {
-    public bool Success { get; set; }
+    public bool Status { get; set; }
+
+    public string Code { get; set; } = string.Empty;
 
     public string Message { get; set; } = string.Empty;
 
@@ -10,17 +12,20 @@ public class ApiResponse<T>
 
     public List<string>? Errors { get; set; }
 
-    public static ApiResponse<T> Succeeded(T? data, string message = "Success") => new()
+    public static ApiResponse<T> Succeeded(T? data, string message = "Success.", string code = "SUCCESS") => new()
     {
-        Success = true,
+        Status = true,
+        Code = code,
         Message = message,
         Data = data
     };
 
-    public static ApiResponse<T> Failed(string message, List<string>? errors = null) => new()
+    public static ApiResponse<T> Failed(string code, string message, List<string>? errors = null) => new()
     {
-        Success = false,
+        Status = false,
+        Code = code,
         Message = message,
+        Data = default,
         Errors = errors
     };
 }

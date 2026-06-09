@@ -6,8 +6,10 @@ using MoveVN.Infrastructure.Extensions;
 using DotNetEnv;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 var envFilePath = FindEnvFile();
@@ -17,6 +19,15 @@ if (envFilePath is not null)
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".keys");
+Directory.CreateDirectory(dataProtectionKeysPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 
 builder.Configuration["ConnectionStrings:DefaultConnection"] =
     GetRequiredEnvironmentVariable("DB_CONNECTION");
@@ -90,11 +101,26 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.Zero
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                var tokenSessionService = context.HttpContext.RequestServices.GetRequiredService<ITokenSessionService>();
+
+                if (string.IsNullOrWhiteSpace(jti) || !await tokenSessionService.IsActiveAsync(jti, context.HttpContext.RequestAborted))
+                {
+                    context.Fail("Token session is inactive.");
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+await app.ApplyDatabaseMigrationsAsync();
 
 app.UseGlobalExceptionMiddleware();
 

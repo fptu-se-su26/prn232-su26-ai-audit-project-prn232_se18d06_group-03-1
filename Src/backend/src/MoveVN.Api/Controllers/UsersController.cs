@@ -33,8 +33,8 @@ public class UsersController : BaseApiController
         return Ok(ApiResponse<UserResponse>.Succeeded(result, "Profile updated successfully."));
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ApiResponse<UserResponse>>> GetById(Guid id, CancellationToken cancellationToken)
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> GetById(long id, CancellationToken cancellationToken)
     {
         var result = await _userService.GetByIdAsync(id, cancellationToken);
         return Ok(ApiResponse<UserResponse>.Succeeded(result));

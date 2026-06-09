@@ -19,5 +19,14 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         RuleFor(x => x.Password)
             .NotEmpty()
             .MinimumLength(8);
+
+        RuleFor(x => x.ConfirmPassword)
+            .Equal(x => x.Password)
+            .WithMessage("Password confirmation does not match.");
+
+        RuleFor(x => x.Role)
+            .Must(role => role.Equals("Customer", StringComparison.OrdinalIgnoreCase)
+                || role.Equals("Owner", StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Only Customer or Owner can register publicly.");
     }
 }

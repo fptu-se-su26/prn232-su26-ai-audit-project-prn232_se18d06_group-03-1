@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MoveVN.Domain.Documents;
+using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 
 namespace MoveVN.Infrastructure.Persistence.Mongo;
 
@@ -14,6 +15,8 @@ public class MongoDbContext
         _database = client.GetDatabase(settings.Value.DatabaseName);
     }
 
+    public IMongoDatabase Database => _database;
+
     public IMongoCollection<ChatRoomDocument> ChatRooms => _database.GetCollection<ChatRoomDocument>("ChatRooms");
     public IMongoCollection<ChatMessageDocument> ChatMessages => _database.GetCollection<ChatMessageDocument>("ChatMessages");
     public IMongoCollection<NotificationQueueDocument> NotificationQueue => _database.GetCollection<NotificationQueueDocument>("NotificationQueue");
@@ -24,4 +27,5 @@ public class MongoDbContext
     public IMongoCollection<PricingCalculationLogDocument> PricingCalculationLogs => _database.GetCollection<PricingCalculationLogDocument>("pricing_calculation_logs");
     public IMongoCollection<UserActivityLogDocument> UserActivityLogs => _database.GetCollection<UserActivityLogDocument>("user_activity_logs");
     public IMongoCollection<SearchLogDocument> SearchLogs => _database.GetCollection<SearchLogDocument>("search_logs");
+    public IMongoCollection<MongoMigrationHistory> MigrationHistory => _database.GetCollection<MongoMigrationHistory>("mongo_migrations");
 }
