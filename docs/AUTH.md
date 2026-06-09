@@ -234,6 +234,73 @@ Ví dụ document:
 }
 ```
 
+## Kiểm Tra Redis
+
+Redis local của dự án chạy bằng Docker container:
+
+```text
+movevn-redis
+```
+
+Kiểm tra Redis đang hoạt động:
+
+```powershell
+docker exec movevn-redis redis-cli PING
+```
+
+Kết quả đúng:
+
+```text
+PONG
+```
+
+Liệt kê các access-token session:
+
+```powershell
+docker exec movevn-redis redis-cli --scan --pattern "session:*"
+```
+
+Kiểm tra thời gian sống còn lại của một session:
+
+```powershell
+docker exec movevn-redis redis-cli TTL "session:<jti>"
+```
+
+Xem metadata của session:
+
+```powershell
+docker exec movevn-redis redis-cli GET "session:<jti>"
+```
+
+Session hiện lưu các trường:
+
+- `Jti`
+- `UserId`
+- `Email`
+- `Roles`
+- `ExpiresAt`
+- `CreatedAt`
+
+Backend không lưu nguyên access token trong Redis.
+
+Xóa một session để revoke access token:
+
+```powershell
+docker exec movevn-redis redis-cli DEL "session:<jti>"
+```
+
+Xem tổng số key trong Redis:
+
+```powershell
+docker exec movevn-redis redis-cli DBSIZE
+```
+
+Kiểm tra trạng thái container:
+
+```powershell
+docker ps --filter "name=movevn-redis"
+```
+
 ## Ghi Chú Bảo Mật
 
 - Không lưu plain password.

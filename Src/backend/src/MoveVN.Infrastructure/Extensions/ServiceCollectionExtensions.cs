@@ -51,7 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
-        services.AddScoped<ITokenSessionService, RedisTokenSessionService>();
+        services.AddSingleton<ITokenSessionService, RedisTokenSessionService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<DbInitializer>();
 
