@@ -1,14 +1,39 @@
-import { Home, LayoutDashboard } from "lucide-react";
+import { Car, ClipboardList, Home, KeyRound, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
+import type { UserRole } from "@/features/auth/types";
 
-const navItems = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-];
+const roleLabels: Record<UserRole, string> = {
+  Admin: "Quản trị",
+  Staff: "Nhân viên",
+  Owner: "Chủ xe",
+  Customer: "Khách hàng",
+};
+
+const roleIcons = {
+  Admin: ShieldCheck,
+  Staff: ClipboardList,
+  Owner: Car,
+  Customer: Home,
+};
 
 export default function Sidebar() {
+  const user = useAuthStore((state) => state.user);
+  const primaryRole = user?.roles[0] ?? "Customer";
+  const RoleIcon = roleIcons[primaryRole] ?? Home;
+  const navItems = [
+    { to: getDashboardPath(user?.roles ?? []), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
+    { to: "/account", label: "Tài khoản", icon: UserRound },
+    { to: "/change-password", label: "Đổi mật khẩu", icon: KeyRound },
+  ];
+
+  if (primaryRole === "Admin") {
+    navItems.splice(1, 0, { to: "/admin/users", label: "Người dùng", icon: UsersRound });
+  }
+
   return (
-    <aside className="hidden w-60 border-r border-zinc-200 bg-white p-4 md:block">
+    <aside className="hidden min-h-[calc(100vh-3.5rem)] w-64 border-r border-slate-200 bg-white p-4 md:block">
       <nav className="grid gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -19,8 +44,8 @@ export default function Sidebar() {
               to={item.to}
               className={({ isActive }) =>
                 [
-                  "inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
-                  isActive ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-100",
+                  "inline-flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold transition-colors",
+                  isActive ? "bg-brand-700 text-white shadow-sm" : "text-slate-700 hover:bg-brand-50 hover:text-brand-800",
                 ].join(" ")
               }
             >

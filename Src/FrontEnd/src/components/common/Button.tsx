@@ -1,28 +1,51 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
+  isLoading?: boolean;
+  size?: ButtonSize;
   variant?: ButtonVariant;
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-zinc-900 text-white hover:bg-zinc-800 disabled:bg-zinc-400",
-  secondary: "border border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50 disabled:text-zinc-400",
-  ghost: "text-zinc-700 hover:bg-zinc-100 disabled:text-zinc-400",
+  primary: "bg-brand-700 text-white shadow-sm hover:bg-brand-800 disabled:bg-slate-300",
+  secondary: "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 disabled:text-slate-400",
+  ghost: "text-slate-700 hover:bg-slate-100 disabled:text-slate-400",
 };
 
-export default function Button({ children, className = "", variant = "primary", ...props }: ButtonProps) {
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: "h-9 px-3 text-sm",
+  md: "h-10 px-4 text-sm",
+  lg: "h-11 px-5 text-base",
+};
+
+export default function Button({
+  children,
+  className = "",
+  disabled,
+  isLoading = false,
+  size = "md",
+  variant = "primary",
+  ...props
+}: ButtonProps) {
   return (
     <button
       className={[
-        "inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500",
+        "disabled:cursor-not-allowed",
+        sizeClasses[size],
         variantClasses[variant],
         className,
       ].join(" ")}
+      disabled={disabled || isLoading}
       {...props}
     >
+      {isLoading ? <LoadingSpinner className="h-4 w-4" /> : null}
       {children}
     </button>
   );
