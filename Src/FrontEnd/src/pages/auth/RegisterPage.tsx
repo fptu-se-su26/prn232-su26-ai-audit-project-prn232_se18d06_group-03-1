@@ -79,7 +79,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Tạo tài khoản" description="Đăng ký tài khoản khách hàng hoặc chủ xe trên MoveVN.">
+    <AuthLayout title="Đăng ký" description="Chào mừng bạn đến với MoveVN!">
       <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         {apiError ? <Alert variant="error">{apiError}</Alert> : null}
 
@@ -151,10 +151,10 @@ export default function RegisterPage() {
           Đăng ký
         </Button>
 
-        <p className="text-center text-sm text-slate-600">
+        <p className="pt-2 text-center text-sm font-medium text-slate-600">
           Đã có tài khoản?{" "}
-          <Link className="font-semibold text-brand-700 hover:text-brand-800" to="/login">
-            Đăng nhập
+          <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/login">
+            Đăng nhập ngay
           </Link>
         </p>
       </form>

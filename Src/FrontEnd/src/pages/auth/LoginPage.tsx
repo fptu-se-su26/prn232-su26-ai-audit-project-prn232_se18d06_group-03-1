@@ -173,9 +173,9 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="pt-2 text-center text-sm font-medium text-slate-700">
+        <p className="pt-2 text-center text-sm font-medium text-slate-600">
           Chưa có tài khoản?{" "}
-          <Link className="font-bold text-brand-700 hover:text-brand-800" to="/register">
+          <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/register">
             Đăng ký ngay
           </Link>
         </p>
