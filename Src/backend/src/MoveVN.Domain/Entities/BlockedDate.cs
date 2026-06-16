@@ -7,5 +7,6 @@ public class BlockedDate
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public string? Reason { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

@@ -26,22 +26,18 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClaimType")
-                        .HasColumnType("text")
-                        .HasColumnName("claim_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("ClaimValue")
-                        .HasColumnType("text")
-                        .HasColumnName("claim_value");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("role_id");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -54,22 +50,18 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClaimType")
-                        .HasColumnType("text")
-                        .HasColumnName("claim_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("ClaimValue")
-                        .HasColumnType("text")
-                        .HasColumnName("claim_value");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -81,20 +73,16 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("text")
-                        .HasColumnName("login_provider");
+                        .HasColumnType("text");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("text")
-                        .HasColumnName("provider_key");
+                        .HasColumnType("text");
 
                     b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("text")
-                        .HasColumnName("provider_display_name");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uuid");
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
@@ -106,12 +94,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("role_id");
+                        .HasColumnType("uuid");
 
                     b.HasKey("UserId", "RoleId");
 
@@ -123,20 +109,16 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("text")
-                        .HasColumnName("login_provider");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                        .HasColumnType("text");
 
                     b.Property<string>("Value")
-                        .HasColumnType("text")
-                        .HasColumnName("value");
+                        .HasColumnType("text");
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
@@ -147,126 +129,139 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("District")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("district");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("PricingRegionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("pricing_region_id");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Province")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("province");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PricingRegionId");
-
-                    b.HasIndex("Province", "District");
-
-                    b.ToTable("Area", (string)null);
+                    b.ToTable("Areas", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Action")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("action");
+                        .HasColumnType("text");
 
                     b.Property<long?>("ActorId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("actor_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("ActorRole")
-                        .HasColumnType("text")
-                        .HasColumnName("actor_role");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("EntityId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("entity_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("entity_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("IpAddress")
-                        .HasColumnType("text")
-                        .HasColumnName("ip_address");
+                        .HasColumnType("text");
 
                     b.Property<string>("NewValue")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("new_value");
+                        .HasColumnType("text");
 
                     b.Property<string>("OldValue")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("old_value");
+                        .HasColumnType("text");
 
                     b.Property<string>("UserAgent")
-                        .HasColumnType("text")
-                        .HasColumnName("user_agent");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("EntityType", "EntityId");
-
                     b.ToTable("AuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("MoveVN.Domain.Entities.AuthLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceInfo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FailReason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuthLogs", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.BlockedDate", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateOnly>("EndDate")
-                        .HasColumnType("date")
-                        .HasColumnName("end_date");
+                        .HasColumnType("date");
 
                     b.Property<string>("Reason")
-                        .HasColumnType("text")
-                        .HasColumnName("reason");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date")
-                        .HasColumnName("start_date");
+                        .HasColumnType("date");
 
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("VehicleId", "StartDate", "EndDate");
 
                     b.ToTable("BlockedDates", (string)null);
                 });
@@ -275,128 +270,88 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("BasePrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("base_price");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("BookingCode")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("booking_code");
+                        .HasColumnType("text");
 
                     b.Property<string>("CancelReason")
-                        .HasColumnType("text")
-                        .HasColumnName("cancel_reason");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("cancelled_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("CancelledBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("cancelled_by");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("CustomerId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("customer_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("CustomerNote")
-                        .HasColumnType("text")
-                        .HasColumnName("customer_note");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("DepositAmount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("deposit_amount");
+                        .HasColumnType("numeric");
 
                     b.Property<DateOnly>("EndDate")
-                        .HasColumnType("date")
-                        .HasColumnName("end_date");
+                        .HasColumnType("date");
 
                     b.Property<long>("OwnerId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("owner_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("PickupAddress")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("pickup_address");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("PlatformFee")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("platform_fee");
+                        .HasColumnType("numeric");
 
                     b.Property<long?>("PlatformFeeRuleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("platform_fee_rule_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("PlatformFeeType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("platform_fee_type");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("PlatformFeeValue")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("platform_fee_value");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("ReturnAddress")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("return_address");
+                        .HasColumnType("text");
 
                     b.Property<decimal?>("RiskScore")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("risk_score");
+                        .HasColumnType("numeric");
 
                     b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date")
-                        .HasColumnName("start_date");
+                        .HasColumnType("date");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("total_amount");
+                        .HasColumnType("numeric");
 
                     b.Property<int>("TotalDays")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_days");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingCode")
-                        .IsUnique();
-
-                    b.HasIndex("PlatformFeeRuleId");
-
-                    b.HasIndex("VehicleId");
-
-                    b.HasIndex("CustomerId", "VehicleId", "StartDate", "EndDate");
 
                     b.ToTable("Bookings", (string)null);
                 });
@@ -405,113 +360,90 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("ChangedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("changed_by");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FromStatus")
-                        .HasColumnType("text")
-                        .HasColumnName("from_status");
+                        .HasColumnType("text");
 
                     b.Property<string>("Note")
-                        .HasColumnType("text")
-                        .HasColumnName("note");
+                        .HasColumnType("text");
 
                     b.Property<string>("ToStatus")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("to_status");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId");
-
-                    b.ToTable("BookingStatusHistory", (string)null);
+                    b.ToTable("BookingStatusHistories", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.CarDetail", b =>
                 {
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("VehicleId"));
 
                     b.Property<string>("BodyType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("body_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("Drivetrain")
-                        .HasColumnType("text")
-                        .HasColumnName("drivetrain");
+                        .HasColumnType("text");
 
                     b.Property<string>("FuelType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("fuel_type");
+                        .HasColumnType("text");
 
                     b.Property<byte>("SeatCount")
-                        .HasColumnType("smallint")
-                        .HasColumnName("seat_count");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Transmission")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("transmission");
+                        .HasColumnType("text");
 
                     b.HasKey("VehicleId");
 
-                    b.ToTable("CarDetail", (string)null);
+                    b.ToTable("CarDetails", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.CashbackRule", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("CashbackPercent")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("cashback_percent");
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal>("MinDepositReduction")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("min_deposit_reduction");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("TrustTier")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("trust_tier");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TrustTier")
-                        .IsUnique();
 
                     b.ToTable("CashbackRules", (string)null);
                 });
@@ -520,40 +452,31 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ImageType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("image_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("image_url");
+                        .HasColumnType("text");
 
                     b.Property<long?>("InspectionId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("inspection_id");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("UploadedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("uploaded_by");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
 
                     b.ToTable("CheckInOutImages", (string)null);
                 });
@@ -562,47 +485,33 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("ContractNumber")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("contract_number");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CustomerSignatureData")
-                        .HasColumnType("text")
-                        .HasColumnName("customer_signature_data");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("CustomerSignedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("customer_signed_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("OwnerSignedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("owner_signed_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PdfUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("pdf_url");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId")
-                        .IsUnique();
-
-                    b.HasIndex("ContractNumber")
-                        .IsUnique();
 
                     b.ToTable("Contracts", (string)null);
                 });
@@ -611,47 +520,35 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Address")
-                        .HasColumnType("text")
-                        .HasColumnName("address");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly?>("DateOfBirth")
-                        .HasColumnType("date")
-                        .HasColumnName("date_of_birth");
+                        .HasColumnType("date");
 
                     b.Property<string>("DriverLicenseNumber")
-                        .HasColumnType("text")
-                        .HasColumnName("driver_license_number");
+                        .HasColumnType("text");
 
                     b.Property<bool>("DriverLicenseVerified")
-                        .HasColumnType("boolean")
-                        .HasColumnName("driver_license_verified");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("NationalId")
-                        .HasColumnType("text")
-                        .HasColumnName("national_id");
+                        .HasColumnType("text");
 
                     b.Property<bool>("NationalIdVerified")
-                        .HasColumnType("boolean")
-                        .HasColumnName("national_id_verified");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PreferredVehicleType")
-                        .HasColumnType("text")
-                        .HasColumnName("preferred_vehicle_type");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
 
                     b.ToTable("CustomerProfiles", (string)null);
                 });
@@ -660,42 +557,32 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("District")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("district");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly>("ForecastDate")
-                        .HasColumnType("date")
-                        .HasColumnName("forecast_date");
+                        .HasColumnType("date");
 
                     b.Property<string>("ModelVersion")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("model_version");
+                        .HasColumnType("text");
 
                     b.Property<int>("PredictedDemand")
-                        .HasColumnType("integer")
-                        .HasColumnName("predicted_demand");
+                        .HasColumnType("integer");
 
                     b.Property<string>("VehicleType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("vehicle_type");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("District", "VehicleType", "ForecastDate")
-                        .IsUnique();
 
                     b.ToTable("DemandForecasts", (string)null);
                 });
@@ -704,52 +591,39 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("AssignedStaffId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("assigned_staff_id");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<decimal?>("CompensationAmount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("compensation_amount");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("OpenedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("opened_by");
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("ReportId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("report_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Resolution")
-                        .HasColumnType("text")
-                        .HasColumnName("resolution");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("resolved_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId", "Status");
 
                     b.ToTable("Disputes", (string)null);
                 });
@@ -758,44 +632,33 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AllowedRoles")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("allowed_roles");
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.Property<string>("FlagKey")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("flag_key");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_enabled");
+                        .HasColumnType("boolean");
 
                     b.Property<byte>("RolloutPercent")
-                        .HasColumnType("smallint")
-                        .HasColumnName("rollout_percent");
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("UpdatedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("updated_by");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("FlagKey")
-                        .IsUnique();
 
                     b.ToTable("FeatureFlags", (string)null);
                 });
@@ -804,56 +667,42 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CustomerSignatureUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("customer_signature_url");
+                        .HasColumnType("text");
 
                     b.Property<string>("DamageDescription")
-                        .HasColumnType("text")
-                        .HasColumnName("damage_description");
+                        .HasColumnType("text");
 
                     b.Property<bool>("DamageNoted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("damage_noted");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("FuelLevel")
-                        .HasColumnType("text")
-                        .HasColumnName("fuel_level");
+                        .HasColumnType("text");
 
                     b.Property<int?>("OdometerKm")
-                        .HasColumnType("integer")
-                        .HasColumnName("odometer_km");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ReportPdfUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("report_pdf_url");
+                        .HasColumnType("text");
 
                     b.Property<long>("StaffId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("staff_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId", "Type")
-                        .IsUnique();
 
                     b.ToTable("InspectionReports", (string)null);
                 });
@@ -862,41 +711,31 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FeatureSnapshot")
                         .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("feature_snapshot");
+                        .HasColumnType("text");
 
                     b.Property<string>("ModelVersion")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("model_version");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("RiskScore")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("risk_score");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("TopRiskFactors")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("top_risk_factors");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
 
                     b.ToTable("MLPredictionLogs", (string)null);
                 });
@@ -904,81 +743,66 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("MoveVN.Domain.Entities.MotorbikeDetail", b =>
                 {
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("VehicleId"));
 
                     b.Property<string>("BikeType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("bike_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("EngineCapacity")
-                        .HasColumnType("text")
-                        .HasColumnName("engine_capacity");
+                        .HasColumnType("text");
 
                     b.HasKey("VehicleId");
 
-                    b.ToTable("MotorbikeDetail", (string)null);
+                    b.ToTable("MotorbikeDetails", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.Notification", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Body")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("body");
+                        .HasColumnType("text");
 
                     b.Property<string>("Channel")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("channel");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("DataJson")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("data_json");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsRead")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_read");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("read_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("SentAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("sent_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("title");
+                        .HasColumnType("text");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Type");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Notifications", (string)null);
                 });
@@ -987,47 +811,35 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<bool>("EmailEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("email_enabled");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("InAppEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("in_app_enabled");
+                        .HasColumnType("boolean");
 
                     b.Property<TimeOnly?>("QuietHoursEnd")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("quiet_hours_end");
+                        .HasColumnType("time without time zone");
 
                     b.Property<TimeOnly?>("QuietHoursStart")
-                        .HasColumnType("time without time zone")
-                        .HasColumnName("quiet_hours_start");
+                        .HasColumnType("time without time zone");
 
                     b.Property<bool>("SmsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("sms_enabled");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("ZaloEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("zalo_enabled");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
 
                     b.ToTable("NotificationPreferences", (string)null);
                 });
@@ -1036,59 +848,44 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<byte>("Attempts")
-                        .HasColumnType("smallint")
-                        .HasColumnName("attempts");
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("IpAddress")
-                        .HasColumnType("text")
-                        .HasColumnName("ip_address");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsUsed")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_used");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OtpCodeHash")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("otp_code_hash");
+                        .HasColumnType("text");
 
                     b.Property<string>("Purpose")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("purpose");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("used_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("Email", "Purpose", "ExpiresAt");
 
                     b.ToTable("OtpCodes", (string)null);
                 });
@@ -1097,50 +894,36 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal?>("AverageRating")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("average_rating");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("BankAccountNumber")
-                        .HasColumnType("text")
-                        .HasColumnName("bank_account_number");
+                        .HasColumnType("text");
 
                     b.Property<string>("BankName")
-                        .HasColumnType("text")
-                        .HasColumnName("bank_name");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("CommissionRate")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("commission_rate");
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsVerified")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_verified");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Tier")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tier");
+                        .HasColumnType("text");
 
                     b.Property<int>("TotalTrips")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_trips");
+                        .HasColumnType("integer");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
 
                     b.ToTable("OwnerProfiles", (string)null);
                 });
@@ -1149,74 +932,52 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("amount");
+                        .HasColumnType("numeric");
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("currency");
+                        .HasColumnType("text");
 
                     b.Property<string>("Gateway")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("gateway");
+                        .HasColumnType("text");
 
                     b.Property<string>("GatewayTransactionId")
-                        .HasColumnType("text")
-                        .HasColumnName("gateway_transaction_id");
+                        .HasColumnType("text");
 
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("idempotency_key");
+                        .HasColumnType("text");
 
                     b.Property<string>("Note")
-                        .HasColumnType("text")
-                        .HasColumnName("note");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("paid_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("PayerId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("payer_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("GatewayTransactionId")
-                        .IsUnique();
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique();
 
                     b.ToTable("Payments", (string)null);
                 });
@@ -1225,24 +986,18 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("code");
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
 
                     b.ToTable("Permissions", (string)null);
                 });
@@ -1251,72 +1006,53 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("EndAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FeeType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("fee_type");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("FeeValue")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("fee_value");
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal?>("MaxFee")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("max_fee");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal?>("MinFee")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("min_fee");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                        .HasColumnType("text");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("integer")
-                        .HasColumnName("priority");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("TargetId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("target_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("TargetType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("target_type");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TargetType", "TargetId", "Priority", "IsActive");
 
                     b.ToTable("PlatformFeeRules", (string)null);
                 });
@@ -1325,79 +1061,59 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("code");
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("PricingRegion", (string)null);
+                    b.ToTable("PricingRegions", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.PricingRule", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateOnly?>("EndDate")
-                        .HasColumnType("date")
-                        .HasColumnName("end_date");
+                        .HasColumnType("date");
 
                     b.Property<decimal?>("FixedPrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("fixed_price");
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal?>("Multiplier")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("multiplier");
+                        .HasColumnType("numeric");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("integer")
-                        .HasColumnName("priority");
+                        .HasColumnType("integer");
 
                     b.Property<string>("RuleType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("rule_type");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly?>("StartDate")
-                        .HasColumnType("date")
-                        .HasColumnName("start_date");
+                        .HasColumnType("date");
 
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("VehicleId", "IsActive");
 
                     b.ToTable("PricingRules", (string)null);
                 });
@@ -1406,42 +1122,30 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("DeviceInfo")
-                        .HasColumnType("text")
-                        .HasColumnName("device_info");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("revoked_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("token_hash");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId", "ExpiresAt");
 
                     b.ToTable("RefreshTokens", (string)null);
                 });
@@ -1450,45 +1154,35 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.Property<string>("EvidenceUrls")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("evidence_urls");
+                        .HasColumnType("text");
 
                     b.Property<string>("ReportType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("report_type");
+                        .HasColumnType("text");
 
                     b.Property<long>("ReporterId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("reporter_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId", "Status");
 
                     b.ToTable("Reports", (string)null);
                 });
@@ -1497,59 +1191,44 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<byte?>("AccuracyScore")
-                        .HasColumnType("smallint")
-                        .HasColumnName("accuracy_score");
+                        .HasColumnType("smallint");
 
                     b.Property<long>("BookingId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("booking_id");
+                        .HasColumnType("bigint");
 
                     b.Property<byte?>("CleanlinessScore")
-                        .HasColumnType("smallint")
-                        .HasColumnName("cleanliness_score");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Comment")
-                        .HasColumnType("text")
-                        .HasColumnName("comment");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsPublic")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_public");
+                        .HasColumnType("boolean");
 
                     b.Property<byte>("Rating")
-                        .HasColumnType("smallint")
-                        .HasColumnName("rating");
+                        .HasColumnType("smallint");
 
                     b.Property<long>("RevieweeId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("reviewee_id");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("ReviewerId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("reviewer_id");
+                        .HasColumnType("bigint");
 
                     b.Property<byte?>("SupportScore")
-                        .HasColumnType("smallint")
-                        .HasColumnName("support_score");
+                        .HasColumnType("smallint");
 
                     b.Property<long?>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId", "ReviewerId")
-                        .IsUnique();
 
                     b.ToTable("Reviews", (string)null);
                 });
@@ -1558,24 +1237,18 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Roles", (string)null);
                 });
@@ -1583,16 +1256,12 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("MoveVN.Domain.Entities.RolePermission", b =>
                 {
                     b.Property<int>("RoleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("role_id");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PermissionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("permission_id");
+                        .HasColumnType("integer");
 
                     b.HasKey("RoleId", "PermissionId");
-
-                    b.HasIndex("PermissionId");
 
                     b.ToTable("RolePermissions", (string)null);
                 });
@@ -1601,35 +1270,24 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Department")
-                        .HasColumnType("text")
-                        .HasColumnName("department");
+                        .HasColumnType("text");
 
                     b.Property<string>("EmployeeCode")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("employee_code");
+                        .HasColumnType("text");
 
                     b.Property<long?>("SupervisorId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("supervisor_id");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("EmployeeCode")
-                        .IsUnique();
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
 
                     b.ToTable("StaffProfiles", (string)null);
                 });
@@ -1638,60 +1296,43 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("AssignedStaffId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("assigned_staff_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Category")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("category");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Priority")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("priority");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("resolved_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.Property<string>("Subject")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("subject");
+                        .HasColumnType("text");
 
                     b.Property<string>("TicketNumber")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("ticket_number");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("TicketNumber")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("SupportTickets", (string)null);
                 });
@@ -1700,79 +1341,61 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ConfigKey")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("config_key");
+                        .HasColumnType("text");
 
                     b.Property<string>("ConfigValue")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("config_value");
+                        .HasColumnType("text");
 
                     b.Property<string>("DataType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("data_type");
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("UpdatedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("updated_by");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConfigKey")
-                        .IsUnique();
-
-                    b.ToTable("SystemConfig", (string)null);
+                    b.ToTable("SystemConfigs", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.TicketMessage", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AttachmentUrls")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("attachment_urls");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Message")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("message");
+                        .HasColumnType("text");
 
                     b.Property<long>("SenderId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("sender_id");
+                        .HasColumnType("bigint");
 
                     b.Property<long>("TicketId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ticket_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TicketId");
 
                     b.ToTable("TicketMessages", (string)null);
                 });
@@ -1781,50 +1404,36 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal?>("AverageRating")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("average_rating");
+                        .HasColumnType("numeric");
 
                     b.Property<int>("CancellationCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("cancellation_count");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CompletedTrips")
-                        .HasColumnType("integer")
-                        .HasColumnName("completed_trips");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("LastCalculatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_calculated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ReportCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("report_count");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Score")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("score");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Tier")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tier");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
 
                     b.ToTable("TrustScores", (string)null);
                 });
@@ -1833,74 +1442,51 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AvatarUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("avatar_url");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
+                        .HasColumnType("text");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("full_name");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsEmailVerified")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_email_verified");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsOnline")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_online");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_login_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LastSeenAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_seen_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("password_hash");
+                        .HasColumnType("text");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("text")
-                        .HasColumnName("phone");
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("LastSeenAt");
-
-                    b.HasIndex("Phone")
-                        .IsUnique();
-
-                    b.HasIndex("Status");
 
                     b.ToTable("Users", (string)null);
                 });
@@ -1909,33 +1495,23 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("assigned_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("AssignedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("assigned_by");
+                        .HasColumnType("bigint");
 
                     b.Property<int>("RoleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("role_id");
+                        .HasColumnType("integer");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("UserId", "RoleId")
-                        .IsUnique();
 
                     b.ToTable("UserRoles", (string)null);
                 });
@@ -1944,50 +1520,36 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("ConnectedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("connected_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ConnectionId")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("connection_id");
+                        .HasColumnType("text");
 
                     b.Property<string>("DeviceType")
-                        .HasColumnType("text")
-                        .HasColumnName("device_type");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("DisconnectedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("disconnected_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("IpAddress")
-                        .HasColumnType("text")
-                        .HasColumnName("ip_address");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("LastHeartbeatAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_heartbeat_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserAgent")
-                        .HasColumnType("text")
-                        .HasColumnName("user_agent");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ConnectionId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId", "LastHeartbeatAt");
 
                     b.ToTable("UserSessions", (string)null);
                 });
@@ -1996,89 +1558,59 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("address");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("approved_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("ApprovedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("approved_by");
+                        .HasColumnType("bigint");
 
                     b.Property<int>("BrandId")
-                        .HasColumnType("integer")
-                        .HasColumnName("brand_id");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                        .HasColumnType("text");
 
                     b.Property<decimal?>("Latitude")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("latitude");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("LicensePlate")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("license_plate");
+                        .HasColumnType("text");
 
                     b.Property<decimal?>("Longitude")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("longitude");
+                        .HasColumnType("numeric");
 
                     b.Property<int>("ModelId")
-                        .HasColumnType("integer")
-                        .HasColumnName("model_id");
+                        .HasColumnType("integer");
 
                     b.Property<long>("OwnerId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("owner_id");
+                        .HasColumnType("bigint");
 
                     b.Property<decimal>("PricePerDay")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("price_per_day");
+                        .HasColumnType("numeric");
 
                     b.Property<string>("RejectionReason")
-                        .HasColumnType("text")
-                        .HasColumnName("rejection_reason");
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.Property<short>("Year")
-                        .HasColumnType("smallint")
-                        .HasColumnName("year");
+                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BrandId");
-
-                    b.HasIndex("LicensePlate")
-                        .IsUnique();
-
-                    b.HasIndex("ModelId");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("Status");
 
                     b.ToTable("Vehicles", (string)null);
                 });
@@ -2087,71 +1619,55 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                        .HasColumnType("text");
 
                     b.Property<string>("VehicleType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("vehicle_type");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("VehicleBrand", (string)null);
+                    b.ToTable("VehicleBrands", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VehicleDocument", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("DocType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("doc_type");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly?>("ExpiryDate")
-                        .HasColumnType("date")
-                        .HasColumnName("expiry_date");
+                        .HasColumnType("date");
 
                     b.Property<string>("FileUrl")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("file_url");
+                        .HasColumnType("text");
 
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("Verified")
-                        .HasColumnType("boolean")
-                        .HasColumnName("verified");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("VehicleId");
 
                     b.ToTable("VehicleDocuments", (string)null);
                 });
@@ -2160,83 +1676,64 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                        .HasColumnType("text");
 
                     b.Property<string>("VehicleType")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("vehicle_type");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name", "VehicleType")
-                        .IsUnique();
-
-                    b.ToTable("VehicleFeature", (string)null);
+                    b.ToTable("VehicleFeatures", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VehicleFeatureMapping", b =>
                 {
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.Property<int>("FeatureId")
-                        .HasColumnType("integer")
-                        .HasColumnName("feature_id");
+                        .HasColumnType("integer");
 
                     b.HasKey("VehicleId", "FeatureId");
 
-                    b.HasIndex("FeatureId");
-
-                    b.ToTable("VehicleFeatureMapping", (string)null);
+                    b.ToTable("VehicleFeatureMappings", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VehicleImage", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("image_url");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_primary");
+                        .HasColumnType("boolean");
 
                     b.Property<byte>("SortOrder")
-                        .HasColumnType("smallint")
-                        .HasColumnName("sort_order");
+                        .HasColumnType("smallint");
 
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("VehicleId");
 
                     b.ToTable("VehicleImages", (string)null);
                 });
@@ -2245,202 +1742,148 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BrandId")
-                        .HasColumnType("integer")
-                        .HasColumnName("brand_id");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BrandId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("VehicleModel", (string)null);
+                    b.ToTable("VehicleModels", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VehicleModelPricing", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("BasePrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("base_price");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("ModelId")
-                        .HasColumnType("integer")
-                        .HasColumnName("model_id");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PricingRegionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("pricing_region_id");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("SuggestedMaxPrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("suggested_max_price");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("SuggestedMinPrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("suggested_min_price");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<short>("YearFrom")
-                        .HasColumnType("smallint")
-                        .HasColumnName("year_from");
+                        .HasColumnType("smallint");
 
                     b.Property<short>("YearTo")
-                        .HasColumnType("smallint")
-                        .HasColumnName("year_to");
+                        .HasColumnType("smallint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PricingRegionId");
-
-                    b.HasIndex("ModelId", "PricingRegionId", "YearFrom", "YearTo");
-
-                    b.ToTable("VehicleModelPricing", (string)null);
+                    b.ToTable("VehicleModelPricings", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VehiclePricing", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal?>("AutoMaxPrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("auto_max_price");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal?>("AutoMinPrice")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("auto_min_price");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("CurrentPricePerDay")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("current_price_per_day");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal?>("FixedPricePerDay")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("fixed_price_per_day");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime?>("LastCalculatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_calculated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("LastUpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PricingMode")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("pricing_mode");
+                        .HasColumnType("text");
 
                     b.Property<long>("VehicleId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("vehicle_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VehicleId")
-                        .IsUnique();
-
-                    b.ToTable("VehiclePricing", (string)null);
+                    b.ToTable("VehiclePricings", (string)null);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VerificationRequest", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("BackImageUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("back_image_url");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FrontImageUrl")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("front_image_url");
+                        .HasColumnType("text");
 
                     b.Property<string>("RejectionReason")
-                        .HasColumnType("text")
-                        .HasColumnName("rejection_reason");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reviewed_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("ReviewedBy")
-                        .HasColumnType("bigint")
-                        .HasColumnName("reviewed_by");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("SelfieUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("selfie_url");
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnType("text");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
+                        .HasColumnType("text");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId", "Status");
 
                     b.ToTable("VerificationRequests", (string)null);
                 });
@@ -2449,38 +1892,26 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Balance")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("balance");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("TotalEarned")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("total_earned");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("TotalSpent")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("total_spent");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
 
                     b.ToTable("Wallets", (string)null);
                 });
@@ -2489,53 +1920,37 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
+                        .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("amount");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("BalanceAfter")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("balance_after");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("idempotency_key");
+                        .HasColumnType("text");
 
                     b.Property<string>("Note")
-                        .HasColumnType("text")
-                        .HasColumnName("note");
+                        .HasColumnType("text");
 
                     b.Property<long?>("ReferenceId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("reference_id");
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
+                        .HasColumnType("text");
 
                     b.Property<long>("WalletId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("wallet_id");
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique();
-
-                    b.HasIndex("WalletId");
 
                     b.ToTable("WalletTransactions", (string)null);
                 });
@@ -2544,23 +1959,19 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text")
-                        .HasColumnName("concurrency_stamp");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("name");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("normalized_name");
+                        .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
 
@@ -2575,78 +1986,61 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("AccessFailedCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("access_failed_count");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text")
-                        .HasColumnName("concurrency_stamp");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("email");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean")
-                        .HasColumnName("email_confirmed");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("full_name");
+                        .HasColumnType("text");
 
                     b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("lockout_enabled");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("lockout_end");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("normalized_email");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("normalized_user_name");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("PasswordHash")
-                        .HasColumnType("text")
-                        .HasColumnName("password_hash");
+                        .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("text")
-                        .HasColumnName("phone_number");
+                        .HasColumnType("text");
 
                     b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean")
-                        .HasColumnName("phone_number_confirmed");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SecurityStamp")
-                        .HasColumnType("text")
-                        .HasColumnName("security_stamp");
+                        .HasColumnType("text");
 
                     b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("two_factor_enabled");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("user_name");
+                        .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
 
@@ -2707,385 +2101,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.HasOne("MoveVN.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Area", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.PricingRegion", null)
-                        .WithMany()
-                        .HasForeignKey("PricingRegionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.BlockedDate", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Booking", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.PlatformFeeRule", null)
-                        .WithMany()
-                        .HasForeignKey("PlatformFeeRuleId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.BookingStatusHistory", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.CarDetail", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithOne()
-                        .HasForeignKey("MoveVN.Domain.Entities.CarDetail", "VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.CheckInOutImage", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Contract", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.CustomerProfile", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Dispute", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.InspectionReport", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.MotorbikeDetail", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithOne()
-                        .HasForeignKey("MoveVN.Domain.Entities.MotorbikeDetail", "VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Notification", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.NotificationPreference", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.OtpCode", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.OwnerProfile", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Payment", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.PricingRule", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.RefreshToken", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Report", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Review", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.RolePermission", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Permission", null)
-                        .WithMany()
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.Role", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.StaffProfile", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.SupportTicket", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.TicketMessage", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.SupportTicket", null)
-                        .WithMany()
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.TrustScore", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.UserRole", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Role", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.UserSession", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Vehicle", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.VehicleBrand", null)
-                        .WithMany()
-                        .HasForeignKey("BrandId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.VehicleModel", null)
-                        .WithMany()
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VehicleDocument", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VehicleFeatureMapping", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.VehicleFeature", null)
-                        .WithMany()
-                        .HasForeignKey("FeatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VehicleImage", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VehicleModel", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.VehicleBrand", null)
-                        .WithMany()
-                        .HasForeignKey("BrandId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VehicleModelPricing", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.VehicleModel", null)
-                        .WithMany()
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.PricingRegion", null)
-                        .WithMany()
-                        .HasForeignKey("PricingRegionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VehiclePricing", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Vehicle", null)
-                        .WithOne()
-                        .HasForeignKey("MoveVN.Domain.Entities.VehiclePricing", "VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.VerificationRequest", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.Wallet", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MoveVN.Domain.Entities.WalletTransaction", b =>
-                {
-                    b.HasOne("MoveVN.Domain.Entities.Wallet", null)
-                        .WithMany()
-                        .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
