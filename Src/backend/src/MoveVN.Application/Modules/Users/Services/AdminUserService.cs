@@ -41,4 +41,16 @@ public class AdminUserService : IAdminUserService
         _ = Task.Run(() => _auditLog.LogAsync(adminId, "Admin", $"UpdateUserStatus:{request.Status}",
             "User", userId, oldStatus, request.Status));
     }
+
+    public async Task UpdatePermissionsAsync(long userId, UpdateStaffPermissionsRequest request, long adminId, CancellationToken cancellationToken = default)
+    {
+        var user = await _repo.GetUserEntityAsync(userId, cancellationToken)
+            ?? throw new NotFoundException("NgÆ°á»i dÃ¹ng khÃ´ng tá»“n táº¡i.");
+
+        await _repo.ReplaceStaffPermissionsAsync(userId, request.Permissions, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        _ = Task.Run(() => _auditLog.LogAsync(adminId, "Admin", "UpdateStaffPermissions",
+            "User", user.Id, null, string.Join(",", request.Permissions)));
+    }
 }

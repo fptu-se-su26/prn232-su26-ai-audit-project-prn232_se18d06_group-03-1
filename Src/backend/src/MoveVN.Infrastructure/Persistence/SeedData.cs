@@ -18,6 +18,13 @@ public static class SeedData
         var roleManager = sp.GetRequiredService<RoleManager<ApplicationRole>>();
 
         var roleNames = new[] { "Guest", "Customer", "Owner", "Staff", "Admin" };
+        var permissionCodes = new[]
+        {
+            ("staff.verify", "Staff can review customer verification requests"),
+            ("staff.inspect", "Staff can perform vehicle inspections"),
+            ("staff.dispute", "Staff can process disputes"),
+            ("admin.dashboard", "Admin can view analytics dashboard")
+        };
 
         // Domain roles — check by name to avoid duplicate key on unique IX_Roles_name
         var anyDomainRoles = await db.Roles.AnyAsync();
@@ -47,6 +54,44 @@ public static class SeedData
                     throw new InvalidOperationException($"Failed to create role {roleNames[i]}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
         }
+
+        if (!await db.Permissions.AnyAsync())
+        {
+            var nextId = 1;
+            foreach (var (code, description) in permissionCodes)
+            {
+                db.Permissions.Add(new Permission
+                {
+                    Id = nextId++,
+                    Code = code,
+                    Description = description
+                });
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        var permissions = await db.Permissions.ToListAsync();
+        var staffRole = await db.Roles.FirstAsync(r => r.Name == "Staff");
+        var adminRole = await db.Roles.FirstAsync(r => r.Name == "Admin");
+
+        foreach (var permission in permissions)
+        {
+            if (!await db.RolePermissions.AnyAsync(x => x.RoleId == adminRole.Id && x.PermissionId == permission.Id))
+                db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permission.Id });
+        }
+
+        var staffDefaults = new[] { "staff.verify", "staff.inspect", "staff.dispute" };
+        foreach (var code in staffDefaults)
+        {
+            var permission = permissions.FirstOrDefault(x => x.Code == code);
+            if (permission is not null &&
+                !await db.RolePermissions.AnyAsync(x => x.RoleId == staffRole.Id && x.PermissionId == permission.Id))
+            {
+                db.RolePermissions.Add(new RolePermission { RoleId = staffRole.Id, PermissionId = permission.Id });
+            }
+        }
+        await db.SaveChangesAsync();
 
         var seedUsers = new (string Email, string Password, string FullName, int RoleId)[]
         {

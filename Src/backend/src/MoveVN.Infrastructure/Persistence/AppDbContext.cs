@@ -24,11 +24,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
     public DbSet<OwnerProfile> OwnerProfiles => Set<OwnerProfile>();
     public DbSet<StaffProfile> StaffProfiles => Set<StaffProfile>();
+    public DbSet<StaffPermission> StaffPermissions => Set<StaffPermission>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<AuthLog> AuthLogs => Set<AuthLog>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<TrustScore> TrustScores => Set<TrustScore>();
+    public DbSet<TrustScoreHistory> TrustScoreHistories => Set<TrustScoreHistory>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
 
     // ─── Vehicle tables ───────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<InspectionReport> InspectionReports => Set<InspectionReport>();
     public DbSet<CheckInOutImage> CheckInOutImages => Set<CheckInOutImage>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<Review> Reviews => Set<Review>();
 
@@ -85,6 +88,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         // Composite keys
         builder.Entity<VehicleFeatureMapping>().HasKey(x => new { x.VehicleId, x.FeatureId });
         builder.Entity<RolePermission>().HasKey(x => new { x.RoleId, x.PermissionId });
+        builder.Entity<StaffPermission>().HasKey(x => new { x.UserId, x.PermissionCode });
 
         // CarDetail / MotorbikeDetail use VehicleId as PK
         builder.Entity<CarDetail>().HasKey(x => x.VehicleId);

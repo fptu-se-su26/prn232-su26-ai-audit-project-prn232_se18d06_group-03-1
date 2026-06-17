@@ -9,6 +9,7 @@ public interface IUserRepository
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     void Update(User user);
     Task<IList<string>> GetRolesAsync(long userId, CancellationToken cancellationToken = default);
+    Task<IList<string>> GetPermissionCodesAsync(long userId, CancellationToken cancellationToken = default);
     Task AssignRoleAsync(long userId, int roleId, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -43,6 +43,24 @@ public class UserRepository : IUserRepository
         return roleNames;
     }
 
+    public async Task<IList<string>> GetPermissionCodesAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var rolePermissionCodes = await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Join(_context.RolePermissions, ur => ur.RoleId, rp => rp.RoleId, (_, rp) => rp.PermissionId)
+            .Join(_context.Permissions, id => id, p => p.Id, (_, p) => p.Code)
+            .ToListAsync(cancellationToken);
+
+        var staffPermissionCodes = await _context.StaffPermissions
+            .Where(sp => sp.UserId == userId)
+            .Select(sp => sp.PermissionCode)
+            .ToListAsync(cancellationToken);
+
+        return rolePermissionCodes.Concat(staffPermissionCodes)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     public async Task AssignRoleAsync(long userId, int roleId, CancellationToken cancellationToken = default)
     {
         var existing = await _context.UserRoles

@@ -14,6 +14,8 @@ public interface IDisputeService
 public interface ISupportTicketService
 {
     Task<SupportTicketDto> CreateAsync(CreateTicketRequest request, long userId, CancellationToken cancellationToken = default);
+    Task<PagedResult<SupportTicketDto>> GetMyTicketsAsync(long userId, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<SupportTicketDetailDto> GetByIdAsync(long ticketId, CancellationToken cancellationToken = default);
     Task<TicketMessageDto> ReplyAsync(long ticketId, SendTicketMessageRequest request, long senderId, CancellationToken cancellationToken = default);
     Task<PagedResult<SupportTicketDto>> GetQueueAsync(int page, int pageSize, CancellationToken cancellationToken = default);
     Task<List<TicketMessageDto>> GetMessagesAsync(long ticketId, CancellationToken cancellationToken = default);

@@ -47,6 +47,8 @@ public class DashboardKpiDto
     public int BookingsToday { get; set; }
     public decimal GmvThisMonth { get; set; }
     public double DisputeRate { get; set; }
+    public int HighRiskBookings { get; set; }
+    public decimal HighRiskRatio { get; set; }
     public List<DailyBookingDto> DailyBookings { get; set; } = new();
 }
 
@@ -64,6 +66,18 @@ public class TrustScoreDto
     public string Tier { get; set; } = string.Empty;
     public int CompletedTrips { get; set; }
     public int CancellationCount { get; set; }
+    public int ReportCount { get; set; }
     public decimal? AverageRating { get; set; }
     public DateTime LastCalculatedAt { get; set; }
+}
+
+public class TrustScoreHistoryDto
+{
+    public decimal Score { get; set; }
+    public string Tier { get; set; } = string.Empty;
+    public int CompletedTrips { get; set; }
+    public int CancellationCount { get; set; }
+    public int ReportCount { get; set; }
+    public decimal? AverageRating { get; set; }
+    public DateTime CalculatedAt { get; set; }
 }

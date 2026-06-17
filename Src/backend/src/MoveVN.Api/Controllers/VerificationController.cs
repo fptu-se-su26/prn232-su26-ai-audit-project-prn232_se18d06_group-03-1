@@ -32,12 +32,14 @@ public class VerificationController : BaseApiController
 
     [Authorize]
     [HttpGet("my")]
-    public async Task<ActionResult<ApiResponse<object>>> GetMyVerifications(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<List<VerificationDto>>>> GetMyVerifications(CancellationToken cancellationToken)
     {
-        return Ok(ApiResponse<object>.Succeeded(null));
+        var userId = _currentUser.DomainUserId!.Value;
+        var result = await _verificationService.GetByUserAsync(userId, cancellationToken);
+        return Ok(ApiResponse<List<VerificationDto>>.Succeeded(result));
     }
 
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Policy = "staff.verify")]
     [HttpGet("queue")]
     public async Task<ActionResult<ApiResponse<PagedResult<VerificationDto>>>> GetQueue(
         [FromQuery] int page = 1,
@@ -48,7 +50,7 @@ public class VerificationController : BaseApiController
         return Ok(ApiResponse<PagedResult<VerificationDto>>.Succeeded(result));
     }
 
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Policy = "staff.verify")]
     [HttpPut("{id:long}/approve")]
     public async Task<ActionResult<ApiResponse<VerificationDto>>> Approve(
         long id,
@@ -60,7 +62,7 @@ public class VerificationController : BaseApiController
         return Ok(ApiResponse<VerificationDto>.Succeeded(result, "Verification approved."));
     }
 
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Policy = "staff.verify")]
     [HttpPut("{id:long}/reject")]
     public async Task<ActionResult<ApiResponse<VerificationDto>>> Reject(
         long id,

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MoveVN.Api.Controllers;
 
-[Authorize(Roles = "Staff,Admin")]
+[Authorize(Policy = "staff.inspect")]
 [Route("api/staff/vehicles")]
 public class StaffVehiclesController : BaseApiController
 {

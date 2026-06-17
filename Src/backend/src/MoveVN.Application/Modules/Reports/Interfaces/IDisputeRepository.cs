@@ -8,6 +8,8 @@ public interface IDisputeRepository
 {
     Task<Dispute?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task AddAsync(Dispute dispute, CancellationToken cancellationToken = default);
+    Task AddEvidenceAsync(DisputeEvidence evidence, CancellationToken cancellationToken = default);
+    Task<List<string>> GetEvidenceUrlsAsync(long disputeId, CancellationToken cancellationToken = default);
     void Update(Dispute dispute);
     Task<Booking?> GetBookingAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<PagedResult<DisputeResponse>> GetPagedAsync(string? status, int page, int pageSize, CancellationToken cancellationToken = default);

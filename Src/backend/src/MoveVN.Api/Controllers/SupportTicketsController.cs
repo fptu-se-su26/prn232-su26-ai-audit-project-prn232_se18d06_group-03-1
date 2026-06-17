@@ -36,17 +36,29 @@ public class SupportTicketsController : BaseApiController
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        var userId = _currentUser.DomainUserId!.Value;
+        var result = await _supportTicketService.GetMyTicketsAsync(userId, page, pageSize, cancellationToken);
+        return Ok(ApiResponse<PagedResult<SupportTicketDto>>.Succeeded(result));
+    }
+
+    [Authorize(Policy = "staff.verify")]
+    [HttpGet("queue")]
+    public async Task<ActionResult<ApiResponse<PagedResult<SupportTicketDto>>>> GetQueue(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
         var result = await _supportTicketService.GetQueueAsync(page, pageSize, cancellationToken);
         return Ok(ApiResponse<PagedResult<SupportTicketDto>>.Succeeded(result));
     }
 
     [HttpGet("{id:long}")]
-    public async Task<ActionResult<ApiResponse<object>>> GetById(
+    public async Task<ActionResult<ApiResponse<SupportTicketDetailDto>>> GetById(
         long id,
         CancellationToken cancellationToken)
     {
-        var messages = await _supportTicketService.GetMessagesAsync(id, cancellationToken);
-        return Ok(ApiResponse<object>.Succeeded(new { messages }));
+        var result = await _supportTicketService.GetByIdAsync(id, cancellationToken);
+        return Ok(ApiResponse<SupportTicketDetailDto>.Succeeded(result));
     }
 
     [HttpPost("{id:long}/messages")]

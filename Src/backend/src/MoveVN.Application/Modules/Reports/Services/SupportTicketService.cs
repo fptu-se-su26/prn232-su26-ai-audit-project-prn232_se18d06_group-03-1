@@ -86,9 +86,20 @@ public class SupportTicketService : ISupportTicketService
         return new TicketMessageDto { Id = msg.Id, SenderId = msg.SenderId, Message = msg.Message, CreatedAt = msg.CreatedAt };
     }
 
+    public async Task<PagedResult<SupportTicketDto>> GetMyTicketsAsync(long userId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        return await _repo.GetByUserAsync(userId, page, pageSize, cancellationToken);
+    }
+
     public async Task<PagedResult<SupportTicketDto>> GetQueueAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
         return await _repo.GetQueueAsync(page, pageSize, cancellationToken);
+    }
+
+    public async Task<SupportTicketDetailDto> GetByIdAsync(long ticketId, CancellationToken cancellationToken = default)
+    {
+        return await _repo.GetDetailAsync(ticketId, cancellationToken)
+            ?? throw new NotFoundException("Ticket khÃ´ng tá»“n táº¡i.");
     }
 
     public async Task<List<TicketMessageDto>> GetMessagesAsync(long ticketId, CancellationToken cancellationToken = default)

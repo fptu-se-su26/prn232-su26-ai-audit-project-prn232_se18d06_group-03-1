@@ -5,6 +5,7 @@ using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
+using MoveVN.Application.Modules.System.DTOs;
 using MoveVN.Application.Modules.System.Interfaces;
 using MoveVN.Domain.Entities;
 
@@ -16,38 +17,45 @@ public class BookingService : IBookingService
     private readonly INotificationService _notifications;
     private readonly IAuditLogService _auditLog;
     private readonly ISystemConfigService _config;
+    private readonly ITrustScoreService _trustScoreService;
+    private readonly IRiskScoringService _riskScoringService;
 
     public BookingService(
         IBookingRepository repo,
         INotificationService notifications,
         IAuditLogService auditLog,
-        ISystemConfigService config)
+        ISystemConfigService config,
+        ITrustScoreService trustScoreService,
+        IRiskScoringService riskScoringService)
     {
         _repo = repo;
         _notifications = notifications;
         _auditLog = auditLog;
         _config = config;
+        _trustScoreService = trustScoreService;
+        _riskScoringService = riskScoringService;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
     {
         if (request.EndDate <= request.StartDate)
-            throw new ValidationException(new[] { "Ngày trả phải sau ngày nhận." });
+            throw new ValidationException(new[] { "Return date must be after pickup date." });
 
-        // Check overlap – atomic
         var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, cancellationToken);
         if (hasOverlap)
-            throw new ValidationException(new[] { "Xe đã được đặt trong khoảng thời gian này." });
+            throw new ValidationException(new[] { "Vehicle is already booked in this time range." });
 
-        // Compute fees from SystemConfig
         var platformFeeRate = await _config.GetValueAsync("platform_fee_pct", 10m, cancellationToken);
-        var depositRate = await _config.GetValueAsync("deposit_rate_pct", 30m, cancellationToken);
+        var defaultDepositRate = await _config.GetValueAsync("deposit_rate_pct", 30m, cancellationToken);
 
         var vehicle = await _repo.GetVehicleAsync(request.VehicleId, cancellationToken)
-            ?? throw new NotFoundException("Xe không tồn tại.");
+            ?? throw new NotFoundException("Vehicle not found.");
 
         if (vehicle.Status != "Available")
-            throw new ValidationException(new[] { "Xe không có sẵn để đặt." });
+            throw new ValidationException(new[] { "Vehicle is not available for booking." });
+
+        var trustScore = await _trustScoreService.GetByUserAsync(customerId, cancellationToken);
+        var depositRate = (trustScore?.Score ?? 0) >= 80 ? 20m : defaultDepositRate;
 
         int totalDays = request.EndDate.DayNumber - request.StartDate.DayNumber;
         decimal basePrice = vehicle.PricePerDay * totalDays;
@@ -77,25 +85,32 @@ public class BookingService : IBookingService
         };
 
         await _repo.AddAsync(booking, cancellationToken);
-
-        var history = new BookingStatusHistory
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
         {
             BookingId = booking.Id,
             FromStatus = null,
             ToStatus = "Pending",
             ChangedBy = customerId,
-            Note = "Booking tạo mới"
-        };
-        await _repo.AddStatusHistoryAsync(history, cancellationToken);
+            Note = "Booking created"
+        }, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
-        // Notify owner
+        await _riskScoringService.PredictAndLogAsync(new RiskPredictionRequest
+        {
+            BookingId = booking.Id,
+            UserId = customerId,
+            TrustScore = trustScore?.Score,
+            CancelCount = trustScore?.CancellationCount ?? 0,
+            DurationDays = totalDays,
+            VehicleValue = basePrice
+        }, cancellationToken);
+
         _ = Task.Run(() => _notifications.SendAsync(new CreateNotificationRequest
         {
             UserId = vehicle.OwnerId,
             Type = "NewBooking",
-            Title = "Booking mới",
-            Body = $"Bạn có booking mới #{booking.BookingCode} từ {request.StartDate:dd/MM} đến {request.EndDate:dd/MM}."
+            Title = "New booking received",
+            Body = $"Booking #{booking.BookingCode} is waiting for your approval."
         }));
 
         return await MapAsync(booking, cancellationToken);
@@ -104,13 +119,13 @@ public class BookingService : IBookingService
     public async Task<BookingResponse> ApproveAsync(long bookingId, long ownerId, ApproveBookingRequest request, CancellationToken cancellationToken = default)
     {
         var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
-            ?? throw new NotFoundException("Booking không tồn tại.");
+            ?? throw new NotFoundException("Booking not found.");
 
         if (booking.OwnerId != ownerId)
-            throw new ValidationException(new[] { "Bạn không có quyền xử lý booking này." });
+            throw new ValidationException(new[] { "You do not have permission to approve this booking." });
 
         if (booking.Status != "Pending")
-            throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
+            throw new ValidationException(new[] { "Booking is not pending approval." });
 
         var oldStatus = booking.Status;
         booking.Status = request.Approve ? "Approved" : "OwnerRejected";
@@ -128,15 +143,14 @@ public class BookingService : IBookingService
         }, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
-        // Notify customer
         _ = Task.Run(() => _notifications.SendAsync(new CreateNotificationRequest
         {
             UserId = booking.CustomerId,
             Type = request.Approve ? "BookingApproved" : "BookingRejected",
-            Title = request.Approve ? "Booking được chấp nhận" : "Booking bị từ chối",
+            Title = request.Approve ? "Booking approved" : "Booking rejected",
             Body = request.Approve
-                ? $"Booking #{booking.BookingCode} đã được Owner chấp nhận. Vui lòng thanh toán cọc."
-                : $"Booking #{booking.BookingCode} bị từ chối. Lý do: {request.Reason}"
+                ? $"Booking #{booking.BookingCode} was approved. Please pay the deposit."
+                : $"Booking #{booking.BookingCode} was rejected. Reason: {request.Reason}"
         }));
 
         return await MapAsync(booking, cancellationToken);
@@ -145,19 +159,15 @@ public class BookingService : IBookingService
     public async Task<BookingResponse> GetByIdAsync(long bookingId, CancellationToken cancellationToken = default)
     {
         var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
-            ?? throw new NotFoundException("Booking không tồn tại.");
+            ?? throw new NotFoundException("Booking not found.");
         return await MapAsync(booking, cancellationToken);
     }
 
-    public async Task<PagedResult<BookingResponse>> GetMyBookingsAsync(long userId, BookingQueryRequest request, CancellationToken cancellationToken = default)
-    {
-        return await _repo.GetByCustomerPagedAsync(userId, request, cancellationToken);
-    }
+    public Task<PagedResult<BookingResponse>> GetMyBookingsAsync(long userId, BookingQueryRequest request, CancellationToken cancellationToken = default)
+        => _repo.GetByCustomerPagedAsync(userId, request, cancellationToken);
 
-    public async Task<PagedResult<BookingResponse>> GetOwnerBookingsAsync(long vehicleId, long ownerId, BookingQueryRequest request, CancellationToken cancellationToken = default)
-    {
-        return await _repo.GetByVehiclePagedAsync(vehicleId, ownerId, request, cancellationToken);
-    }
+    public Task<PagedResult<BookingResponse>> GetOwnerBookingsAsync(long vehicleId, long ownerId, BookingQueryRequest request, CancellationToken cancellationToken = default)
+        => _repo.GetByVehiclePagedAsync(vehicleId, ownerId, request, cancellationToken);
 
     public async Task AutoCancelExpiredAsync(CancellationToken cancellationToken = default)
     {
@@ -168,7 +178,7 @@ public class BookingService : IBookingService
         foreach (var booking in expired)
         {
             booking.Status = "AutoCancelled";
-            booking.CancelReason = "Tự động hủy do hết thời gian chờ duyệt.";
+            booking.CancelReason = "Automatically cancelled after approval timeout.";
             booking.CancelledAt = DateTime.UtcNow;
             _repo.Update(booking);
 
@@ -184,26 +194,15 @@ public class BookingService : IBookingService
             {
                 UserId = booking.CustomerId,
                 Type = "BookingAutoCancelled",
-                Title = "Booking đã bị hủy tự động",
-                Body = $"Booking #{booking.BookingCode} đã bị hủy do hết thời gian chờ Owner duyệt."
+                Title = "Booking auto-cancelled",
+                Body = $"Booking #{booking.BookingCode} expired while waiting for owner approval."
             }));
 
-            _ = Task.Run(() => _notifications.SendAsync(new CreateNotificationRequest
-            {
-                UserId = booking.OwnerId,
-                Type = "BookingAutoCancelled",
-                Title = "Booking đã bị hủy tự động",
-                Body = $"Booking #{booking.BookingCode} đã hết hạn chờ duyệt và bị hủy tự động."
-            }));
-
-            _ = Task.Run(() => _auditLog.LogAsync(null, "System", "AutoCancelBooking", "Booking", booking.Id,
-                "Pending", "AutoCancelled"));
+            _ = Task.Run(() => _auditLog.LogAsync(null, "System", "AutoCancelBooking", "Booking", booking.Id, "Pending", "AutoCancelled"));
         }
 
         await _repo.SaveChangesAsync(cancellationToken);
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static string GenerateCode()
     {
@@ -211,34 +210,34 @@ public class BookingService : IBookingService
         return $"BK{now:yyyyMMdd}{Random.Shared.Next(1000, 9999)}";
     }
 
-    private async Task<BookingResponse> MapAsync(Booking b, CancellationToken cancellationToken)
+    private async Task<BookingResponse> MapAsync(Booking booking, CancellationToken cancellationToken)
     {
-        var history = await _repo.GetStatusHistoryAsync(b.Id, cancellationToken);
-        var vehicle = await _repo.GetVehicleAsync(b.VehicleId, cancellationToken);
-        var contract = await _repo.GetContractUrlAsync(b.Id, cancellationToken);
+        var history = await _repo.GetStatusHistoryAsync(booking.Id, cancellationToken);
+        var vehicle = await _repo.GetVehicleAsync(booking.VehicleId, cancellationToken);
+        var contract = await _repo.GetContractUrlAsync(booking.Id, cancellationToken);
 
         return new BookingResponse
         {
-            Id = b.Id,
-            BookingCode = b.BookingCode,
-            CustomerId = b.CustomerId,
-            VehicleId = b.VehicleId,
-            VehicleName = vehicle is null ? "" : $"{vehicle.BrandId} {vehicle.Year}",
-            OwnerId = b.OwnerId,
-            StartDate = b.StartDate,
-            EndDate = b.EndDate,
-            TotalDays = b.TotalDays,
-            BasePrice = b.BasePrice,
-            PlatformFee = b.PlatformFee,
-            DepositAmount = b.DepositAmount,
-            TotalAmount = b.TotalAmount,
-            PickupAddress = b.PickupAddress,
-            CustomerNote = b.CustomerNote,
-            Status = b.Status,
-            RiskScore = b.RiskScore,
-            CancelReason = b.CancelReason,
+            Id = booking.Id,
+            BookingCode = booking.BookingCode,
+            CustomerId = booking.CustomerId,
+            VehicleId = booking.VehicleId,
+            VehicleName = vehicle is null ? string.Empty : $"{vehicle.BrandId} {vehicle.Year}",
+            OwnerId = booking.OwnerId,
+            StartDate = booking.StartDate,
+            EndDate = booking.EndDate,
+            TotalDays = booking.TotalDays,
+            BasePrice = booking.BasePrice,
+            PlatformFee = booking.PlatformFee,
+            DepositAmount = booking.DepositAmount,
+            TotalAmount = booking.TotalAmount,
+            PickupAddress = booking.PickupAddress,
+            CustomerNote = booking.CustomerNote,
+            Status = booking.Status,
+            RiskScore = booking.RiskScore,
+            CancelReason = booking.CancelReason,
             ContractUrl = contract,
-            CreatedAt = b.CreatedAt,
+            CreatedAt = booking.CreatedAt,
             StatusHistory = history
         };
     }

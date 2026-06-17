@@ -46,7 +46,20 @@ public class VehicleRepository : IVehicleRepository
         var query = _context.Vehicles.Where(v => v.Status == "Available").AsQueryable();
         var total = await query.CountAsync(ct);
         var items = await query.Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
-            .Select(v => new VehicleResponse { Id = v.Id }).ToListAsync(ct);
+            .Select(v => new VehicleResponse
+            {
+                Id = v.Id,
+                OwnerId = v.OwnerId,
+                LicensePlate = v.LicensePlate,
+                BrandId = v.BrandId,
+                ModelId = v.ModelId,
+                Year = v.Year,
+                Description = v.Description,
+                Address = v.Address,
+                PricePerDay = v.PricePerDay,
+                Status = v.Status,
+                CreatedAt = v.CreatedAt
+            }).ToListAsync(ct);
         return PagedResult<VehicleResponse>.Create(items, total, request.Page, request.PageSize);
     }
 
@@ -55,7 +68,20 @@ public class VehicleRepository : IVehicleRepository
         var query = _context.Vehicles.Where(v => v.Status == status).AsQueryable();
         var total = await query.CountAsync(ct);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(v => new VehicleResponse { Id = v.Id }).ToListAsync(ct);
+            .Select(v => new VehicleResponse
+            {
+                Id = v.Id,
+                OwnerId = v.OwnerId,
+                LicensePlate = v.LicensePlate,
+                BrandId = v.BrandId,
+                ModelId = v.ModelId,
+                Year = v.Year,
+                Description = v.Description,
+                Address = v.Address,
+                PricePerDay = v.PricePerDay,
+                Status = v.Status,
+                CreatedAt = v.CreatedAt
+            }).ToListAsync(ct);
         return PagedResult<VehicleResponse>.Create(items, total, page, pageSize);
     }
 

@@ -21,8 +21,11 @@ public class DisputeResponse
     public long OpenedBy { get; set; }
     public long? AssignedStaffId { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public string? Resolution { get; set; }
     public decimal? CompensationAmount { get; set; }
+    public List<string> EvidenceUrls { get; set; } = new();
+    public List<string> Timeline { get; set; } = new();
     public DateTime? ResolvedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -30,12 +33,19 @@ public class DisputeResponse
 public class SupportTicketDto
 {
     public long Id { get; set; }
+    public long UserId { get; set; }
     public string TicketNumber { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public long? AssignedStaffId { get; set; }
     public string Priority { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+}
+
+public class SupportTicketDetailDto : SupportTicketDto
+{
+    public List<TicketMessageDto> Messages { get; set; } = new();
 }
 
 public class CreateTicketRequest

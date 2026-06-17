@@ -39,19 +39,62 @@ public class BookingRepository : IBookingRepository
 
     public async Task<PagedResult<BookingResponse>> GetByCustomerPagedAsync(long customerId, BookingQueryRequest request, CancellationToken ct = default)
     {
-        var query = _context.Bookings.Where(b => b.CustomerId == customerId).AsQueryable();
+        var query = _context.Bookings.Where(b => b.CustomerId == customerId).OrderByDescending(b => b.CreatedAt).AsQueryable();
         var total = await query.CountAsync(ct);
         var items = await query.Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
-            .Select(b => new BookingResponse { Id = b.Id }).ToListAsync(ct);
+            .Select(b => new BookingResponse
+            {
+                Id = b.Id,
+                BookingCode = b.BookingCode,
+                CustomerId = b.CustomerId,
+                VehicleId = b.VehicleId,
+                OwnerId = b.OwnerId,
+                StartDate = b.StartDate,
+                EndDate = b.EndDate,
+                TotalDays = b.TotalDays,
+                BasePrice = b.BasePrice,
+                PlatformFee = b.PlatformFee,
+                DepositAmount = b.DepositAmount,
+                TotalAmount = b.TotalAmount,
+                PickupAddress = b.PickupAddress,
+                CustomerNote = b.CustomerNote,
+                Status = b.Status,
+                RiskScore = b.RiskScore,
+                CancelReason = b.CancelReason,
+                CreatedAt = b.CreatedAt
+            }).ToListAsync(ct);
         return PagedResult<BookingResponse>.Create(items, total, request.Page, request.PageSize);
     }
 
     public async Task<PagedResult<BookingResponse>> GetByVehiclePagedAsync(long vehicleId, long ownerId, BookingQueryRequest request, CancellationToken ct = default)
     {
-        var query = _context.Bookings.Where(b => b.VehicleId == vehicleId).AsQueryable();
+        var query = _context.Bookings
+            .Where(b => b.VehicleId == vehicleId && b.OwnerId == ownerId)
+            .OrderByDescending(b => b.CreatedAt)
+            .AsQueryable();
         var total = await query.CountAsync(ct);
         var items = await query.Skip((request.Page - 1) * request.PageSize).Take(request.PageSize)
-            .Select(b => new BookingResponse { Id = b.Id }).ToListAsync(ct);
+            .Select(b => new BookingResponse
+            {
+                Id = b.Id,
+                BookingCode = b.BookingCode,
+                CustomerId = b.CustomerId,
+                VehicleId = b.VehicleId,
+                OwnerId = b.OwnerId,
+                StartDate = b.StartDate,
+                EndDate = b.EndDate,
+                TotalDays = b.TotalDays,
+                BasePrice = b.BasePrice,
+                PlatformFee = b.PlatformFee,
+                DepositAmount = b.DepositAmount,
+                TotalAmount = b.TotalAmount,
+                PickupAddress = b.PickupAddress,
+                CustomerNote = b.CustomerNote,
+                Status = b.Status,
+                RiskScore = b.RiskScore,
+                CancelReason = b.CancelReason,
+                CreatedAt = b.CreatedAt
+            }).ToListAsync(ct);
         return PagedResult<BookingResponse>.Create(items, total, request.Page, request.PageSize);
     }
 

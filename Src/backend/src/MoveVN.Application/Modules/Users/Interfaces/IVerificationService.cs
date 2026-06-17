@@ -8,4 +8,5 @@ public interface IVerificationService
     Task<VerificationDto> SubmitAsync(CreateVerificationRequest request, long userId, CancellationToken cancellationToken = default);
     Task<VerificationDto> ReviewAsync(long verificationId, long staffId, ReviewVerificationRequest request, CancellationToken cancellationToken = default);
     Task<PagedResult<VerificationDto>> GetPendingQueueAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<List<VerificationDto>> GetByUserAsync(long userId, CancellationToken cancellationToken = default);
 }

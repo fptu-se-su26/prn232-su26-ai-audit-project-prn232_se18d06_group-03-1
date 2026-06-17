@@ -67,6 +67,18 @@ public class AdminController : BaseApiController
         return Ok(ApiResponse<object>.Succeeded(null, "User status updated."));
     }
 
+    [HttpPut("users/{id:long}/permissions")]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateStaffPermissions(
+        long id,
+        UpdateStaffPermissionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = _currentUser.DomainUserId!.Value;
+        await _adminUserService.UpdatePermissionsAsync(id, request, adminId, cancellationToken);
+        return Ok(ApiResponse<object>.Succeeded(null, "Staff permissions updated."));
+    }
+
+    [Authorize(Policy = "admin.dashboard")]
     [HttpGet("dashboard")]
     public async Task<ActionResult<ApiResponse<DashboardKpiDto>>> GetDashboard(
         [FromQuery] int? year,

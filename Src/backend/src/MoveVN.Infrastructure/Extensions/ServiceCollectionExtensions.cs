@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IPermissionService, PermissionService>();
 
         // ─── Auth repositories ────────────────────────────────────────────────
         services.AddScoped<IUserRepository, UserRepository>();
@@ -109,6 +110,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<ITrustScoreRepository, TrustScoreRepository>();
+        services.AddScoped<IRiskScoringService, RiskScoringService>();
+        services.AddScoped<IPricingSuggestionService, PricingSuggestionService>();
 
         return services;
     }

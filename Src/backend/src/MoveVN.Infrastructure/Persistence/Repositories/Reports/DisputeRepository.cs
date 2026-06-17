@@ -18,6 +18,16 @@ public class DisputeRepository : IDisputeRepository
     public async Task AddAsync(Dispute dispute, CancellationToken ct = default)
         => await _context.Disputes.AddAsync(dispute, ct);
 
+    public async Task AddEvidenceAsync(DisputeEvidence evidence, CancellationToken ct = default)
+        => await _context.DisputeEvidences.AddAsync(evidence, ct);
+
+    public async Task<List<string>> GetEvidenceUrlsAsync(long disputeId, CancellationToken ct = default)
+        => await _context.DisputeEvidences
+            .Where(x => x.DisputeId == disputeId)
+            .OrderBy(x => x.CreatedAt)
+            .Select(x => x.EvidenceUrl)
+            .ToListAsync(ct);
+
     public void Update(Dispute dispute) => _context.Disputes.Update(dispute);
 
     public async Task<Booking?> GetBookingAsync(long bookingId, CancellationToken ct = default)
@@ -29,7 +39,18 @@ public class DisputeRepository : IDisputeRepository
         if (!string.IsNullOrEmpty(status)) query = query.Where(d => d.Status == status);
         var total = await query.CountAsync(ct);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(d => new DisputeResponse { Id = d.Id }).ToListAsync(ct);
+            .Select(d => new DisputeResponse
+            {
+                Id = d.Id,
+                BookingId = d.BookingId,
+                OpenedBy = d.OpenedBy,
+                AssignedStaffId = d.AssignedStaffId,
+                Status = d.Status,
+                Resolution = d.Resolution,
+                CompensationAmount = d.CompensationAmount,
+                ResolvedAt = d.ResolvedAt,
+                CreatedAt = d.CreatedAt
+            }).ToListAsync(ct);
         return PagedResult<DisputeResponse>.Create(items, total, page, pageSize);
     }
 

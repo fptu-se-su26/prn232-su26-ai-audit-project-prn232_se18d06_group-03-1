@@ -15,6 +15,12 @@ public class VerificationRepository : IVerificationRepository
     public async Task<VerificationRequest?> GetByIdAsync(long id, CancellationToken ct = default)
         => await _context.VerificationRequests.FirstOrDefaultAsync(v => v.Id == id, ct);
 
+    public async Task<List<VerificationRequest>> GetByUserAsync(long userId, CancellationToken ct = default)
+        => await _context.VerificationRequests
+            .Where(v => v.UserId == userId)
+            .OrderByDescending(v => v.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task AddAsync(VerificationRequest verification, CancellationToken ct = default)
         => await _context.VerificationRequests.AddAsync(verification, ct);
 
@@ -25,7 +31,17 @@ public class VerificationRepository : IVerificationRepository
         var query = _context.VerificationRequests.Where(v => v.Status == "Pending").AsQueryable();
         var total = await query.CountAsync(ct);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(v => new VerificationDto { Id = v.Id }).ToListAsync(ct);
+            .Select(v => new VerificationDto
+            {
+                Id = v.Id,
+                UserId = v.UserId,
+                Type = v.Type,
+                FrontImageUrl = v.FrontImageUrl,
+                BackImageUrl = v.BackImageUrl,
+                Status = v.Status,
+                RejectionReason = v.RejectionReason,
+                CreatedAt = v.CreatedAt
+            }).ToListAsync(ct);
         return PagedResult<VerificationDto>.Create(items, total, page, pageSize);
     }
 

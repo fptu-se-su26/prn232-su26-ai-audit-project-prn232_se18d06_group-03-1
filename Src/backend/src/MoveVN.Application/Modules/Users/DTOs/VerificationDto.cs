@@ -35,10 +35,16 @@ public class AdminUserDto
     public bool IsEmailVerified { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<string> Roles { get; set; } = new();
+    public List<string> Permissions { get; set; } = new();
 }
 
 public class UpdateUserStatusRequest
 {
     public string Status { get; set; } = string.Empty; // Active | Locked | Banned
     public string? Reason { get; set; }
+}
+
+public class UpdateStaffPermissionsRequest
+{
+    public List<string> Permissions { get; set; } = new();
 }

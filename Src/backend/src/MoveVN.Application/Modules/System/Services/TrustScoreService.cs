@@ -59,6 +59,18 @@ public class TrustScoreService : ITrustScoreService
                 existing.LastCalculatedAt = DateTime.UtcNow;
                 _repo.Update(existing);
             }
+
+            await _repo.AddHistoryAsync(new TrustScoreHistory
+            {
+                UserId = userId,
+                Score = score,
+                Tier = tier,
+                CompletedTrips = completedTrips,
+                CancellationCount = cancelCount,
+                ReportCount = reportCount,
+                AverageRating = avgRating,
+                CalculatedAt = DateTime.UtcNow
+            }, cancellationToken);
         }
 
         await _repo.SaveChangesAsync(cancellationToken);
@@ -76,8 +88,24 @@ public class TrustScoreService : ITrustScoreService
             Tier = ts.Tier,
             CompletedTrips = ts.CompletedTrips,
             CancellationCount = ts.CancellationCount,
+            ReportCount = ts.ReportCount,
             AverageRating = ts.AverageRating,
             LastCalculatedAt = ts.LastCalculatedAt
         };
+    }
+
+    public async Task<List<TrustScoreHistoryDto>> GetHistoryByUserAsync(long userId, int take = 10, CancellationToken cancellationToken = default)
+    {
+        var history = await _repo.GetHistoryByUserAsync(userId, take, cancellationToken);
+        return history.Select(x => new TrustScoreHistoryDto
+        {
+            Score = x.Score,
+            Tier = x.Tier,
+            CompletedTrips = x.CompletedTrips,
+            CancellationCount = x.CancellationCount,
+            ReportCount = x.ReportCount,
+            AverageRating = x.AverageRating,
+            CalculatedAt = x.CalculatedAt
+        }).ToList();
     }
 }

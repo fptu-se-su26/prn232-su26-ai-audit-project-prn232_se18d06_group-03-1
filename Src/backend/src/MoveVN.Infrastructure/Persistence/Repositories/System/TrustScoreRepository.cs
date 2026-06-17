@@ -13,8 +13,18 @@ public class TrustScoreRepository : ITrustScoreRepository
     public async Task<TrustScore?> GetByUserAsync(long userId, CancellationToken ct = default)
         => await _context.TrustScores.FirstOrDefaultAsync(t => t.UserId == userId, ct);
 
+    public async Task<List<TrustScoreHistory>> GetHistoryByUserAsync(long userId, int take = 10, CancellationToken ct = default)
+        => await _context.TrustScoreHistories
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.CalculatedAt)
+            .Take(take)
+            .ToListAsync(ct);
+
     public async Task AddAsync(TrustScore ts, CancellationToken ct = default)
         => await _context.TrustScores.AddAsync(ts, ct);
+
+    public async Task AddHistoryAsync(TrustScoreHistory history, CancellationToken ct = default)
+        => await _context.TrustScoreHistories.AddAsync(history, ct);
 
     public void Update(TrustScore ts) => _context.TrustScores.Update(ts);
 

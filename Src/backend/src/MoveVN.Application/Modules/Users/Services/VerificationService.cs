@@ -36,16 +36,12 @@ public class VerificationService : IVerificationService
         if (request.BackImage is not null)
             backUrl = await _cloudinary.UploadImageAsync(request.BackImage, "verifications", cancellationToken);
 
-        // Encrypt URLs (trường hợp chứa CCCD metadata)
-        var encryptedFront = _aes.Encrypt(frontUrl);
-        var encryptedBack = backUrl is null ? null : _aes.Encrypt(backUrl);
-
         var verification = new VerificationRequest
         {
             UserId = userId,
             Type = request.Type,
-            FrontImageUrl = encryptedFront,
-            BackImageUrl = encryptedBack,
+            FrontImageUrl = _aes.Encrypt(frontUrl),
+            BackImageUrl = backUrl is null ? null : _aes.Encrypt(backUrl),
             Status = "Pending"
         };
 
@@ -58,7 +54,10 @@ public class VerificationService : IVerificationService
     public async Task<VerificationDto> ReviewAsync(long verificationId, long staffId, ReviewVerificationRequest request, CancellationToken cancellationToken = default)
     {
         var verification = await _repo.GetByIdAsync(verificationId, cancellationToken)
-            ?? throw new NotFoundException("Verification không tồn tại.");
+            ?? throw new NotFoundException("Verification not found.");
+
+        if (!request.Approve && string.IsNullOrWhiteSpace(request.Reason))
+            throw new ValidationException(new[] { "Reject reason is required." });
 
         verification.Status = request.Approve ? "Approved" : "Rejected";
         verification.ReviewedBy = staffId;
@@ -72,10 +71,10 @@ public class VerificationService : IVerificationService
         {
             UserId = verification.UserId,
             Type = request.Approve ? "VerificationApproved" : "VerificationRejected",
-            Title = request.Approve ? "Xác thực thành công" : "Xác thực bị từ chối",
+            Title = request.Approve ? "Verification approved" : "Verification rejected",
             Body = request.Approve
-                ? "Hồ sơ xác thực của bạn đã được duyệt."
-                : $"Hồ sơ xác thực bị từ chối. Lý do: {request.Reason}"
+                ? "Your verification request has been approved."
+                : $"Your verification request was rejected. Reason: {request.Reason}"
         }));
 
         var frontUrl = _aes.Decrypt(verification.FrontImageUrl);
@@ -85,10 +84,34 @@ public class VerificationService : IVerificationService
 
     public async Task<PagedResult<VerificationDto>> GetPendingQueueAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        return await _repo.GetPendingPagedAsync(page, pageSize, cancellationToken);
+        var paged = await _repo.GetPendingPagedAsync(page, pageSize, cancellationToken);
+        var items = paged.Items.Select(v => new VerificationDto
+        {
+            Id = v.Id,
+            UserId = v.UserId,
+            Type = v.Type,
+            FrontImageUrl = _aes.Decrypt(v.FrontImageUrl),
+            BackImageUrl = v.BackImageUrl is null ? null : _aes.Decrypt(v.BackImageUrl),
+            Status = v.Status,
+            RejectionReason = v.RejectionReason,
+            CreatedAt = v.CreatedAt
+        }).ToList();
+
+        return PagedResult<VerificationDto>.Create(items, paged.TotalCount, paged.Page, paged.PageSize);
     }
 
-    private VerificationDto MapToDto(VerificationRequest v, string frontUrl, string? backUrl) => new()
+    public async Task<List<VerificationDto>> GetByUserAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var records = await _repo.GetByUserAsync(userId, cancellationToken);
+        return records.Select(v =>
+        {
+            var frontUrl = _aes.Decrypt(v.FrontImageUrl);
+            var backUrl = v.BackImageUrl is null ? null : _aes.Decrypt(v.BackImageUrl);
+            return MapToDto(v, frontUrl, backUrl);
+        }).ToList();
+    }
+
+    private static VerificationDto MapToDto(VerificationRequest v, string frontUrl, string? backUrl) => new()
     {
         Id = v.Id,
         UserId = v.UserId,
