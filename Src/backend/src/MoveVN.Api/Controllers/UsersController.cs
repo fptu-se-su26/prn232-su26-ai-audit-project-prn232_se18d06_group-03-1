@@ -1,6 +1,9 @@
 using MoveVN.Application.Common.Models;
+using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Modules.Users.DTOs;
 using MoveVN.Application.Modules.Users.Interfaces;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -38,5 +41,4 @@ public class UsersController : BaseApiController
     {
         var result = await _userService.GetByIdAsync(id, cancellationToken);
         return Ok(ApiResponse<UserResponse>.Succeeded(result));
-    }
-}
+    }}

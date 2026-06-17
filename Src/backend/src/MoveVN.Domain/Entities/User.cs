@@ -1,4 +1,4 @@
-﻿namespace MoveVN.Domain.Entities;
+namespace MoveVN.Domain.Entities;
 
 public class User
 {

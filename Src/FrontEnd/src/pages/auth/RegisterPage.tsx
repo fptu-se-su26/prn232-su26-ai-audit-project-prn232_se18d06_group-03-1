@@ -8,7 +8,7 @@ import { showToast } from "@/components/common/toastStore";
 import AuthLayout from "@/features/auth/components/AuthLayout";
 import { register, type RegisterPayload } from "@/features/auth/services/authService";
 import { getFriendlyAuthError } from "@/features/auth/utils/authErrors";
-import { validateConfirmPassword, validateEmail, validateFullName, validatePassword } from "@/utils/validation";
+import { validateConfirmPassword, validateEmail, validateFullName, validatePassword, validatePhone } from "@/utils/validation";
 
 type RegisterErrors = Partial<Record<keyof RegisterPayload, string>>;
 
@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState<RegisterPayload>({
     fullName: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
     role: "Customer",
@@ -29,6 +30,7 @@ export default function RegisterPage() {
     () =>
       form.fullName.trim().length > 0 &&
       form.email.trim().length > 0 &&
+      form.phone.trim().length > 0 &&
       form.password.length > 0 &&
       form.confirmPassword.length > 0 &&
       !isSubmitting,
@@ -43,6 +45,7 @@ export default function RegisterPage() {
     const nextErrors: RegisterErrors = {
       fullName: validateFullName(form.fullName),
       email: validateEmail(form.email),
+      phone: validatePhone(form.phone),
       password: validatePassword(form.password),
       confirmPassword: validateConfirmPassword(form.password, form.confirmPassword),
       role: form.role === "Customer" || form.role === "Owner" ? "" : "Chỉ được đăng ký vai trò Customer hoặc Owner.",
@@ -68,7 +71,7 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await register({ ...form, email: form.email.trim(), fullName: form.fullName.trim() });
+      await register({ ...form, email: form.email.trim(), phone: form.phone.trim(), fullName: form.fullName.trim() });
       showToast({ type: "success", title: "Đăng ký thành công", message: "MoveVN đã gửi OTP tới email của bạn." });
       navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}&purpose=Register`, { replace: true });
     } catch (error) {
@@ -104,29 +107,17 @@ export default function RegisterPage() {
           type="email"
           value={form.email}
         />
-
-        <div className="grid gap-2">
-          <span className="text-sm font-semibold text-slate-800">Vai trò</span>
-          <div className="grid grid-cols-2 gap-2">
-            {(["Customer", "Owner"] as const).map((role) => (
-              <button
-                key={role}
-                type="button"
-                className={[
-                  "rounded-md border px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500",
-                  form.role === role
-                    ? "border-brand-600 bg-brand-50 text-brand-800"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                ].join(" ")}
-                onClick={() => updateField("role", role)}
-              >
-                {role === "Customer" ? "Khách hàng" : "Chủ xe"}
-              </button>
-            ))}
-          </div>
-          {errors.role ? <p className="text-xs font-medium text-rose-600">{errors.role}</p> : null}
-        </div>
-
+        <FormField
+          autoComplete="tel"
+          error={errors.phone}
+          label="Số điện thoại"
+          maxLength={10}
+          name="phone"
+          onChange={(event) => updateField("phone", event.target.value)}
+          placeholder="0912345678"
+          type="tel"
+          value={form.phone}
+        />
         <PasswordField
           autoComplete="new-password"
           error={errors.password}

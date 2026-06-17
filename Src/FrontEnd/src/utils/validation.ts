@@ -73,3 +73,15 @@ export function validateOtp(value: string) {
 
   return "";
 }
+
+export function validatePhone(value: string) {
+  if (!isRequired(value)) {
+    return "Vui lòng nhập số điện thoại.";
+  }
+
+  if (!/^0\d{9}$/.test(value.trim())) {
+    return "Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0.";
+  }
+
+  return "";
+}

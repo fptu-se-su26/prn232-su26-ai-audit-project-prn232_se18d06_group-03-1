@@ -11,6 +11,7 @@ export type LoginPayload = {
 export type RegisterPayload = {
   fullName: string;
   email: string;
+  phone: string;
   password: string;
   confirmPassword: string;
   role: Extract<UserRole, "Customer" | "Owner">;
@@ -70,21 +71,25 @@ export function toApiError(error: unknown): AppApiError {
   }
 
   if (error instanceof AxiosError) {
-    const payload = error.response?.data as Partial<ApiErrorPayload> | undefined;
-    if (payload?.code || payload?.message) {
+    const data = error.response?.data as any;
+    const code = data?.code ?? data?.Code;
+    const message = data?.message ?? data?.Message;
+    const errors = data?.errors ?? data?.Errors ?? [];
+
+    if (code || message) {
       return new AppApiError({
-        code: payload.code ?? "UNKNOWN",
-        message: payload.message ?? "Yeu cau khong thanh cong.",
-        errors: payload.errors ?? [],
+        code: code ?? "UNKNOWN",
+        message: message ?? "Yêu cầu không thành công.",
+        errors: Array.isArray(errors) ? errors : [],
       });
     }
 
     if (error.code === "ERR_NETWORK") {
-      return new AppApiError({ code: "NETWORK", message: "Khong the ket noi den may chu." });
+      return new AppApiError({ code: "NETWORK", message: "Không thể kết nối đến máy chủ." });
     }
   }
 
-  return new AppApiError({ code: "UNKNOWN", message: "Da co loi xay ra. Vui long thu lai." });
+  return new AppApiError({ code: "UNKNOWN", message: "Đã có lỗi xảy ra. Vui lòng thử lại." });
 }
 
 export async function login(payload: LoginPayload) {

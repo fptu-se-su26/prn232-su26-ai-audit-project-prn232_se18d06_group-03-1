@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using StackExchange.Redis;
 
 namespace MoveVN.Infrastructure.Extensions;
 
@@ -51,6 +50,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient("UpstashRedis", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(3);
+        });
         services.AddSingleton<ITokenSessionService, RedisTokenSessionService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<DbInitializer>();

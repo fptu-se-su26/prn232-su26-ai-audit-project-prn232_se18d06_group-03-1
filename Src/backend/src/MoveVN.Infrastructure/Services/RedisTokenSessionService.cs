@@ -1,32 +1,34 @@
 using System.Text.Json;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MoveVN.Application.Modules.Auth.DTOs;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Infrastructure.Caching;
-using StackExchange.Redis;
 
 namespace MoveVN.Infrastructure.Services;
 
 public class RedisTokenSessionService : ITokenSessionService
 {
-    private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(30);
+    private const string HttpClientName = "UpstashRedis";
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RedisTokenSessionService> _logger;
-    private readonly SemaphoreSlim _connectionLock = new(1, 1);
-    private IConnectionMultiplexer? _redis;
-    private DateTime _nextConnectionAttemptAt = DateTime.MinValue;
 
-    public RedisTokenSessionService(IConfiguration configuration, ILogger<RedisTokenSessionService> logger)
+    public RedisTokenSessionService(
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory,
+        ILogger<RedisTokenSessionService> logger)
     {
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
     public async Task StoreAsync(AuthUserResponse user, TokenResponse token, CancellationToken cancellationToken = default)
     {
-        var redis = await GetConnectionAsync(cancellationToken);
-        if (redis is null || string.IsNullOrWhiteSpace(token.AccessTokenJti))
+        if (!IsConfigured() || string.IsNullOrWhiteSpace(token.AccessTokenJti))
         {
             return;
         }
@@ -49,106 +51,115 @@ public class RedisTokenSessionService : ITokenSessionService
 
         try
         {
-            await redis.GetDatabase().StringSetAsync(
-                RedisKeys.Session(token.AccessTokenJti),
-                JsonSerializer.Serialize(session),
-                ttl);
+            var ttlSeconds = Math.Max(1, (long)Math.Ceiling(ttl.TotalSeconds));
+            await SendCommandAsync(
+                [
+                    "SET",
+                    RedisKeys.Session(token.AccessTokenJti),
+                    JsonSerializer.Serialize(session),
+                    "EX",
+                    ttlSeconds
+                ],
+                cancellationToken);
         }
-        catch (RedisException exception)
+        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
         {
-            _logger.LogWarning(exception, "Redis is unavailable. Access token session was not cached.");
+            _logger.LogWarning(
+                exception,
+                "Upstash Redis is unavailable. Access token session was not cached.");
         }
     }
 
     public async Task<bool> IsActiveAsync(string jti, CancellationToken cancellationToken = default)
     {
-        var redis = await GetConnectionAsync(cancellationToken);
-        if (redis is null)
+        if (!IsConfigured())
         {
             return true;
         }
 
         try
         {
-            return await redis.GetDatabase().KeyExistsAsync(RedisKeys.Session(jti));
+            var result = await SendCommandAsync(
+                ["EXISTS", RedisKeys.Session(jti)],
+                cancellationToken);
+
+            return result.ValueKind == JsonValueKind.Number && result.GetInt32() > 0;
         }
-        catch (RedisException exception)
+        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
         {
-            _logger.LogWarning(exception, "Redis is unavailable. Falling back to normal JWT validation.");
+            _logger.LogWarning(
+                exception,
+                "Upstash Redis is unavailable. Falling back to normal JWT validation.");
             return true;
         }
     }
 
     public async Task RevokeAsync(string jti, CancellationToken cancellationToken = default)
     {
-        var redis = await GetConnectionAsync(cancellationToken);
-        if (redis is null)
+        if (!IsConfigured())
         {
             return;
         }
 
         try
         {
-            await redis.GetDatabase().KeyDeleteAsync(RedisKeys.Session(jti));
+            await SendCommandAsync(
+                ["DEL", RedisKeys.Session(jti)],
+                cancellationToken);
         }
-        catch (RedisException exception)
+        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
         {
-            _logger.LogWarning(exception, "Redis is unavailable. Token session revoke was skipped.");
+            _logger.LogWarning(
+                exception,
+                "Upstash Redis is unavailable. Token session revoke was skipped.");
         }
     }
 
-    private async Task<IConnectionMultiplexer?> GetConnectionAsync(CancellationToken cancellationToken)
+    private bool IsConfigured()
     {
-        if (_redis?.IsConnected == true)
+        return !string.IsNullOrWhiteSpace(_configuration["UPSTASH_REDIS_REST_URL"])
+            && !string.IsNullOrWhiteSpace(_configuration["UPSTASH_REDIS_REST_TOKEN"]);
+    }
+
+    private async Task<JsonElement> SendCommandAsync(
+        object[] command,
+        CancellationToken cancellationToken)
+    {
+        var restUrl = _configuration["UPSTASH_REDIS_REST_URL"]
+            ?? throw new InvalidOperationException("UPSTASH_REDIS_REST_URL is not configured.");
+        var restToken = _configuration["UPSTASH_REDIS_REST_TOKEN"]
+            ?? throw new InvalidOperationException("UPSTASH_REDIS_REST_TOKEN is not configured.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, restUrl.TrimEnd('/'))
         {
-            return _redis;
+            Content = JsonContent.Create(command)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", restToken);
+
+        var client = _httpClientFactory.CreateClient(HttpClientName);
+        using var response = await client.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        using var payload = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(cancellationToken),
+            cancellationToken: cancellationToken);
+
+        if (!payload.RootElement.TryGetProperty("result", out var result))
+        {
+            throw new JsonException("Upstash Redis response does not contain a result.");
         }
 
-        if (DateTime.UtcNow < _nextConnectionAttemptAt)
-        {
-            return null;
-        }
+        return result.Clone();
+    }
 
-        var redisConnection = _configuration["REDIS_CONNECTION"];
-        if (string.IsNullOrWhiteSpace(redisConnection))
-        {
-            return null;
-        }
-
-        await _connectionLock.WaitAsync(cancellationToken);
-        try
-        {
-            if (_redis?.IsConnected == true)
-            {
-                return _redis;
-            }
-
-            if (DateTime.UtcNow < _nextConnectionAttemptAt)
-            {
-                return null;
-            }
-
-            var options = ConfigurationOptions.Parse(redisConnection);
-            options.AbortOnConnectFail = true;
-            options.ConnectTimeout = 1000;
-            options.SyncTimeout = 1000;
-            options.AsyncTimeout = 1000;
-            options.ConnectRetry = 1;
-
-            _redis?.Dispose();
-            _redis = await ConnectionMultiplexer.ConnectAsync(options);
-            return _redis;
-        }
-        catch (RedisException exception)
-        {
-            _nextConnectionAttemptAt = DateTime.UtcNow.Add(RetryInterval);
-            _logger.LogWarning("Redis connection failed. Auth will continue without token sessions and retry after {RetrySeconds} seconds. Reason: {Message}", RetryInterval.TotalSeconds, exception.Message);
-            return null;
-        }
-        finally
-        {
-            _connectionLock.Release();
-        }
+    private static bool IsUpstashFailure(
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        return exception is HttpRequestException
+            or JsonException
+            or InvalidOperationException
+            || exception is TaskCanceledException && !cancellationToken.IsCancellationRequested;
     }
 
     private sealed class AccessTokenSession

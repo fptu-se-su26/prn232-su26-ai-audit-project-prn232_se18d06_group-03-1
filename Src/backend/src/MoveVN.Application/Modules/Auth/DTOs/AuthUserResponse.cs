@@ -12,5 +12,7 @@ public class AuthUserResponse
 
     public bool IsEmailVerified { get; set; }
 
+    public string? Phone { get; set; }
+
     public IList<string> Roles { get; set; } = new List<string>();
 }

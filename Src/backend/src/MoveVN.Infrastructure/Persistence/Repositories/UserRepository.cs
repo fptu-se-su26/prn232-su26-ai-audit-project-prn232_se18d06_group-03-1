@@ -30,6 +30,12 @@ public class UserRepository : IUserRepository
         return _context.Users.AnyAsync(x => x.Email.ToLower() == normalizedEmail, cancellationToken);
     }
 
+    public Task<bool> ExistsByPhoneAsync(string phone, CancellationToken cancellationToken = default)
+    {
+        var trimmedPhone = phone.Trim();
+        return _context.Users.AnyAsync(x => x.Phone == trimmedPhone, cancellationToken);
+    }
+
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await _context.Users.AddAsync(user, cancellationToken);

@@ -61,6 +61,11 @@ public class AuthService : IAuthService
             throw new AppException(ErrorCode.EMAIL_EXISTED);
         }
 
+        if (await _userRepository.ExistsByPhoneAsync(request.Phone, cancellationToken))
+        {
+            throw new AppException(ErrorCode.PHONE_EXISTED);
+        }
+
         if (!Enum.TryParse<UserRoleType>(request.Role, true, out var roleType)
             || roleType is UserRoleType.Admin or UserRoleType.Staff)
         {
@@ -74,6 +79,7 @@ public class AuthService : IAuthService
         {
             Email = request.Email.Trim().ToLowerInvariant(),
             FullName = request.FullName.Trim(),
+            Phone = request.Phone.Trim(),
             PasswordHash = _passwordHasherService.Hash(request.Password),
             Status = UserStatus.Pending.ToString(),
             IsEmailVerified = false,

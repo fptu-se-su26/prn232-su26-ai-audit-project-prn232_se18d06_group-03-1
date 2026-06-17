@@ -11,4 +11,6 @@ public class UserResponse
     public string Status { get; set; } = string.Empty;
 
     public bool IsEmailVerified { get; set; }
+
+    public string? Phone { get; set; }
 }

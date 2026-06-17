@@ -28,6 +28,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode USER_NOT_FOUND = new("AUTH_1004", "User was not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode USER_SUSPENDED = new("AUTH_1005", "User account is suspended.", HttpStatusCode.Forbidden);
     public static readonly ErrorCode INVALID_ROLE = new("AUTH_1006", "Role is invalid.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PHONE_EXISTED = new("AUTH_1007", "Phone number already exists.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OTP_RATE_LIMITED = new("AUTH_1010", "Too many OTP requests. Please try again later.", HttpStatusCode.TooManyRequests);
     public static readonly ErrorCode OTP_FAIL = new("AUTH_1011", "OTP is invalid or expired.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OTP_ALREADY_USED = new("AUTH_1012", "OTP has already been used.", HttpStatusCode.BadRequest);

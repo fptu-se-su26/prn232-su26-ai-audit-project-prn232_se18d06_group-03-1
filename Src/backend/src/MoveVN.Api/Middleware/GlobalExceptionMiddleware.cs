@@ -71,7 +71,10 @@ public class GlobalExceptionMiddleware
             _ => (int)HttpStatusCode.InternalServerError
         };
 
-        var json = JsonSerializer.Serialize(response);
+        var json = JsonSerializer.Serialize(response, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
         return context.Response.WriteAsync(json);
     }
 }

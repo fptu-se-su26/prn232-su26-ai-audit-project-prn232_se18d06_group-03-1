@@ -20,10 +20,19 @@ const errorMessages: Record<string, string> = {
   AUTH_1021: "Refresh token đã hết hạn. Vui lòng đăng nhập lại.",
   AUTH_1030: "Mật khẩu xác nhận không khớp.",
   AUTH_1031: "Mật khẩu hiện tại không đúng.",
+  AUTH_1007: "Số điện thoại này đã tồn tại.",
   NETWORK: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.",
 };
 
 export function getFriendlyAuthError(error: unknown) {
   const apiError = toApiError(error);
-  return errorMessages[apiError.code] ?? "Yêu cầu không thành công. Vui lòng thử lại.";
+  if (errorMessages[apiError.code]) {
+    return errorMessages[apiError.code];
+  }
+
+  if (apiError.message && apiError.message !== "Yêu cầu không thành công." && apiError.message !== "Đã có lỗi xảy ra. Vui lòng thử lại.") {
+    return apiError.message;
+  }
+
+  return "Yêu cầu không thành công. Vui lòng thử lại.";
 }
