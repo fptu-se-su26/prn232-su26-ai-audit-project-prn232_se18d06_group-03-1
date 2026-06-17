@@ -5,6 +5,8 @@ import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import RegisterPage from "@/pages/RegisterPage";
+import CheckInPage from "@/pages/staff/CheckInPage";
+import CheckOutPage from "@/pages/staff/CheckOutPage";
 import DisputeDetailPage from "@/pages/staff/DisputeDetailPage";
 import DisputesPage from "@/pages/staff/DisputesPage";
 import StaffQueuePage from "@/pages/staff/StaffQueuePage";
@@ -32,6 +34,8 @@ export default function AppRoutes() {
           <Route path="/staff/tickets/:ticketId" element={<SupportTicketDetailPage />} />
           <Route path="/staff/disputes" element={<DisputesPage />} />
           <Route path="/staff/disputes/:disputeId" element={<DisputeDetailPage />} />
+          <Route path="/staff/check-in" element={<CheckInPage />} />
+          <Route path="/staff/check-out" element={<CheckOutPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

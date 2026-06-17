@@ -40,6 +40,12 @@ export default function HomePage() {
             <Link className="rounded-md bg-zinc-900 px-3 py-2 text-white" to="/staff">
               Open staff queue
             </Link>
+            <Link className="rounded-md border border-zinc-200 px-3 py-2" to="/staff/check-in">
+              Check-in flow
+            </Link>
+            <Link className="rounded-md border border-zinc-200 px-3 py-2" to="/staff/check-out">
+              Check-out flow
+            </Link>
           </div>
         </Card>
       ) : null}

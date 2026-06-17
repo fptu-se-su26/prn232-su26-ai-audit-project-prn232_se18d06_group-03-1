@@ -6,6 +6,7 @@ public interface IPaymentRepository
 {
     Task<Payment?> FindByIdempotencyKeyAsync(string key, CancellationToken cancellationToken = default);
     Task<Payment?> FindByBookingAsync(long bookingId, CancellationToken cancellationToken = default);
+    Task<List<Payment>> FindAllByBookingAsync(long bookingId, CancellationToken cancellationToken = default);
     Task AddAsync(Payment payment, CancellationToken cancellationToken = default);
     void Update(Payment payment);
     Task<Booking?> GetBookingAsync(long bookingId, CancellationToken cancellationToken = default);

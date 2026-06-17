@@ -70,6 +70,20 @@ export default function StaffQueuePage() {
           </Card>
         ))}
       </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <div className="text-sm font-medium text-zinc-500">Operational Flows</div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white" to="/staff/check-in">
+              Start check-in
+            </Link>
+            <Link className="rounded-md border border-zinc-200 px-3 py-2 text-sm" to="/staff/check-out">
+              Start check-out
+            </Link>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

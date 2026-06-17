@@ -20,7 +20,7 @@ public class InspectionsController : BaseApiController
         _currentUser = currentUser;
     }
 
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Policy = "staff.inspect")]
     [HttpPost("check-in")]
     public async Task<ActionResult<ApiResponse<InspectionResponse>>> CheckIn(
         [FromForm] CreateInspectionRequest request,
@@ -33,7 +33,7 @@ public class InspectionsController : BaseApiController
         return Ok(ApiResponse<InspectionResponse>.Succeeded(result, "Check-in inspection created."));
     }
 
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Policy = "staff.inspect")]
     [HttpPost("check-out")]
     public async Task<ActionResult<ApiResponse<InspectionResponse>>> CheckOut(
         [FromForm] CreateInspectionRequest request,

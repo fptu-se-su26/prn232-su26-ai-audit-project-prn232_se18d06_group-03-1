@@ -28,3 +28,11 @@ public class MockPaymentRequest
     public long BookingId { get; set; }
     public string IdempotencyKey { get; set; } = string.Empty;
 }
+
+public class RefundPaymentRequest
+{
+    public string Action { get; set; } = "FullRefund"; // FullRefund | PartialRefund | OpenDispute
+    public decimal? DeductionAmount { get; set; }
+    public string? Note { get; set; }
+    public List<string> EvidenceUrls { get; set; } = new();
+}

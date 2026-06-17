@@ -47,10 +47,13 @@ public class PaymentsController : BaseApiController
 
     [Authorize(Roles = "Staff,Admin")]
     [HttpPost("refund/{bookingId:long}")]
-    public async Task<ActionResult<ApiResponse<object>>> RefundDeposit(
+    public async Task<ActionResult<ApiResponse<PaymentResponse>>> RefundDeposit(
         long bookingId,
+        RefundPaymentRequest request,
         CancellationToken cancellationToken)
     {
-        return Ok(ApiResponse<object>.Succeeded(null, "Refund processed successfully."));
+        var staffId = _currentUser.DomainUserId!.Value;
+        var result = await _paymentService.RefundDepositAsync(bookingId, staffId, request, cancellationToken);
+        return Ok(ApiResponse<PaymentResponse>.Succeeded(result, "Refund processed successfully."));
     }
 }

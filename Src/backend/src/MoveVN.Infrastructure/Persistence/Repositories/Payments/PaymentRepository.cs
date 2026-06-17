@@ -16,6 +16,12 @@ public class PaymentRepository : IPaymentRepository
     public async Task<Payment?> FindByBookingAsync(long bookingId, CancellationToken ct = default)
         => await _context.Payments.FirstOrDefaultAsync(p => p.BookingId == bookingId, ct);
 
+    public async Task<List<Payment>> FindAllByBookingAsync(long bookingId, CancellationToken ct = default)
+        => await _context.Payments
+            .Where(p => p.BookingId == bookingId)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task AddAsync(Payment payment, CancellationToken ct = default)
         => await _context.Payments.AddAsync(payment, ct);
 
