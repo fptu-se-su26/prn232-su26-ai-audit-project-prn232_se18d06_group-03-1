@@ -34,6 +34,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<OwnerApplication> OwnerApplications => Set<OwnerApplication>();
     public DbSet<OwnerProfile> OwnerProfiles => Set<OwnerProfile>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Permission> Permissions => Set<Permission>();
@@ -74,6 +75,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<RolePermission>().HasKey(entity => new { entity.RoleId, entity.PermissionId });
         builder.Entity<VehicleFeatureMapping>().HasKey(entity => new { entity.VehicleId, entity.FeatureId });
+        builder.Entity<CustomerProfile>().HasIndex(entity => entity.NationalIdHash);
+        builder.Entity<OwnerApplication>().HasIndex(entity => new { entity.UserId, entity.Status });
+        builder.Entity<OwnerApplication>().HasIndex(entity => entity.NationalIdVerificationRequestId);
+        builder.Entity<OwnerApplication>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<OwnerApplication>()
+            .HasOne<VerificationRequest>()
+            .WithMany()
+            .HasForeignKey(entity => entity.NationalIdVerificationRequestId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<VerificationRequest>().Property(entity => entity.ExternalResultJson).HasColumnType("jsonb");
+        builder.Entity<VerificationRequest>().Property(entity => entity.Confidence).HasPrecision(15, 2);
 
         ApplySnakeCaseColumnNames(builder);
 

@@ -636,6 +636,14 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("national_id");
 
+                    b.Property<string>("NationalIdHash")
+                        .HasColumnType("text")
+                        .HasColumnName("national_id_hash");
+
+                    b.Property<string>("NationalIdMasked")
+                        .HasColumnType("text")
+                        .HasColumnName("national_id_masked");
+
                     b.Property<bool>("NationalIdVerified")
                         .HasColumnType("boolean")
                         .HasColumnName("national_id_verified");
@@ -652,6 +660,8 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId")
                         .IsUnique();
+
+                    b.HasIndex("NationalIdHash");
 
                     b.ToTable("CustomerProfiles", (string)null);
                 });
@@ -1093,6 +1103,81 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.ToTable("OtpCodes", (string)null);
                 });
 
+            modelBuilder.Entity("MoveVN.Domain.Entities.OwnerApplication", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<long?>("ApprovedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("approved_by");
+
+                    b.Property<string>("BankAccountHolderName")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_holder_name");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_number");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_name");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("NationalIdVerificationRequestId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("national_id_verification_request_id");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rejected_at");
+
+                    b.Property<long?>("RejectedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("rejected_by");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NationalIdVerificationRequestId");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.ToTable("OwnerApplications", (string)null);
+                });
+
             modelBuilder.Entity("MoveVN.Domain.Entities.OwnerProfile", b =>
                 {
                     b.Property<long>("Id")
@@ -1110,6 +1195,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.Property<string>("BankAccountNumber")
                         .HasColumnType("text")
                         .HasColumnName("bank_account_number");
+
+                    b.Property<string>("BankAccountHolderName")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_holder_name");
 
                     b.Property<string>("BankName")
                         .HasColumnType("text")
@@ -1136,6 +1225,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
 
                     b.HasKey("Id");
 
@@ -2399,14 +2492,51 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("back_image_url");
 
+                    b.Property<string>("BackImagePublicId")
+                        .HasColumnType("text")
+                        .HasColumnName("back_image_public_id");
+
+                    b.Property<decimal?>("Confidence")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)")
+                        .HasColumnName("confidence");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<string>("FrontImageUrl")
+                    b.Property<string>("DecisionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("decision_reason");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("ExternalProvider")
+                        .HasColumnType("text")
+                        .HasColumnName("external_provider");
+
+                    b.Property<string>("ExternalResultJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("external_result_json");
+
+                    b.Property<string>("FrontImagePublicId")
                         .IsRequired()
                         .HasColumnType("text")
+                        .HasColumnName("front_image_public_id");
+
+                    b.Property<string>("FrontImageUrl")
+                        .HasColumnType("text")
                         .HasColumnName("front_image_url");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
 
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text")
@@ -2845,6 +2975,20 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("MoveVN.Domain.Entities.OwnerApplication", b =>
+                {
+                    b.HasOne("MoveVN.Domain.Entities.VerificationRequest", null)
+                        .WithMany()
+                        .HasForeignKey("NationalIdVerificationRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MoveVN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.OwnerProfile", b =>

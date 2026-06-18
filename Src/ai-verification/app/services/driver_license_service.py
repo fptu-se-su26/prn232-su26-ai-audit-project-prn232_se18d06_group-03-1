@@ -196,16 +196,24 @@ class DriverLicenseService:
             joined,
             [
                 r"(?:NgÃ y sinh|Sinh ngÃ y|Date of birth)[:\s]*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4})",
+                r"(?:Ngày sinh|Sinh ngày|Date of Birth|Date of birth)[:\s]*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4})",
                 r"\b([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4})\b",
+            ],
+        )
+        issue_date = self._first_match(
+            joined,
+            [
+                r"(?:Ngày cấp|Date of issue)[:\s]*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4})",
             ],
         )
         expiry = self._first_match(
             joined,
             [
                 r"(?:CÃ³ giÃ¡ trá»‹ Ä‘áº¿n|Háº¡n Ä‘áº¿n|Expiry|Expires)[:\s]*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4})",
+                r"(?:Ngày hết hạn|Ngày hết gạn|Expiration date|Expiry|Expires)[:\s]*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4})",
             ],
         )
-        expiry_status = self._extract_expiry_status(joined)
+        expiry_status = self._extract_expiry_status(joined, expiry)
         full_name = self._extract_name(raw_text)
 
         return DriverLicenseExtracted(
@@ -213,12 +221,13 @@ class DriverLicenseService:
             driverLicenseNumber=license_number,
             dateOfBirth=dob,
             licenseClass=license_class,
+            issueDate=issue_date,
             expiryDate=normalize_display_text(expiry or ("Không thời hạn" if expiry_status == "Unlimited" else None)),
             expiryStatus=expiry_status,
             rawText=raw_text,
         )
 
-    def _extract_expiry_status(self, text: str) -> str | None:
+    def _extract_expiry_status(self, text: str, expiry: str | None = None) -> str | None:
         compare = normalize_compare_text(text)
         if (
             "khong thoi han" in compare
@@ -227,7 +236,7 @@ class DriverLicenseService:
             or ("expires" in compare and "khong" in compare and ("thoi" in compare or "han" in compare))
         ):
             return "Unlimited"
-        if re.search(r"\b[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4}\b", text):
+        if expiry:
             return "FixedDate"
         return None
 
@@ -295,7 +304,18 @@ class DriverLicenseService:
         license_class = normalize_license_class(extracted.license_class)
         known_classes = MOTORBIKE_LICENSE_CLASSES | CAR_LICENSE_CLASSES
         return DriverLicenseDocumentChecks(
-            ministryFound=self._has_any(joined, ["bo gtvt", "bo giao thong van tai", "bg tvt", "bogtvt"]),
+            ministryFound=self._has_any(
+                joined,
+                [
+                    "bo gtvt",
+                    "bo giao thong van tai",
+                    "bg tvt",
+                    "bogtvt",
+                    "cuc canh sat giao thong",
+                    "canh sat giao thong",
+                    "issuing authority",
+                ],
+            ),
             nationalMottoFound=self._has_national_motto(joined),
             driverLicenseTitleFound=self._has_driver_license_title(joined),
             licenseClassFound=bool(license_class),

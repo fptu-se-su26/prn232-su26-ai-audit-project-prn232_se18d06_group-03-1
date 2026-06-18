@@ -7,7 +7,7 @@ from app.schemas.responses import VehicleRegistrationExtracted, VehicleRegistrat
 from app.services.image_loader import ImageLoadError, ImageLoader
 from app.services.image_quality_service import ImageQualityService
 from app.services.ocr_service import OcrLine, OcrProcessingError, OcrUnavailableError, PaddleOcrService
-from app.services.text_similarity import ratio
+from app.services.ocr_space_service import OcrSpaceService
 from app.services.vietnamese_text import normalize_compare_text, normalize_license_plate
 
 
@@ -16,6 +16,7 @@ class VehicleRegistrationService:
         self.loader = ImageLoader()
         self.quality = ImageQualityService()
         self.ocr = PaddleOcrService()
+        self.ocr_space = OcrSpaceService()
 
     async def verify(
         self,
@@ -39,20 +40,9 @@ class VehicleRegistrationService:
 
         quality = self.quality.check_image(image, DocumentType.VEHICLE_REGISTRATION)
         flags.extend(quality.flags)
-        if not quality.acceptable:
-            return self._response(
-                False,
-                VehicleType.UNKNOWN,
-                False,
-                0.0,
-                VehicleRegistrationExtracted(rawText=[]),
-                flags,
-                Recommendation.NEED_MORE_INFO,
-                "Vehicle registration image is not clear enough for OCR.",
-            )
 
         try:
-            lines = self.ocr.read_text(image)
+            lines = await self.ocr_space.read_text(str(request.file_url))
         except OcrUnavailableError as exc:
             return self._response(
                 False,
@@ -95,19 +85,6 @@ class VehicleRegistrationService:
 
         if not extracted.license_plate:
             flags.append("LICENSE_PLATE_NOT_FOUND")
-        elif request.license_plate:
-            expected = normalize_license_plate(request.license_plate)
-            actual = normalize_license_plate(extracted.license_plate)
-            if expected and actual and expected != actual:
-                flags.append("LICENSE_PLATE_MISMATCH_CLEAR")
-
-        if request.owner_name and extracted.owner_name:
-            score = ratio(
-                normalize_compare_text(request.owner_name),
-                normalize_compare_text(extracted.owner_name),
-            )
-            if score < 80:
-                flags.append("OWNER_NAME_SIMILAR_BUT_NOT_EXACT")
 
         if registration_vehicle_type == VehicleType.UNKNOWN:
             flags.append("VEHICLE_TYPE_UNCERTAIN")
@@ -154,16 +131,43 @@ class VehicleRegistrationService:
         )
 
     def _extract_plate(self, text: str) -> str | None:
-        patterns = [
-            r"\b([0-9]{2}[A-Z][0-9]?-?[0-9]{4,5})\b",
-            r"\b([0-9]{2}[A-Z]-?[0-9]{3}\.?[0-9]{2})\b",
-            r"\b([0-9]{2}[A-Z]{1,2}-?[0-9]{4,5})\b",
+        lines = text.splitlines()
+        plate_label_indexes = [
+            index
+            for index, line in enumerate(lines)
+            if any(marker in normalize_compare_text(line) for marker in ["bien so", "plate", "n plate"])
         ]
-        normalized_text = text.upper().replace(" ", "")
-        for pattern in patterns:
-            match = re.search(pattern, normalized_text)
-            if match:
-                return match.group(1)
+
+        for index in plate_label_indexes:
+            nearby = " ".join(lines[index : index + 5])
+            plate = self._extract_plate_from_text(nearby)
+            if plate:
+                return plate
+
+        for line in lines:
+            compare = normalize_compare_text(line)
+            if any(marker in compare for marker in ["engine", "chassis", "so may", "so khung"]):
+                continue
+            plate = self._extract_plate_from_text(line)
+            if plate:
+                return plate
+
+        return None
+
+    def _extract_plate_from_text(self, text: str) -> str | None:
+        compact_text = re.sub(r"[^A-Z0-9]", "", text.upper())
+
+        motorbike_match = re.search(r"([0-9]{2}[A-Z][0-9][0-9]{5})", compact_text)
+        if motorbike_match:
+            plate = motorbike_match.group(1)
+            return f"{plate[:4]}-{plate[4:]}"
+
+        car_match = re.search(r"([0-9]{2}[A-Z]{1,2}[0-9]{4,6})", compact_text)
+        if car_match:
+            plate = car_match.group(1)
+            prefix_len = 3 if plate[2].isalpha() and plate[3].isdigit() else 4
+            return f"{plate[:prefix_len]}-{plate[prefix_len:]}"
+
         return None
 
     def _infer_vehicle_type(self, text: str, license_plate: str | None) -> VehicleType:
@@ -173,9 +177,9 @@ class VehicleRegistrationService:
         if any(word in compare for word in ["mo to", "xe may", "motorcycle", "gian may", "gan may"]):
             return VehicleType.MOTORBIKE
         plate = normalize_license_plate(license_plate)
-        if re.match(r"^[0-9]{2}[A-Z][0-9]", plate):
+        if re.match(r"^[0-9]{2}[A-Z][0-9][0-9]{5}$", plate):
             return VehicleType.MOTORBIKE
-        if re.match(r"^[0-9]{2}[A-Z]{1,2}[0-9]{4,5}$", plate):
+        if re.match(r"^[0-9]{2}[A-Z]{1,2}[0-9]{4,6}$", plate):
             return VehicleType.CAR
         return VehicleType.UNKNOWN
 
@@ -194,16 +198,16 @@ class VehicleRegistrationService:
         reject_flags = {"LICENSE_PLATE_MISMATCH_CLEAR", "VEHICLE_TYPE_MISMATCH_CLEAR"}
         need_more_flags = {
             "NO_TEXT_DETECTED",
-            "IMAGE_TOO_BLURRY",
-            "IMAGE_TOO_DARK",
-            "IMAGE_TOO_BRIGHT",
             "IMAGE_TOO_SMALL",
             "DOCUMENT_NOT_READABLE",
         }
+        non_blocking_quality_flags = {"IMAGE_TOO_BLURRY", "IMAGE_TOO_DARK", "IMAGE_TOO_BRIGHT"}
         if any(flag in reject_flags for flag in flags):
             return Recommendation.REJECT
         if any(flag in need_more_flags for flag in flags):
             return Recommendation.NEED_MORE_INFO
+        if flags and all(flag in non_blocking_quality_flags for flag in flags):
+            return Recommendation.PASS
         if flags or confidence < get_settings().good_ocr_confidence_threshold:
             return Recommendation.MANUAL_REVIEW
         return Recommendation.PASS

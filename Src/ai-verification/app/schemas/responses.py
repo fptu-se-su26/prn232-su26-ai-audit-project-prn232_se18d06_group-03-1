@@ -24,6 +24,7 @@ class DriverLicenseExtracted(BaseModel):
     driver_license_number: str | None = Field(default=None, alias="driverLicenseNumber")
     date_of_birth: str | None = Field(default=None, alias="dateOfBirth")
     license_class: str | None = Field(default=None, alias="licenseClass")
+    issue_date: str | None = Field(default=None, alias="issueDate")
     expiry_date: str | None = Field(default=None, alias="expiryDate")
     expiry_status: str | None = Field(default=None, alias="expiryStatus")
     raw_text: list[str] = Field(default_factory=list, alias="rawText")
