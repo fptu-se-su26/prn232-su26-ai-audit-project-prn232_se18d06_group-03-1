@@ -42,5 +42,16 @@ public sealed class ErrorCode
     public static readonly ErrorCode STAFF_EMAIL_EXISTED = new("ADMIN_2002", "Staff email already exists.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode ADMIN_SEED_FAILED = new("ADMIN_2003", "Failed to seed admin account.", HttpStatusCode.InternalServerError);
 
+    public static readonly ErrorCode CLOUDINARY_UPLOAD_FAILED = new("CLOUD_3001", "Failed to upload image to Cloudinary.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode CLOUDINARY_DELETE_FAILED = new("CLOUD_3002", "Failed to delete image from Cloudinary.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode CLOUDINARY_SIGNED_URL_FAILED = new("CLOUD_3003", "Failed to generate signed URL.", HttpStatusCode.InternalServerError);
+
+    public static readonly ErrorCode FPT_AI_VERIFICATION_FAILED = new("FPT_4001", "FPT.AI verification failed.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode FPT_AI_TIMEOUT = new("FPT_4002", "FPT.AI request timed out.", HttpStatusCode.GatewayTimeout);
+    public static readonly ErrorCode FPT_AI_INVALID_RESPONSE = new("FPT_4003", "FPT.AI returned an invalid response.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode FPT_AI_LOW_QUALITY = new("FPT_4004", "Image quality is too low for FPT.AI.", HttpStatusCode.BadRequest);
+
+    public static readonly ErrorCode REDIS_LOCK_FAILED = new("REDIS_5001", "Failed to acquire distributed lock.", HttpStatusCode.InternalServerError);
+
     public override string ToString() => $"{Code}: {Message}";
 }
