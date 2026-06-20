@@ -16,5 +16,12 @@ public enum AuthEventType
     OwnerApplicationCreated = 12,
     OwnerApplicationBankUpdated = 13,
     OwnerApplicationSubmitted = 14,
-    OwnerRoleAssigned = 15
+    OwnerRoleAssigned = 15,
+    NationalIdSubmitted = 16,
+    NationalIdVerified = 17,
+    NationalIdNeedMoreInfo = 18,
+    NationalIdRejected = 19,
+    OwnerApplicationApproved = 20,
+    OwnerApplicationRejected = 21,
+    OwnerApplicationMoreInfoRequested = 22
 }

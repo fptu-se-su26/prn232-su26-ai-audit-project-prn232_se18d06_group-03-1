@@ -62,6 +62,14 @@ public sealed class ErrorCode
     public static readonly ErrorCode OWNER_NOT_READY_TO_SUBMIT = new("OWNER_6007", "Owner application is not ready to submit.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OWNER_EMAIL_NOT_VERIFIED = new("OWNER_6008", "Email must be verified before creating an owner application.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OWNER_USER_NOT_ACTIVE = new("OWNER_6009", "User account must be active.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_FILE_INVALID = new("OWNER_6010", "Invalid file. Only JPG/PNG/WebP images under 5MB are allowed.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_NATIONAL_ID_ALREADY_VERIFIED = new("OWNER_6011", "National ID is already verified.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_VERIFICATION_REQUEST_FAILED = new("OWNER_6012", "Failed to process verification request.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode STAFF_APPLICATION_NOT_FOUND = new("STAFF_7001", "Owner application not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode STAFF_APPROVE_INVALID_STATE = new("STAFF_7002", "Application must be in ReadyToSubmit or ManualReview status to approve.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode STAFF_REJECT_INVALID_STATE = new("STAFF_7003", "Application is already approved or rejected.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode STAFF_REQUEST_MORE_INFO_INVALID_STATE = new("STAFF_7004", "Application is already approved or rejected.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode STAFF_REASON_REQUIRED = new("STAFF_7005", "Reason is required.", HttpStatusCode.BadRequest);
 
     public override string ToString() => $"{Code}: {Message}";
 }

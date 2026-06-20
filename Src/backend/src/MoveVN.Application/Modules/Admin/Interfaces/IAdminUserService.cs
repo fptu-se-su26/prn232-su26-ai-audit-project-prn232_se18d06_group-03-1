@@ -6,4 +6,5 @@ namespace MoveVN.Application.Modules.Admin.Interfaces;
 public interface IAdminUserService
 {
     Task<AuthUserResponse> CreateStaffAsync(CreateStaffRequest request, CancellationToken cancellationToken = default);
+    Task<AuthUserResponse> CreateOwnerAsync(AdminCreateOwnerRequest request, CancellationToken cancellationToken = default);
 }
