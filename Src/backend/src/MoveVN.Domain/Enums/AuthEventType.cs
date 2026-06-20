@@ -12,5 +12,9 @@ public enum AuthEventType
     PasswordResetRequested = 8,
     PasswordResetCompleted = 9,
     PasswordChanged = 10,
-    StaffCreated = 11
+    StaffCreated = 11,
+    OwnerApplicationCreated = 12,
+    OwnerApplicationBankUpdated = 13,
+    OwnerApplicationSubmitted = 14,
+    OwnerRoleAssigned = 15
 }

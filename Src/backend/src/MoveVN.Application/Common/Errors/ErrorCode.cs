@@ -53,5 +53,15 @@ public sealed class ErrorCode
 
     public static readonly ErrorCode REDIS_LOCK_FAILED = new("REDIS_5001", "Failed to acquire distributed lock.", HttpStatusCode.InternalServerError);
 
+    public static readonly ErrorCode OWNER_ALREADY_OWNER = new("OWNER_6001", "User is already an owner.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_APPLICATION_ACTIVE = new("OWNER_6002", "User already has an active owner application.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_APPLICATION_NOT_FOUND = new("OWNER_6003", "Owner application not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode OWNER_ALREADY_HAS_ROLE = new("OWNER_6004", "User already has the Owner role.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_CCCD_NOT_VERIFIED = new("OWNER_6005", "CCCD must be verified before submitting.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_BANK_INFO_MISSING = new("OWNER_6006", "Bank information is incomplete.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_NOT_READY_TO_SUBMIT = new("OWNER_6007", "Owner application is not ready to submit.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_EMAIL_NOT_VERIFIED = new("OWNER_6008", "Email must be verified before creating an owner application.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OWNER_USER_NOT_ACTIVE = new("OWNER_6009", "User account must be active.", HttpStatusCode.BadRequest);
+
     public override string ToString() => $"{Code}: {Message}";
 }
