@@ -12,5 +12,7 @@ public enum AuthEventType
     PasswordResetRequested = 8,
     PasswordResetCompleted = 9,
     PasswordChanged = 10,
-    StaffCreated = 11
+    StaffCreated = 11,
+    PasswordForceReset = 12,
+    GoogleLogin = 13
 }

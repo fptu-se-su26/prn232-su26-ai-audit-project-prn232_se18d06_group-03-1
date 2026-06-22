@@ -12,7 +12,7 @@ export default function Header() {
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <img alt={APP_NAME} className="h-9 w-auto" src={logoUrl} />
+          <img alt={APP_NAME} className="h-[4.5rem] w-auto" src={logoUrl} />
         </Link>
 
         <div className="flex items-center gap-2">

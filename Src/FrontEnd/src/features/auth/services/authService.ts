@@ -92,6 +92,11 @@ export function toApiError(error: unknown): AppApiError {
   return new AppApiError({ code: "UNKNOWN", message: "Đã có lỗi xảy ra. Vui lòng thử lại." });
 }
 
+export async function googleLogin(idToken: string) {
+  const res = await apiClient.post<ApiResponse<AuthResponse>>(endpoints.auth.googleLogin, { idToken });
+  return unwrap(res.data);
+}
+
 export async function login(payload: LoginPayload) {
   const res = await apiClient.post<ApiResponse<AuthResponse>>(endpoints.auth.login, payload);
   return unwrap(res.data);

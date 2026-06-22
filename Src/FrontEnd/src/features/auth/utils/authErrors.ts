@@ -20,6 +20,7 @@ const errorMessages: Record<string, string> = {
   AUTH_1021: "Refresh token đã hết hạn. Vui lòng đăng nhập lại.",
   AUTH_1030: "Mật khẩu xác nhận không khớp.",
   AUTH_1031: "Mật khẩu hiện tại không đúng.",
+  AUTH_1040: "Đăng nhập Google thất bại. Vui lòng thử lại.",
   AUTH_1007: "Số điện thoại này đã tồn tại.",
   NETWORK: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.",
 };

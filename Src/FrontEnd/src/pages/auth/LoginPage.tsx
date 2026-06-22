@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
 import { Facebook, LockKeyhole, Mail } from "lucide-react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
@@ -8,7 +9,7 @@ import PasswordField from "@/components/common/PasswordField";
 import { showToast } from "@/components/common/toastStore";
 import AuthLayout from "@/features/auth/components/AuthLayout";
 import { setSession } from "@/features/auth/hooks/useAuth";
-import { login } from "@/features/auth/services/authService";
+import { googleLogin, login } from "@/features/auth/services/authService";
 import { getFriendlyAuthError } from "@/features/auth/utils/authErrors";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import { validateEmail } from "@/utils/validation";
@@ -29,6 +30,29 @@ export default function LoginPage() {
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const expired = searchParams.get("expired") === "1";
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setApiError("");
+      setIsSubmitting(true);
+      try {
+        const idToken = tokenResponse.access_token;
+        const result = await googleLogin(idToken);
+        setSession({ token: result.token, user: result.user });
+        showToast({ type: "success", title: "Đăng nhập thành công", message: `Chào mừng ${result.user.fullName}.` });
+        const fromState = location.state as { from?: { pathname?: string } } | null;
+        navigate(fromState?.from?.pathname ?? getDashboardPath(result.user.roles), { replace: true });
+      } catch (error) {
+        setApiError(getFriendlyAuthError(error));
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    onError: () => {
+      setApiError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+    },
+    scope: "openid email profile",
+  });
 
   const canSubmit = useMemo(() => email.trim().length > 0 && password.length > 0 && !isSubmitting, [email, password, isSubmitting]);
 
@@ -138,9 +162,10 @@ export default function LoginPage() {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            disabled
-            className="inline-flex h-12 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed"
-            title="Backend hiện chưa hỗ trợ đăng nhập Google"
+            className="inline-flex h-12 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+            onClick={() =>
+              handleGoogleLogin()
+            }
           >
             <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24">
               <path

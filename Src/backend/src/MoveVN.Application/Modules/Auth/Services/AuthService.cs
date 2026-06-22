@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using AutoMapper;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
@@ -148,10 +149,94 @@ public class AuthService : IAuthService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<AuthResponse> GoogleLoginAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        GoogleUserInfo googleUser;
+        try
+        {
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            googleUser = await httpClient.GetFromJsonAsync<GoogleUserInfo>(
+                $"https://www.googleapis.com/oauth2/v3/userinfo?access_token={request.IdToken}",
+                cancellationToken) ?? throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
+
+            if (string.IsNullOrWhiteSpace(googleUser.Email))
+            {
+                throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
+            }
+        }
+        catch
+        {
+            throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
+        }
+
+        var email = googleUser.Email.Trim().ToLowerInvariant();
+        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+
+        if (user is null)
+        {
+            var role = await _roleRepository.GetByNameAsync(UserRoleType.Customer, cancellationToken)
+                ?? throw new AppException(ErrorCode.INVALID_ROLE);
+
+            user = new User
+            {
+                Email = email,
+                FullName = googleUser.Name ?? email,
+                AvatarUrl = googleUser.Picture,
+                ExternalId = googleUser.Sub,
+                AuthProvider = "Google",
+                Status = UserStatus.Active.ToString(),
+                IsEmailVerified = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _userRepository.AddAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _roleRepository.AddUserRoleAsync(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = role.Id,
+                AssignedAt = DateTime.UtcNow
+            }, cancellationToken);
+
+            await _userRepository.AddCustomerProfileAsync(new CustomerProfile { UserId = user.Id }, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            if (user.Status == UserStatus.Suspended.ToString())
+            {
+                throw new AppException(ErrorCode.USER_SUSPENDED);
+            }
+
+            user.ExternalId ??= googleUser.Sub;
+            user.AuthProvider ??= "Google";
+            user.AvatarUrl ??= googleUser.Picture;
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
+        user.LastSeenAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.GoogleLogin, null, null, cancellationToken: cancellationToken);
+        return await CreateAuthResponseAsync(user, cancellationToken);
+    }
+
+    private record GoogleUserInfo
+    {
+        public string Sub { get; init; } = string.Empty;
+        public string? Name { get; init; }
+        public string? Email { get; init; }
+        public string? Picture { get; init; }
+    }
+
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
-        if (user is null || !_passwordHasherService.Verify(user.PasswordHash, request.Password))
+        if (user is null || user.PasswordHash is null || !_passwordHasherService.Verify(user.PasswordHash, request.Password))
         {
             await _activityLogger.LogAsync(null, request.Email, AuthEventType.LoginFailed, null, null, cancellationToken: cancellationToken);
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
@@ -230,7 +315,7 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
-        if (!_passwordHasherService.Verify(user.PasswordHash, request.CurrentPassword))
+        if (user.PasswordHash is null || !_passwordHasherService.Verify(user.PasswordHash, request.CurrentPassword))
         {
             throw new AppException(ErrorCode.PASSWORD_INCORRECT);
         }
@@ -240,6 +325,23 @@ public class AuthService : IAuthService
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordChanged, null, null, cancellationToken: cancellationToken);
+    }
+
+    public async Task AdminResetPasswordAsync(AdminResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        user.PasswordHash = _passwordHasherService.Hash(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordForceReset, null, null, cancellationToken: cancellationToken);
     }
 
     public async Task<AuthUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken = default)

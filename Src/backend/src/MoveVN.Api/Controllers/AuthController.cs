@@ -37,6 +37,13 @@ public class AuthController : BaseApiController
         return Success<object>(null, "OTP resent successfully.");
     }
 
+    [HttpPost("google-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> GoogleLogin(GoogleLoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.GoogleLoginAsync(request, cancellationToken);
+        return Success(result, "Google login successful.");
+    }
+
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -70,6 +77,14 @@ public class AuthController : BaseApiController
     {
         await _authService.ResetPasswordAsync(request, cancellationToken);
         return Success<object>(null, "Password reset successfully.");
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin-reset-password")]
+    public async Task<ActionResult<ApiResponse<object>>> AdminResetPassword(AdminResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await _authService.AdminResetPasswordAsync(request, cancellationToken);
+        return Success<object>(null, "Password has been reset successfully.");
     }
 
     [Authorize]

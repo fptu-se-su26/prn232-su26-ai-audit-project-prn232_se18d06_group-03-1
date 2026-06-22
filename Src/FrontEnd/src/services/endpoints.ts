@@ -3,6 +3,7 @@ export const endpoints = {
     register: "/api/auth/register",
     verifyOtp: "/api/auth/verify-otp",
     resendOtp: "/api/auth/resend-otp",
+    googleLogin: "/api/auth/google-login",
     login: "/api/auth/login",
     refreshToken: "/api/auth/refresh-token",
     logout: "/api/auth/logout",

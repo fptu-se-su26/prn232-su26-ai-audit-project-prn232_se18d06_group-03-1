@@ -42,5 +42,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode STAFF_EMAIL_EXISTED = new("ADMIN_2002", "Staff email already exists.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode ADMIN_SEED_FAILED = new("ADMIN_2003", "Failed to seed admin account.", HttpStatusCode.InternalServerError);
 
+    public static readonly ErrorCode GOOGLE_AUTH_FAILED = new("AUTH_1040", "Google authentication failed.", HttpStatusCode.Unauthorized);
+
     public override string ToString() => $"{Code}: {Message}";
 }
