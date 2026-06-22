@@ -58,6 +58,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<DbInitializer>();
 
+        services.AddSingleton<ICloudinaryService, CloudinaryService>();
+        services.AddSingleton<IRedisLockService, RedisLockService>();
+        services.AddScoped<IFptAiService, FptAiService>();
+
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))
         {

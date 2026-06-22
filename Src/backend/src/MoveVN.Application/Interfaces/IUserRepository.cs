@@ -1,3 +1,4 @@
+using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Interfaces;
@@ -13,4 +14,22 @@ public interface IUserRepository
     Task AddOwnerProfileAsync(OwnerProfile profile, CancellationToken cancellationToken = default);
     Task AddStaffProfileAsync(StaffProfile profile, CancellationToken cancellationToken = default);
     void Update(User user);
+
+    Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    void UpdateCustomerProfile(CustomerProfile profile);
+    Task<OwnerProfile?> GetOwnerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    void UpdateOwnerProfile(OwnerProfile profile);
+
+    Task AddOwnerApplicationAsync(OwnerApplication application, CancellationToken cancellationToken = default);
+    Task<OwnerApplication?> GetLatestOwnerApplicationByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<bool> HasActiveOwnerApplicationAsync(long userId, CancellationToken cancellationToken = default);
+    void UpdateOwnerApplication(OwnerApplication application);
+
+    Task AddVerificationRequestAsync(VerificationRequest request, CancellationToken cancellationToken = default);
+    void UpdateVerificationRequest(VerificationRequest request);
+    Task<VerificationRequest?> GetVerificationRequestByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<VerificationRequest?> GetLatestNationalIdVerificationByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+
+    Task<OwnerApplication?> GetOwnerApplicationByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<List<StaffOwnerApplicationQueryResult>> GetOwnerApplicationsByFilterAsync(string? status, string? keyword, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken = default);
 }

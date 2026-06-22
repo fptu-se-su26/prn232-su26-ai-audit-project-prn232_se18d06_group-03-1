@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Interfaces;
+using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Infrastructure.Persistence.Repositories;
@@ -59,5 +60,145 @@ public class UserRepository : IUserRepository
     public void Update(User user)
     {
         _context.Users.Update(user);
+    }
+
+    public Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.CustomerProfiles.FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+    }
+
+    public void UpdateCustomerProfile(CustomerProfile profile)
+    {
+        _context.CustomerProfiles.Update(profile);
+    }
+
+    public Task<OwnerProfile?> GetOwnerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.OwnerProfiles.FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+    }
+
+    public void UpdateOwnerProfile(OwnerProfile profile)
+    {
+        _context.OwnerProfiles.Update(profile);
+    }
+
+    public async Task AddOwnerApplicationAsync(OwnerApplication application, CancellationToken cancellationToken = default)
+    {
+        await _context.OwnerApplications.AddAsync(application, cancellationToken);
+    }
+
+    public Task<OwnerApplication?> GetLatestOwnerApplicationByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.OwnerApplications
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<bool> HasActiveOwnerApplicationAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.OwnerApplications
+            .AnyAsync(x => x.UserId == userId
+                && x.Status != "Approved"
+                && x.Status != "Rejected"
+                && x.Status != "Cancelled", cancellationToken);
+    }
+
+    public void UpdateOwnerApplication(OwnerApplication application)
+    {
+        _context.OwnerApplications.Update(application);
+    }
+
+    public async Task AddVerificationRequestAsync(VerificationRequest request, CancellationToken cancellationToken = default)
+    {
+        await _context.VerificationRequests.AddAsync(request, cancellationToken);
+    }
+
+    public void UpdateVerificationRequest(VerificationRequest request)
+    {
+        _context.VerificationRequests.Update(request);
+    }
+
+    public Task<VerificationRequest?> GetVerificationRequestByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _context.VerificationRequests.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public Task<VerificationRequest?> GetLatestNationalIdVerificationByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.VerificationRequests
+            .Where(x => x.UserId == userId && x.Type == "NationalId")
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<OwnerApplication?> GetOwnerApplicationByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return _context.OwnerApplications.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<List<StaffOwnerApplicationQueryResult>> GetOwnerApplicationsByFilterAsync(
+        string? status, string? keyword, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken = default)
+    {
+        var query = from app in _context.OwnerApplications
+                    join user in _context.Users on app.UserId equals user.Id
+                    join cp in _context.CustomerProfiles on app.UserId equals cp.UserId into cpJoin
+                    from cp in cpJoin.DefaultIfEmpty()
+                    select new
+                    {
+                        app.Id,
+                        app.UserId,
+                        user.FullName,
+                        user.Email,
+                        user.Phone,
+                        app.Status,
+                        cp.NationalIdVerified,
+                        app.BankName,
+                        app.BankAccountNumber,
+                        app.CreatedAt,
+                        app.SubmittedAt
+                    };
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(x => x.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLowerInvariant();
+            query = query.Where(x => x.FullName.ToLower().Contains(kw)
+                || x.Email.ToLower().Contains(kw)
+                || (x.Phone != null && x.Phone.Contains(kw)));
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(x => x.CreatedAt >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(x => x.CreatedAt <= toDate.Value);
+        }
+
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return items.Select(x => new StaffOwnerApplicationQueryResult
+        {
+            Id = x.Id,
+            UserId = x.UserId,
+            UserFullName = x.FullName,
+            UserEmail = x.Email,
+            UserPhone = x.Phone ?? string.Empty,
+            Status = x.Status,
+            NationalIdVerified = x.NationalIdVerified,
+            BankName = x.BankName,
+            BankAccountNumber = x.BankAccountNumber,
+            CreatedAt = x.CreatedAt,
+            SubmittedAt = x.SubmittedAt
+        }).ToList();
     }
 }
