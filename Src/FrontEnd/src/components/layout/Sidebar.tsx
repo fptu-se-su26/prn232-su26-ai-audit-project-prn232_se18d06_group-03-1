@@ -1,4 +1,4 @@
-import { ArrowLeftFromLine, Car, ChevronLeft, ChevronRight, ClipboardList, Home, KeyRound, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { ArrowLeftFromLine, BadgeCheck, Car, ChevronLeft, ChevronRight, ClipboardList, Home, KeyRound, Landmark, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
@@ -17,6 +17,11 @@ const roleIcons = {
   Owner: Car,
   Customer: Home,
 };
+
+const ownerVerificationItems = [
+  { to: "/become-owner/cccd", label: "Xác thực CCCD", icon: BadgeCheck },
+  { to: "/become-owner/bank", label: "Thông tin ngân hàng", icon: Landmark },
+];
 
 function NavItem({ to, label, icon: Icon, collapsed }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean }) {
   return (
@@ -60,8 +65,15 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     { to: "/change-password", label: "Đổi mật khẩu", icon: KeyRound },
   ];
 
-  const items = isProfileSection ? profileItems : mainItems;
-  const backItem = isProfileSection
+  const showOwnerVerification = user?.roles.some((r) => r === "Customer" || r === "Owner") ?? false;
+  const isBecomeOwnerPage = location.pathname.startsWith("/become-owner");
+  const isOwnerVerificationSection = isProfileSection || isBecomeOwnerPage;
+
+  let items = isOwnerVerificationSection ? profileItems : mainItems;
+  if (isOwnerVerificationSection && showOwnerVerification) {
+    items = [...items, ...ownerVerificationItems];
+  }
+  const backItem = isOwnerVerificationSection
     ? { to: getDashboardPath(user?.roles ?? []), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
     : null;
 
@@ -71,7 +83,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     >
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         <div className="flex-1 space-y-1">
-          {isProfileSection && (
+          {isOwnerVerificationSection && (
             <>
               <NavItem collapsed={collapsed} to={backItem!.to} label={backItem!.label} icon={backItem!.icon} />
               {!collapsed && <span className="my-1 block border-t border-slate-100" />}

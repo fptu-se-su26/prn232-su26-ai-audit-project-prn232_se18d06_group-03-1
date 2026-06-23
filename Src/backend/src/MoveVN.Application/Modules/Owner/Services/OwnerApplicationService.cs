@@ -113,24 +113,27 @@ public class OwnerApplicationService : IOwnerApplicationService
     {
         var userId = GetCurrentUserId();
 
-        var application = await _userRepository.GetLatestOwnerApplicationByUserIdAsync(userId, cancellationToken);
-        var roles = await _roleRepository.GetUserRoleNamesAsync(userId, cancellationToken);
-        var isOwner = roles.Contains(UserRoleType.Owner.ToString(), StringComparer.OrdinalIgnoreCase);
-        var customerProfile = await _userRepository.GetCustomerProfileByUserIdAsync(userId, cancellationToken);
+        var data = await _userRepository.GetOwnerApplicationCurrentDataAsync(userId, cancellationToken);
 
-        var nationalIdVerified = customerProfile?.NationalIdVerified ?? false;
-        var bankInfoCompleted = application is not null
-            && !string.IsNullOrWhiteSpace(application.BankName)
-            && !string.IsNullOrWhiteSpace(application.BankAccountNumber);
+        var bankInfoCompleted = data is not null
+            && !string.IsNullOrWhiteSpace(data.BankName)
+            && !string.IsNullOrWhiteSpace(data.BankAccountNumber);
 
         return new OwnerApplicationResponse
         {
-            Id = application?.Id ?? 0,
-            Status = application?.Status ?? "None",
-            NationalIdVerified = nationalIdVerified,
+            Id = data?.Id ?? 0,
+            Status = data?.Status ?? "None",
+            NationalIdVerified = data?.CustomerNationalIdVerified ?? false,
             BankInfoCompleted = bankInfoCompleted,
-            IsOwner = isOwner,
-            NextStep = DetermineNextStep(application, nationalIdVerified, bankInfoCompleted, isOwner)
+            IsOwner = data?.IsOwner ?? false,
+            NextStep = DetermineNextStep(data, data?.CustomerNationalIdVerified ?? false, bankInfoCompleted, data?.IsOwner ?? false),
+            FullName = data?.UserFullName,
+            NationalIdNumber = data?.CustomerNationalId,
+            BankName = data?.BankName,
+            BankAccountNumber = data?.BankAccountNumber,
+            BankAccountHolderName = data?.BankAccountHolderName,
+            RejectReason = data?.RejectionReason,
+            CreatedAt = data?.CreatedAt ?? DateTime.UtcNow
         };
     }
 
@@ -576,19 +579,23 @@ public class OwnerApplicationService : IOwnerApplicationService
         }
     }
 
+    private static string DetermineNextStep(OwnerApplicationCurrentData? data, bool nationalIdVerified, bool bankInfoCompleted, bool isOwner)
+    {
+        if (isOwner) return "OwnerDashboard";
+        if (data is null) return "BecomeOwner";
+        return DetermineNextStep(data.Status);
+    }
+
     private static string DetermineNextStep(OwnerApplication? application, bool nationalIdVerified, bool bankInfoCompleted, bool isOwner)
     {
-        if (isOwner)
-        {
-            return "OwnerDashboard";
-        }
+        if (isOwner) return "OwnerDashboard";
+        if (application is null) return "BecomeOwner";
+        return DetermineNextStep(application.Status);
+    }
 
-        if (application is null)
-        {
-            return "BecomeOwner";
-        }
-
-        return application.Status switch
+    private static string DetermineNextStep(string status)
+    {
+        return status switch
         {
             "WaitingCccdVerification" => "UploadNationalId",
             "WaitingBankInfo" => "BankInfo",

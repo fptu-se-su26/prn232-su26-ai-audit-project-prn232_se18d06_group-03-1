@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Domain.Entities;
+using MoveVN.Domain.Enums;
 
 namespace MoveVN.Infrastructure.Persistence.Repositories;
 
@@ -135,6 +136,43 @@ public class UserRepository : IUserRepository
     public Task<OwnerApplication?> GetOwnerApplicationByIdAsync(long id, CancellationToken cancellationToken = default)
     {
         return _context.OwnerApplications.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<OwnerApplicationCurrentData?> GetOwnerApplicationCurrentDataAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var ownerRoleName = UserRoleType.Owner.ToString();
+
+        var query = from app in _context.OwnerApplications
+                    where app.UserId == userId
+                    orderby app.CreatedAt descending
+                    select new OwnerApplicationCurrentData
+                    {
+                        Id = app.Id,
+                        Status = app.Status,
+                        BankName = app.BankName,
+                        BankAccountNumber = app.BankAccountNumber,
+                        BankAccountHolderName = app.BankAccountHolderName,
+                        CreatedAt = app.CreatedAt,
+                        RejectionReason = app.RejectionReason,
+                        UserFullName = _context.Users
+                            .Where(u => u.Id == userId)
+                            .Select(u => u.FullName)
+                            .FirstOrDefault(),
+                        CustomerNationalId = _context.CustomerProfiles
+                            .Where(cp => cp.UserId == userId)
+                            .Select(cp => cp.NationalId)
+                            .FirstOrDefault(),
+                        CustomerNationalIdVerified = _context.CustomerProfiles
+                            .Where(cp => cp.UserId == userId)
+                            .Select(cp => cp.NationalIdVerified)
+                            .FirstOrDefault(),
+                        IsOwner = _context.UserRoles
+                            .Where(ur => ur.UserId == userId)
+                            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                            .Any(name => name == ownerRoleName)
+                    };
+
+        return await query.FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<List<StaffOwnerApplicationQueryResult>> GetOwnerApplicationsByFilterAsync(

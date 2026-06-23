@@ -11,6 +11,9 @@ import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
+import BankInfoPage from "@/pages/customer/BankInfoPage";
+import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
+import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -45,6 +48,9 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Customer"]} />}>
             <Route path="/customer" element={<CustomerHomePage />} />
+            <Route path="/become-owner" element={<BecomeOwnerPage />} />
+            <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
+            <Route path="/become-owner/bank" element={<BankInfoPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Owner"]} />}>
