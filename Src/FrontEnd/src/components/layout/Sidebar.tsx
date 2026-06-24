@@ -47,13 +47,14 @@ function SectionHeading({ children, collapsed }: { children: React.ReactNode; co
 
 export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const user = useAuthStore((state) => state.user);
+  const activeRole = useAuthStore((state) => state.activeRole);
   const location = useLocation();
-  const primaryRole = user?.roles[0] ?? "Customer";
+  const primaryRole = activeRole ?? user?.roles[0] ?? "Customer";
   const RoleIcon = roleIcons[primaryRole] ?? Home;
   const isProfileSection = location.pathname === "/account" || location.pathname === "/change-password";
 
   const mainItems = [
-    { to: getDashboardPath(user?.roles ?? []), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
+    { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
   ];
 
   if (primaryRole === "Admin") {
@@ -74,14 +75,14 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     items = [...items, ...ownerVerificationItems];
   }
   const backItem = isOwnerVerificationSection
-    ? { to: getDashboardPath(user?.roles ?? []), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
+    ? { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
     : null;
 
   return (
     <aside
-      className={`hidden min-h-[calc(100vh-3.5rem)] border-r border-slate-200 bg-white transition-all duration-200 md:flex md:flex-col ${collapsed ? "w-16" : "w-56"}`}
+      className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:flex-col md:self-start md:h-[calc(100vh-3.5rem)] ${collapsed ? "w-16" : "w-56"}`}
     >
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="flex flex-1 flex-col gap-1 p-3">
         <div className="flex-1 space-y-1">
           {isOwnerVerificationSection && (
             <>

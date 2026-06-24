@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { AuthSession, AuthState, AuthUser, UserRole } from "@/features/auth/types";
 
 const storageKey = "movevn_auth_session";
+const activeRoleKey = "movevn_active_role";
 const legacyTokenKey = "cc_token";
 
 function readStoredSession(): AuthSession {
@@ -46,26 +47,44 @@ function persistSession(session: AuthSession) {
   localStorage.removeItem(legacyTokenKey);
 }
 
+function readActiveRole(roles: UserRole[]): UserRole | null {
+  const stored = localStorage.getItem(activeRoleKey) as UserRole | null;
+  if (stored && roles.includes(stored)) return stored;
+  return roles[0] ?? null;
+}
+
 const initialSession = readStoredSession();
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: initialSession.token,
   user: initialSession.user,
+  activeRole: readActiveRole(initialSession.user?.roles ?? []),
   isHydrated: true,
   setSession: (session: AuthSession) => {
     persistSession(session);
-    set(session);
+    const activeRole = readActiveRole(session.user?.roles ?? []);
+    localStorage.setItem(activeRoleKey, activeRole ?? "");
+    set({ ...session, activeRole });
   },
   updateUser: (user: AuthUser | null) => {
     set((state) => {
       const next = { token: state.token, user };
       persistSession(next);
-      return { user };
+      const activeRole = user ? readActiveRole(user.roles) : null;
+      if (activeRole) {
+        localStorage.setItem(activeRoleKey, activeRole);
+      }
+      return { user, activeRole };
     });
+  },
+  setActiveRole: (role: UserRole) => {
+    localStorage.setItem(activeRoleKey, role);
+    set({ activeRole: role });
   },
   clearSession: () => {
     persistSession({ token: null, user: null });
-    set({ token: null, user: null });
+    localStorage.removeItem(activeRoleKey);
+    set({ token: null, user: null, activeRole: null });
   },
 }));
 

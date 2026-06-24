@@ -33,8 +33,10 @@ export type AuthSession = {
 
 export type AuthState = AuthSession & {
   isHydrated: boolean;
+  activeRole: UserRole | null;
   setSession: (session: AuthSession) => void;
   updateUser: (user: AuthUser | null) => void;
+  setActiveRole: (role: UserRole) => void;
   clearSession: () => void;
 };
 
