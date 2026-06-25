@@ -61,6 +61,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<VehicleFeatureMapping> VehicleFeatureMapping => Set<VehicleFeatureMapping>();
     public DbSet<VehicleImage> VehicleImages => Set<VehicleImage>();
     public DbSet<VehicleModel> VehicleModel => Set<VehicleModel>();
+    public DbSet<VehicleModelVariant> VehicleModelVariant => Set<VehicleModelVariant>();
     public DbSet<VehicleModelPricing> VehicleModelPricing => Set<VehicleModelPricing>();
     public DbSet<VehiclePricing> VehiclePricing => Set<VehiclePricing>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
@@ -75,6 +76,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<RolePermission>().HasKey(entity => new { entity.RoleId, entity.PermissionId });
         builder.Entity<VehicleFeatureMapping>().HasKey(entity => new { entity.VehicleId, entity.FeatureId });
+        builder.Entity<VehicleModelVariant>().HasIndex(entity => new { entity.ModelId, entity.Name });
+        builder.Entity<VehicleModelVariant>()
+            .HasOne<VehicleModel>()
+            .WithMany()
+            .HasForeignKey(entity => entity.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CarDetail>()
+            .HasOne<VehicleModelVariant>()
+            .WithMany()
+            .HasForeignKey(entity => entity.ModelVariantId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<MotorbikeDetail>()
+            .HasOne<VehicleModelVariant>()
+            .WithMany()
+            .HasForeignKey(entity => entity.ModelVariantId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CustomerProfile>().HasIndex(entity => entity.NationalIdHash);
         builder.Entity<OwnerApplication>().HasIndex(entity => new { entity.UserId, entity.Status });
         builder.Entity<OwnerApplication>().HasIndex(entity => entity.NationalIdVerificationRequestId);

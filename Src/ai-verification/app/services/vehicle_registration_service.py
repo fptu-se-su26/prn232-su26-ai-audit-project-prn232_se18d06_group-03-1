@@ -179,7 +179,7 @@ class VehicleRegistrationService:
         plate = normalize_license_plate(license_plate)
         if re.match(r"^[0-9]{2}[A-Z][0-9][0-9]{5}$", plate):
             return VehicleType.MOTORBIKE
-        if re.match(r"^[0-9]{2}[A-Z]{1,2}[0-9]{4,6}$", plate):
+        if re.match(r"^[0-9]{2}[A-Z][0-9]{4,6}$", plate):
             return VehicleType.CAR
         return VehicleType.UNKNOWN
 
