@@ -14,6 +14,11 @@ export const endpoints = {
   },
   admin: {
     users: "/api/admin/users",
+    vehicleBrands: "/api/admin/vehicle-brands",
+    vehicleModels: "/api/admin/vehicle-models",
+    vehicleModelVariants: "/api/admin/vehicle-model-variants",
+    driverLicenseClasses: "/api/admin/driver-license-classes",
+    vehicleFeatures: "/api/admin/vehicle-features",
   },
   swaggerJson: "/swagger/v1/swagger.json",
 };

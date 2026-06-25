@@ -6,6 +6,13 @@ import ChangePasswordPage from "@/pages/account/ChangePasswordPage";
 import LogoutPage from "@/pages/account/LogoutPage";
 import AdminHomePage from "@/pages/admin/AdminHomePage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminVehicleCatalogPage from "@/pages/admin/AdminVehicleCatalogPage";
+import AdminVehicleBrandsPage from "@/pages/admin/AdminVehicleBrandsPage";
+import AdminVehicleModelsPage from "@/pages/admin/AdminVehicleModelsPage";
+import AdminCarVariantsPage from "@/pages/admin/AdminCarVariantsPage";
+import AdminMotorbikeVariantsPage from "@/pages/admin/AdminMotorbikeVariantsPage";
+import AdminDriverLicenseClassesPage from "@/pages/admin/AdminDriverLicenseClassesPage";
+import AdminVehicleFeaturesPage from "@/pages/admin/AdminVehicleFeaturesPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
@@ -64,6 +71,13 @@ export default function AppRoutes() {
           <Route element={<RoleRoute roles={["Admin"]} />}>
             <Route path="/admin" element={<AdminHomePage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
+            <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
+            <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />
+            <Route path="/admin/car-variants" element={<AdminCarVariantsPage />} />
+            <Route path="/admin/motorbike-variants" element={<AdminMotorbikeVariantsPage />} />
+            <Route path="/admin/driver-license-classes" element={<AdminDriverLicenseClassesPage />} />
+            <Route path="/admin/vehicle-features" element={<AdminVehicleFeaturesPage />} />
           </Route>
         </Route>
       </Route>

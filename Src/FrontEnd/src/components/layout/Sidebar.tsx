@@ -1,5 +1,25 @@
-import { ArrowLeftFromLine, BadgeCheck, Car, ChevronLeft, ChevronRight, ClipboardList, Home, KeyRound, Landmark, ShieldCheck, UserRound, UsersRound } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import {
+  ArrowLeftFromLine,
+  BadgeCheck,
+  Bike,
+  Building2,
+  Car,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileBadge,
+  FolderTree,
+  Home,
+  KeyRound,
+  Landmark,
+  Layers,
+  ShieldCheck,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import type { UserRole } from "@/features/auth/types";
@@ -23,6 +43,14 @@ const ownerVerificationItems = [
   { to: "/become-owner/bank", label: "Thông tin ngân hàng", icon: Landmark },
 ];
 
+const vehicleCatalogItems = [
+  { to: "/admin/vehicle-brands", label: "Hãng xe", icon: Building2 },
+  { to: "/admin/vehicle-models", label: "Dòng xe", icon: Layers },
+  { to: "/admin/car-variants", label: "Phiên bản ô tô", icon: Car },
+  { to: "/admin/motorbike-variants", label: "Phiên bản xe máy", icon: Bike },
+  { to: "/admin/driver-license-classes", label: "Giấy phép lái xe", icon: FileBadge },
+];
+
 function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
   return (
     <NavLink
@@ -35,6 +63,7 @@ function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label:
           isActive ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
         ].join(" ")
       }
+      title={collapsed ? label : undefined}
     >
       <Icon className="h-4 w-4 shrink-0" />
       {!collapsed && label}
@@ -50,9 +79,18 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const user = useAuthStore((state) => state.user);
   const activeRole = useAuthStore((state) => state.activeRole);
   const location = useLocation();
+  const navigate = useNavigate();
   const primaryRole = activeRole ?? user?.roles[0] ?? "Customer";
   const RoleIcon = roleIcons[primaryRole] ?? Home;
   const isProfileSection = location.pathname === "/account" || location.pathname === "/change-password";
+  const isVehicleCatalogPath = location.pathname === "/admin/vehicle-catalog" || vehicleCatalogItems.some((item) => location.pathname.startsWith(item.to));
+  const [vehicleCatalogOpen, setVehicleCatalogOpen] = useState(isVehicleCatalogPath);
+
+  useEffect(() => {
+    if (isVehicleCatalogPath) {
+      setVehicleCatalogOpen(true);
+    }
+  }, [isVehicleCatalogPath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -75,6 +113,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   if (isOwnerVerificationSection && showOwnerVerification) {
     items = [...items, ...ownerVerificationItems];
   }
+
   const backItem = isOwnerVerificationSection
     ? { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
     : null;
@@ -82,7 +121,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <aside
-      className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:flex-col md:self-start md:h-[calc(100vh-3.5rem)] ${collapsed ? "w-16" : "w-56"}`}
+      className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:h-[calc(100vh-3.5rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-56"}`}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3">
         <div className="flex-1 space-y-1">
@@ -97,6 +136,58 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           {items.map((item) => (
             <NavItem key={item.to} end={item.to === dashboardPath} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
           ))}
+
+          {primaryRole === "Admin" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setVehicleCatalogOpen(true);
+                  navigate("/admin/vehicle-catalog");
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isVehicleCatalogPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Phương tiện"
+              >
+                <FolderTree className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Phương tiện</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setVehicleCatalogOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setVehicleCatalogOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở danh mục phương tiện"
+                    >
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${vehicleCatalogOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && vehicleCatalogOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {vehicleCatalogItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <button

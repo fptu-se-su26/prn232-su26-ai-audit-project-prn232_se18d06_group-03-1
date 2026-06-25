@@ -39,7 +39,7 @@ function FilterDropdown({ value, label, options, onChange }: { value: string; la
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-44 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="dropdown-scrollbar absolute left-0 top-full z-20 mt-1 max-h-72 w-44 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.value}
