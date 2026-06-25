@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
+import { usePresenceConnection } from "@/features/presence/usePresenceConnection";
 
 export default function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  usePresenceConnection();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">

@@ -3,6 +3,7 @@ using System.Text;
 using AutoMapper;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Admin.DTOs;
 using MoveVN.Application.Modules.Admin.Interfaces;
@@ -19,6 +20,7 @@ public class AdminUserService : IAdminUserService
     private readonly IRoleRepository _roleRepository;
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly IAuthActivityLogger _activityLogger;
+    private readonly IPresenceService _presenceService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
@@ -27,6 +29,7 @@ public class AdminUserService : IAdminUserService
         IRoleRepository roleRepository,
         IPasswordHasherService passwordHasherService,
         IAuthActivityLogger activityLogger,
+        IPresenceService presenceService,
         IUnitOfWork unitOfWork,
         IMapper mapper)
     {
@@ -34,8 +37,25 @@ public class AdminUserService : IAdminUserService
         _roleRepository = roleRepository;
         _passwordHasherService = passwordHasherService;
         _activityLogger = activityLogger;
+        _presenceService = presenceService;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+    }
+
+    public async Task<List<AdminUserListItem>> GetUsersAsync(string? keyword, CancellationToken cancellationToken = default)
+    {
+        var users = await _userRepository.GetAdminUserListAsync(keyword, cancellationToken);
+        var redisStatuses = await _presenceService.GetOnlineStatusesAsync(users.Select(user => user.UserId), cancellationToken);
+
+        foreach (var user in users)
+        {
+            if (redisStatuses.TryGetValue(user.UserId, out var isOnline))
+            {
+                user.IsOnline = user.IsOnline || isOnline;
+            }
+        }
+
+        return users;
     }
 
     public async Task<AuthUserResponse> CreateOwnerAsync(AdminCreateOwnerRequest request, CancellationToken cancellationToken = default)

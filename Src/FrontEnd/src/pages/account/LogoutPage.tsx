@@ -4,6 +4,7 @@ import PageLoader from "@/components/common/PageLoader";
 import { showToast } from "@/components/common/toastStore";
 import { clearSession, useAuthStore } from "@/features/auth/hooks/useAuth";
 import { logout } from "@/features/auth/services/authService";
+import { stopPresenceConnection } from "@/features/presence/presenceConnection";
 
 export default function LogoutPage() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function LogoutPage() {
 
     async function signOut() {
       try {
+        await stopPresenceConnection();
         if (refreshToken) {
           await logout(refreshToken);
         }

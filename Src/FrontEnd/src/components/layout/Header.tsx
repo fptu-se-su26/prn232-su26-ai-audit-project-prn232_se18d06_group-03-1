@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { APP_NAME } from "@/constants/appConstants";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import { usePresenceStore } from "@/features/presence/usePresence";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import useClickOutside from "@/hooks/useClickOutside";
 import type { UserRole } from "@/features/auth/types";
@@ -19,6 +20,7 @@ export default function Header() {
   const user = useAuthStore((state) => state.user);
   const activeRole = useAuthStore((state) => state.activeRole);
   const setActiveRole = useAuthStore((state) => state.setActiveRole);
+  const selfOnline = usePresenceStore((state) => state.selfOnline);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -58,8 +60,11 @@ export default function Header() {
               onClick={() => setOpen((prev) => !prev)}
               className={`hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors sm:flex ${open ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-slate-100"}`}
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-700 text-xs font-semibold text-white">
-                {initials}
+              <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-brand-700 text-xs font-semibold text-white">
+                <span>{initials}</span>
+                {selfOnline && (
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                )}
               </span>
               <span className="max-w-32 truncate">{user?.fullName ?? "Tài khoản"}</span>
               <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />

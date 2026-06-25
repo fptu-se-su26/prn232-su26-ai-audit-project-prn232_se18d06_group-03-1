@@ -12,5 +12,8 @@ export const endpoints = {
     changePassword: "/api/auth/change-password",
     me: "/api/auth/me",
   },
+  admin: {
+    users: "/api/admin/users",
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

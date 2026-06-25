@@ -23,10 +23,11 @@ const ownerVerificationItems = [
   { to: "/become-owner/bank", label: "Thông tin ngân hàng", icon: Landmark },
 ];
 
-function NavItem({ to, label, icon: Icon, collapsed }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean }) {
+function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
   return (
     <NavLink
       to={to}
+      end={end}
       className={({ isActive }) =>
         [
           "flex h-10 items-center rounded-md text-sm font-medium transition-colors",
@@ -77,6 +78,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const backItem = isOwnerVerificationSection
     ? { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
     : null;
+  const dashboardPath = getDashboardPath([primaryRole]);
 
   return (
     <aside
@@ -86,14 +88,14 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
         <div className="flex-1 space-y-1">
           {isOwnerVerificationSection && (
             <>
-              <NavItem collapsed={collapsed} to={backItem!.to} label={backItem!.label} icon={backItem!.icon} />
+              <NavItem end collapsed={collapsed} to={backItem!.to} label={backItem!.label} icon={backItem!.icon} />
               {!collapsed && <span className="my-1 block border-t border-slate-100" />}
               {!collapsed && <SectionHeading collapsed={collapsed}>Hồ sơ</SectionHeading>}
             </>
           )}
 
           {items.map((item) => (
-            <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+            <NavItem key={item.to} end={item.to === dashboardPath} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
           ))}
         </div>
 

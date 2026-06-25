@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Interfaces;
+using MoveVN.Application.Modules.Admin.DTOs;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Domain.Entities;
 using MoveVN.Domain.Enums;
@@ -131,6 +132,71 @@ public class UserRepository : IUserRepository
             .Where(x => x.UserId == userId && x.Type == "NationalId")
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<List<AdminUserListItem>> GetAdminUserListAsync(string? keyword, CancellationToken cancellationToken = default)
+    {
+        var adminRoleName = UserRoleType.Admin.ToString();
+        var query = _context.Users.AsNoTracking();
+
+        query = query.Where(user => !_context.UserRoles
+            .Join(_context.Roles,
+                userRole => userRole.RoleId,
+                role => role.Id,
+                (userRole, role) => new { userRole.UserId, role.Name })
+            .Any(row => row.UserId == user.Id && row.Name == adminRoleName));
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var normalizedKeyword = keyword.Trim().ToLowerInvariant();
+            query = query.Where(user =>
+                user.FullName.ToLower().Contains(normalizedKeyword)
+                || user.Email.ToLower().Contains(normalizedKeyword)
+                || (user.Phone != null && user.Phone.Contains(normalizedKeyword)));
+        }
+
+        var users = await query
+            .OrderByDescending(user => user.IsOnline)
+            .ThenByDescending(user => user.LastSeenAt)
+            .ThenByDescending(user => user.CreatedAt)
+            .Select(user => new AdminUserListItem
+            {
+                UserId = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Status = user.Status,
+                IsOnline = user.IsOnline,
+                LastSeenAt = user.LastSeenAt,
+                CreatedAt = user.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var userIds = users.Select(user => user.UserId).ToArray();
+        var roleRows = await _context.UserRoles
+            .AsNoTracking()
+            .Where(userRole => userIds.Contains(userRole.UserId))
+            .Join(_context.Roles.AsNoTracking(),
+                userRole => userRole.RoleId,
+                role => role.Id,
+                (userRole, role) => new { userRole.UserId, role.Name })
+            .ToListAsync(cancellationToken);
+
+        var rolesByUser = roleRows
+            .GroupBy(row => row.UserId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(row => row.Name).OrderBy(name => name).ToList());
+
+        foreach (var user in users)
+        {
+            if (rolesByUser.TryGetValue(user.UserId, out var roles))
+            {
+                user.Roles = roles;
+            }
+        }
+
+        return users;
     }
 
     public Task<OwnerApplication?> GetOwnerApplicationByIdAsync(long id, CancellationToken cancellationToken = default)

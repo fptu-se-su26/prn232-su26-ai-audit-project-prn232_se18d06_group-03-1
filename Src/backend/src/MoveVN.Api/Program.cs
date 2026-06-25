@@ -1,4 +1,5 @@
 using MoveVN.Api.Extensions;
+using MoveVN.Api.Hubs;
 using MoveVN.Api.Services;
 using MoveVN.Application;
 using MoveVN.Application.Modules.Auth.Interfaces;
@@ -44,6 +45,8 @@ builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<PresenceCleanupService>();
 
 const string frontendCorsPolicy = "Frontend";
 var allowedOrigins = builder.Configuration
@@ -57,7 +60,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -119,6 +123,18 @@ builder.Services
         };
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken) && path.StartsWithSegments("/hubs/presence"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
             OnTokenValidated = async context =>
             {
                 var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
@@ -151,6 +167,7 @@ app.UseCors(frontendCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<PresenceHub>("/hubs/presence");
 
 app.Run();
 
