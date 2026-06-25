@@ -13,6 +13,7 @@ public class VehicleModelVariant
     public string? Drivetrain { get; set; }
     public string? BikeType { get; set; }
     public string? EngineCapacity { get; set; }
+    public int? RequiredLicenseClassId { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

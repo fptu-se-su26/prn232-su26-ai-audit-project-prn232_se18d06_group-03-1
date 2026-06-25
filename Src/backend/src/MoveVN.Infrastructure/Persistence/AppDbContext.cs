@@ -27,6 +27,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
     public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<DriverLicenseClass> DriverLicenseClasses => Set<DriverLicenseClass>();
+    public DbSet<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => Set<DriverLicenseClassCompatibility>();
     public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
     public DbSet<InspectionReport> InspectionReports => Set<InspectionReport>();
     public DbSet<MLPredictionLog> MLPredictionLogs => Set<MLPredictionLog>();
@@ -74,6 +76,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
+        builder.Entity<DriverLicenseClass>().HasIndex(entity => entity.Code).IsUnique();
+        builder.Entity<DriverLicenseClassCompatibility>().HasKey(entity => new { entity.LicenseClassId, entity.AllowedRequiredLicenseClassId });
+        builder.Entity<DriverLicenseClassCompatibility>()
+            .HasOne<DriverLicenseClass>()
+            .WithMany()
+            .HasForeignKey(entity => entity.LicenseClassId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<DriverLicenseClassCompatibility>()
+            .HasOne<DriverLicenseClass>()
+            .WithMany()
+            .HasForeignKey(entity => entity.AllowedRequiredLicenseClassId)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.Entity<RolePermission>().HasKey(entity => new { entity.RoleId, entity.PermissionId });
         builder.Entity<VehicleFeatureMapping>().HasKey(entity => new { entity.VehicleId, entity.FeatureId });
         builder.Entity<VehicleModelVariant>().HasIndex(entity => new { entity.ModelId, entity.Name });
@@ -81,6 +95,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .HasOne<VehicleModel>()
             .WithMany()
             .HasForeignKey(entity => entity.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<VehicleModelVariant>()
+            .HasOne<DriverLicenseClass>()
+            .WithMany()
+            .HasForeignKey(entity => entity.RequiredLicenseClassId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CarDetail>()
             .HasOne<VehicleModelVariant>()
