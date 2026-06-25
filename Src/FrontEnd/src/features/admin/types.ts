@@ -11,3 +11,21 @@ export type AdminUserListItem = {
   createdAt: string;
   roles: UserRole[];
 };
+
+export type AdminUserListParams = {
+  keyword?: string;
+  sortBy?: string;
+  role?: string;
+  status?: string;
+  isOnline?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+export type PagedResult<T> = {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};

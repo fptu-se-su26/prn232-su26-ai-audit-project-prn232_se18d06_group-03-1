@@ -4,6 +4,7 @@ using AutoMapper;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
+using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Admin.DTOs;
 using MoveVN.Application.Modules.Admin.Interfaces;
@@ -42,20 +43,26 @@ public class AdminUserService : IAdminUserService
         _mapper = mapper;
     }
 
-    public async Task<List<AdminUserListItem>> GetUsersAsync(string? keyword, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<AdminUserListItem>> GetUsersAsync(string? keyword, string? sortBy, string? role, string? status, bool? isOnline, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var users = await _userRepository.GetAdminUserListAsync(keyword, cancellationToken);
-        var redisStatuses = await _presenceService.GetOnlineStatusesAsync(users.Select(user => user.UserId), cancellationToken);
+        var (items, totalCount) = await _userRepository.GetAdminUserListAsync(keyword, sortBy, role, status, isOnline, page, pageSize, cancellationToken);
+        var redisStatuses = await _presenceService.GetOnlineStatusesAsync(items.Select(user => user.UserId), cancellationToken);
 
-        foreach (var user in users)
+        foreach (var user in items)
         {
-            if (redisStatuses.TryGetValue(user.UserId, out var isOnline))
+            if (redisStatuses.TryGetValue(user.UserId, out var online))
             {
-                user.IsOnline = user.IsOnline || isOnline;
+                user.IsOnline = user.IsOnline || online;
             }
         }
 
-        return users;
+        return new PagedResult<AdminUserListItem>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<AuthUserResponse> CreateOwnerAsync(AdminCreateOwnerRequest request, CancellationToken cancellationToken = default)

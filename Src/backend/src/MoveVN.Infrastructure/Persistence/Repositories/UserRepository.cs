@@ -134,7 +134,9 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<List<AdminUserListItem>> GetAdminUserListAsync(string? keyword, CancellationToken cancellationToken = default)
+    public async Task<(List<AdminUserListItem> Items, int TotalCount)> GetAdminUserListAsync(
+        string? keyword, string? sortBy, string? role, string? status, bool? isOnline,
+        int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var adminRoleName = UserRoleType.Admin.ToString();
         var query = _context.Users.AsNoTracking();
@@ -148,17 +150,47 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            var normalizedKeyword = keyword.Trim().ToLowerInvariant();
+            var kw = keyword.Trim().ToLowerInvariant();
             query = query.Where(user =>
-                user.FullName.ToLower().Contains(normalizedKeyword)
-                || user.Email.ToLower().Contains(normalizedKeyword)
-                || (user.Phone != null && user.Phone.Contains(normalizedKeyword)));
+                user.FullName.ToLower().Contains(kw)
+                || user.Email.ToLower().Contains(kw)
+                || (user.Phone != null && user.Phone.Contains(kw)));
         }
 
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleNames = role.Split(',').Select(r => r.Trim()).ToList();
+            query = query.Where(user => _context.UserRoles
+                .Where(ur => ur.UserId == user.Id)
+                .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                .Any(rn => roleNames.Contains(rn)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(user => user.Status == status);
+        }
+
+        if (isOnline.HasValue)
+        {
+            query = query.Where(user => user.IsOnline == isOnline.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        query = sortBy switch
+        {
+            "name_asc" => query.OrderBy(user => user.FullName),
+            "name_desc" => query.OrderByDescending(user => user.FullName),
+            "oldest" => query.OrderBy(user => user.CreatedAt),
+            _ => query.OrderByDescending(user => user.CreatedAt)
+        };
+
+        query = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize);
+
         var users = await query
-            .OrderByDescending(user => user.IsOnline)
-            .ThenByDescending(user => user.LastSeenAt)
-            .ThenByDescending(user => user.CreatedAt)
             .Select(user => new AdminUserListItem
             {
                 UserId = user.Id,
@@ -173,30 +205,33 @@ public class UserRepository : IUserRepository
             .ToListAsync(cancellationToken);
 
         var userIds = users.Select(user => user.UserId).ToArray();
-        var roleRows = await _context.UserRoles
-            .AsNoTracking()
-            .Where(userRole => userIds.Contains(userRole.UserId))
-            .Join(_context.Roles.AsNoTracking(),
-                userRole => userRole.RoleId,
-                role => role.Id,
-                (userRole, role) => new { userRole.UserId, role.Name })
-            .ToListAsync(cancellationToken);
-
-        var rolesByUser = roleRows
-            .GroupBy(row => row.UserId)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(row => row.Name).OrderBy(name => name).ToList());
-
-        foreach (var user in users)
+        if (userIds.Length != 0)
         {
-            if (rolesByUser.TryGetValue(user.UserId, out var roles))
+            var roleRows = await _context.UserRoles
+                .AsNoTracking()
+                .Where(userRole => userIds.Contains(userRole.UserId))
+                .Join(_context.Roles.AsNoTracking(),
+                    userRole => userRole.RoleId,
+                    role => role.Id,
+                    (userRole, role) => new { userRole.UserId, role.Name })
+                .ToListAsync(cancellationToken);
+
+            var rolesByUser = roleRows
+                .GroupBy(row => row.UserId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(row => row.Name).OrderBy(name => name).ToList());
+
+            foreach (var user in users)
             {
-                user.Roles = roles;
+                if (rolesByUser.TryGetValue(user.UserId, out var userRoles))
+                {
+                    user.Roles = userRoles;
+                }
             }
         }
 
-        return users;
+        return (users, totalCount);
     }
 
     public Task<OwnerApplication?> GetOwnerApplicationByIdAsync(long id, CancellationToken cancellationToken = default)

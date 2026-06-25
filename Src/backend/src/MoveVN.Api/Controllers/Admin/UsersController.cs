@@ -18,11 +18,17 @@ public class UsersController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<AdminUserListItem>>>> GetUsers(
+    public async Task<ActionResult<ApiResponse<PagedResult<AdminUserListItem>>>> GetUsers(
         [FromQuery] string? keyword,
-        CancellationToken cancellationToken)
+        [FromQuery] string? sortBy,
+        [FromQuery] string? role,
+        [FromQuery] string? status,
+        [FromQuery] bool? isOnline,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _adminUserService.GetUsersAsync(keyword, cancellationToken);
+        var result = await _adminUserService.GetUsersAsync(keyword, sortBy, role, status, isOnline, page, pageSize, cancellationToken);
         return Success(result);
     }
 }
