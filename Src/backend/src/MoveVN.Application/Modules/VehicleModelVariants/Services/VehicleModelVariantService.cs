@@ -26,8 +26,10 @@ public class VehicleModelVariantService : IVehicleModelVariantService
         int? modelId,
         string? bodyType,
         byte? seatCount,
+        string? transmission,
         string? fuelType,
         string? bikeType,
+        string? engineCapacity,
         int? requiredLicenseClassId,
         string? licenseSystemVersion,
         int page,
@@ -66,11 +68,17 @@ public class VehicleModelVariantService : IVehicleModelVariantService
         if (seatCount.HasValue)
             query = query.Where(x => x.SeatCount == seatCount.Value);
 
+        if (!string.IsNullOrWhiteSpace(transmission))
+            query = query.Where(x => x.Transmission == transmission);
+
         if (!string.IsNullOrWhiteSpace(fuelType))
             query = query.Where(x => x.FuelType == fuelType);
 
         if (!string.IsNullOrWhiteSpace(bikeType))
             query = query.Where(x => x.BikeType == bikeType);
+
+        if (!string.IsNullOrWhiteSpace(engineCapacity))
+            query = query.Where(x => x.EngineCapacity != null && x.EngineCapacity.Contains(engineCapacity));
 
         if (requiredLicenseClassId.HasValue)
             query = query.Where(x => x.RequiredLicenseClassId == requiredLicenseClassId.Value);

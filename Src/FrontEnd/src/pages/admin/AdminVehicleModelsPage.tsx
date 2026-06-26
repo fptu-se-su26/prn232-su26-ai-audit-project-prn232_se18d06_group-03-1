@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
@@ -7,8 +7,11 @@ import Modal from "@/components/common/Modal";
 import useClickOutside from "@/hooks/useClickOutside";
 import { getVehicleBrands } from "@/features/vehicleBrands/services/vehicleBrandService";
 import { getVehicleModels, createVehicleModel, updateVehicleModel } from "@/features/vehicleModels/services/vehicleModelService";
+import { getVehicleModelVariants } from "@/features/vehicleModelVariants/services/vehicleModelVariantService";
+import { getFuelTypeLabel, getMotorbikeTypeLabel } from "@/features/vehicleModelVariants/options";
 import type { VehicleModelResponse } from "@/features/vehicleModels/types";
 import type { VehicleBrandResponse } from "@/features/vehicleBrands/types";
+import type { VehicleModelVariantResponse } from "@/features/vehicleModelVariants/types";
 
 const PAGE_SIZE = 10;
 
@@ -64,6 +67,10 @@ export default function AdminVehicleModelsPage() {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [brands, setBrands] = useState<VehicleBrandResponse[]>([]);
+  const [variantsModalOpen, setVariantsModalOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<VehicleModelResponse | null>(null);
+  const [modelVariants, setModelVariants] = useState<VehicleModelVariantResponse[]>([]);
+  const [variantsLoading, setVariantsLoading] = useState(false);
 
   useEffect(() => {
     getVehicleBrands({ pageSize: 500 }).then((r) => setBrands(r.items)).catch(() => {});
@@ -126,6 +133,23 @@ export default function AdminVehicleModelsPage() {
     setFormBrandId(String(item.brandId));
     setFormError("");
     setModalOpen(true);
+  }
+
+  async function openModelVariants(item: VehicleModelResponse) {
+    setSelectedModel(item);
+    setModelVariants([]);
+    setVariantsLoading(true);
+    setVariantsModalOpen(true);
+    try {
+      const result = await getVehicleModelVariants({
+        page: 1,
+        pageSize: 500,
+        modelId: item.id,
+      });
+      setModelVariants(result.items);
+    } finally {
+      setVariantsLoading(false);
+    }
   }
 
   async function handleSave() {
@@ -231,6 +255,9 @@ export default function AdminVehicleModelsPage() {
                       className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.isActive ? "Hoạt động" : "Đã tắt"}</button>
                   </td>
                   <td className="px-4 py-3">
+                    <button type="button" onClick={() => void openModelVariants(item)} title="Xem phiên bản" className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
+                      <Eye className="h-4 w-4" />
+                    </button>
                     <button type="button" onClick={() => openEdit(item)} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -257,7 +284,7 @@ export default function AdminVehicleModelsPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa dòng xe" : "Thêm dòng xe"}>
-        <div className="space-y-4">
+        <div className="popup-scrollbar space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">Tên dòng xe</label>
             <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
@@ -274,6 +301,45 @@ export default function AdminVehicleModelsPage() {
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Hủy</Button>
             <Button onClick={handleSave} isLoading={saving}>{editItem ? "Cập nhật" : "Thêm mới"}</Button>
           </div>
+        </div>
+      </Modal>
+      <Modal isOpen={variantsModalOpen} onClose={() => setVariantsModalOpen(false)} title={selectedModel ? `Phiên bản của ${selectedModel.name}` : "Phiên bản dòng xe"} className="max-w-4xl">
+        <div className="popup-scrollbar max-h-[70vh] overflow-y-auto">
+          {variantsLoading ? (
+            <div className="flex items-center justify-center py-10"><LoadingSpinner className="h-5 w-5" /></div>
+          ) : modelVariants.length === 0 ? (
+            <div className="py-10 text-center text-sm text-slate-500">Chưa có phiên bản nào thuộc dòng xe này.</div>
+          ) : (
+            <div className="popup-scrollbar overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                    <tr><th className="px-4 py-3">Tên phiên bản</th><th className="px-4 py-3">Loại</th><th className="px-4 py-3">Thông số</th><th className="px-4 py-3">Nhiên liệu</th><th className="px-4 py-3">GPLX</th><th className="px-4 py-3">Trạng thái</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {modelVariants.map((variant) => {
+                    const isCar = normalizeVehicleType(variant.vehicleType) === "Car";
+                    const specs = isCar
+                      ? [variant.seatCount ? `${variant.seatCount} chỗ` : null, variant.bodyType, variant.transmission].filter(Boolean).join(" - ")
+                      : [getMotorbikeTypeLabel(variant.bikeType), variant.engineCapacity].filter(Boolean).join(" - ");
+                    return (
+                      <tr key={variant.id}>
+                        <td className="px-4 py-3 font-medium text-slate-900">{variant.name}</td>
+                        <td className="px-4 py-3 text-slate-600">{vehicleTypeLabel(variant.vehicleType)}</td>
+                        <td className="px-4 py-3 text-slate-600">{specs || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{getFuelTypeLabel(variant.fuelType)}</td>
+                        <td className="px-4 py-3 text-slate-600">{variant.requiredLicenseClassCode ? `${variant.requiredLicenseClassCode}${variant.requiredLicenseClassSystemVersion === "LegacyBefore2025" ? " (cũ)" : ""}` : "-"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded px-2 py-1 text-xs font-medium ${variant.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                            {variant.isActive ? "Hoạt động" : "Đã tắt"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

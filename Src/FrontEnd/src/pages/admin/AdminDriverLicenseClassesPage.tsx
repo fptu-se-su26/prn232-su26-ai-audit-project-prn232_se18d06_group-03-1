@@ -1,11 +1,12 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import useClickOutside from "@/hooks/useClickOutside";
-import { getDriverLicenseClasses, createDriverLicenseClass, updateDriverLicenseClass, deleteDriverLicenseClass } from "@/features/driverLicenseClasses/services/driverLicenseClassService";
+import LicenseCompatibilityModal from "@/features/driverLicenseClasses/components/LicenseCompatibilityModal";
+import { getDriverLicenseClasses, createDriverLicenseClass, updateDriverLicenseClass, deleteDriverLicenseClass, getDriverLicenseClassCompatibleRequiredClasses } from "@/features/driverLicenseClasses/services/driverLicenseClassService";
 import type { DriverLicenseClassResponse } from "@/features/driverLicenseClasses/types";
 
 const PAGE_SIZE = 10;
@@ -58,6 +59,10 @@ export default function AdminDriverLicenseClassesPage() {
   const [formSystemVersion, setFormSystemVersion] = useState("Current");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [compatibilityModalOpen, setCompatibilityModalOpen] = useState(false);
+  const [selectedLicense, setSelectedLicense] = useState<DriverLicenseClassResponse | null>(null);
+  const [compatibleLicenses, setCompatibleLicenses] = useState<DriverLicenseClassResponse[]>([]);
+  const [compatibilityLoading, setCompatibilityLoading] = useState(false);
 
   const load = useCallback(async (p: number, kw: string, sort: string, sv: string) => {
     setIsLoading(true); setError(null);
@@ -77,6 +82,18 @@ export default function AdminDriverLicenseClassesPage() {
 
   function openCreate() { setEditItem(null); setFormCode(""); setFormDisplayName(""); setFormDescription(""); setFormSystemVersion("Current"); setFormError(""); setModalOpen(true); }
   function openEdit(item: DriverLicenseClassResponse) { setEditItem(item); setFormCode(item.code); setFormDisplayName(item.displayName); setFormDescription(item.description); setFormSystemVersion(item.systemVersion); setFormError(""); setModalOpen(true); }
+
+  async function openCompatibility(item: DriverLicenseClassResponse) {
+    setSelectedLicense(item);
+    setCompatibleLicenses([]);
+    setCompatibilityLoading(true);
+    setCompatibilityModalOpen(true);
+    try {
+      setCompatibleLicenses(await getDriverLicenseClassCompatibleRequiredClasses(item.id));
+    } finally {
+      setCompatibilityLoading(false);
+    }
+  }
 
   async function handleSave() {
     if (!formCode.trim() || !formDisplayName.trim()) { setFormError("Vui lòng nhập mã và tên GPLX."); return; }
@@ -145,7 +162,7 @@ export default function AdminDriverLicenseClassesPage() {
               options={[{ value: "", label: "Mới nhất" }, { value: "code_asc", label: "Mã A-Z" }, { value: "code_desc", label: "Mã Z-A" }]} />
             <FilterDropdown label="Phiên bản" value={systemVersion} onChange={(v) => { setSystemVersion(v); setPage(1); void load(1, keyword, sortBy, v); }}
               options={[{ value: "", label: "Tất cả" }, { value: "Current", label: "Hiện hành" }, { value: "LegacyBefore2025", label: "Cũ" }]} />
-            {hasActiveFilters && <button type="button" onClick={() => { setKeyword(""); setSortBy(""); setSystemVersion(""); setPage(1); if (searchRef.current) searchRef.current.value = ""; void load(1, "", "", ""); }} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xoá bộ lọc</button>}
+            {hasActiveFilters && <button type="button" onClick={() => { setKeyword(""); setSortBy(""); setSystemVersion(""); setPage(1); if (searchRef.current) searchRef.current.value = ""; void load(1, "", "", ""); }} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xóa bộ lọc</button>}
           </div>
         )}
 
@@ -177,6 +194,9 @@ export default function AdminDriverLicenseClassesPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
+                    <button type="button" onClick={() => void openCompatibility(item)} title="Xem hạng xe được phép lái" className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
+                      <Eye className="h-4 w-4" />
+                    </button>
                     <button type="button" onClick={() => openEdit(item)} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -205,7 +225,7 @@ export default function AdminDriverLicenseClassesPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa GPLX" : "Thêm GPLX"}>
-        <div className="space-y-4">
+        <div className="popup-scrollbar space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">Mã GPLX</label>
             <input type="text" value={formCode} onChange={(e) => setFormCode(e.target.value)}
@@ -231,11 +251,18 @@ export default function AdminDriverLicenseClassesPage() {
           </div>
           {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Huỷ</Button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>Hủy</Button>
             <Button onClick={handleSave} isLoading={saving}>{editItem ? "Cập nhật" : "Thêm mới"}</Button>
           </div>
         </div>
       </Modal>
+      <LicenseCompatibilityModal
+        isOpen={compatibilityModalOpen}
+        license={selectedLicense}
+        compatibleClasses={compatibleLicenses}
+        isLoading={compatibilityLoading}
+        onClose={() => setCompatibilityModalOpen(false)}
+      />
     </div>
   );
 }

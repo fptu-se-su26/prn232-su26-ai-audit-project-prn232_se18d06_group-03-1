@@ -8,6 +8,7 @@ public interface IVehicleCatalogRepository
     IQueryable<VehicleModel> VehicleModels { get; }
     IQueryable<VehicleModelVariant> VehicleModelVariants { get; }
     IQueryable<DriverLicenseClass> DriverLicenseClasses { get; }
+    IQueryable<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility { get; }
     IQueryable<VehicleFeature> VehicleFeatures { get; }
 
     Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default);

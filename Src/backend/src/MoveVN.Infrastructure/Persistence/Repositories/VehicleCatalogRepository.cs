@@ -17,6 +17,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<VehicleModel> VehicleModels => _context.VehicleModel.AsQueryable();
     public IQueryable<VehicleModelVariant> VehicleModelVariants => _context.VehicleModelVariant.AsQueryable();
     public IQueryable<DriverLicenseClass> DriverLicenseClasses => _context.DriverLicenseClasses.AsQueryable();
+    public IQueryable<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => _context.DriverLicenseClassCompatibility.AsQueryable();
     public IQueryable<VehicleFeature> VehicleFeatures => _context.VehicleFeature.AsQueryable();
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)

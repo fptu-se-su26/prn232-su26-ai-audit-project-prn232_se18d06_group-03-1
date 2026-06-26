@@ -42,3 +42,26 @@ body {
 .dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6b21a8;
 }
+
+.popup-scrollbar {
+  scrollbar-color: #7e22ce #f3e8ff;
+  scrollbar-width: thin;
+}
+
+.popup-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.popup-scrollbar::-webkit-scrollbar-track {
+  background: #f3e8ff;
+  border-radius: 999px;
+}
+
+.popup-scrollbar::-webkit-scrollbar-thumb {
+  background: #7e22ce;
+  border-radius: 999px;
+}
+
+.popup-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b21a8;
+}

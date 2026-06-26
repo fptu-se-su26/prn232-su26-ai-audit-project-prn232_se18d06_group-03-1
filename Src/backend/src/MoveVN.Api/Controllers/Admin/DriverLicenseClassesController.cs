@@ -37,6 +37,13 @@ public class DriverLicenseClassesController : BaseApiController
         return Success(result);
     }
 
+    [HttpGet("{id}/compatible-required-classes")]
+    public async Task<ActionResult<ApiResponse<List<DriverLicenseClassResponse>>>> GetCompatibleRequiredClasses(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _driverLicenseClassService.GetCompatibleRequiredClassesAsync(id, cancellationToken);
+        return Success(result);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ApiResponse<DriverLicenseClassResponse>>> Create(CreateDriverLicenseClassRequest request, CancellationToken cancellationToken = default)
     {

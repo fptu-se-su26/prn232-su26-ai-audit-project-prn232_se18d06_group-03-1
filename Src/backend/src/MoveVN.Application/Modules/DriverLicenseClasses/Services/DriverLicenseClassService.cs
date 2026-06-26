@@ -75,6 +75,34 @@ public class DriverLicenseClassService : IDriverLicenseClassService
         };
     }
 
+    public async Task<List<DriverLicenseClassResponse>> GetCompatibleRequiredClassesAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var entityExists = await _repository.DriverLicenseClasses.AnyAsync(x => x.Id == id, cancellationToken);
+        if (!entityExists)
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_CLASS_NOT_FOUND);
+        }
+
+        return await _repository.DriverLicenseClassCompatibility
+            .Where(x => x.LicenseClassId == id)
+            .Join(
+                _repository.DriverLicenseClasses,
+                compatibility => compatibility.AllowedRequiredLicenseClassId,
+                licenseClass => licenseClass.Id,
+                (_, licenseClass) => new DriverLicenseClassResponse
+                {
+                    Id = licenseClass.Id,
+                    Code = licenseClass.Code,
+                    DisplayName = licenseClass.DisplayName,
+                    Description = licenseClass.Description,
+                    SystemVersion = licenseClass.SystemVersion,
+                    IsActive = licenseClass.IsActive
+                })
+            .OrderBy(x => x.SystemVersion)
+            .ThenBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<DriverLicenseClassResponse> CreateAsync(CreateDriverLicenseClassRequest request, CancellationToken cancellationToken = default)
     {
         var entity = new DriverLicenseClass

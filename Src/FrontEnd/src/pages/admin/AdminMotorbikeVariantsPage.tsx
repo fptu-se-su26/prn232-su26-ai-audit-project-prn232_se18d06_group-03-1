@@ -1,9 +1,10 @@
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
+import useClickOutside from "@/hooks/useClickOutside";
 import { getVehicleBrands } from "@/features/vehicleBrands/services/vehicleBrandService";
 import { getVehicleModelsByBrand } from "@/features/vehicleModels/services/vehicleModelService";
 import { getVehicleModelVariants, createVehicleModelVariant, updateVehicleModelVariant } from "@/features/vehicleModelVariants/services/vehicleModelVariantService";
@@ -15,6 +16,30 @@ import type { VehicleModelResponse } from "@/features/vehicleModels/types";
 import type { DriverLicenseClassResponse } from "@/features/driverLicenseClasses/types";
 
 const PAGE_SIZE = 10;
+
+function FilterDropdown({ value, label, options, onChange }: { value: string; label: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, () => setOpen(false));
+  const current = options.find((o) => o.value === value);
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen((prev) => !prev)} className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+        <span className="text-xs text-slate-400">{label}:</span>
+        <span className="font-medium">{current?.label ?? "Tất cả"}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="dropdown-scrollbar absolute left-0 top-full z-20 mt-1 max-h-72 w-44 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+          {options.map((opt) => (
+            <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${opt.value === value ? "bg-brand-100 font-medium text-brand-700" : "text-slate-700 hover:bg-brand-50 hover:text-brand-700"}`}>{opt.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminMotorbikeVariantsPage() {
   const [items, setItems] = useState<VehicleModelVariantResponse[]>([]);
@@ -33,6 +58,14 @@ export default function AdminMotorbikeVariantsPage() {
   const [licenseClasses, setLicenseClasses] = useState<DriverLicenseClassResponse[]>([]);
   const [models, setModels] = useState<VehicleModelResponse[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState("");
+  const [filterModels, setFilterModels] = useState<VehicleModelResponse[]>([]);
+  const [filterBrandId, setFilterBrandId] = useState("");
+  const [filterModelId, setFilterModelId] = useState("");
+  const [filterBikeType, setFilterBikeType] = useState("");
+  const [filterFuelType, setFilterFuelType] = useState("");
+  const [filterEngineCapacity, setFilterEngineCapacity] = useState("");
+  const [filterRequiredLicenseClassId, setFilterRequiredLicenseClassId] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [formModelId, setFormModelId] = useState("");
   const [formName, setFormName] = useState("");
   const [formBikeType, setFormBikeType] = useState("");
@@ -43,6 +76,19 @@ export default function AdminMotorbikeVariantsPage() {
   useEffect(() => { getVehicleBrands({ pageSize: 100 }).then((r) => setBrands(r.items)).catch(() => {}); }, []);
   useEffect(() => { getAllDriverLicenseClasses().then(setLicenseClasses).catch(() => {}); }, []);
 
+  useEffect(() => {
+    if (!filterBrandId) {
+      setFilterModels([]);
+      setFilterModelId("");
+      return;
+    }
+
+    getVehicleModelsByBrand(Number(filterBrandId)).then((data) => {
+      setFilterModels(data);
+      setFilterModelId((current) => data.some((model) => String(model.id) === current) ? current : "");
+    }).catch(() => setFilterModels([]));
+  }, [filterBrandId]);
+
   async function loadModelsByBrand(brandId: string, nextModelId = "") {
     setSelectedBrandId(brandId);
     if (!brandId) { setModels([]); setFormModelId(""); return; }
@@ -51,18 +97,39 @@ export default function AdminMotorbikeVariantsPage() {
     setFormModelId(nextModelId);
   }
 
-  const load = useCallback(async (p: number, kw: string) => {
+  const load = useCallback(async (p: number, kw = keyword) => {
     setIsLoading(true); setError(null);
     try {
-      const result = await getVehicleModelVariants({ page: p, pageSize: PAGE_SIZE, keyword: kw || undefined, vehicleType: "Motorbike" });
+      const result = await getVehicleModelVariants({
+        page: p,
+        pageSize: PAGE_SIZE,
+        keyword: kw || undefined,
+        vehicleType: "Motorbike",
+        brandId: filterBrandId || undefined,
+        modelId: filterModelId || undefined,
+        bikeType: filterBikeType || undefined,
+        fuelType: filterFuelType || undefined,
+        engineCapacity: filterEngineCapacity || undefined,
+        requiredLicenseClassId: filterRequiredLicenseClassId || undefined,
+      });
       setItems(result.items); setTotalCount(result.totalCount); setPage(result.page); setTotalPages(result.totalPages);
     } catch { setError("Không thể tải danh sách phiên bản."); } finally { setIsLoading(false); }
-  }, []);
+  }, [keyword, filterBrandId, filterModelId, filterBikeType, filterFuelType, filterEngineCapacity, filterRequiredLicenseClassId]);
 
-  useEffect(() => { void load(1, ""); }, [load]);
+  useEffect(() => { void load(1); }, [load]);
   function handleSearch() { setPage(1); void load(1, keyword); }
   function handleKeyDown(e: React.KeyboardEvent) { if (e.key === "Enter") handleSearch(); }
   function goToPage(p: number) { if (p < 1 || p > totalPages) return; setPage(p); void load(p, keyword); }
+
+  function resetFilters() {
+    setFilterBrandId("");
+    setFilterModelId("");
+    setFilterBikeType("");
+    setFilterFuelType("");
+    setFilterEngineCapacity("");
+    setFilterRequiredLicenseClassId("");
+    setPage(1);
+  }
 
   function openCreate() {
     setEditItem(null); setSelectedBrandId(""); setModels([]); setFormModelId(""); setFormName(""); setFormBikeType(""); setFormEngineCapacity(""); setFormFuelType(""); setFormRequiredLicenseClassId(""); setFormError(""); setModalOpen(true);
@@ -109,6 +176,7 @@ export default function AdminMotorbikeVariantsPage() {
     }
     return pages;
   }, [page, totalPages]);
+  const hasActiveFilters = filterBrandId || filterModelId || filterBikeType || filterFuelType || filterEngineCapacity || filterRequiredLicenseClassId;
 
   return (
     <div className="space-y-5">
@@ -124,7 +192,27 @@ export default function AdminMotorbikeVariantsPage() {
             <input ref={searchRef} type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} placeholder="Tìm tên phiên bản..." className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
           </div>
           <button type="button" onClick={handleSearch} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"><Search className="h-4 w-4" /> Tìm</button>
+          <button type="button" onClick={() => setShowFilters((prev) => !prev)}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors ${showFilters || hasActiveFilters ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
+            <SlidersHorizontal className="h-4 w-4" /> Bộ lọc
+          </button>
         </div>
+        {showFilters && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+            <FilterDropdown label="Hãng" value={filterBrandId} onChange={(v) => { setFilterBrandId(v); setFilterModelId(""); setPage(1); }}
+              options={[{ value: "", label: "Tất cả hãng" }, ...brands.filter((b) => b.vehicleType === "Motorbike" || b.vehicleType === "Motorcycle").map((b) => ({ value: String(b.id), label: b.name }))]} />
+            <FilterDropdown label="Dòng" value={filterModelId} onChange={(v) => { setFilterModelId(v); setPage(1); }}
+              options={[{ value: "", label: !filterBrandId ? "Chọn hãng trước" : "Tất cả dòng" }, ...filterModels.map((m) => ({ value: String(m.id), label: m.name }))]} />
+            <FilterDropdown label="Loại xe" value={filterBikeType} onChange={(v) => { setFilterBikeType(v); setPage(1); }}
+              options={[{ value: "", label: "Loại xe máy" }, ...motorbikeTypeOptions]} />
+            <FilterDropdown label="Nhiên liệu" value={filterFuelType} onChange={(v) => { setFilterFuelType(v); setPage(1); }}
+              options={[{ value: "", label: "Nhiên liệu" }, ...fuelTypeOptions.filter((option) => option.value !== "Diesel" && option.value !== "Plug-in Hybrid")]} />
+            <input type="text" value={filterEngineCapacity} onChange={(e) => { setFilterEngineCapacity(e.target.value); setPage(1); }} placeholder="Dung tích, VD: 125cc" className="h-8 w-32 rounded-md border border-slate-300 bg-white px-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+            <FilterDropdown label="GPLX" value={filterRequiredLicenseClassId} onChange={(v) => { setFilterRequiredLicenseClassId(v); setPage(1); }}
+              options={[{ value: "", label: "GPLX" }, ...licenseClasses.map((l) => ({ value: String(l.id), label: `${l.code} - ${l.displayName}` }))]} />
+            {hasActiveFilters && <button type="button" onClick={resetFilters} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xóa bộ lọc</button>}
+          </div>
+        )}
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div className="text-sm font-medium text-slate-700">{totalCount} phiên bản</div>
           {isLoading && <LoadingSpinner className="h-4 w-4" />}
@@ -174,7 +262,7 @@ export default function AdminMotorbikeVariantsPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa phiên bản" : "Thêm phiên bản"}>
-        <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+        <div className="popup-scrollbar max-h-[70vh] space-y-4 overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-slate-700">Hãng xe</label>
             <select value={selectedBrandId} onChange={(e) => void loadModelsByBrand(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
@@ -220,7 +308,7 @@ export default function AdminMotorbikeVariantsPage() {
           </div>
           {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Huỷ</Button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>Hủy</Button>
             <Button onClick={handleSave} isLoading={saving}>{editItem ? "Cập nhật" : "Thêm mới"}</Button>
           </div>
         </div>

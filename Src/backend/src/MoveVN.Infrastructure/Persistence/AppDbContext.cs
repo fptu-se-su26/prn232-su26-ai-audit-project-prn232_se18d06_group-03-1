@@ -77,6 +77,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<DriverLicenseClass>().HasIndex(entity => entity.Code).IsUnique();
+        builder.Entity<VehicleBrand>().HasIndex(entity => new { entity.Name, entity.VehicleType }).IsUnique();
         builder.Entity<DriverLicenseClassCompatibility>().HasKey(entity => new { entity.LicenseClassId, entity.AllowedRequiredLicenseClassId });
         builder.Entity<DriverLicenseClassCompatibility>()
             .HasOne<DriverLicenseClass>()

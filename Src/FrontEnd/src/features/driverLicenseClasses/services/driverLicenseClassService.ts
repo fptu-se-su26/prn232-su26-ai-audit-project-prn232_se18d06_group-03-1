@@ -14,6 +14,11 @@ export async function getDriverLicenseClassById(id: number) {
   return res.data.data;
 }
 
+export async function getDriverLicenseClassCompatibleRequiredClasses(id: number) {
+  const res = await apiClient.get<ApiResponse<DriverLicenseClassResponse[]>>(`${endpoints.admin.driverLicenseClasses}/${id}/compatible-required-classes`);
+  return res.data.data ?? [];
+}
+
 export async function createDriverLicenseClass(data: CreateDriverLicenseClassRequest) {
   const res = await apiClient.post<ApiResponse<DriverLicenseClassResponse>>(endpoints.admin.driverLicenseClasses, data);
   return res.data.data;
