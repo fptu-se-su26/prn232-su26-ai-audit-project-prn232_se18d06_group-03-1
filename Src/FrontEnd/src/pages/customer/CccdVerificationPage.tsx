@@ -140,7 +140,7 @@ export default function CccdVerificationPage() {
           <div>
             <p className="text-sm font-semibold text-red-800">Không thể xác thực căn cước công dân</p>
             <p className="mt-1 text-sm text-red-700">
-              {error.includes("FPT.AI") || error.includes("BadRequest")
+              {error.includes("VNPT.AI") || error.includes("BadRequest")
                 ? "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn."
                 : error}
             </p>

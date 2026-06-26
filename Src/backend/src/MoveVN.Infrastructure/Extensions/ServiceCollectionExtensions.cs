@@ -60,7 +60,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ICloudinaryService, CloudinaryService>();
         services.AddSingleton<IRedisLockService, RedisLockService>();
-        services.AddScoped<IFptAiService, FptAiService>();
+        services.AddScoped<IVnptAiService, VnptAiService>();
 
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))
