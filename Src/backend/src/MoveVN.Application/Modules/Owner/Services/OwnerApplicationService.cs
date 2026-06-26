@@ -20,7 +20,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly IRoleRepository _roleRepository;
     private readonly IRedisLockService _redisLockService;
     private readonly ICloudinaryService _cloudinaryService;
-    private readonly IVnptAiService _vnptAiService;
+    private readonly IFptAiService _fptAiService;
     private readonly IAuthActivityLogger _activityLogger;
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly IOtpService _otpService;
@@ -33,7 +33,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         IRoleRepository roleRepository,
         IRedisLockService redisLockService,
         ICloudinaryService cloudinaryService,
-        IVnptAiService vnptAiService,
+        IFptAiService fptAiService,
         IAuthActivityLogger activityLogger,
         IPasswordHasherService passwordHasherService,
         IOtpService otpService,
@@ -45,7 +45,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _roleRepository = roleRepository;
         _redisLockService = redisLockService;
         _cloudinaryService = cloudinaryService;
-        _vnptAiService = vnptAiService;
+        _fptAiService = fptAiService;
         _activityLogger = activityLogger;
         _passwordHasherService = passwordHasherService;
         _otpService = otpService;
@@ -390,12 +390,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         var existingRequest = await _userRepository.GetLatestNationalIdVerificationByUserIdAsync(userId, cancellationToken);
         if (existingRequest is not null && existingRequest.Status is "Pending" or "Processing")
         {
-            existingRequest.Status = "Failed";
-            existingRequest.DecisionReason = "Replaced by a new verification request.";
-            existingRequest.ProcessedAt = DateTime.UtcNow;
-            existingRequest.ExternalResultJson ??= "{}";
-            _userRepository.UpdateVerificationRequest(existingRequest);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            throw new AppException(ErrorCode.OWNER_VERIFICATION_REQUEST_FAILED, ["A verification request is already being processed."]);
         }
 
         var verificationRequest = new VerificationRequest
@@ -432,27 +427,27 @@ public class OwnerApplicationService : IOwnerApplicationService
             verificationRequest.FrontImageUrl = frontUpload.Url;
             verificationRequest.BackImageUrl = backUpload.Url;
 
-            using var frontStream = new MemoryStream(frontBytes);
-            using var backStream = new MemoryStream(backBytes);
+            using var frontForFpt = new MemoryStream(frontBytes);
+            using var backForFpt = new MemoryStream(backBytes);
 
-            var vnptResult = await _vnptAiService.VerifyNationalIdAsync(
-                frontStream, frontFileName, backStream, backFileName, cancellationToken);
+            var fptResult = await _fptAiService.VerifyNationalIdAsync(
+                frontForFpt, frontFileName, backForFpt, backFileName, cancellationToken);
 
-            verificationRequest.ExternalProvider = "VNPT_AI";
-            verificationRequest.ExternalResultJson = string.IsNullOrEmpty(vnptResult.RawResponse) ? "{}" : vnptResult.RawResponse;
-            verificationRequest.Confidence = vnptResult.Confidence;
+            verificationRequest.ExternalProvider = "FPT_AI";
+            verificationRequest.ExternalResultJson = fptResult.RawResponse;
+            verificationRequest.Confidence = fptResult.Confidence;
             verificationRequest.ProcessedAt = DateTime.UtcNow;
 
-            if (vnptResult.Success && !vnptResult.IsBlurry && !vnptResult.IsLowConfidence)
+            if (fptResult.Success && !fptResult.IsBlurry && !fptResult.IsLowConfidence)
             {
                 verificationRequest.Status = "Verified";
-                verificationRequest.DecisionReason = "VNPT.AI verification passed.";
+                verificationRequest.DecisionReason = "FPT.AI verification passed.";
 
-                customerProfile.NationalId = vnptResult.NationalId;
-                customerProfile.NationalIdHash = HashNationalId(vnptResult.NationalId);
-                customerProfile.NationalIdMasked = MaskNationalId(vnptResult.NationalId);
-                customerProfile.DateOfBirth = vnptResult.DateOfBirth;
-                customerProfile.Address = vnptResult.Address;
+                customerProfile.NationalId = fptResult.NationalId;
+                customerProfile.NationalIdHash = HashNationalId(fptResult.NationalId);
+                customerProfile.NationalIdMasked = MaskNationalId(fptResult.NationalId);
+                customerProfile.DateOfBirth = fptResult.DateOfBirth;
+                customerProfile.Address = fptResult.Address;
                 customerProfile.NationalIdVerified = true;
                 _userRepository.UpdateCustomerProfile(customerProfile);
 
@@ -477,10 +472,10 @@ public class OwnerApplicationService : IOwnerApplicationService
                     NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo"
                 };
             }
-            else if (vnptResult.IsBlurry || vnptResult.IsLowConfidence)
+            else if (fptResult.IsBlurry || fptResult.IsLowConfidence)
             {
                 verificationRequest.Status = "NeedMoreInfo";
-                verificationRequest.DecisionReason = vnptResult.IsBlurry
+                verificationRequest.DecisionReason = fptResult.IsBlurry
                     ? "Ảnh CCCD bị mờ. Vui lòng upload ảnh rõ nét hơn."
                     : "Chất lượng ảnh CCCD không đủ tốt. Vui lòng upload ảnh chất lượng cao hơn.";
 
@@ -503,7 +498,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             else
             {
                 verificationRequest.Status = "Rejected";
-                verificationRequest.DecisionReason = vnptResult.ErrorMessage ?? "VNPT.AI could not verify the provided images.";
+                verificationRequest.DecisionReason = fptResult.ErrorMessage ?? "FPT.AI could not verify the provided images.";
 
                 application.UpdatedAt = DateTime.UtcNow;
                 _userRepository.UpdateOwnerApplication(application);
@@ -525,7 +520,6 @@ public class OwnerApplicationService : IOwnerApplicationService
         catch (AppException)
         {
             verificationRequest.Status = "Failed";
-            verificationRequest.ExternalResultJson ??= "{}";
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw;
@@ -534,7 +528,6 @@ public class OwnerApplicationService : IOwnerApplicationService
         {
             _logger.LogError(ex, "UploadNationalIdAsync failed for user {UserId}. Error: {Message}", userId, ex.Message);
             verificationRequest.Status = "Failed";
-            verificationRequest.ExternalResultJson ??= "{}";
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw new AppException(ErrorCode.OWNER_VERIFICATION_REQUEST_FAILED, [ex.Message]);

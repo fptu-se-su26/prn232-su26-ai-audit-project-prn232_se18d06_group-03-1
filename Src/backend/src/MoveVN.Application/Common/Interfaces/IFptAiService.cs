@@ -1,11 +1,11 @@
 namespace MoveVN.Application.Common.Interfaces;
 
-public interface IVnptAiService
+public interface IFptAiService
 {
-    Task<VnptAiResult> VerifyNationalIdAsync(Stream frontImage, string frontFileName, Stream? backImage, string? backFileName, CancellationToken cancellationToken = default);
+    Task<FptAiResult> VerifyNationalIdAsync(Stream frontImage, string frontFileName, Stream? backImage, string? backFileName, CancellationToken cancellationToken = default);
 }
 
-public class VnptAiResult
+public class FptAiResult
 {
     public bool Success { get; init; }
     public string? NationalId { get; init; }

@@ -48,10 +48,10 @@ public sealed class ErrorCode
     public static readonly ErrorCode CLOUDINARY_DELETE_FAILED = new("CLOUD_3002", "Failed to delete image from Cloudinary.", HttpStatusCode.InternalServerError);
     public static readonly ErrorCode CLOUDINARY_SIGNED_URL_FAILED = new("CLOUD_3003", "Failed to generate signed URL.", HttpStatusCode.InternalServerError);
 
-    public static readonly ErrorCode VNPT_AI_VERIFICATION_FAILED = new("VNPT_4001", "VNPT.AI verification failed.", HttpStatusCode.InternalServerError);
-    public static readonly ErrorCode VNPT_AI_TIMEOUT = new("VNPT_4002", "VNPT.AI request timed out.", HttpStatusCode.GatewayTimeout);
-    public static readonly ErrorCode VNPT_AI_INVALID_RESPONSE = new("VNPT_4003", "VNPT.AI returned an invalid response.", HttpStatusCode.InternalServerError);
-    public static readonly ErrorCode VNPT_AI_LOW_QUALITY = new("VNPT_4004", "Image quality is too low for VNPT.AI.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode FPT_AI_VERIFICATION_FAILED = new("FPT_4001", "FPT.AI verification failed.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode FPT_AI_TIMEOUT = new("FPT_4002", "FPT.AI request timed out.", HttpStatusCode.GatewayTimeout);
+    public static readonly ErrorCode FPT_AI_INVALID_RESPONSE = new("FPT_4003", "FPT.AI returned an invalid response.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode FPT_AI_LOW_QUALITY = new("FPT_4004", "Image quality is too low for FPT.AI.", HttpStatusCode.BadRequest);
 
     public static readonly ErrorCode REDIS_LOCK_FAILED = new("REDIS_5001", "Failed to acquire distributed lock.", HttpStatusCode.InternalServerError);
 
