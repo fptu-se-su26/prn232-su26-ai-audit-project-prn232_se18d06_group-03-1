@@ -1,4 +1,4 @@
-export const fuelTypeOptions = [
+  export const fuelTypeOptions = [
   { value: "Gasoline", label: "Xăng" },
   { value: "Diesel", label: "Dầu" },
   { value: "Electric", label: "Điện" },

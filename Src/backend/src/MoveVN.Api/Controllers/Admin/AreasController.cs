@@ -28,6 +28,10 @@ public class AreasController : BaseApiController
         CancellationToken cancellationToken = default)
         => Success(await _service.GetAllAsync(keyword, province, pricingRegionId, isActive, page, pageSize, cancellationToken));
 
+    [HttpGet("provinces")]
+    public async Task<ActionResult<ApiResponse<List<string>>>> GetProvinces(CancellationToken cancellationToken = default)
+        => Success(await _service.GetProvincesAsync(cancellationToken));
+
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<AreaResponse>>> GetById(int id, CancellationToken cancellationToken = default)
         => Success(await _service.GetByIdAsync(id, cancellationToken));

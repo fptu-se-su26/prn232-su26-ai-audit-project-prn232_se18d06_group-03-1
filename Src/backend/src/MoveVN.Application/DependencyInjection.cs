@@ -14,6 +14,8 @@ using MoveVN.Application.Modules.PricingRegions.Interfaces;
 using MoveVN.Application.Modules.PricingRegions.Services;
 using MoveVN.Application.Modules.PricingRules.Interfaces;
 using MoveVN.Application.Modules.PricingRules.Services;
+using MoveVN.Application.Modules.PlatformFeeRules.Interfaces;
+using MoveVN.Application.Modules.PlatformFeeRules.Services;
 using MoveVN.Application.Modules.Users.Interfaces;
 using MoveVN.Application.Modules.Users.Services;
 using MoveVN.Application.Modules.VehicleBrands.Interfaces;
@@ -64,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<IVehicleModelPricingService, VehicleModelPricingService>();
         services.AddScoped<IPricingRuleService, PricingRuleService>();
         services.AddScoped<IPricingCalculatorService, PricingCalculatorService>();
+        services.AddScoped<IPlatformFeeRuleService, PlatformFeeRuleService>();
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
 
         return services;

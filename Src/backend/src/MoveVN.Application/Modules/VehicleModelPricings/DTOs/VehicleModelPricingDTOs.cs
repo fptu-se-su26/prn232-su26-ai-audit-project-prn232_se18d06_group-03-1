@@ -8,8 +8,6 @@ public class VehicleModelPricingResponse
     public int BrandId { get; set; }
     public string BrandName { get; set; } = string.Empty;
     public string VehicleType { get; set; } = string.Empty;
-    public int PricingRegionId { get; set; }
-    public string PricingRegionCode { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
     public decimal SuggestedMinPrice { get; set; }
     public decimal SuggestedMaxPrice { get; set; }
@@ -21,7 +19,6 @@ public class VehicleModelPricingResponse
 public class CreateVehicleModelPricingRequest
 {
     public int ModelId { get; set; }
-    public int PricingRegionId { get; set; }
     public decimal BasePrice { get; set; }
     public decimal SuggestedMinPrice { get; set; }
     public decimal SuggestedMaxPrice { get; set; }
@@ -30,9 +27,18 @@ public class CreateVehicleModelPricingRequest
 public class UpdateVehicleModelPricingRequest
 {
     public int ModelId { get; set; }
-    public int PricingRegionId { get; set; }
     public decimal BasePrice { get; set; }
     public decimal SuggestedMinPrice { get; set; }
     public decimal SuggestedMaxPrice { get; set; }
     public bool IsActive { get; set; }
+}
+
+public class RegionPriceResponse
+{
+    public string RegionCode { get; set; } = string.Empty;
+    public string RegionName { get; set; } = string.Empty;
+    public decimal Coefficient { get; set; }
+    public decimal CalculatedBasePrice { get; set; }
+    public decimal CalculatedMinPrice { get; set; }
+    public decimal CalculatedMaxPrice { get; set; }
 }

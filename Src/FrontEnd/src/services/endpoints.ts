@@ -23,6 +23,7 @@ export const endpoints = {
     areas: "/api/admin/areas",
     vehicleModelPricings: "/api/admin/vehicle-model-pricings",
     pricingRules: "/api/admin/pricing-rules",
+    platformFeeRules: "/api/admin/platform-fee-rules",
   },
   vehicles: {
     my: "/api/vehicles/my",

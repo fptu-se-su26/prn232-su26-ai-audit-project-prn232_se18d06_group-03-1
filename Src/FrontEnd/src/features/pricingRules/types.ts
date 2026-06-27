@@ -1,10 +1,15 @@
 export type PricingRuleResponse = {
   id: number;
-  vehicleId: number;
-  licensePlate: string;
+  name: string;
   ruleType: "Multiplier" | "FixedPrice";
   multiplier: number | null;
   fixedPrice: number | null;
+  brandId: number | null;
+  brandName: string | null;
+  modelId: number | null;
+  modelName: string | null;
+  pricingRegionId: number | null;
+  pricingRegionCode: string | null;
   priority: number;
   startDate: string | null;
   endDate: string | null;
@@ -12,10 +17,13 @@ export type PricingRuleResponse = {
 };
 
 export type CreatePricingRuleRequest = {
-  vehicleId: number;
+  name: string;
   ruleType: "Multiplier" | "FixedPrice";
   multiplier?: number | null;
   fixedPrice?: number | null;
+  brandId?: number | null;
+  modelId?: number | null;
+  pricingRegionId?: number | null;
   priority: number;
   startDate?: string | null;
   endDate?: string | null;

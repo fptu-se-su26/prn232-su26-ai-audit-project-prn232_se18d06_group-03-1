@@ -17,6 +17,7 @@ import AdminPricingRegionsPage from "@/pages/admin/AdminPricingRegionsPage";
 import AdminAreasPage from "@/pages/admin/AdminAreasPage";
 import AdminVehicleModelPricingsPage from "@/pages/admin/AdminVehicleModelPricingsPage";
 import AdminPricingRulesPage from "@/pages/admin/AdminPricingRulesPage";
+import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
@@ -96,6 +97,7 @@ export default function AppRoutes() {
             <Route path="/admin/areas" element={<AdminAreasPage />} />
             <Route path="/admin/vehicle-model-pricings" element={<AdminVehicleModelPricingsPage />} />
             <Route path="/admin/pricing-rules" element={<AdminPricingRulesPage />} />
+            <Route path="/admin/platform-fee-rules" element={<AdminPlatformFeeRulesPage />} />
           </Route>
         </Route>
       </Route>

@@ -28,6 +28,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<VehiclePricing> VehiclePricings => _context.VehiclePricing.AsQueryable();
     public IQueryable<VehicleModelPricing> VehicleModelPricings => _context.VehicleModelPricing.AsQueryable();
     public IQueryable<PricingRule> PricingRules => _context.PricingRules.AsQueryable();
+    public IQueryable<PlatformFeeRule> PlatformFeeRules => _context.PlatformFeeRules.AsQueryable();
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -58,6 +59,9 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
 
     public Task<PricingRule?> GetPricingRuleByIdAsync(long id, CancellationToken cancellationToken = default)
         => _context.PricingRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+    public Task<PlatformFeeRule?> GetPlatformFeeRuleByIdAsync(long id, CancellationToken cancellationToken = default)
+        => _context.PlatformFeeRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public void Add<T>(T entity) where T : class
         => _context.Set<T>().Add(entity);

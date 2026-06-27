@@ -5,8 +5,6 @@ export type VehicleModelPricingResponse = {
   brandId: number;
   brandName: string;
   vehicleType: string;
-  pricingRegionId: number;
-  pricingRegionCode: string;
   basePrice: number;
   suggestedMinPrice: number;
   suggestedMaxPrice: number;
@@ -17,7 +15,6 @@ export type VehicleModelPricingResponse = {
 
 export type CreateVehicleModelPricingRequest = {
   modelId: number;
-  pricingRegionId: number;
   basePrice: number;
   suggestedMinPrice: number;
   suggestedMaxPrice: number;
@@ -25,4 +22,13 @@ export type CreateVehicleModelPricingRequest = {
 
 export type UpdateVehicleModelPricingRequest = CreateVehicleModelPricingRequest & {
   isActive: boolean;
+};
+
+export type RegionPriceResponse = {
+  regionCode: string;
+  regionName: string;
+  coefficient: number;
+  calculatedBasePrice: number;
+  calculatedMinPrice: number;
+  calculatedMaxPrice: number;
 };

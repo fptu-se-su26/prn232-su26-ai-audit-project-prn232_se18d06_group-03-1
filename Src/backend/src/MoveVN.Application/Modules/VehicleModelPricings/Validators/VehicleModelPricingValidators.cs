@@ -8,7 +8,6 @@ public class CreateVehicleModelPricingRequestValidator : AbstractValidator<Creat
     public CreateVehicleModelPricingRequestValidator()
     {
         RuleFor(x => x.ModelId).GreaterThan(0);
-        RuleFor(x => x.PricingRegionId).GreaterThan(0);
         RuleFor(x => x.SuggestedMinPrice).GreaterThan(0).PrecisionScale(15, 2, false);
         RuleFor(x => x.BasePrice).GreaterThan(0).PrecisionScale(15, 2, false);
         RuleFor(x => x.SuggestedMaxPrice).GreaterThan(0).PrecisionScale(15, 2, false);
@@ -22,7 +21,6 @@ public class UpdateVehicleModelPricingRequestValidator : AbstractValidator<Updat
     public UpdateVehicleModelPricingRequestValidator()
     {
         RuleFor(x => x.ModelId).GreaterThan(0);
-        RuleFor(x => x.PricingRegionId).GreaterThan(0);
         RuleFor(x => x.SuggestedMinPrice).GreaterThan(0).PrecisionScale(15, 2, false);
         RuleFor(x => x.BasePrice).GreaterThan(0).PrecisionScale(15, 2, false);
         RuleFor(x => x.SuggestedMaxPrice).GreaterThan(0).PrecisionScale(15, 2, false);

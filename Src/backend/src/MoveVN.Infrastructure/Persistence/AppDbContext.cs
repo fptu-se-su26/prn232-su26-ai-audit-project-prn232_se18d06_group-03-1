@@ -93,7 +93,27 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<VehicleFeatureMapping>().HasKey(entity => new { entity.VehicleId, entity.FeatureId });
         builder.Entity<PricingRegion>().HasIndex(entity => entity.Code).IsUnique();
         builder.Entity<Area>().HasIndex(entity => new { entity.Province, entity.District }).IsUnique();
-        builder.Entity<VehicleModelPricing>().HasIndex(entity => new { entity.ModelId, entity.PricingRegionId }).IsUnique();
+        builder.Entity<VehicleModelPricing>().HasIndex(entity => entity.ModelId).IsUnique();
+        builder.Entity<VehicleModelPricing>()
+            .HasOne(x => x.Model)
+            .WithMany()
+            .HasForeignKey(x => x.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<PricingRule>()
+            .HasOne(x => x.Brand)
+            .WithMany()
+            .HasForeignKey(x => x.BrandId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<PricingRule>()
+            .HasOne(x => x.Model)
+            .WithMany()
+            .HasForeignKey(x => x.ModelId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<PricingRule>()
+            .HasOne(x => x.PricingRegion)
+            .WithMany()
+            .HasForeignKey(x => x.PricingRegionId)
+            .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<VehicleModelVariant>().HasIndex(entity => new { entity.ModelId, entity.Name });
         builder.Entity<VehicleModelVariant>()
             .HasOne<VehicleModel>()

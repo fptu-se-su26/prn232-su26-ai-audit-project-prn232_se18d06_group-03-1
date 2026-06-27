@@ -8,7 +8,7 @@ public class CreatePricingRuleRequestValidator : AbstractValidator<CreatePricing
 {
     public CreatePricingRuleRequestValidator()
     {
-        RuleFor(x => x.VehicleId).GreaterThan(0);
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.RuleType)
             .NotEmpty()
             .Must(x => x == PricingRuleTypes.Multiplier || x == PricingRuleTypes.FixedPrice);
@@ -34,7 +34,7 @@ public class UpdatePricingRuleRequestValidator : AbstractValidator<UpdatePricing
 {
     public UpdatePricingRuleRequestValidator()
     {
-        RuleFor(x => x.VehicleId).GreaterThan(0);
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.RuleType)
             .NotEmpty()
             .Must(x => x == PricingRuleTypes.Multiplier || x == PricingRuleTypes.FixedPrice);

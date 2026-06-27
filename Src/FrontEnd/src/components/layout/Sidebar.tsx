@@ -17,6 +17,7 @@ import {
   Layers,
   Map,
   MapPinned,
+  Percent,
   ReceiptText,
   ShieldCheck,
   UserRound,
@@ -60,6 +61,7 @@ const vehiclePricingItems = [
   { to: "/admin/pricing-regions", label: "Vùng giá", icon: Map },
   { to: "/admin/vehicle-model-pricings", label: "Khung giá", icon: BadgeDollarSign },
   { to: "/admin/pricing-rules", label: "Quy tắc giá", icon: ReceiptText },
+  { to: "/admin/platform-fee-rules", label: "Phí nền tảng", icon: Percent },
 ];
 
 const ownerVehicleItems = [

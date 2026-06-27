@@ -45,6 +45,7 @@ public class PricingRegionService : IPricingRegionService
                 Id = x.Id,
                 Code = x.Code,
                 Description = x.Description,
+                Coefficient = x.Coefficient,
                 IsActive = x.IsActive
             })
             .ToListAsync(cancellationToken);
@@ -69,6 +70,7 @@ public class PricingRegionService : IPricingRegionService
         {
             Code = code,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Coefficient = request.Coefficient,
             IsActive = true
         };
 
@@ -87,6 +89,7 @@ public class PricingRegionService : IPricingRegionService
 
         entity.Code = code;
         entity.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        entity.Coefficient = request.Coefficient;
         entity.IsActive = request.IsActive;
 
         await _repository.SaveChangesAsync(cancellationToken);
@@ -116,6 +119,7 @@ public class PricingRegionService : IPricingRegionService
         Id = entity.Id,
         Code = entity.Code,
         Description = entity.Description,
+        Coefficient = entity.Coefficient,
         IsActive = entity.IsActive
     };
 }

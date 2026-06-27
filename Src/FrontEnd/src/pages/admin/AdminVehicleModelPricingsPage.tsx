@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -9,10 +9,8 @@ import { getVehicleBrands } from "@/features/vehicleBrands/services/vehicleBrand
 import type { VehicleBrandResponse } from "@/features/vehicleBrands/types";
 import { getVehicleModelsByBrand } from "@/features/vehicleModels/services/vehicleModelService";
 import type { VehicleModelResponse } from "@/features/vehicleModels/types";
-import { getPricingRegions } from "@/features/pricingRegions/services/pricingRegionService";
-import type { PricingRegionResponse } from "@/features/pricingRegions/types";
-import { createVehicleModelPricing, getVehicleModelPricings, updateVehicleModelPricing } from "@/features/vehicleModelPricings/services/vehicleModelPricingService";
-import type { VehicleModelPricingResponse } from "@/features/vehicleModelPricings/types";
+import { createVehicleModelPricing, getRegionPrices, getVehicleModelPricings, updateVehicleModelPricing } from "@/features/vehicleModelPricings/services/vehicleModelPricingService";
+import type { RegionPriceResponse, VehicleModelPricingResponse } from "@/features/vehicleModelPricings/types";
 
 const PAGE_SIZE = 10;
 
@@ -52,7 +50,6 @@ export default function AdminVehicleModelPricingsPage() {
   const [items, setItems] = useState<VehicleModelPricingResponse[]>([]);
   const [brands, setBrands] = useState<VehicleBrandResponse[]>([]);
   const [models, setModels] = useState<VehicleModelResponse[]>([]);
-  const [regions, setRegions] = useState<PricingRegionResponse[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -61,7 +58,6 @@ export default function AdminVehicleModelPricingsPage() {
   const [vehicleType, setVehicleType] = useState("");
   const [brandId, setBrandId] = useState("");
   const [modelId, setModelId] = useState("");
-  const [pricingRegionId, setPricingRegionId] = useState("");
   const [isActiveFilter, setIsActiveFilter] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -72,17 +68,18 @@ export default function AdminVehicleModelPricingsPage() {
   const [editItem, setEditItem] = useState<VehicleModelPricingResponse | null>(null);
   const [formBrandId, setFormBrandId] = useState("");
   const [formModelId, setFormModelId] = useState("");
-  const [formPricingRegionId, setFormPricingRegionId] = useState("");
   const [suggestedMinPrice, setSuggestedMinPrice] = useState("");
   const [basePrice, setBasePrice] = useState("");
   const [suggestedMaxPrice, setSuggestedMaxPrice] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
   const [formError, setFormError] = useState("");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [regionPrices, setRegionPrices] = useState<RegionPriceResponse[]>([]);
+  const [loadingRegion, setLoadingRegion] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getVehicleBrands({ pageSize: 500 }).then((r) => setBrands(r.items)).catch(() => {});
-    getPricingRegions({ pageSize: 500, isActive: true }).then((r) => setRegions(r.items)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -99,7 +96,7 @@ export default function AdminVehicleModelPricingsPage() {
   }, [brandId]);
 
   const visibleBrands = brands.filter((b) => !vehicleType || normalizeVehicleType(b.vehicleType) === vehicleType);
-  const hasActiveFilters = sortBy || vehicleType || brandId || modelId || pricingRegionId || isActiveFilter || minPrice || maxPrice;
+  const hasActiveFilters = sortBy || vehicleType || brandId || modelId || isActiveFilter || minPrice || maxPrice;
 
   const load = useCallback(async (nextPage = page) => {
     setIsLoading(true);
@@ -113,7 +110,6 @@ export default function AdminVehicleModelPricingsPage() {
         vehicleType: vehicleType || undefined,
         brandId: brandId || undefined,
         modelId: modelId || undefined,
-        pricingRegionId: pricingRegionId || undefined,
         isActive: isActiveFilter || undefined,
         minPrice: minPrice || undefined,
         maxPrice: maxPrice || undefined,
@@ -127,9 +123,12 @@ export default function AdminVehicleModelPricingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [keyword, sortBy, vehicleType, brandId, modelId, pricingRegionId, isActiveFilter, minPrice, maxPrice, page]);
+  }, [keyword, sortBy, vehicleType, brandId, modelId, isActiveFilter, minPrice, maxPrice, page]);
 
   useEffect(() => { void load(1); }, []);
+  useEffect(() => {
+    void load(1);
+  }, [keyword, sortBy, vehicleType, brandId, modelId, isActiveFilter, minPrice, maxPrice]);
 
   function resetFilters() {
     setKeyword("");
@@ -137,7 +136,6 @@ export default function AdminVehicleModelPricingsPage() {
     setVehicleType("");
     setBrandId("");
     setModelId("");
-    setPricingRegionId("");
     setIsActiveFilter("");
     setMinPrice("");
     setMaxPrice("");
@@ -164,11 +162,27 @@ export default function AdminVehicleModelPricingsPage() {
     return pages;
   }, [page, totalPages]);
 
+  async function toggleExpand(modelId: number) {
+    if (expandedId === modelId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(modelId);
+    setLoadingRegion(true);
+    try {
+      const data = await getRegionPrices(modelId);
+      setRegionPrices(data);
+    } catch {
+      setRegionPrices([]);
+    } finally {
+      setLoadingRegion(false);
+    }
+  }
+
   function openCreate() {
     setEditItem(null);
     setFormBrandId("");
     setFormModelId("");
-    setFormPricingRegionId("");
     setSuggestedMinPrice("");
     setBasePrice("");
     setSuggestedMaxPrice("");
@@ -181,7 +195,6 @@ export default function AdminVehicleModelPricingsPage() {
     setEditItem(item);
     setFormBrandId(String(item.brandId));
     setFormModelId(String(item.modelId));
-    setFormPricingRegionId(String(item.pricingRegionId));
     setSuggestedMinPrice(String(item.suggestedMinPrice));
     setBasePrice(String(item.basePrice));
     setSuggestedMaxPrice(String(item.suggestedMaxPrice));
@@ -194,13 +207,13 @@ export default function AdminVehicleModelPricingsPage() {
     const min = Number(suggestedMinPrice);
     const base = Number(basePrice);
     const max = Number(suggestedMaxPrice);
-    if (!formModelId || !formPricingRegionId || min <= 0 || base <= 0 || max <= 0 || min > base || base > max) {
-      setFormError("Vui lòng chọn dòng xe/vùng giá và nhập giá theo thứ tự min <= base <= max.");
+    if (!formModelId || min <= 0 || base <= 0 || max <= 0 || min > base || base > max) {
+      setFormError("Vui lòng chọn dòng xe và nhập giá theo thứ tự min <= base <= max.");
       return;
     }
 
     try {
-      const data = { modelId: Number(formModelId), pricingRegionId: Number(formPricingRegionId), suggestedMinPrice: min, basePrice: base, suggestedMaxPrice: max };
+      const data = { modelId: Number(formModelId), suggestedMinPrice: min, basePrice: base, suggestedMaxPrice: max };
       if (editItem) await updateVehicleModelPricing(editItem.id, { ...data, isActive: formIsActive });
       else await createVehicleModelPricing(data);
       setModalOpen(false);
@@ -236,7 +249,6 @@ export default function AdminVehicleModelPricingsPage() {
             <FilterDropdown label="Loại xe" value={vehicleType} onChange={(v) => { setVehicleType(v); setBrandId(""); setModelId(""); setPage(1); }} options={[{ value: "", label: "Tất cả" }, { value: "Car", label: "Ô tô" }, { value: "Motorbike", label: "Xe máy" }]} />
             <FilterDropdown label="Hãng" value={brandId} onChange={(v) => { setBrandId(v); setModelId(""); setPage(1); }} options={[{ value: "", label: "Tất cả" }, ...visibleBrands.map((b) => ({ value: String(b.id), label: b.name }))]} />
             <FilterDropdown label="Dòng xe" value={modelId} onChange={(v) => { setModelId(v); setPage(1); }} options={[{ value: "", label: "Tất cả" }, ...models.map((m) => ({ value: String(m.id), label: m.name }))]} />
-            <FilterDropdown label="Vùng giá" value={pricingRegionId} onChange={(v) => { setPricingRegionId(v); setPage(1); }} options={[{ value: "", label: "Tất cả" }, ...regions.map((r) => ({ value: String(r.id), label: r.code }))]} />
             <div className="flex items-center gap-1">
               <span className="text-xs text-slate-400">Giá:</span>
               <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Từ" className="h-8 w-24 rounded-md border border-slate-300 px-2 text-sm outline-none focus:border-brand-500" />
@@ -257,8 +269,8 @@ export default function AdminVehicleModelPricingsPage() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
               <tr>
+                <th className="px-4 py-3 w-10"></th>
                 <th className="px-4 py-3">Dòng xe</th>
-                <th className="px-4 py-3">Vùng giá</th>
                 <th className="px-4 py-3">Min</th>
                 <th className="px-4 py-3">Base</th>
                 <th className="px-4 py-3">Max</th>
@@ -268,19 +280,61 @@ export default function AdminVehicleModelPricingsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {items.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{item.brandName} {item.modelName}</td>
-                  <td className="px-4 py-3 text-slate-600">{item.pricingRegionCode}</td>
-                  <td className="px-4 py-3 text-slate-600">{money(item.suggestedMinPrice)}</td>
-                  <td className="px-4 py-3 text-slate-600">{money(item.basePrice)}</td>
-                  <td className="px-4 py-3 text-slate-600">{money(item.suggestedMaxPrice)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.isActive ? "Hoạt động" : "Đã tắt"}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => openEdit(item)} className="flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50"><Pencil className="h-4 w-4" /></button>
-                  </td>
-                </tr>
+                <Fragment key={item.id}>
+                  <tr className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleExpand(item.modelId)} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100">
+                        {expandedId === item.modelId ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{item.brandName} {item.modelName}</td>
+                    <td className="px-4 py-3 text-slate-600">{money(item.suggestedMinPrice)}</td>
+                    <td className="px-4 py-3 text-slate-600">{money(item.basePrice)}</td>
+                    <td className="px-4 py-3 text-slate-600">{money(item.suggestedMaxPrice)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.isActive ? "Hoạt động" : "Đã tắt"}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => openEdit(item)} className="flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50"><Pencil className="h-4 w-4" /></button>
+                    </td>
+                  </tr>
+                  {expandedId === item.modelId && (
+                    <tr>
+                      <td colSpan={7} className="bg-slate-50 px-6 py-4">
+                        {loadingRegion ? (
+                          <LoadingSpinner className="mx-auto h-5 w-5" />
+                        ) : regionPrices.length === 0 ? (
+                          <p className="text-center text-sm text-slate-500">Không có dữ liệu vùng giá.</p>
+                        ) : (
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="text-left text-xs font-semibold uppercase text-slate-500">
+                                <th className="px-3 py-2">Vùng</th>
+                                <th className="px-3 py-2">Tên vùng</th>
+                                <th className="px-3 py-2">Hệ số giá</th>
+                                <th className="px-3 py-2">Giá Min</th>
+                                <th className="px-3 py-2">Giá Base</th>
+                                <th className="px-3 py-2">Giá Max</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                              {regionPrices.map((rp) => (
+                                <tr key={rp.regionCode} className="hover:bg-slate-100">
+                                  <td className="px-3 py-2 font-medium">{rp.regionCode}</td>
+                                  <td className="px-3 py-2 text-slate-600">{rp.regionName}</td>
+                                  <td className="px-3 py-2 text-slate-600">{rp.coefficient.toFixed(2)}</td>
+                                  <td className="px-3 py-2 text-slate-600">{money(rp.calculatedMinPrice)}</td>
+                                  <td className="px-3 py-2 text-slate-600">{money(rp.calculatedBasePrice)}</td>
+                                  <td className="px-3 py-2 text-slate-600">{money(rp.calculatedMaxPrice)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
               {!isLoading && items.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">Không có khung giá nào.</td></tr>}
             </tbody>
@@ -310,10 +364,6 @@ export default function AdminVehicleModelPricingsPage() {
           <select value={formModelId} onChange={(e) => setFormModelId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm">
             <option value="">Chọn dòng xe</option>
             {models.filter((m) => !formBrandId || brands.some((b) => b.id === Number(formBrandId))).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-          <select value={formPricingRegionId} onChange={(e) => setFormPricingRegionId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm">
-            <option value="">Chọn vùng giá</option>
-            {regions.map((r) => <option key={r.id} value={r.id}>{r.code}</option>)}
           </select>
           <div className="grid grid-cols-3 gap-3">
             <input type="number" value={suggestedMinPrice} onChange={(e) => setSuggestedMinPrice(e.target.value)} placeholder="Min" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />

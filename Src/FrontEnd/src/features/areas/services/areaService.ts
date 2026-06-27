@@ -9,6 +9,11 @@ export async function getAreas(params: Record<string, string | number | boolean 
   return res.data.data ?? { items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 };
 }
 
+export async function getAreaProvinces() {
+  const res = await apiClient.get<ApiResponse<string[]>>(`${endpoints.admin.areas}/provinces`);
+  return res.data.data ?? [];
+}
+
 export async function createArea(data: CreateAreaRequest) {
   const res = await apiClient.post<ApiResponse<AreaResponse>>(endpoints.admin.areas, data);
   return res.data.data;

@@ -20,13 +20,15 @@ public class PricingRulesController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<PricingRuleResponse>>>> GetAll(
         [FromQuery] string? keyword,
-        [FromQuery] long? vehicleId,
+        [FromQuery] int? brandId,
+        [FromQuery] int? modelId,
+        [FromQuery] int? pricingRegionId,
         [FromQuery] string? ruleType,
         [FromQuery] bool? isActive,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
-        => Success(await _service.GetAllAsync(keyword, vehicleId, ruleType, isActive, page, pageSize, cancellationToken));
+        => Success(await _service.GetAllAsync(keyword, brandId, modelId, pricingRegionId, ruleType, isActive, page, pageSize, cancellationToken));
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiResponse<PricingRuleResponse>>> GetById(long id, CancellationToken cancellationToken = default)

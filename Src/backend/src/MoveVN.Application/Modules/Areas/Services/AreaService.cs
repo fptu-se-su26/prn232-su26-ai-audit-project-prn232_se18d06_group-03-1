@@ -47,6 +47,13 @@ public class AreaService : IAreaService
         return new PagedResult<AreaResponse> { Items = items, TotalCount = totalCount, Page = page, PageSize = pageSize };
     }
 
+    public async Task<List<string>> GetProvincesAsync(CancellationToken cancellationToken = default)
+        => await _repository.Areas
+            .Select(x => x.Province)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync(cancellationToken);
+
     public async Task<AreaResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var response = await Project(_repository.Areas.Where(x => x.Id == id)).FirstOrDefaultAsync(cancellationToken);

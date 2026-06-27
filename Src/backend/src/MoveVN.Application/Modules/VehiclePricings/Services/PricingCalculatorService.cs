@@ -28,19 +28,31 @@ public class PricingCalculatorService : IPricingCalculatorService
 
         var region = await _repository.GetPricingRegionByIdAsync(area.PricingRegionId, cancellationToken);
         var pricing = await _repository.VehicleModelPricings
-            .Where(x => x.ModelId == modelId && x.PricingRegionId == area.PricingRegionId && x.IsActive)
+            .Where(x => x.ModelId == modelId && x.IsActive)
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (pricing is null || region is null)
+        {
+            return new PricingSuggestionResponse
+            {
+                HasSuggestion = false,
+                ModelId = modelId,
+                AreaId = area.Id,
+                PricingRegionId = area.PricingRegionId,
+                PricingRegionCode = region?.Code
+            };
+        }
 
         return new PricingSuggestionResponse
         {
-            HasSuggestion = pricing is not null,
+            HasSuggestion = true,
             ModelId = modelId,
             AreaId = area.Id,
             PricingRegionId = area.PricingRegionId,
-            PricingRegionCode = region?.Code,
-            BasePrice = pricing?.BasePrice,
-            SuggestedMinPrice = pricing?.SuggestedMinPrice,
-            SuggestedMaxPrice = pricing?.SuggestedMaxPrice
+            PricingRegionCode = region.Code,
+            BasePrice = Math.Round(pricing.BasePrice * region.Coefficient, 2),
+            SuggestedMinPrice = Math.Round(pricing.SuggestedMinPrice * region.Coefficient, 2),
+            SuggestedMaxPrice = Math.Round(pricing.SuggestedMaxPrice * region.Coefficient, 2)
         };
     }
 
@@ -105,11 +117,17 @@ public class PricingCalculatorService : IPricingCalculatorService
                 price = suggestion.BasePrice.Value;
         }
 
+        var area = vehicle.AreaId.HasValue
+            ? await _repository.GetAreaByIdAsync(vehicle.AreaId.Value, cancellationToken)
+            : null;
+
         var rules = await _repository.PricingRules
-            .Where(x => x.VehicleId == vehicle.Id
-                && x.IsActive
+            .Where(x => x.IsActive
                 && (!x.StartDate.HasValue || x.StartDate <= date)
-                && (!x.EndDate.HasValue || x.EndDate >= date))
+                && (!x.EndDate.HasValue || x.EndDate >= date)
+                && (x.BrandId == null || x.BrandId == vehicle.BrandId)
+                && (x.ModelId == null || x.ModelId == vehicle.ModelId)
+                && (x.PricingRegionId == null || x.PricingRegionId == (area != null ? area.PricingRegionId : null)))
             .OrderBy(x => x.Priority)
             .ThenBy(x => x.Id)
             .ToListAsync(cancellationToken);

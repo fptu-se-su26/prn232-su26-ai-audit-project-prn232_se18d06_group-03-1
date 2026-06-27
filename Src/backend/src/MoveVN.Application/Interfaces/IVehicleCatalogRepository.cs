@@ -19,6 +19,7 @@ public interface IVehicleCatalogRepository
     IQueryable<VehiclePricing> VehiclePricings { get; }
     IQueryable<VehicleModelPricing> VehicleModelPricings { get; }
     IQueryable<PricingRule> PricingRules { get; }
+    IQueryable<PlatformFeeRule> PlatformFeeRules { get; }
 
     Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<VehicleModel?> GetVehicleModelByIdAsync(int id, CancellationToken cancellationToken = default);
@@ -30,6 +31,7 @@ public interface IVehicleCatalogRepository
     Task<VehiclePricing?> GetVehiclePricingByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default);
     Task<VehicleModelPricing?> GetVehicleModelPricingByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<PricingRule?> GetPricingRuleByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<PlatformFeeRule?> GetPlatformFeeRuleByIdAsync(long id, CancellationToken cancellationToken = default);
 
     void Add<T>(T entity) where T : class;
     void Remove<T>(T entity) where T : class;

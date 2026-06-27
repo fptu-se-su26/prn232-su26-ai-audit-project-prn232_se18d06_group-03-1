@@ -90,6 +90,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode PRICING_OUT_OF_SUGGESTED_RANGE = new("PRICE_8508", "Price is outside suggested range.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode PRICING_DUPLICATED = new("PRICE_8509", "Pricing data already exists.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode PRICING_RULE_INVALID = new("PRICE_8510", "Pricing rule is invalid.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PLATFORM_FEE_RULE_NOT_FOUND = new("PRICE_8511", "Platform fee rule not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_NOT_FOUND = new("VEHICLE_9001", "Vehicle not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_TOGGLE_INVALID = new("VEHICLE_9002", "Can only toggle between Approved and Hidden status.", HttpStatusCode.BadRequest);
 
