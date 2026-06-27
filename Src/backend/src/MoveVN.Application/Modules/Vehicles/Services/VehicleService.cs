@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
@@ -104,7 +105,7 @@ public class VehicleService : IVehicleService
     {
         var vehicle = await _repository.Vehicles
             .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
-            ?? throw new NotFoundException("Vehicle not found");
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken);
         var model = await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken);
@@ -163,9 +164,9 @@ public class VehicleService : IVehicleService
     public async Task<VehicleResponse> CreateAsync(long ownerId, CreateVehicleRequest request, CancellationToken cancellationToken = default)
     {
         var brand = await _repository.GetVehicleBrandByIdAsync(request.BrandId, cancellationToken)
-            ?? throw new NotFoundException("Brand not found");
+            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
         var model = await _repository.GetVehicleModelByIdAsync(request.ModelId, cancellationToken)
-            ?? throw new NotFoundException("Model not found");
+            ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
 
         var vehicle = new Vehicle
         {
@@ -238,7 +239,7 @@ public class VehicleService : IVehicleService
     {
         var vehicle = await _repository.Vehicles
             .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
-            ?? throw new NotFoundException("Vehicle not found");
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         vehicle.Year = request.Year;
         vehicle.LicensePlate = request.LicensePlate;
@@ -270,13 +271,13 @@ public class VehicleService : IVehicleService
     {
         var vehicle = await _repository.Vehicles
             .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
-            ?? throw new NotFoundException("Vehicle not found");
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         vehicle.Status = vehicle.Status switch
         {
             VehicleStatus.Approved => VehicleStatus.Hidden,
             VehicleStatus.Hidden => VehicleStatus.Approved,
-            _ => throw new InvalidOperationException("Can only toggle between Approved and Hidden status.")
+            _ => throw new AppException(ErrorCode.VEHICLE_TOGGLE_INVALID)
         };
 
         await _repository.SaveChangesAsync(cancellationToken);

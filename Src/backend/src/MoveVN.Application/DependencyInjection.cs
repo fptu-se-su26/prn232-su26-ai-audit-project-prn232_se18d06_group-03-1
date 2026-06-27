@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IDriverLicenseClassService, DriverLicenseClassService>();
         services.AddScoped<IVehicleFeatureService, VehicleFeatureService>();
         services.AddScoped<IVehicleService, VehicleService>();
+        services.AddScoped<IVehicleCatalogService, VehicleCatalogService>();
 
         return services;
     }

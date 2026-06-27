@@ -39,26 +39,26 @@ export async function toggleVehicleStatus(id: number) {
 
 export async function getCatalogBrands(vehicleType?: string) {
   const params = vehicleType ? { vehicleType } : undefined;
-  const res = await apiClient.get<CatalogBrand[]>(endpoints.catalog.brands, { params });
-  return res.data ?? [];
+  const res = await apiClient.get<ApiResponse<CatalogBrand[]>>(endpoints.catalog.brands, { params });
+  return res.data.data ?? [];
 }
 
 export async function getCatalogModels(brandId?: number) {
   const params = brandId ? { brandId } : undefined;
-  const res = await apiClient.get<CatalogModel[]>(endpoints.catalog.models, { params });
-  return res.data ?? [];
+  const res = await apiClient.get<ApiResponse<CatalogModel[]>>(endpoints.catalog.models, { params });
+  return res.data.data ?? [];
 }
 
 export async function getCatalogVariants(modelId?: number, vehicleType?: string) {
   const params: Record<string, string | number> = {};
   if (modelId) params.modelId = modelId;
   if (vehicleType) params.vehicleType = vehicleType;
-  const res = await apiClient.get<CatalogVariant[]>(endpoints.catalog.variants, { params });
-  return res.data ?? [];
+  const res = await apiClient.get<ApiResponse<CatalogVariant[]>>(endpoints.catalog.variants, { params });
+  return res.data.data ?? [];
 }
 
 export async function getCatalogFeatures(vehicleType?: string) {
   const params = vehicleType ? { vehicleType } : undefined;
-  const res = await apiClient.get<CatalogFeature[]>(endpoints.catalog.features, { params });
-  return res.data ?? [];
+  const res = await apiClient.get<ApiResponse<CatalogFeature[]>>(endpoints.catalog.features, { params });
+  return res.data.data ?? [];
 }
