@@ -32,12 +32,16 @@ public class VehicleModelVariantService : IVehicleModelVariantService
         string? engineCapacity,
         int? requiredLicenseClassId,
         string? licenseSystemVersion,
+        bool? isActive,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
     {
         var normalizedVehicleType = NormalizeVehicleType(vehicleType);
         var query = _repository.VehicleModelVariants;
+
+        if (isActive.HasValue)
+            query = query.Where(x => x.IsActive == isActive.Value);
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {

@@ -19,6 +19,10 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<DriverLicenseClass> DriverLicenseClasses => _context.DriverLicenseClasses.AsQueryable();
     public IQueryable<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => _context.DriverLicenseClassCompatibility.AsQueryable();
     public IQueryable<VehicleFeature> VehicleFeatures => _context.VehicleFeature.AsQueryable();
+    public IQueryable<Vehicle> Vehicles => _context.Vehicles.AsQueryable();
+    public IQueryable<VehicleImage> VehicleImages => _context.VehicleImages.AsQueryable();
+    public IQueryable<VehicleFeatureMapping> VehicleFeatureMappings => _context.VehicleFeatureMapping.AsQueryable();
+    public IQueryable<VehicleDocument> VehicleDocuments => _context.VehicleDocuments.AsQueryable();
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -37,6 +41,9 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
 
     public void Add<T>(T entity) where T : class
         => _context.Set<T>().Add(entity);
+
+    public void Remove<T>(T entity) where T : class
+        => _context.Set<T>().Remove(entity);
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);

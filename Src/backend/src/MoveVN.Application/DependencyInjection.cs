@@ -18,6 +18,8 @@ using MoveVN.Application.Modules.VehicleModels.Interfaces;
 using MoveVN.Application.Modules.VehicleModels.Services;
 using MoveVN.Application.Modules.VehicleModelVariants.Interfaces;
 using MoveVN.Application.Modules.VehicleModelVariants.Services;
+using MoveVN.Application.Modules.Vehicles.Interfaces;
+using MoveVN.Application.Modules.Vehicles.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
@@ -45,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IVehicleModelVariantService, VehicleModelVariantService>();
         services.AddScoped<IDriverLicenseClassService, DriverLicenseClassService>();
         services.AddScoped<IVehicleFeatureService, VehicleFeatureService>();
+        services.AddScoped<IVehicleService, VehicleService>();
 
         return services;
     }

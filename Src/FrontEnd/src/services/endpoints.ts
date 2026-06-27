@@ -20,5 +20,17 @@ export const endpoints = {
     driverLicenseClasses: "/api/admin/driver-license-classes",
     vehicleFeatures: "/api/admin/vehicle-features",
   },
+  vehicles: {
+    my: "/api/vehicles/my",
+    byId: (id: number) => `/api/vehicles/${id}`,
+    toggleStatus: (id: number) => `/api/vehicles/${id}/toggle-status`,
+    base: "/api/vehicles",
+  },
+  catalog: {
+    brands: "/api/catalog/brands",
+    models: "/api/catalog/models",
+    variants: "/api/catalog/variants",
+    features: "/api/catalog/features",
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

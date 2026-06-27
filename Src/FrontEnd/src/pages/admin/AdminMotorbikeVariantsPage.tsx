@@ -67,6 +67,7 @@ export default function AdminMotorbikeVariantsPage() {
   const [filterFuelType, setFilterFuelType] = useState("");
   const [filterEngineCapacity, setFilterEngineCapacity] = useState("");
   const [filterRequiredLicenseClassId, setFilterRequiredLicenseClassId] = useState("");
+  const [filterIsActive, setFilterIsActive] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [formModelId, setFormModelId] = useState("");
   const [formName, setFormName] = useState("");
@@ -113,10 +114,11 @@ export default function AdminMotorbikeVariantsPage() {
         fuelType: filterFuelType || undefined,
         engineCapacity: filterEngineCapacity || undefined,
         requiredLicenseClassId: filterRequiredLicenseClassId || undefined,
+        isActive: filterIsActive || undefined,
       });
       setItems(result.items); setTotalCount(result.totalCount); setPage(result.page); setTotalPages(result.totalPages);
     } catch { setError("Không thể tải danh sách phiên bản."); } finally { setIsLoading(false); }
-  }, [keyword, filterBrandId, filterModelId, filterBikeType, filterFuelType, filterEngineCapacity, filterRequiredLicenseClassId]);
+  }, [keyword, filterBrandId, filterModelId, filterBikeType, filterFuelType, filterEngineCapacity, filterRequiredLicenseClassId, filterIsActive]);
 
   useEffect(() => { void load(1); }, [load]);
   function handleSearch() { setPage(1); void load(1, keyword); }
@@ -130,6 +132,7 @@ export default function AdminMotorbikeVariantsPage() {
     setFilterFuelType("");
     setFilterEngineCapacity("");
     setFilterRequiredLicenseClassId("");
+    setFilterIsActive("");
     setPage(1);
   }
 
@@ -178,7 +181,7 @@ export default function AdminMotorbikeVariantsPage() {
     }
     return pages;
   }, [page, totalPages]);
-  const hasActiveFilters = filterBrandId || filterModelId || filterBikeType || filterFuelType || filterEngineCapacity || filterRequiredLicenseClassId;
+  const hasActiveFilters = filterBrandId || filterModelId || filterBikeType || filterFuelType || filterEngineCapacity || filterRequiredLicenseClassId || filterIsActive;
 
   return (
     <div className="space-y-5">
@@ -212,6 +215,8 @@ export default function AdminMotorbikeVariantsPage() {
             <input type="text" value={filterEngineCapacity} onChange={(e) => { setFilterEngineCapacity(e.target.value); setPage(1); }} placeholder="Dung tích, VD: 125cc" className="h-8 w-32 rounded-md border border-slate-300 bg-white px-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
             <FilterDropdown label="GPLX" value={filterRequiredLicenseClassId} onChange={(v) => { setFilterRequiredLicenseClassId(v); setPage(1); }}
               options={[{ value: "", label: "GPLX" }, ...licenseClasses.map((l) => ({ value: String(l.id), label: `${l.code} - ${l.displayName}` }))]} />
+            <FilterDropdown label="Trạng thái" value={filterIsActive} onChange={(v) => { setFilterIsActive(v); setPage(1); }}
+              options={[{ value: "", label: "Tất cả" }, { value: "true", label: "Hoạt động" }, { value: "false", label: "Đã tắt" }]} />
             {hasActiveFilters && <button type="button" onClick={resetFilters} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xóa bộ lọc</button>}
           </div>
         )}

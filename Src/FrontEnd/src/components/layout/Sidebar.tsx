@@ -51,6 +51,11 @@ const vehicleCatalogItems = [
   { to: "/admin/driver-license-classes", label: "Giấy phép lái xe", icon: FileBadge },
 ];
 
+const ownerVehicleItems = [
+  { to: "/owner/vehicles/car", label: "Ô tô", icon: Car },
+  { to: "/owner/vehicles/motorbike", label: "Xe máy", icon: Bike },
+];
+
 function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
   return (
     <NavLink
@@ -85,12 +90,13 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const isProfileSection = location.pathname === "/account" || location.pathname === "/change-password";
   const isVehicleCatalogPath = location.pathname === "/admin/vehicle-catalog" || vehicleCatalogItems.some((item) => location.pathname.startsWith(item.to));
   const [vehicleCatalogOpen, setVehicleCatalogOpen] = useState(isVehicleCatalogPath);
+  const isOwnerVehiclePath = ownerVehicleItems.some((item) => location.pathname.startsWith(item.to));
+  const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
 
   useEffect(() => {
-    if (isVehicleCatalogPath) {
-      setVehicleCatalogOpen(true);
-    }
-  }, [isVehicleCatalogPath]);
+    if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
+    if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
+  }, [isVehicleCatalogPath, isOwnerVehiclePath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -136,6 +142,58 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           {items.map((item) => (
             <NavItem key={item.to} end={item.to === dashboardPath} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
           ))}
+
+          {primaryRole === "Owner" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setOwnerVehicleOpen(true);
+                  navigate("/owner/vehicles");
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isOwnerVehiclePath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Quản lý xe"
+              >
+                <FolderTree className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Quản lý xe</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOwnerVehicleOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setOwnerVehicleOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở danh mục xe"
+                    >
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${ownerVehicleOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && ownerVehicleOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {ownerVehicleItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
           {primaryRole === "Admin" && !isOwnerVerificationSection && (
             <>

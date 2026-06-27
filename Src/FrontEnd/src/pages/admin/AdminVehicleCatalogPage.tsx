@@ -77,6 +77,7 @@ export default function AdminVehicleCatalogPage() {
   const [brands, setBrands] = useState<VehicleBrandResponse[]>([]);
   const [models, setModels] = useState<VehicleModelResponse[]>([]);
   const [licenseClasses, setLicenseClasses] = useState<DriverLicenseClassResponse[]>([]);
+  const [isActiveFilter, setIsActiveFilter] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function AdminVehicleCatalogPage() {
 
   const visibleBrands = brands.filter((brand) => !vehicleType || normalizeVehicleType(brand.vehicleType) === vehicleType);
   const visibleLicenses = licenseClasses.filter((license) => !licenseSystemVersion || license.systemVersion === licenseSystemVersion);
-  const hasActiveFilters = sortBy || vehicleType || brandId || modelId || bodyType || seatCount || fuelType || bikeType || requiredLicenseClassId || licenseSystemVersion;
+  const hasActiveFilters = sortBy || vehicleType || brandId || modelId || bodyType || seatCount || fuelType || bikeType || requiredLicenseClassId || licenseSystemVersion || isActiveFilter;
 
   const load = useCallback(async (nextPage: number) => {
     setIsLoading(true);
@@ -119,6 +120,7 @@ export default function AdminVehicleCatalogPage() {
         bikeType: bikeType || undefined,
         requiredLicenseClassId: requiredLicenseClassId || undefined,
         licenseSystemVersion: licenseSystemVersion || undefined,
+        isActive: isActiveFilter || undefined,
       });
       setItems(result.items);
       setTotalCount(result.totalCount);
@@ -129,7 +131,7 @@ export default function AdminVehicleCatalogPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [keyword, sortBy, vehicleType, brandId, modelId, bodyType, seatCount, fuelType, bikeType, requiredLicenseClassId, licenseSystemVersion]);
+  }, [keyword, sortBy, vehicleType, brandId, modelId, bodyType, seatCount, fuelType, bikeType, requiredLicenseClassId, licenseSystemVersion, isActiveFilter]);
 
   useEffect(() => { void load(1); }, [load]);
 
@@ -145,6 +147,7 @@ export default function AdminVehicleCatalogPage() {
     setBikeType("");
     setRequiredLicenseClassId("");
     setLicenseSystemVersion("");
+    setIsActiveFilter("");
     setPage(1);
     if (searchRef.current) searchRef.current.value = "";
   }
@@ -207,6 +210,7 @@ export default function AdminVehicleCatalogPage() {
             )}
             <FilterDropdown label="Hệ GPLX" value={licenseSystemVersion} onChange={(v) => { setLicenseSystemVersion(v); setRequiredLicenseClassId(""); setPage(1); }} options={[{ value: "", label: "Tất cả" }, { value: "Current", label: "Hiện hành" }, { value: "LegacyBefore2025", label: "Cũ" }]} />
             <FilterDropdown label="GPLX" value={requiredLicenseClassId} onChange={(v) => { setRequiredLicenseClassId(v); setPage(1); }} options={[{ value: "", label: "Tất cả" }, ...visibleLicenses.map((license) => ({ value: String(license.id), label: `${license.code} - ${license.displayName}` }))]} />
+            <FilterDropdown label="Trạng thái" value={isActiveFilter} onChange={(v) => { setIsActiveFilter(v); setPage(1); }} options={[{ value: "", label: "Tất cả" }, { value: "true", label: "Hoạt động" }, { value: "false", label: "Đã tắt" }]} />
             {hasActiveFilters && <button type="button" onClick={resetFilters} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xóa bộ lọc</button>}
           </div>
         )}

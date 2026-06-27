@@ -10,6 +10,10 @@ public interface IVehicleCatalogRepository
     IQueryable<DriverLicenseClass> DriverLicenseClasses { get; }
     IQueryable<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility { get; }
     IQueryable<VehicleFeature> VehicleFeatures { get; }
+    IQueryable<Vehicle> Vehicles { get; }
+    IQueryable<VehicleImage> VehicleImages { get; }
+    IQueryable<VehicleFeatureMapping> VehicleFeatureMappings { get; }
+    IQueryable<VehicleDocument> VehicleDocuments { get; }
 
     Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<VehicleModel?> GetVehicleModelByIdAsync(int id, CancellationToken cancellationToken = default);
@@ -18,5 +22,6 @@ public interface IVehicleCatalogRepository
     Task<VehicleFeature?> GetVehicleFeatureByIdAsync(int id, CancellationToken cancellationToken = default);
 
     void Add<T>(T entity) where T : class;
+    void Remove<T>(T entity) where T : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

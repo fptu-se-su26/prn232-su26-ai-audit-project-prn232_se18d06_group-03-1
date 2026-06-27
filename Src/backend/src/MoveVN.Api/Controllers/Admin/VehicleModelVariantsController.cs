@@ -32,11 +32,12 @@ public class VehicleModelVariantsController : BaseApiController
         [FromQuery] string? engineCapacity,
         [FromQuery] int? requiredLicenseClassId,
         [FromQuery] string? licenseSystemVersion,
+        [FromQuery] bool? isActive,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var result = await _vehicleModelVariantService.GetAllAsync(keyword, sortBy, vehicleType, brandId, modelId, bodyType, seatCount, transmission, fuelType, bikeType, engineCapacity, requiredLicenseClassId, licenseSystemVersion, page, pageSize, cancellationToken);
+        var result = await _vehicleModelVariantService.GetAllAsync(keyword, sortBy, vehicleType, brandId, modelId, bodyType, seatCount, transmission, fuelType, bikeType, engineCapacity, requiredLicenseClassId, licenseSystemVersion, isActive, page, pageSize, cancellationToken);
         return Success(result);
     }
 

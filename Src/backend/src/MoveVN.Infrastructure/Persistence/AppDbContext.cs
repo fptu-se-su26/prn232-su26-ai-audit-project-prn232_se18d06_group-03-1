@@ -97,6 +97,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .WithMany()
             .HasForeignKey(entity => entity.ModelId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Vehicle>()
+            .HasOne<VehicleModelVariant>()
+            .WithMany()
+            .HasForeignKey(entity => entity.VariantId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
         builder.Entity<VehicleModelVariant>()
             .HasOne<DriverLicenseClass>()
             .WithMany()

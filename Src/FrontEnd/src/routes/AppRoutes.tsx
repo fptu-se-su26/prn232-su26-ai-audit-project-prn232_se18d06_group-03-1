@@ -25,6 +25,10 @@ import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import OwnerHomePage from "@/pages/owner/OwnerHomePage";
+import OwnerVehicleListPage from "@/pages/owner/OwnerVehicleListPage";
+import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
+import OwnerVehicleAddPage from "@/pages/owner/OwnerVehicleAddPage";
+import OwnerVehicleEditPage from "@/pages/owner/OwnerVehicleEditPage";
 import HomePage from "@/pages/public/HomePage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
 import GuestRoute from "@/routes/GuestRoute";
@@ -62,6 +66,12 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Owner"]} />}>
             <Route path="/owner" element={<OwnerHomePage />} />
+            <Route path="/owner/vehicles" element={<OwnerVehicleListPage />} />
+            <Route path="/owner/vehicles/car" element={<OwnerVehicleListPage />} />
+            <Route path="/owner/vehicles/motorbike" element={<OwnerVehicleListPage />} />
+            <Route path="/owner/vehicles/add" element={<OwnerVehicleAddPage />} />
+            <Route path="/owner/vehicles/:id" element={<OwnerVehicleDetailPage />} />
+            <Route path="/owner/vehicles/:id/edit" element={<OwnerVehicleEditPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Staff"]} />}>

@@ -76,6 +76,7 @@ export default function AdminCarVariantsPage() {
   const [filterFuelType, setFilterFuelType] = useState("");
   const [filterBodyType, setFilterBodyType] = useState("");
   const [filterRequiredLicenseClassId, setFilterRequiredLicenseClassId] = useState("");
+  const [filterIsActive, setFilterIsActive] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   const [formModelId, setFormModelId] = useState("");
@@ -126,10 +127,11 @@ export default function AdminCarVariantsPage() {
         fuelType: filterFuelType || undefined,
         bodyType: filterBodyType || undefined,
         requiredLicenseClassId: filterRequiredLicenseClassId || undefined,
+        isActive: filterIsActive || undefined,
       });
       setItems(result.items); setTotalCount(result.totalCount); setPage(result.page); setTotalPages(result.totalPages);
     } catch { setError("Không thể tải danh sách phiên bản."); } finally { setIsLoading(false); }
-  }, [keyword, filterBrandId, filterModelId, filterSeatCount, filterTransmission, filterFuelType, filterBodyType, filterRequiredLicenseClassId]);
+  }, [keyword, filterBrandId, filterModelId, filterSeatCount, filterTransmission, filterFuelType, filterBodyType, filterRequiredLicenseClassId, filterIsActive]);
 
   useEffect(() => { void load(1); }, [load]);
 
@@ -145,6 +147,7 @@ export default function AdminCarVariantsPage() {
     setFilterFuelType("");
     setFilterBodyType("");
     setFilterRequiredLicenseClassId("");
+    setFilterIsActive("");
     setPage(1);
   }
 
@@ -195,7 +198,7 @@ export default function AdminCarVariantsPage() {
     }
     return pages;
   }, [page, totalPages]);
-  const hasActiveFilters = filterBrandId || filterModelId || filterSeatCount || filterTransmission || filterFuelType || filterBodyType || filterRequiredLicenseClassId;
+  const hasActiveFilters = filterBrandId || filterModelId || filterSeatCount || filterTransmission || filterFuelType || filterBodyType || filterRequiredLicenseClassId || filterIsActive;
 
   return (
     <div className="space-y-5">
@@ -232,6 +235,8 @@ export default function AdminCarVariantsPage() {
               options={[{ value: "", label: "Truyền động" }, ...transmissionOptions]} />
             <FilterDropdown label="GPLX" value={filterRequiredLicenseClassId} onChange={(v) => { setFilterRequiredLicenseClassId(v); setPage(1); }}
               options={[{ value: "", label: "GPLX" }, ...licenseClasses.map((l) => ({ value: String(l.id), label: `${l.code} - ${l.displayName}` }))]} />
+            <FilterDropdown label="Trạng thái" value={filterIsActive} onChange={(v) => { setFilterIsActive(v); setPage(1); }}
+              options={[{ value: "", label: "Tất cả" }, { value: "true", label: "Hoạt động" }, { value: "false", label: "Đã tắt" }]} />
             {hasActiveFilters && <button type="button" onClick={resetFilters} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xóa bộ lọc</button>}
           </div>
         )}
