@@ -76,6 +76,9 @@ class VehicleRegistrationVerificationResponse(BaseModel):
     document_type: DocumentType = Field(alias="documentType")
     registration_vehicle_type: VehicleType = Field(alias="registrationVehicleType")
     vehicle_type_matches_expected: bool = Field(alias="vehicleTypeMatchesExpected")
+    license_plate_matches_expected: bool | None = Field(default=None, alias="licensePlateMatchesExpected")
+    brand_matches_expected: bool | None = Field(default=None, alias="brandMatchesExpected")
+    model_matches_expected: bool | None = Field(default=None, alias="modelMatchesExpected")
     ocr_confidence: float = Field(alias="ocrConfidence")
     extracted: VehicleRegistrationExtracted
     flags: list[str]

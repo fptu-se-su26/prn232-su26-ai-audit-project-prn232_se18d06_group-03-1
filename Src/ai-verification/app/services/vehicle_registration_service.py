@@ -1,4 +1,5 @@
 import re
+from difflib import SequenceMatcher
 
 from app.core.config import get_settings
 from app.schemas.common import DocumentType, Recommendation, VehicleType
@@ -31,6 +32,9 @@ class VehicleRegistrationService:
                 False,
                 VehicleType.UNKNOWN,
                 False,
+                None,
+                None,
+                None,
                 0.0,
                 VehicleRegistrationExtracted(rawText=[]),
                 ["IMAGE_DOWNLOAD_FAILED"],
@@ -48,6 +52,9 @@ class VehicleRegistrationService:
                 False,
                 VehicleType.UNKNOWN,
                 False,
+                None,
+                None,
+                None,
                 0.0,
                 VehicleRegistrationExtracted(rawText=[]),
                 ["OCR_ENGINE_UNAVAILABLE"],
@@ -59,6 +66,9 @@ class VehicleRegistrationService:
                 False,
                 VehicleType.UNKNOWN,
                 False,
+                None,
+                None,
+                None,
                 0.0,
                 VehicleRegistrationExtracted(rawText=[]),
                 ["OCR_PROCESSING_FAILED"],
@@ -71,6 +81,9 @@ class VehicleRegistrationService:
                 False,
                 VehicleType.UNKNOWN,
                 False,
+                None,
+                None,
+                None,
                 0.0,
                 VehicleRegistrationExtracted(rawText=[]),
                 ["NO_TEXT_DETECTED"],
@@ -82,14 +95,31 @@ class VehicleRegistrationService:
         confidence = round(sum(line.confidence for line in lines) / len(lines), 3)
         registration_vehicle_type = extracted.vehicle_type
         type_matches = registration_vehicle_type in {request.expected_vehicle_type, VehicleType.UNKNOWN}
+        plate_matches = self._matches_license_plate(extracted.license_plate, request.expected_license_plate)
+        brand_matches = self._matches_name(extracted.brand, request.expected_brand)
+        model_matches = self._matches_model(extracted.model, request.expected_model)
 
         if not extracted.license_plate:
             flags.append("LICENSE_PLATE_NOT_FOUND")
+        elif plate_matches is False:
+            flags.append("LICENSE_PLATE_MISMATCH_CLEAR")
+
+        if request.expected_brand:
+            if not extracted.brand:
+                flags.append("BRAND_NOT_FOUND")
+            elif brand_matches is False:
+                flags.append("BRAND_MISMATCH_CLEAR")
+
+        if request.expected_model:
+            if not extracted.model:
+                flags.append("MODEL_NOT_FOUND")
+            elif model_matches is False:
+                flags.append("MODEL_MISMATCH_CLEAR")
 
         if registration_vehicle_type == VehicleType.UNKNOWN:
             flags.append("VEHICLE_TYPE_UNCERTAIN")
         elif not type_matches:
-            flags.append("VEHICLE_TYPE_MISMATCH_CLEAR")
+            flags.append("VEHICLE_TYPE_MISMATCH_SIGNAL")
 
         if confidence < get_settings().low_ocr_confidence_threshold:
             flags.append("LOW_OCR_CONFIDENCE")
@@ -101,6 +131,9 @@ class VehicleRegistrationService:
             valid,
             registration_vehicle_type,
             type_matches,
+            plate_matches,
+            brand_matches,
+            model_matches,
             confidence,
             extracted,
             sorted(set(flags)),
@@ -183,6 +216,54 @@ class VehicleRegistrationService:
             return VehicleType.CAR
         return VehicleType.UNKNOWN
 
+    def _matches_license_plate(self, extracted: str | None, expected: str | None) -> bool | None:
+        if not expected:
+            return None
+        extracted_plate = normalize_license_plate(extracted)
+        expected_plate = normalize_license_plate(expected)
+        if not extracted_plate:
+            return False
+        return extracted_plate == expected_plate
+
+    def _matches_name(self, extracted: str | None, expected: str | None) -> bool | None:
+        if not expected:
+            return None
+        extracted_normalized = normalize_compare_text(extracted)
+        expected_normalized = normalize_compare_text(expected)
+        if not extracted_normalized:
+            return False
+        return self._text_matches(extracted_normalized, expected_normalized)
+
+    def _matches_model(self, extracted: str | None, expected: str | None) -> bool | None:
+        if not expected:
+            return None
+        extracted_base = self._base_model_name(extracted)
+        expected_base = self._base_model_name(expected)
+        if not extracted_base:
+            return False
+        return self._text_matches(extracted_base, expected_base)
+
+    def _base_model_name(self, value: str | None) -> str:
+        normalized = normalize_compare_text(value)
+        normalized = re.sub(r"\b[0-9]{2,4}\s*(cc)?\b", " ", normalized)
+        normalized = re.sub(r"\b(abs|cbs|fi|esp|deluxe|special|premium|standard)\b", " ", normalized)
+        return re.sub(r"\s+", " ", normalized).strip()
+
+    def _text_matches(self, left: str, right: str) -> bool:
+        if not left or not right:
+            return False
+        if left == right:
+            return True
+        left_compact = left.replace(" ", "")
+        right_compact = right.replace(" ", "")
+        if left_compact == right_compact:
+            return True
+        if len(left_compact) >= 4 and left_compact in right_compact:
+            return True
+        if len(right_compact) >= 4 and right_compact in left_compact:
+            return True
+        return SequenceMatcher(None, left_compact, right_compact).ratio() >= 0.88
+
     def _extract_after_label(self, lines: list[str], labels: list[str]) -> str | None:
         for index, line in enumerate(lines):
             for label in labels:
@@ -195,18 +276,28 @@ class VehicleRegistrationService:
         return None
 
     def _recommend(self, flags: list[str], confidence: float) -> Recommendation:
-        reject_flags = {"LICENSE_PLATE_MISMATCH_CLEAR", "VEHICLE_TYPE_MISMATCH_CLEAR"}
+        reject_flags = {
+            "LICENSE_PLATE_MISMATCH_CLEAR",
+            "BRAND_MISMATCH_CLEAR",
+            "MODEL_MISMATCH_CLEAR",
+        }
         need_more_flags = {
             "NO_TEXT_DETECTED",
             "IMAGE_TOO_SMALL",
             "DOCUMENT_NOT_READABLE",
         }
-        non_blocking_quality_flags = {"IMAGE_TOO_BLURRY", "IMAGE_TOO_DARK", "IMAGE_TOO_BRIGHT"}
+        non_blocking_flags = {
+            "IMAGE_TOO_BLURRY",
+            "IMAGE_TOO_DARK",
+            "IMAGE_TOO_BRIGHT",
+            "VEHICLE_TYPE_UNCERTAIN",
+            "VEHICLE_TYPE_MISMATCH_SIGNAL",
+        }
         if any(flag in reject_flags for flag in flags):
             return Recommendation.REJECT
         if any(flag in need_more_flags for flag in flags):
             return Recommendation.NEED_MORE_INFO
-        if flags and all(flag in non_blocking_quality_flags for flag in flags):
+        if flags and all(flag in non_blocking_flags for flag in flags):
             return Recommendation.PASS
         if flags or confidence < get_settings().good_ocr_confidence_threshold:
             return Recommendation.MANUAL_REVIEW
@@ -217,6 +308,9 @@ class VehicleRegistrationService:
         valid: bool,
         registration_vehicle_type: VehicleType,
         type_matches: bool,
+        plate_matches: bool | None,
+        brand_matches: bool | None,
+        model_matches: bool | None,
         confidence: float,
         extracted: VehicleRegistrationExtracted,
         flags: list[str],
@@ -228,6 +322,9 @@ class VehicleRegistrationService:
             documentType=DocumentType.VEHICLE_REGISTRATION,
             registrationVehicleType=registration_vehicle_type,
             vehicleTypeMatchesExpected=type_matches,
+            licensePlateMatchesExpected=plate_matches,
+            brandMatchesExpected=brand_matches,
+            modelMatchesExpected=model_matches,
             ocrConfidence=confidence,
             extracted=extracted,
             flags=flags,

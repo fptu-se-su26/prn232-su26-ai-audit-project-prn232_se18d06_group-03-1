@@ -19,6 +19,21 @@ All non-health endpoints require:
 X-API-Key: dev-ai-verification-key
 ```
 
+Example vehicle registration request:
+
+```json
+{
+  "expectedVehicleType": "Motorbike",
+  "expectedLicensePlate": "59X1-12345",
+  "expectedBrand": "Honda",
+  "expectedModel": "Air Blade 125",
+  "fileUrl": "https://..."
+}
+```
+
+`expectedLicensePlate`, `expectedBrand`, and `expectedModel` are optional. Model matching is base-name tolerant, so an OCR result like
+`Air Blade` can match catalog model names such as `Air Blade 125`, `Air Blade 150`, or `Air Blade 160`.
+
 ## Run
 
 ```powershell
@@ -61,4 +76,3 @@ The API contract is ready for:
 
 The current implementation has an OpenCV fallback so endpoints are runnable early. Replace the fallback in
 `app/services/face_service.py` with InsightFace SCRFD + ArcFace for production accuracy.
-

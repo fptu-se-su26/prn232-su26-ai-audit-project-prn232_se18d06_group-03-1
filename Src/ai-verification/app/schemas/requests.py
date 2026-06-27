@@ -19,6 +19,9 @@ class DriverLicenseVerificationRequest(BaseModel):
 
 class VehicleRegistrationVerificationRequest(BaseModel):
     expected_vehicle_type: VehicleType = Field(alias="expectedVehicleType")
+    expected_license_plate: str | None = Field(default=None, alias="expectedLicensePlate")
+    expected_brand: str | None = Field(default=None, alias="expectedBrand")
+    expected_model: str | None = Field(default=None, alias="expectedModel")
     file_url: str = Field(alias="fileUrl")
 
 
