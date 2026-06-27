@@ -44,6 +44,13 @@ public class VehicleBrandsController : BaseApiController
         return Success(result);
     }
 
+    [HttpGet("{id}/cascade-info")]
+    public async Task<ActionResult<ApiResponse<BrandCascadeInfoResponse>>> GetCascadeInfo(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _vehicleBrandService.GetCascadeInfoAsync(id, cancellationToken);
+        return Success(result);
+    }
+
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<VehicleBrandResponse>>> Update(int id, UpdateVehicleBrandRequest request, CancellationToken cancellationToken = default)
     {

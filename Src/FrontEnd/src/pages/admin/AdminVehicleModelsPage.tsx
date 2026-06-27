@@ -2,11 +2,13 @@ import { ChevronDown, ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Slid
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
+import FormDropdown from "@/components/common/FormDropdown";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import useClickOutside from "@/hooks/useClickOutside";
 import { getVehicleBrands } from "@/features/vehicleBrands/services/vehicleBrandService";
-import { getVehicleModels, createVehicleModel, updateVehicleModel } from "@/features/vehicleModels/services/vehicleModelService";
+import { getVehicleModels, createVehicleModel, updateVehicleModel, getVehicleModelCascadeInfo } from "@/features/vehicleModels/services/vehicleModelService";
 import { getVehicleModelVariants } from "@/features/vehicleModelVariants/services/vehicleModelVariantService";
 import { getFuelTypeLabel, getMotorbikeTypeLabel } from "@/features/vehicleModelVariants/options";
 import type { VehicleModelResponse } from "@/features/vehicleModels/types";
@@ -251,8 +253,9 @@ export default function AdminVehicleModelsPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-600">{vehicleTypeLabel(item.vehicleType)}</td>
                   <td className="px-4 py-3">
-                    <button type="button" onClick={() => handleToggleActive(item)}
-                      className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.isActive ? "Hoạt động" : "Đã tắt"}</button>
+                    <ActiveToggle isActive={item.isActive} itemName={item.name}
+                      onToggle={() => handleToggleActive(item)}
+                      cascadeInfo={() => getVehicleModelCascadeInfo(item.id)} />
                   </td>
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => void openModelVariants(item)} title="Xem phiên bản" className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
@@ -284,17 +287,15 @@ export default function AdminVehicleModelsPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa dòng xe" : "Thêm dòng xe"}>
-        <div className="popup-scrollbar space-y-4">
+        <div className="hide-scrollbar max-h-[70vh] space-y-4 overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-slate-700">Tên dòng xe</label>
             <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Hãng xe</label>
-            <select value={formBrandId} onChange={(e) => setFormBrandId(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-              <option value="">Chọn hãng xe</option>
-              {brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name} - {vehicleTypeLabel(brand.vehicleType)}</option>)}
-            </select>
+            <FormDropdown value={formBrandId} onChange={setFormBrandId} placeholder="Chọn hãng xe"
+              options={brands.map((brand) => ({value: String(brand.id), label: `${brand.name} - ${vehicleTypeLabel(brand.vehicleType)}`}))} />
           </div>
           {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">

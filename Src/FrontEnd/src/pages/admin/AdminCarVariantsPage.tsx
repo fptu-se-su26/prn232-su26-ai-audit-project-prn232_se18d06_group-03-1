@@ -2,6 +2,8 @@ import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHo
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
+import FormDropdown from "@/components/common/FormDropdown";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import useClickOutside from "@/hooks/useClickOutside";
@@ -253,8 +255,8 @@ export default function AdminCarVariantsPage() {
                   <td className="px-4 py-3 text-slate-600">{getFuelTypeLabel(item.fuelType)}</td>
                   <td className="px-4 py-3 text-slate-600">{item.requiredLicenseClassCode ? `${item.requiredLicenseClassCode}${item.requiredLicenseClassSystemVersion === "LegacyBefore2025" ? " (cũ)" : ""}` : "-"}</td>
                   <td className="px-4 py-3">
-                    <button type="button" onClick={() => handleToggleActive(item)}
-                      className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.isActive ? "Hoạt động" : "Đã tắt"}</button>
+                    <ActiveToggle isActive={item.isActive} itemName={item.name}
+                      onToggle={() => handleToggleActive(item)} />
                   </td>
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => openEdit(item)} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
@@ -282,20 +284,16 @@ export default function AdminCarVariantsPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa phiên bản" : "Thêm phiên bản"}>
-        <div className="popup-scrollbar max-h-[70vh] space-y-4 overflow-y-auto">
+        <div className="hide-scrollbar max-h-[70vh] space-y-4 overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-slate-700">Hãng xe</label>
-            <select value={selectedBrandId} onChange={(e) => void loadModelsByBrand(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-              <option value="">Chọn hãng</option>
-              {brands.filter((b) => b.vehicleType === "Car").map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <FormDropdown value={selectedBrandId} onChange={(v) => void loadModelsByBrand(v)} placeholder="Chọn hãng"
+              options={brands.filter((b) => b.vehicleType === "Car").map((b) => ({value: String(b.id), label: b.name}))} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Dòng xe</label>
-            <select value={formModelId} onChange={(e) => setFormModelId(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-              <option value="">Chọn dòng xe</option>
-              {models.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
+            <FormDropdown value={formModelId} onChange={setFormModelId} placeholder="Chọn dòng xe"
+              options={models.map((m) => ({value: String(m.id), label: m.name}))} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Tên phiên bản</label>
@@ -308,34 +306,32 @@ export default function AdminCarVariantsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Truyền động</label>
-              <select value={formTransmission} onChange={(e) => setFormTransmission(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-                <option value="">Chọn</option><option value="Automatic">Tự động</option><option value="Manual">Số sàn</option><option value="CVT">CVT</option><option value="DCT">DCT</option>
-              </select>
+              <FormDropdown value={formTransmission} onChange={setFormTransmission} placeholder="Chọn"
+                options={[{value: "Automatic", label: "Tự động"}, {value: "Manual", label: "Số sàn"}, {value: "CVT", label: "CVT"}, {value: "DCT", label: "DCT"}]} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Nhiên liệu</label>
-              <select value={formFuelType} onChange={(e) => setFormFuelType(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-                <option value="">Chọn</option>{fuelTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              <FormDropdown value={formFuelType} onChange={setFormFuelType} placeholder="Chọn"
+                options={fuelTypeOptions} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Kiểu thân xe</label>
-              <select value={formBodyType} onChange={(e) => setFormBodyType(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-                <option value="">Chọn</option><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Hatchback">Hatchback</option><option value="Coupe">Coupe</option><option value="Convertible">Mui trần</option><option value="Pickup">Bán tải</option><option value="MPV/Minivan">MPV/Minivan</option><option value="Wagon">Wagon</option>
-              </select>
+              <FormDropdown value={formBodyType} onChange={setFormBodyType} placeholder="Chọn"
+                options={[
+                  {value: "Sedan", label: "Sedan"}, {value: "SUV", label: "SUV"}, {value: "Hatchback", label: "Hatchback"},
+                  {value: "Coupe", label: "Coupe"}, {value: "Convertible", label: "Mui trần"},
+                  {value: "Pickup", label: "Bán tải"}, {value: "MPV/Minivan", label: "MPV/Minivan"}, {value: "Wagon", label: "Wagon"},
+                ]} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Dẫn động</label>
-              <select value={formDrivetrain} onChange={(e) => setFormDrivetrain(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-                <option value="">Chọn</option><option value="FWD">FWD</option><option value="RWD">RWD</option><option value="AWD">AWD</option><option value="4WD">4WD</option>
-              </select>
+              <FormDropdown value={formDrivetrain} onChange={setFormDrivetrain} placeholder="Chọn"
+                options={[{value: "FWD", label: "FWD"}, {value: "RWD", label: "RWD"}, {value: "AWD", label: "AWD"}, {value: "4WD", label: "4WD"}]} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">GPLX yêu cầu</label>
-              <select value={formRequiredLicenseClassId} onChange={(e) => setFormRequiredLicenseClassId(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-                <option value="">Không yêu cầu</option>
-                {licenseClasses.map((l) => <option key={l.id} value={l.id}>{l.code} - {l.displayName}{l.systemVersion === "LegacyBefore2025" ? " (cũ)" : ""}</option>)}
-              </select>
+              <FormDropdown value={formRequiredLicenseClassId} onChange={setFormRequiredLicenseClassId} placeholder="Không yêu cầu"
+                options={licenseClasses.map((l) => ({value: String(l.id), label: `${l.code} - ${l.displayName}${l.systemVersion === "LegacyBefore2025" ? " (cũ)" : ""}`}))} />
             </div>
           </div>
           {formError && <p className="text-sm text-red-600">{formError}</p>}

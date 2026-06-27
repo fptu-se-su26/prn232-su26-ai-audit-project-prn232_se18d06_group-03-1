@@ -2,10 +2,12 @@ import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHo
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
+import FormDropdown from "@/components/common/FormDropdown";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import useClickOutside from "@/hooks/useClickOutside";
-import { getVehicleBrands, createVehicleBrand, updateVehicleBrand, deleteVehicleBrand } from "@/features/vehicleBrands/services/vehicleBrandService";
+import { getVehicleBrands, createVehicleBrand, updateVehicleBrand, deleteVehicleBrand, getVehicleBrandCascadeInfo } from "@/features/vehicleBrands/services/vehicleBrandService";
 import type { VehicleBrandResponse } from "@/features/vehicleBrands/types";
 
 const PAGE_SIZE = 10;
@@ -167,10 +169,9 @@ export default function AdminVehicleBrandsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button type="button" onClick={() => handleToggleActive(item)}
-                      className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
-                      {item.isActive ? "Hoạt động" : "Đã tắt"}
-                    </button>
+                    <ActiveToggle isActive={item.isActive} itemName={item.name}
+                      onToggle={() => handleToggleActive(item)}
+                      cascadeInfo={() => getVehicleBrandCascadeInfo(item.id)} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
@@ -211,11 +212,8 @@ export default function AdminVehicleBrandsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Loại xe</label>
-            <select value={formVehicleType} onChange={(e) => setFormVehicleType(e.target.value)}
-              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-              <option value="Car">Ô tô</option>
-              <option value="Motorbike">Xe máy</option>
-            </select>
+            <FormDropdown value={formVehicleType} onChange={setFormVehicleType}
+              options={[{value: "Car", label: "Ô tô"}, {value: "Motorbike", label: "Xe máy"}]} />
           </div>
           {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">

@@ -9,6 +9,7 @@ public interface IVehicleModelService
     Task<VehicleModelResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<VehicleModelResponse> CreateAsync(CreateVehicleModelRequest request, CancellationToken cancellationToken = default);
     Task<VehicleModelResponse> UpdateAsync(int id, UpdateVehicleModelRequest request, CancellationToken cancellationToken = default);
+    Task<ModelCascadeInfoResponse> GetCascadeInfoAsync(int id, CancellationToken cancellationToken = default);
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<List<VehicleModelResponse>> GetByBrandIdAsync(int brandId, CancellationToken cancellationToken = default);
 }

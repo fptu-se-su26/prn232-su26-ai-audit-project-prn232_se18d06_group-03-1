@@ -2,6 +2,8 @@ import { ChevronDown, ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Slid
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
+import FormDropdown from "@/components/common/FormDropdown";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import useClickOutside from "@/hooks/useClickOutside";
@@ -188,10 +190,8 @@ export default function AdminDriverLicenseClassesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button type="button" onClick={() => handleToggleActive(item)}
-                      className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
-                      {item.isActive ? "Hoạt động" : "Đã tắt"}
-                    </button>
+                    <ActiveToggle isActive={item.isActive} itemName={item.displayName}
+                      onToggle={() => handleToggleActive(item)} />
                   </td>
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => void openCompatibility(item)} title="Xem hạng xe được phép lái" className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
@@ -225,7 +225,7 @@ export default function AdminDriverLicenseClassesPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa GPLX" : "Thêm GPLX"}>
-        <div className="popup-scrollbar space-y-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">Mã GPLX</label>
             <input type="text" value={formCode} onChange={(e) => setFormCode(e.target.value)}
@@ -243,11 +243,8 @@ export default function AdminDriverLicenseClassesPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Phiên bản</label>
-            <select value={formSystemVersion} onChange={(e) => setFormSystemVersion(e.target.value)}
-              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
-              <option value="Current">Hiện hành</option>
-              <option value="LegacyBefore2025">Cũ</option>
-            </select>
+            <FormDropdown value={formSystemVersion} onChange={setFormSystemVersion}
+              options={[{value: "Current", label: "Hiện hành"}, {value: "LegacyBefore2025", label: "Cũ"}]} />
           </div>
           {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">

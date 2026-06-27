@@ -23,7 +23,10 @@ public class VehicleBrandService : IVehicleBrandService
         var normalizedVehicleType = NormalizeVehicleType(vehicleType);
 
         if (!string.IsNullOrWhiteSpace(keyword))
-            query = query.Where(x => x.Name.Contains(keyword));
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(x => x.Name.ToLower().Contains(kw));
+        }
 
         if (!string.IsNullOrWhiteSpace(normalizedVehicleType))
         {
@@ -96,14 +99,60 @@ public class VehicleBrandService : IVehicleBrandService
         };
     }
 
+    public async Task<BrandCascadeInfoResponse> GetCascadeInfoAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var exists = await _repository.VehicleBrands.AnyAsync(x => x.Id == id, cancellationToken);
+        if (!exists)
+            throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+
+        var modelCount = await _repository.VehicleModels.CountAsync(x => x.BrandId == id && x.IsActive, cancellationToken);
+        var modelIds = await _repository.VehicleModels
+            .Where(m => m.BrandId == id)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+        var variantCount = await _repository.VehicleModelVariants
+            .CountAsync(x => modelIds.Contains(x.ModelId) && x.IsActive, cancellationToken);
+
+        return new BrandCascadeInfoResponse(modelCount, variantCount);
+    }
+
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _repository.GetVehicleBrandByIdAsync(id, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+
+        entity.IsActive = false;
+        await _repository.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<VehicleBrandResponse> UpdateAsync(int id, UpdateVehicleBrandRequest request, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.GetVehicleBrandByIdAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
 
+        var wasActive = entity.IsActive;
         entity.Name = request.Name.Trim();
         entity.VehicleType = NormalizeVehicleType(request.VehicleType);
         entity.IsActive = request.IsActive;
+
+        if (wasActive && !request.IsActive)
+        {
+            var activeModels = await _repository.VehicleModels
+                .Where(m => m.BrandId == id && m.IsActive)
+                .ToListAsync(cancellationToken);
+            foreach (var model in activeModels)
+                model.IsActive = false;
+
+            var activeVariantIds = activeModels.Select(m => m.Id).ToList();
+            if (activeVariantIds.Count != 0)
+            {
+                var activeVariants = await _repository.VehicleModelVariants
+                    .Where(v => activeVariantIds.Contains(v.ModelId) && v.IsActive)
+                    .ToListAsync(cancellationToken);
+                foreach (var variant in activeVariants)
+                    variant.IsActive = false;
+            }
+        }
 
         await _repository.SaveChangesAsync(cancellationToken);
 
@@ -114,15 +163,6 @@ public class VehicleBrandService : IVehicleBrandService
             VehicleType = entity.VehicleType,
             IsActive = entity.IsActive
         };
-    }
-
-    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var entity = await _repository.GetVehicleBrandByIdAsync(id, cancellationToken)
-            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
-
-        entity.IsActive = false;
-        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     private static string NormalizeVehicleType(string? vehicleType)

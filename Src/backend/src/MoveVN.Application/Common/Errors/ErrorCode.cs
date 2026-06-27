@@ -74,7 +74,9 @@ public sealed class ErrorCode
     public static readonly ErrorCode STAFF_REASON_REQUIRED = new("STAFF_7005", "Reason is required.", HttpStatusCode.BadRequest);
 
     public static readonly ErrorCode VEHICLE_BRAND_NOT_FOUND = new("BRAND_8001", "Vehicle brand not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode VEHICLE_BRAND_INACTIVE = new("BRAND_8002", "Cannot activate model because its brand is inactive.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_MODEL_NOT_FOUND = new("MODEL_8101", "Vehicle model not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode VEHICLE_MODEL_INACTIVE = new("MODEL_8102", "Cannot activate variant because its model is inactive.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_MODEL_VARIANT_NOT_FOUND = new("VARIANT_8201", "Vehicle model variant not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode DRIVER_LICENSE_CLASS_NOT_FOUND = new("LICENSE_8301", "Driver license class not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_FEATURE_NOT_FOUND = new("FEATURE_8401", "Vehicle feature not found.", HttpStatusCode.NotFound);

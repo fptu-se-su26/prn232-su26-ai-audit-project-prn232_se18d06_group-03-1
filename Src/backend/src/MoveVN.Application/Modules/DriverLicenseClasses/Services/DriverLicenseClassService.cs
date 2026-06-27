@@ -23,7 +23,10 @@ public class DriverLicenseClassService : IDriverLicenseClassService
         var query = _repository.DriverLicenseClasses;
 
         if (!string.IsNullOrWhiteSpace(keyword))
-            query = query.Where(x => x.Code.Contains(keyword) || x.DisplayName.Contains(keyword));
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(x => x.Code.ToLower().Contains(kw) || x.DisplayName.ToLower().Contains(kw));
+        }
 
         if (!string.IsNullOrWhiteSpace(systemVersion))
             query = query.Where(x => x.SystemVersion == systemVersion);

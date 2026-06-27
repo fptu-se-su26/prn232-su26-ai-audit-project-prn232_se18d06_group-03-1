@@ -32,3 +32,8 @@ export async function updateVehicleModel(id: number, data: UpdateVehicleModelReq
 export async function deleteVehicleModel(id: number) {
   await apiClient.delete(`${endpoints.admin.vehicleModels}/${id}`);
 }
+
+export async function getVehicleModelCascadeInfo(id: number) {
+  const res = await apiClient.get<ApiResponse<{ affectedVariantCount: number }>>(`${endpoints.admin.vehicleModels}/${id}/cascade-info`);
+  return res.data.data ?? { affectedVariantCount: 0 };
+}

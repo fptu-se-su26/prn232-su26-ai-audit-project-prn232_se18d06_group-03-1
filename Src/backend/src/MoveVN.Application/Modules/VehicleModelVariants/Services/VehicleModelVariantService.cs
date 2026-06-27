@@ -41,10 +41,11 @@ public class VehicleModelVariantService : IVehicleModelVariantService
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            query = query.Where(x => x.Name.Contains(keyword)
-                || _repository.VehicleModels.Any(m => m.Id == x.ModelId && m.Name.Contains(keyword))
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(x => x.Name.ToLower().Contains(kw)
+                || _repository.VehicleModels.Any(m => m.Id == x.ModelId && m.Name.ToLower().Contains(kw))
                 || _repository.VehicleModels.Any(m => m.Id == x.ModelId
-                    && _repository.VehicleBrands.Any(b => b.Id == m.BrandId && b.Name.Contains(keyword))));
+                    && _repository.VehicleBrands.Any(b => b.Id == m.BrandId && b.Name.ToLower().Contains(kw))));
         }
 
         if (!string.IsNullOrWhiteSpace(normalizedVehicleType))
@@ -186,6 +187,8 @@ public class VehicleModelVariantService : IVehicleModelVariantService
     {
         var model = await _repository.VehicleModels.FirstOrDefaultAsync(x => x.Id == request.ModelId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+        if (!model.IsActive)
+            throw new AppException(ErrorCode.VEHICLE_MODEL_INACTIVE);
         var vehicleType = NormalizeVehicleType(request.VehicleType);
         await ValidateVariantReferencesAsync(model.BrandId, vehicleType, request.RequiredLicenseClassId, cancellationToken);
 
@@ -220,6 +223,8 @@ public class VehicleModelVariantService : IVehicleModelVariantService
 
         var model = await _repository.VehicleModels.FirstOrDefaultAsync(x => x.Id == request.ModelId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+        if (!model.IsActive && request.IsActive)
+            throw new AppException(ErrorCode.VEHICLE_MODEL_INACTIVE);
         var vehicleType = NormalizeVehicleType(request.VehicleType);
         await ValidateVariantReferencesAsync(model.BrandId, vehicleType, request.RequiredLicenseClassId, cancellationToken);
 

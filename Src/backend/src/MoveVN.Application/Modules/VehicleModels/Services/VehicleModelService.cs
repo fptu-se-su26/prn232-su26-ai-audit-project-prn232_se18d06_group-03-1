@@ -23,7 +23,10 @@ public class VehicleModelService : IVehicleModelService
         var normalizedVehicleType = NormalizeVehicleType(vehicleType);
 
         if (!string.IsNullOrWhiteSpace(keyword))
-            query = query.Where(x => x.Name.Contains(keyword));
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(x => x.Name.ToLower().Contains(kw));
+        }
 
         if (!string.IsNullOrWhiteSpace(normalizedVehicleType))
         {
@@ -93,9 +96,10 @@ public class VehicleModelService : IVehicleModelService
 
     public async Task<VehicleModelResponse> CreateAsync(CreateVehicleModelRequest request, CancellationToken cancellationToken = default)
     {
-        var brandExists = await _repository.VehicleBrands.AnyAsync(x => x.Id == request.BrandId, cancellationToken);
-        if (!brandExists)
-            throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+        var brand = await _repository.VehicleBrands.FirstOrDefaultAsync(x => x.Id == request.BrandId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+        if (!brand.IsActive)
+            throw new AppException(ErrorCode.VEHICLE_BRAND_INACTIVE);
 
         var entity = new Domain.Entities.VehicleModel
         {
@@ -127,18 +131,50 @@ public class VehicleModelService : IVehicleModelService
         };
     }
 
+    public async Task<ModelCascadeInfoResponse> GetCascadeInfoAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var exists = await _repository.VehicleModels.AnyAsync(x => x.Id == id, cancellationToken);
+        if (!exists)
+            throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+
+        var variantCount = await _repository.VehicleModelVariants
+            .CountAsync(x => x.ModelId == id && x.IsActive, cancellationToken);
+
+        return new ModelCascadeInfoResponse(variantCount);
+    }
+
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _repository.GetVehicleModelByIdAsync(id, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+
+        entity.IsActive = false;
+        await _repository.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<VehicleModelResponse> UpdateAsync(int id, UpdateVehicleModelRequest request, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.GetVehicleModelByIdAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
 
-        var brandExists = await _repository.VehicleBrands.AnyAsync(x => x.Id == request.BrandId, cancellationToken);
-        if (!brandExists)
-            throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+        var brand = await _repository.VehicleBrands.FirstOrDefaultAsync(x => x.Id == request.BrandId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+        if (!brand.IsActive && request.IsActive)
+            throw new AppException(ErrorCode.VEHICLE_BRAND_INACTIVE);
 
+        var wasActive = entity.IsActive;
         entity.BrandId = request.BrandId;
         entity.Name = request.Name.Trim();
         entity.IsActive = request.IsActive;
+
+        if (wasActive && !request.IsActive)
+        {
+            var activeVariants = await _repository.VehicleModelVariants
+                .Where(v => v.ModelId == id && v.IsActive)
+                .ToListAsync(cancellationToken);
+            foreach (var variant in activeVariants)
+                variant.IsActive = false;
+        }
 
         await _repository.SaveChangesAsync(cancellationToken);
 
@@ -160,15 +196,6 @@ public class VehicleModelService : IVehicleModelService
             Name = entity.Name,
             IsActive = entity.IsActive
         };
-    }
-
-    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var entity = await _repository.GetVehicleModelByIdAsync(id, cancellationToken)
-            ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
-
-        entity.IsActive = false;
-        await _repository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<List<VehicleModelResponse>> GetByBrandIdAsync(int brandId, CancellationToken cancellationToken = default)

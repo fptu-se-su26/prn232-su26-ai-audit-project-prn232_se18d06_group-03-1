@@ -24,7 +24,10 @@ public class VehicleFeatureService : IVehicleFeatureService
         var normalizedVehicleType = NormalizeVehicleType(vehicleType);
 
         if (!string.IsNullOrWhiteSpace(keyword))
-            query = query.Where(x => x.Name.Contains(keyword));
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(x => x.Name.ToLower().Contains(kw));
+        }
 
         if (!string.IsNullOrWhiteSpace(normalizedVehicleType))
         {
