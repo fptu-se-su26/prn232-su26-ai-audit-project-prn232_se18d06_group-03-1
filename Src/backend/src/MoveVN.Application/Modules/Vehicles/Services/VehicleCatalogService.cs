@@ -95,4 +95,45 @@ public class VehicleCatalogService : IVehicleCatalogService
             })
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<List<CatalogAreaResponse>> GetAreasAsync(string? province, int? pricingRegionId, CancellationToken cancellationToken = default)
+    {
+        var query = _repository.Areas.Where(a => a.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(province))
+        {
+            var normalizedProvince = province.Trim().ToLower();
+            query = query.Where(a => a.Province.ToLower().Contains(normalizedProvince));
+        }
+
+        if (pricingRegionId.HasValue)
+            query = query.Where(a => a.PricingRegionId == pricingRegionId.Value);
+
+        return await query
+            .OrderBy(a => a.Province)
+            .ThenBy(a => a.District)
+            .Select(a => new CatalogAreaResponse
+            {
+                Id = a.Id,
+                Province = a.Province,
+                District = a.District,
+                PricingRegionId = a.PricingRegionId,
+                PricingRegionCode = _repository.PricingRegions.Where(r => r.Id == a.PricingRegionId).Select(r => r.Code).FirstOrDefault() ?? ""
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<CatalogPricingRegionResponse>> GetPricingRegionsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _repository.PricingRegions
+            .Where(r => r.IsActive)
+            .OrderBy(r => r.Code)
+            .Select(r => new CatalogPricingRegionResponse
+            {
+                Id = r.Id,
+                Code = r.Code,
+                Description = r.Description
+            })
+            .ToListAsync(cancellationToken);
+    }
 }

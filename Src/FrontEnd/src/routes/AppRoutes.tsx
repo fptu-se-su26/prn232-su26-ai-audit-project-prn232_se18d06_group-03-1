@@ -13,6 +13,10 @@ import AdminCarVariantsPage from "@/pages/admin/AdminCarVariantsPage";
 import AdminMotorbikeVariantsPage from "@/pages/admin/AdminMotorbikeVariantsPage";
 import AdminDriverLicenseClassesPage from "@/pages/admin/AdminDriverLicenseClassesPage";
 import AdminVehicleFeaturesPage from "@/pages/admin/AdminVehicleFeaturesPage";
+import AdminPricingRegionsPage from "@/pages/admin/AdminPricingRegionsPage";
+import AdminAreasPage from "@/pages/admin/AdminAreasPage";
+import AdminVehicleModelPricingsPage from "@/pages/admin/AdminVehicleModelPricingsPage";
+import AdminPricingRulesPage from "@/pages/admin/AdminPricingRulesPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
@@ -88,6 +92,10 @@ export default function AppRoutes() {
             <Route path="/admin/motorbike-variants" element={<AdminMotorbikeVariantsPage />} />
             <Route path="/admin/driver-license-classes" element={<AdminDriverLicenseClassesPage />} />
             <Route path="/admin/vehicle-features" element={<AdminVehicleFeaturesPage />} />
+            <Route path="/admin/pricing-regions" element={<AdminPricingRegionsPage />} />
+            <Route path="/admin/areas" element={<AdminAreasPage />} />
+            <Route path="/admin/vehicle-model-pricings" element={<AdminVehicleModelPricingsPage />} />
+            <Route path="/admin/pricing-rules" element={<AdminPricingRulesPage />} />
           </Route>
         </Route>
       </Route>

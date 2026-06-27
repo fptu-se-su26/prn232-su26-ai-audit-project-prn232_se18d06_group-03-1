@@ -8,6 +8,12 @@ using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Application.Modules.Owner.Services;
+using MoveVN.Application.Modules.Areas.Interfaces;
+using MoveVN.Application.Modules.Areas.Services;
+using MoveVN.Application.Modules.PricingRegions.Interfaces;
+using MoveVN.Application.Modules.PricingRegions.Services;
+using MoveVN.Application.Modules.PricingRules.Interfaces;
+using MoveVN.Application.Modules.PricingRules.Services;
 using MoveVN.Application.Modules.Users.Interfaces;
 using MoveVN.Application.Modules.Users.Services;
 using MoveVN.Application.Modules.VehicleBrands.Interfaces;
@@ -16,8 +22,12 @@ using MoveVN.Application.Modules.VehicleFeatures.Interfaces;
 using MoveVN.Application.Modules.VehicleFeatures.Services;
 using MoveVN.Application.Modules.VehicleModels.Interfaces;
 using MoveVN.Application.Modules.VehicleModels.Services;
+using MoveVN.Application.Modules.VehicleModelPricings.Interfaces;
+using MoveVN.Application.Modules.VehicleModelPricings.Services;
 using MoveVN.Application.Modules.VehicleModelVariants.Interfaces;
 using MoveVN.Application.Modules.VehicleModelVariants.Services;
+using MoveVN.Application.Modules.VehiclePricings.Interfaces;
+using MoveVN.Application.Modules.VehiclePricings.Services;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 using MoveVN.Application.Modules.Vehicles.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +59,12 @@ public static class DependencyInjection
         services.AddScoped<IVehicleFeatureService, VehicleFeatureService>();
         services.AddScoped<IVehicleService, VehicleService>();
         services.AddScoped<IVehicleCatalogService, VehicleCatalogService>();
+        services.AddScoped<IPricingRegionService, PricingRegionService>();
+        services.AddScoped<IAreaService, AreaService>();
+        services.AddScoped<IVehicleModelPricingService, VehicleModelPricingService>();
+        services.AddScoped<IPricingRuleService, PricingRuleService>();
+        services.AddScoped<IPricingCalculatorService, PricingCalculatorService>();
+        services.AddScoped<IVehiclePricingService, VehiclePricingService>();
 
         return services;
     }

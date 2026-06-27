@@ -91,6 +91,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .OnDelete(DeleteBehavior.Cascade);
         builder.Entity<RolePermission>().HasKey(entity => new { entity.RoleId, entity.PermissionId });
         builder.Entity<VehicleFeatureMapping>().HasKey(entity => new { entity.VehicleId, entity.FeatureId });
+        builder.Entity<PricingRegion>().HasIndex(entity => entity.Code).IsUnique();
+        builder.Entity<Area>().HasIndex(entity => new { entity.Province, entity.District }).IsUnique();
+        builder.Entity<VehicleModelPricing>().HasIndex(entity => new { entity.ModelId, entity.PricingRegionId }).IsUnique();
         builder.Entity<VehicleModelVariant>().HasIndex(entity => new { entity.ModelId, entity.Name });
         builder.Entity<VehicleModelVariant>()
             .HasOne<VehicleModel>()
@@ -101,6 +104,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .HasOne<VehicleModelVariant>()
             .WithMany()
             .HasForeignKey(entity => entity.VariantId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Vehicle>()
+            .HasOne<Area>()
+            .WithMany()
+            .HasForeignKey(entity => entity.AreaId)
             .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
         builder.Entity<VehicleModelVariant>()

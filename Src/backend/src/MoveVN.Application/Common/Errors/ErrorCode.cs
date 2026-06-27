@@ -80,6 +80,16 @@ public sealed class ErrorCode
     public static readonly ErrorCode VEHICLE_MODEL_VARIANT_NOT_FOUND = new("VARIANT_8201", "Vehicle model variant not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode DRIVER_LICENSE_CLASS_NOT_FOUND = new("LICENSE_8301", "Driver license class not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_FEATURE_NOT_FOUND = new("FEATURE_8401", "Vehicle feature not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode PRICING_REGION_NOT_FOUND = new("PRICE_8501", "Pricing region not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode AREA_NOT_FOUND = new("PRICE_8502", "Area not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode VEHICLE_MODEL_PRICING_NOT_FOUND = new("PRICE_8503", "Vehicle model pricing not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode VEHICLE_PRICING_NOT_FOUND = new("PRICE_8504", "Vehicle pricing not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode PRICING_RULE_NOT_FOUND = new("PRICE_8505", "Pricing rule not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode PRICING_MODE_INVALID = new("PRICE_8506", "Pricing mode is invalid.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PRICING_INVALID_RANGE = new("PRICE_8507", "Pricing range is invalid.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PRICING_OUT_OF_SUGGESTED_RANGE = new("PRICE_8508", "Price is outside suggested range.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PRICING_DUPLICATED = new("PRICE_8509", "Pricing data already exists.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PRICING_RULE_INVALID = new("PRICE_8510", "Pricing rule is invalid.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_NOT_FOUND = new("VEHICLE_9001", "Vehicle not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_TOGGLE_INVALID = new("VEHICLE_9002", "Can only toggle between Approved and Hidden status.", HttpStatusCode.BadRequest);
 

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Auth.Interfaces;
+using MoveVN.Application.Modules.VehiclePricings.DTOs;
+using MoveVN.Application.Modules.VehiclePricings.Interfaces;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 
@@ -12,11 +14,13 @@ namespace MoveVN.Api.Controllers.Vehicles;
 public class VehiclesController : BaseApiController
 {
     private readonly IVehicleService _vehicleService;
+    private readonly IVehiclePricingService _vehiclePricingService;
     private readonly ICurrentUserContext _currentUser;
 
-    public VehiclesController(IVehicleService vehicleService, ICurrentUserContext currentUser)
+    public VehiclesController(IVehicleService vehicleService, IVehiclePricingService vehiclePricingService, ICurrentUserContext currentUser)
     {
         _vehicleService = vehicleService;
+        _vehiclePricingService = vehiclePricingService;
         _currentUser = currentUser;
     }
 
@@ -46,6 +50,30 @@ public class VehiclesController : BaseApiController
     public async Task<ActionResult<ApiResponse<VehicleResponse>>> GetById(long id, CancellationToken cancellationToken = default)
     {
         var result = await _vehicleService.GetByIdAsync(id, _currentUser.UserId!.Value, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpGet("pricing/suggestion")]
+    public async Task<ActionResult<ApiResponse<PricingSuggestionResponse>>> GetPricingSuggestion(
+        [FromQuery] int modelId,
+        [FromQuery] int areaId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _vehiclePricingService.GetSuggestionAsync(modelId, areaId, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpGet("{id}/pricing")]
+    public async Task<ActionResult<ApiResponse<VehiclePricingResponse>>> GetPricing(long id, CancellationToken cancellationToken = default)
+    {
+        var result = await _vehiclePricingService.GetByVehicleIdAsync(id, _currentUser.UserId!.Value, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpPut("{id}/pricing")]
+    public async Task<ActionResult<ApiResponse<VehiclePricingResponse>>> UpdatePricing(long id, [FromBody] UpdateVehiclePricingRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _vehiclePricingService.UpdateAsync(id, _currentUser.UserId!.Value, request, cancellationToken);
         return Success(result);
     }
 

@@ -7,6 +7,7 @@ public class UpdateVehicleRequest
     public int? OdometerKm { get; set; }
     public string? Description { get; set; }
     public string Address { get; set; } = string.Empty;
+    public int? AreaId { get; set; }
     public decimal PricePerDay { get; set; }
     public List<int> FeatureIds { get; set; } = [];
 }

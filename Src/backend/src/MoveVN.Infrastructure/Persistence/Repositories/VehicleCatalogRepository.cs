@@ -23,6 +23,11 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<VehicleImage> VehicleImages => _context.VehicleImages.AsQueryable();
     public IQueryable<VehicleFeatureMapping> VehicleFeatureMappings => _context.VehicleFeatureMapping.AsQueryable();
     public IQueryable<VehicleDocument> VehicleDocuments => _context.VehicleDocuments.AsQueryable();
+    public IQueryable<Area> Areas => _context.Area.AsQueryable();
+    public IQueryable<PricingRegion> PricingRegions => _context.PricingRegion.AsQueryable();
+    public IQueryable<VehiclePricing> VehiclePricings => _context.VehiclePricing.AsQueryable();
+    public IQueryable<VehicleModelPricing> VehicleModelPricings => _context.VehicleModelPricing.AsQueryable();
+    public IQueryable<PricingRule> PricingRules => _context.PricingRules.AsQueryable();
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -38,6 +43,21 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
 
     public Task<VehicleFeature?> GetVehicleFeatureByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleFeature.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+    public Task<Area?> GetAreaByIdAsync(int id, CancellationToken cancellationToken = default)
+        => _context.Area.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+    public Task<PricingRegion?> GetPricingRegionByIdAsync(int id, CancellationToken cancellationToken = default)
+        => _context.PricingRegion.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+    public Task<VehiclePricing?> GetVehiclePricingByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default)
+        => _context.VehiclePricing.FirstOrDefaultAsync(x => x.VehicleId == vehicleId, cancellationToken);
+
+    public Task<VehicleModelPricing?> GetVehicleModelPricingByIdAsync(int id, CancellationToken cancellationToken = default)
+        => _context.VehicleModelPricing.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+    public Task<PricingRule?> GetPricingRuleByIdAsync(long id, CancellationToken cancellationToken = default)
+        => _context.PricingRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public void Add<T>(T entity) where T : class
         => _context.Set<T>().Add(entity);

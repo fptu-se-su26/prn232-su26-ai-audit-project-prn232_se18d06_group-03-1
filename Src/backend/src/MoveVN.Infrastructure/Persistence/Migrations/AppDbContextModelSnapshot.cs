@@ -172,6 +172,9 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Province", "District")
+                        .IsUnique();
+
                     b.ToTable("Area");
                 });
 
@@ -1391,6 +1394,9 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.ToTable("PricingRegion");
                 });
 
@@ -2002,6 +2008,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("approved_by");
 
+                    b.Property<int?>("AreaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("area_id");
+
                     b.Property<int>("BrandId")
                         .HasColumnType("integer")
                         .HasColumnName("brand_id");
@@ -2066,6 +2076,8 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("year");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AreaId");
 
                     b.HasIndex("VariantId");
 
@@ -2291,15 +2303,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<short>("YearFrom")
-                        .HasColumnType("smallint")
-                        .HasColumnName("year_from");
-
-                    b.Property<short>("YearTo")
-                        .HasColumnType("smallint")
-                        .HasColumnName("year_to");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("ModelId", "PricingRegionId")
+                        .IsUnique();
 
                     b.ToTable("VehicleModelPricing");
                 });
@@ -2821,6 +2828,11 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MoveVN.Domain.Entities.Vehicle", b =>
                 {
+                    b.HasOne("MoveVN.Domain.Entities.Area", null)
+                        .WithMany()
+                        .HasForeignKey("AreaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("MoveVN.Domain.Entities.VehicleModelVariant", null)
                         .WithMany()
                         .HasForeignKey("VariantId")

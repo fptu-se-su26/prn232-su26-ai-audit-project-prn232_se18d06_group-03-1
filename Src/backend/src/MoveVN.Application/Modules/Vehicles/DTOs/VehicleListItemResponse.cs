@@ -10,6 +10,8 @@ public class VehicleListItemResponse
     public short Year { get; set; }
     public string LicensePlate { get; set; } = string.Empty;
     public decimal PricePerDay { get; set; }
+    public string? AreaName { get; set; }
+    public string? PricingMode { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? FeaturedImage { get; set; }
     public DateTime CreatedAt { get; set; }

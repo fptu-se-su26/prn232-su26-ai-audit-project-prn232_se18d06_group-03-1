@@ -44,4 +44,21 @@ public class VehicleCatalogController : BaseApiController
         var result = await _vehicleCatalogService.GetFeaturesAsync(vehicleType, cancellationToken);
         return Success(result);
     }
+
+    [HttpGet("areas")]
+    public async Task<ActionResult<ApiResponse<List<CatalogAreaResponse>>>> GetAreas(
+        [FromQuery] string? province,
+        [FromQuery] int? pricingRegionId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _vehicleCatalogService.GetAreasAsync(province, pricingRegionId, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpGet("pricing-regions")]
+    public async Task<ActionResult<ApiResponse<List<CatalogPricingRegionResponse>>>> GetPricingRegions(CancellationToken cancellationToken = default)
+    {
+        var result = await _vehicleCatalogService.GetPricingRegionsAsync(cancellationToken);
+        return Success(result);
+    }
 }

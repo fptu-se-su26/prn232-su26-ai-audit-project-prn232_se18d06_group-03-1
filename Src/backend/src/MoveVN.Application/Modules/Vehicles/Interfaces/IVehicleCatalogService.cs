@@ -8,4 +8,6 @@ public interface IVehicleCatalogService
     Task<List<CatalogModelResponse>> GetModelsAsync(int? brandId, CancellationToken cancellationToken = default);
     Task<List<CatalogVariantResponse>> GetVariantsAsync(int? modelId, string? vehicleType, CancellationToken cancellationToken = default);
     Task<List<CatalogFeatureResponse>> GetFeaturesAsync(string? vehicleType, CancellationToken cancellationToken = default);
+    Task<List<CatalogAreaResponse>> GetAreasAsync(string? province, int? pricingRegionId, CancellationToken cancellationToken = default);
+    Task<List<CatalogPricingRegionResponse>> GetPricingRegionsAsync(CancellationToken cancellationToken = default);
 }

@@ -39,7 +39,19 @@ export type VehicleResponse = {
   odometerKm: number | null;
   description: string | null;
   address: string;
+  areaId: number | null;
+  areaName: string | null;
+  pricingRegionId: number | null;
+  pricingRegionCode: string | null;
   pricePerDay: number;
+  pricingMode: "Fixed" | "Auto" | null;
+  fixedPricePerDay: number | null;
+  autoMinPrice: number | null;
+  autoMaxPrice: number | null;
+  currentPricePerDay: number | null;
+  suggestedBasePrice: number | null;
+  suggestedMinPrice: number | null;
+  suggestedMaxPrice: number | null;
   status: string;
   rejectionReason: string | null;
   featuredImage: string | null;
@@ -58,7 +70,12 @@ export type CreateVehicleRequest = {
   odometerKm?: number | null;
   description?: string | null;
   address: string;
+  areaId?: number | null;
   pricePerDay: number;
+  pricingMode?: "Fixed" | "Auto" | null;
+  fixedPricePerDay?: number | null;
+  autoMinPrice?: number | null;
+  autoMaxPrice?: number | null;
   featureIds: number[];
   imageUrls: string[];
   featuredImageIndex: number;
@@ -71,6 +88,7 @@ export type UpdateVehicleRequest = {
   odometerKm?: number | null;
   description?: string | null;
   address: string;
+  areaId?: number | null;
   pricePerDay: number;
   featureIds: number[];
 };
@@ -104,4 +122,48 @@ export type CatalogFeature = {
   id: number;
   name: string;
   vehicleType: string;
+};
+
+export type CatalogArea = {
+  id: number;
+  province: string;
+  district: string;
+  pricingRegionId: number;
+  pricingRegionCode: string;
+};
+
+export type CatalogPricingRegion = {
+  id: number;
+  code: string;
+  description: string | null;
+};
+
+export type PricingSuggestionResponse = {
+  hasSuggestion: boolean;
+  modelId: number;
+  areaId: number | null;
+  pricingRegionId: number | null;
+  pricingRegionCode: string | null;
+  basePrice: number | null;
+  suggestedMinPrice: number | null;
+  suggestedMaxPrice: number | null;
+};
+
+export type VehiclePricingResponse = {
+  vehicleId: number;
+  pricingMode: "Fixed" | "Auto";
+  fixedPricePerDay: number | null;
+  autoMinPrice: number | null;
+  autoMaxPrice: number | null;
+  currentPricePerDay: number;
+  lastCalculatedAt: string | null;
+  lastUpdatedAt: string;
+  suggestion: PricingSuggestionResponse | null;
+};
+
+export type UpdateVehiclePricingRequest = {
+  pricingMode: "Fixed" | "Auto";
+  fixedPricePerDay?: number | null;
+  autoMinPrice?: number | null;
+  autoMaxPrice?: number | null;
 };

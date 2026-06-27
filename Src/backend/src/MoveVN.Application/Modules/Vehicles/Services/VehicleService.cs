@@ -3,6 +3,8 @@ using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
+using MoveVN.Application.Modules.VehiclePricings.DTOs;
+using MoveVN.Application.Modules.VehiclePricings.Interfaces;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 using MoveVN.Domain.Entities;
@@ -12,10 +14,12 @@ namespace MoveVN.Application.Modules.Vehicles.Services;
 public class VehicleService : IVehicleService
 {
     private readonly IVehicleCatalogRepository _repository;
+    private readonly IPricingCalculatorService _pricingCalculator;
 
-    public VehicleService(IVehicleCatalogRepository repository)
+    public VehicleService(IVehicleCatalogRepository repository, IPricingCalculatorService pricingCalculator)
     {
         _repository = repository;
+        _pricingCalculator = pricingCalculator;
     }
 
     public async Task<PagedResult<VehicleListItemResponse>> GetMyVehiclesAsync(
@@ -86,6 +90,8 @@ public class VehicleService : IVehicleService
                 Year = v.Year,
                 LicensePlate = v.LicensePlate,
                 PricePerDay = v.PricePerDay,
+                AreaName = v.AreaId.HasValue ? _repository.Areas.Where(a => a.Id == v.AreaId.Value).Select(a => a.Province + " - " + a.District).FirstOrDefault() : null,
+                PricingMode = _repository.VehiclePricings.Where(p => p.VehicleId == v.Id).Select(p => p.PricingMode).FirstOrDefault(),
                 Status = v.Status,
                 FeaturedImage = _repository.VehicleImages.Where(img => img.VehicleId == v.Id && img.IsPrimary).Select(img => img.ImageUrl).FirstOrDefault(),
                 CreatedAt = v.CreatedAt,
@@ -112,6 +118,18 @@ public class VehicleService : IVehicleService
         var variant = vehicle.VariantId.HasValue
             ? await _repository.GetVehicleModelVariantByIdAsync(vehicle.VariantId.Value, cancellationToken)
             : null;
+        var area = vehicle.AreaId.HasValue
+            ? await _repository.GetAreaByIdAsync(vehicle.AreaId.Value, cancellationToken)
+            : null;
+        var region = area is not null
+            ? await _repository.GetPricingRegionByIdAsync(area.PricingRegionId, cancellationToken)
+            : null;
+        var pricing = await _repository.GetVehiclePricingByVehicleIdAsync(vehicle.Id, cancellationToken);
+        PricingSuggestionResponse? suggestion = null;
+        if (vehicle.AreaId.HasValue)
+        {
+            suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken);
+        }
 
         var images = await _repository.VehicleImages
             .Where(img => img.VehicleId == vehicle.Id)
@@ -151,7 +169,19 @@ public class VehicleService : IVehicleService
             OdometerKm = vehicle.OdometerKm,
             Description = vehicle.Description,
             Address = vehicle.Address,
+            AreaId = vehicle.AreaId,
+            AreaName = area is not null ? $"{area.Province} - {area.District}" : null,
+            PricingRegionId = area?.PricingRegionId,
+            PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
+            PricingMode = pricing?.PricingMode,
+            FixedPricePerDay = pricing?.FixedPricePerDay,
+            AutoMinPrice = pricing?.AutoMinPrice,
+            AutoMaxPrice = pricing?.AutoMaxPrice,
+            CurrentPricePerDay = pricing?.CurrentPricePerDay,
+            SuggestedBasePrice = suggestion?.BasePrice,
+            SuggestedMinPrice = suggestion?.SuggestedMinPrice,
+            SuggestedMaxPrice = suggestion?.SuggestedMaxPrice,
             Status = vehicle.Status,
             RejectionReason = vehicle.RejectionReason,
             FeaturedImage = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
@@ -167,6 +197,38 @@ public class VehicleService : IVehicleService
             ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
         var model = await _repository.GetVehicleModelByIdAsync(request.ModelId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+        if (!model.IsActive || !brand.IsActive)
+            throw new AppException(ErrorCode.VEHICLE_MODEL_INACTIVE);
+
+        if (NormalizeVehicleType(brand.VehicleType) != NormalizeVehicleType(request.VehicleType))
+            throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+
+        if (request.AreaId.HasValue)
+        {
+            var area = await _repository.GetAreaByIdAsync(request.AreaId.Value, cancellationToken)
+                ?? throw new AppException(ErrorCode.AREA_NOT_FOUND);
+            if (!area.IsActive)
+                throw new AppException(ErrorCode.AREA_NOT_FOUND);
+        }
+
+        if (request.VariantId.HasValue)
+        {
+            var variant = await _repository.GetVehicleModelVariantByIdAsync(request.VariantId.Value, cancellationToken)
+                ?? throw new AppException(ErrorCode.VEHICLE_MODEL_VARIANT_NOT_FOUND);
+            if (variant.ModelId != request.ModelId || NormalizeVehicleType(variant.VehicleType) != NormalizeVehicleType(request.VehicleType))
+                throw new AppException(ErrorCode.VEHICLE_MODEL_VARIANT_NOT_FOUND);
+        }
+
+        await ValidateFeaturesAsync(request.FeatureIds, request.VehicleType, cancellationToken);
+
+        var pricingRequest = BuildPricingRequest(request);
+        var vehicleForValidation = new Vehicle
+        {
+            ModelId = request.ModelId,
+            AreaId = request.AreaId
+        };
+        await _pricingCalculator.ValidatePricingAsync(vehicleForValidation, pricingRequest, cancellationToken);
+        var currentPrice = await _pricingCalculator.CalculateCurrentPriceAsync(vehicleForValidation, pricingRequest, DateOnly.FromDateTime(DateTime.UtcNow), cancellationToken);
 
         var vehicle = new Vehicle
         {
@@ -180,7 +242,8 @@ public class VehicleService : IVehicleService
             OdometerKm = request.OdometerKm,
             Description = request.Description,
             Address = request.Address,
-            PricePerDay = request.PricePerDay,
+            AreaId = request.AreaId,
+            PricePerDay = currentPrice,
             Status = VehicleStatus.Pending,
             CreatedAt = DateTime.UtcNow,
         };
@@ -226,9 +289,13 @@ public class VehicleService : IVehicleService
         _repository.Add(new VehiclePricing
         {
             VehicleId = vehicle.Id,
-            PricingMode = "Fixed",
-            FixedPricePerDay = request.PricePerDay,
-            CurrentPricePerDay = request.PricePerDay,
+            PricingMode = pricingRequest.PricingMode,
+            FixedPricePerDay = pricingRequest.PricingMode == PricingModes.Fixed ? pricingRequest.FixedPricePerDay : null,
+            AutoMinPrice = pricingRequest.PricingMode == PricingModes.Auto ? pricingRequest.AutoMinPrice : null,
+            AutoMaxPrice = pricingRequest.PricingMode == PricingModes.Auto ? pricingRequest.AutoMaxPrice : null,
+            CurrentPricePerDay = currentPrice,
+            LastCalculatedAt = pricingRequest.PricingMode == PricingModes.Auto ? DateTime.UtcNow : null,
+            LastUpdatedAt = DateTime.UtcNow
         });
         await _repository.SaveChangesAsync(cancellationToken);
 
@@ -246,10 +313,19 @@ public class VehicleService : IVehicleService
         vehicle.OdometerKm = request.OdometerKm;
         vehicle.Description = request.Description;
         vehicle.Address = request.Address;
-        vehicle.PricePerDay = request.PricePerDay;
+        vehicle.AreaId = request.AreaId;
+
+        if (request.AreaId.HasValue)
+        {
+            var area = await _repository.GetAreaByIdAsync(request.AreaId.Value, cancellationToken)
+                ?? throw new AppException(ErrorCode.AREA_NOT_FOUND);
+            if (!area.IsActive)
+                throw new AppException(ErrorCode.AREA_NOT_FOUND);
+        }
 
         await _repository.SaveChangesAsync(cancellationToken);
 
+        await ValidateFeaturesAsync(request.FeatureIds, vehicle.VehicleType, cancellationToken);
         var existingMappings = await _repository.VehicleFeatureMappings
             .Where(fm => fm.VehicleId == vehicle.Id)
             .ToListAsync(cancellationToken);
@@ -263,6 +339,23 @@ public class VehicleService : IVehicleService
             _repository.Add(new VehicleFeatureMapping { VehicleId = vehicle.Id, FeatureId = featureId });
         }
         await _repository.SaveChangesAsync(cancellationToken);
+
+        var pricing = await _repository.GetVehiclePricingByVehicleIdAsync(vehicle.Id, cancellationToken);
+        if (pricing is not null)
+        {
+            var pricingRequest = new UpdateVehiclePricingRequest
+            {
+                PricingMode = string.IsNullOrWhiteSpace(pricing.PricingMode) ? PricingModes.Fixed : pricing.PricingMode,
+                FixedPricePerDay = pricing.FixedPricePerDay,
+                AutoMinPrice = pricing.AutoMinPrice,
+                AutoMaxPrice = pricing.AutoMaxPrice
+            };
+            await _pricingCalculator.ValidatePricingAsync(vehicle, pricingRequest, cancellationToken);
+            pricing.CurrentPricePerDay = await _pricingCalculator.CalculateCurrentPriceAsync(vehicle, pricingRequest, DateOnly.FromDateTime(DateTime.UtcNow), cancellationToken);
+            pricing.LastUpdatedAt = DateTime.UtcNow;
+            vehicle.PricePerDay = pricing.CurrentPricePerDay;
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
 
         return await GetByIdAsync(vehicle.Id, ownerId, cancellationToken);
     }
@@ -282,4 +375,41 @@ public class VehicleService : IVehicleService
 
         await _repository.SaveChangesAsync(cancellationToken);
     }
+
+    private static UpdateVehiclePricingRequest BuildPricingRequest(CreateVehicleRequest request)
+    {
+        var pricingMode = string.IsNullOrWhiteSpace(request.PricingMode) ? PricingModes.Fixed : request.PricingMode.Trim();
+        return new UpdateVehiclePricingRequest
+        {
+            PricingMode = pricingMode,
+            FixedPricePerDay = pricingMode == PricingModes.Fixed ? request.FixedPricePerDay ?? request.PricePerDay : null,
+            AutoMinPrice = pricingMode == PricingModes.Auto ? request.AutoMinPrice : null,
+            AutoMaxPrice = pricingMode == PricingModes.Auto ? request.AutoMaxPrice : null
+        };
+    }
+
+    private async Task ValidateFeaturesAsync(IEnumerable<int> featureIds, string vehicleType, CancellationToken cancellationToken)
+    {
+        var requestedIds = featureIds.ToList();
+        var ids = requestedIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return;
+
+        if (ids.Count != requestedIds.Count)
+            throw new AppException(ErrorCode.VEHICLE_FEATURE_NOT_FOUND);
+
+        var normalizedVehicleType = NormalizeVehicleType(vehicleType);
+        var query = _repository.VehicleFeatures.Where(f => ids.Contains(f.Id) && f.IsActive);
+        query = normalizedVehicleType == "Motorbike"
+            ? query.Where(f => f.VehicleType == "Motorbike" || f.VehicleType == "Motorcycle")
+            : query.Where(f => f.VehicleType == normalizedVehicleType);
+
+        var count = await query.CountAsync(cancellationToken);
+
+        if (count != ids.Count)
+            throw new AppException(ErrorCode.VEHICLE_FEATURE_NOT_FOUND);
+    }
+
+    private static string NormalizeVehicleType(string value)
+        => value.Equals("Motorcycle", StringComparison.OrdinalIgnoreCase) ? "Motorbike" : value;
 }

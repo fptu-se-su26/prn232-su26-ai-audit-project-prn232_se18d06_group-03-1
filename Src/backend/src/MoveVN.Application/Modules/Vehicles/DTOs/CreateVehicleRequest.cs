@@ -11,7 +11,12 @@ public class CreateVehicleRequest
     public int? OdometerKm { get; set; }
     public string? Description { get; set; }
     public string Address { get; set; } = string.Empty;
+    public int? AreaId { get; set; }
     public decimal PricePerDay { get; set; }
+    public string? PricingMode { get; set; }
+    public decimal? FixedPricePerDay { get; set; }
+    public decimal? AutoMinPrice { get; set; }
+    public decimal? AutoMaxPrice { get; set; }
     public List<int> FeatureIds { get; set; } = [];
     public List<string> ImageUrls { get; set; } = [];
     public int? FeaturedImageIndex { get; set; }

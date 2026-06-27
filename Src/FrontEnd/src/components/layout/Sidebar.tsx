@@ -1,6 +1,7 @@
 import {
   ArrowLeftFromLine,
   BadgeCheck,
+  BadgeDollarSign,
   Bike,
   Building2,
   Car,
@@ -14,6 +15,9 @@ import {
   KeyRound,
   Landmark,
   Layers,
+  Map,
+  MapPinned,
+  ReceiptText,
   ShieldCheck,
   UserRound,
   UsersRound,
@@ -49,6 +53,10 @@ const vehicleCatalogItems = [
   { to: "/admin/car-variants", label: "Phiên bản ô tô", icon: Car },
   { to: "/admin/motorbike-variants", label: "Phiên bản xe máy", icon: Bike },
   { to: "/admin/driver-license-classes", label: "Giấy phép lái xe", icon: FileBadge },
+  { to: "/admin/pricing-regions", label: "Vung gia", icon: Map },
+  { to: "/admin/areas", label: "Khu vuc", icon: MapPinned },
+  { to: "/admin/vehicle-model-pricings", label: "Khung gia", icon: BadgeDollarSign },
+  { to: "/admin/pricing-rules", label: "Quy tac gia", icon: ReceiptText },
 ];
 
 const ownerVehicleItems = [

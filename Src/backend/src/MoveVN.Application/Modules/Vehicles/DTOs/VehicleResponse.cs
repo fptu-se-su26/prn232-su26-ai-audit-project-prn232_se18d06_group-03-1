@@ -16,7 +16,19 @@ public class VehicleResponse
     public int? OdometerKm { get; set; }
     public string? Description { get; set; }
     public string Address { get; set; } = string.Empty;
+    public int? AreaId { get; set; }
+    public string? AreaName { get; set; }
+    public int? PricingRegionId { get; set; }
+    public string? PricingRegionCode { get; set; }
     public decimal PricePerDay { get; set; }
+    public string? PricingMode { get; set; }
+    public decimal? FixedPricePerDay { get; set; }
+    public decimal? AutoMinPrice { get; set; }
+    public decimal? AutoMaxPrice { get; set; }
+    public decimal? CurrentPricePerDay { get; set; }
+    public decimal? SuggestedBasePrice { get; set; }
+    public decimal? SuggestedMinPrice { get; set; }
+    public decimal? SuggestedMaxPrice { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }
     public string? FeaturedImage { get; set; }

@@ -11,6 +11,11 @@ import type {
   CatalogModel,
   CatalogVariant,
   CatalogFeature,
+  CatalogArea,
+  CatalogPricingRegion,
+  PricingSuggestionResponse,
+  VehiclePricingResponse,
+  UpdateVehiclePricingRequest,
 } from "@/features/vehicles/types";
 
 export async function getMyVehicles(params: Record<string, string | number | boolean | undefined>) {
@@ -37,6 +42,23 @@ export async function toggleVehicleStatus(id: number) {
   await apiClient.put(endpoints.vehicles.toggleStatus(id));
 }
 
+export async function getPricingSuggestion(modelId: number, areaId: number) {
+  const res = await apiClient.get<ApiResponse<PricingSuggestionResponse>>(endpoints.vehicles.pricingSuggestion, {
+    params: { modelId, areaId },
+  });
+  return res.data.data;
+}
+
+export async function getVehiclePricing(id: number) {
+  const res = await apiClient.get<ApiResponse<VehiclePricingResponse>>(endpoints.vehicles.pricing(id));
+  return res.data.data;
+}
+
+export async function updateVehiclePricing(id: number, data: UpdateVehiclePricingRequest) {
+  const res = await apiClient.put<ApiResponse<VehiclePricingResponse>>(endpoints.vehicles.pricing(id), data);
+  return res.data.data;
+}
+
 export async function getCatalogBrands(vehicleType?: string) {
   const params = vehicleType ? { vehicleType } : undefined;
   const res = await apiClient.get<ApiResponse<CatalogBrand[]>>(endpoints.catalog.brands, { params });
@@ -60,5 +82,15 @@ export async function getCatalogVariants(modelId?: number, vehicleType?: string)
 export async function getCatalogFeatures(vehicleType?: string) {
   const params = vehicleType ? { vehicleType } : undefined;
   const res = await apiClient.get<ApiResponse<CatalogFeature[]>>(endpoints.catalog.features, { params });
+  return res.data.data ?? [];
+}
+
+export async function getCatalogAreas(params?: Record<string, string | number | undefined>) {
+  const res = await apiClient.get<ApiResponse<CatalogArea[]>>(endpoints.catalog.areas, { params });
+  return res.data.data ?? [];
+}
+
+export async function getCatalogPricingRegions() {
+  const res = await apiClient.get<ApiResponse<CatalogPricingRegion[]>>(endpoints.catalog.pricingRegions);
   return res.data.data ?? [];
 }
