@@ -56,7 +56,8 @@ public class VehicleModelService : IVehicleModelService
                 BrandName = _repository.VehicleBrands.Where(b => b.Id == x.BrandId).Select(b => b.Name).FirstOrDefault() ?? "",
                 VehicleType = _repository.VehicleBrands.Where(b => b.Id == x.BrandId).Select(b => b.VehicleType).FirstOrDefault() ?? "",
                 Name = x.Name,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                VariantCount = _repository.VehicleModelVariants.Count(v => v.ModelId == x.Id)
             })
             .ToListAsync(cancellationToken);
 

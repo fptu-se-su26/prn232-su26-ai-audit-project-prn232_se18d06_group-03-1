@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import FormDropdown from "@/components/common/FormDropdown";
@@ -69,10 +69,9 @@ export default function AdminVehicleModelsPage() {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [brands, setBrands] = useState<VehicleBrandResponse[]>([]);
-  const [variantsModalOpen, setVariantsModalOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<VehicleModelResponse | null>(null);
-  const [modelVariants, setModelVariants] = useState<VehicleModelVariantResponse[]>([]);
-  const [variantsLoading, setVariantsLoading] = useState(false);
+  const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
+  const [rowVariants, setRowVariants] = useState<VehicleModelVariantResponse[]>([]);
+  const [rowVariantsLoading, setRowVariantsLoading] = useState(false);
 
   useEffect(() => {
     getVehicleBrands({ pageSize: 500 }).then((r) => setBrands(r.items)).catch(() => {});
@@ -81,6 +80,8 @@ export default function AdminVehicleModelsPage() {
   const load = useCallback(async (p: number, kw: string, sort: string, vt: string, brandId: string) => {
     setIsLoading(true);
     setError(null);
+    setExpandedRowId(null);
+    setRowVariants([]);
     try {
       const result = await getVehicleModels({
         page: p,
@@ -137,20 +138,24 @@ export default function AdminVehicleModelsPage() {
     setModalOpen(true);
   }
 
-  async function openModelVariants(item: VehicleModelResponse) {
-    setSelectedModel(item);
-    setModelVariants([]);
-    setVariantsLoading(true);
-    setVariantsModalOpen(true);
+  async function toggleExpand(item: VehicleModelResponse) {
+    if (expandedRowId === item.id) {
+      setExpandedRowId(null);
+      setRowVariants([]);
+      return;
+    }
+    setExpandedRowId(item.id);
+    setRowVariants([]);
+    setRowVariantsLoading(true);
     try {
       const result = await getVehicleModelVariants({
         page: 1,
         pageSize: 500,
         modelId: item.id,
       });
-      setModelVariants(result.items);
+      setRowVariants(result.items);
     } finally {
-      setVariantsLoading(false);
+      setRowVariantsLoading(false);
     }
   }
 
@@ -240,34 +245,74 @@ export default function AdminVehicleModelsPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-              <tr><th className="px-4 py-3">Tên dòng xe</th><th className="px-4 py-3">Hãng xe</th><th className="px-4 py-3">Loại xe</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr>
+              <tr><th className="px-4 py-3">Tên dòng xe</th><th className="px-4 py-3">Hãng xe</th><th className="px-4 py-3">Loại xe</th><th className="px-4 py-3 text-center">Số P.B</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {items.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{item.name}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    <button type="button" onClick={() => { const normalized = normalizeVehicleType(item.vehicleType); setVehicleTypeFilter(normalized); setBrandFilter(String(item.brandId)); setPage(1); void load(1, keyword, sortBy, normalized, String(item.brandId)); }} className="font-medium text-brand-700 hover:text-brand-800">
-                      {item.brandName}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{vehicleTypeLabel(item.vehicleType)}</td>
-                  <td className="px-4 py-3">
-                    <ActiveToggle isActive={item.isActive} itemName={item.name}
-                      onToggle={() => handleToggleActive(item)}
-                      cascadeInfo={() => getVehicleModelCascadeInfo(item.id)} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <button type="button" onClick={() => void openModelVariants(item)} title="Xem phiên bản" className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button type="button" onClick={() => openEdit(item)} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
+                <Fragment key={item.id}>
+                  <tr onClick={() => void toggleExpand(item)} className="cursor-pointer hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">{item.name}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); const normalized = normalizeVehicleType(item.vehicleType); setVehicleTypeFilter(normalized); setBrandFilter(String(item.brandId)); setPage(1); void load(1, keyword, sortBy, normalized, String(item.brandId)); }} className="font-medium text-brand-700 hover:text-brand-800">
+                        {item.brandName}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{vehicleTypeLabel(item.vehicleType)}</td>
+                    <td className="px-4 py-3 text-center text-slate-600">{item.variantCount}</td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <ActiveToggle isActive={item.isActive} itemName={item.name}
+                        onToggle={() => handleToggleActive(item)}
+                        cascadeInfo={() => getVehicleModelCascadeInfo(item.id)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(item); }} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedRowId === item.id && (
+                    <tr>
+                      <td colSpan={6} className="bg-slate-50 px-4 py-4">
+                        {rowVariantsLoading ? (
+                          <div className="flex items-center justify-center py-6"><LoadingSpinner className="h-5 w-5" /></div>
+                        ) : rowVariants.length === 0 ? (
+                          <div className="py-6 text-center text-sm text-slate-500">Chưa có phiên bản nào thuộc dòng xe này.</div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {rowVariants.map((variant) => {
+                              const isCar = normalizeVehicleType(variant.vehicleType) === "Car";
+                              const specs = isCar
+                                ? [variant.seatCount ? `${variant.seatCount} chỗ` : null, variant.bodyType, variant.transmission].filter(Boolean).join(" - ")
+                                : [getMotorbikeTypeLabel(variant.bikeType), variant.engineCapacity].filter(Boolean).join(" - ");
+                              return (
+                                <div key={variant.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <span className="truncate font-medium text-slate-900">{variant.name}</span>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${normalizeVehicleType(variant.vehicleType) === "Car" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                                        {vehicleTypeLabel(variant.vehicleType)}
+                                      </span>
+                                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${variant.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
+                                        {variant.isActive ? "Hoạt động" : "Đã tắt"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1 text-xs text-slate-600">
+                                    <div><span className="font-medium text-slate-500">Thông số:</span> {specs || "-"}</div>
+                                    <div><span className="font-medium text-slate-500">Nhiên liệu:</span> {getFuelTypeLabel(variant.fuelType)}</div>
+                                    <div><span className="font-medium text-slate-500">GPLX:</span> {variant.requiredLicenseClassCode ? `${variant.requiredLicenseClassCode}${variant.requiredLicenseClassSystemVersion === "LegacyBefore2025" ? " (cũ)" : ""}` : "-"}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
-              {!isLoading && items.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500">Không có dòng xe nào.</td></tr>}
+              {!isLoading && items.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">Không có dòng xe nào.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -304,45 +349,7 @@ export default function AdminVehicleModelsPage() {
           </div>
         </div>
       </Modal>
-      <Modal isOpen={variantsModalOpen} onClose={() => setVariantsModalOpen(false)} title={selectedModel ? `Phiên bản của ${selectedModel.name}` : "Phiên bản dòng xe"} className="max-w-4xl">
-        <div className="popup-scrollbar max-h-[70vh] overflow-y-auto">
-          {variantsLoading ? (
-            <div className="flex items-center justify-center py-10"><LoadingSpinner className="h-5 w-5" /></div>
-          ) : modelVariants.length === 0 ? (
-            <div className="py-10 text-center text-sm text-slate-500">Chưa có phiên bản nào thuộc dòng xe này.</div>
-          ) : (
-            <div className="popup-scrollbar overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                    <tr><th className="px-4 py-3">Tên phiên bản</th><th className="px-4 py-3">Loại</th><th className="px-4 py-3">Thông số</th><th className="px-4 py-3">Nhiên liệu</th><th className="px-4 py-3">GPLX</th><th className="px-4 py-3">Trạng thái</th></tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {modelVariants.map((variant) => {
-                    const isCar = normalizeVehicleType(variant.vehicleType) === "Car";
-                    const specs = isCar
-                      ? [variant.seatCount ? `${variant.seatCount} chỗ` : null, variant.bodyType, variant.transmission].filter(Boolean).join(" - ")
-                      : [getMotorbikeTypeLabel(variant.bikeType), variant.engineCapacity].filter(Boolean).join(" - ");
-                    return (
-                      <tr key={variant.id}>
-                        <td className="px-4 py-3 font-medium text-slate-900">{variant.name}</td>
-                        <td className="px-4 py-3 text-slate-600">{vehicleTypeLabel(variant.vehicleType)}</td>
-                        <td className="px-4 py-3 text-slate-600">{specs || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{getFuelTypeLabel(variant.fuelType)}</td>
-                        <td className="px-4 py-3 text-slate-600">{variant.requiredLicenseClassCode ? `${variant.requiredLicenseClassCode}${variant.requiredLicenseClassSystemVersion === "LegacyBefore2025" ? " (cũ)" : ""}` : "-"}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded px-2 py-1 text-xs font-medium ${variant.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
-                            {variant.isActive ? "Hoạt động" : "Đã tắt"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </Modal>
+
     </div>
   );
 }

@@ -5,6 +5,7 @@ export type VehicleModelResponse = {
   vehicleType: string;
   name: string;
   isActive: boolean;
+  variantCount: number;
 };
 
 export type CreateVehicleModelRequest = {
