@@ -32,7 +32,7 @@ export default function AdminPricingRegionsPage() {
       setPage(result.page);
       setTotalPages(result.totalPages || 1);
     } catch {
-      setError("Khong the tai danh sach vung gia.");
+      setError("Không thể tải danh sách vùng giá.");
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +60,7 @@ export default function AdminPricingRegionsPage() {
 
   async function handleSave() {
     if (!/^[A-Za-z0-9_-]{1,50}$/.test(code.trim())) {
-      setFormError("Code bat buoc, toi da 50 ky tu va chi gom chu, so, _ hoac -.");
+      setFormError("Code bắt buộc, tối đa 50 ký tự và chỉ gồm chữ, số, _ hoặc -.");
       return;
     }
 
@@ -73,7 +73,7 @@ export default function AdminPricingRegionsPage() {
       setModalOpen(false);
       void load(page);
     } catch {
-      setFormError("Luu vung gia that bai.");
+      setFormError("Lưu vùng giá thất bại.");
     }
   }
 
@@ -81,52 +81,52 @@ export default function AdminPricingRegionsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-950">Vung gia</h1>
-          <p className="mt-1 text-sm text-slate-500">Quan ly nhom khu vuc dung de goi y gia xe.</p>
+          <h1 className="text-2xl font-semibold text-slate-950">Vùng giá</h1>
+          <p className="mt-1 text-sm text-slate-500">Quản lý nhóm khu vực dùng để gợi ý giá xe.</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Them vung gia</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Thêm vùng giá</Button>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
 
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
         <div className="flex gap-2 border-b border-slate-200 p-4">
-          <input value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void load(1); }} placeholder="Tim code..." className="h-9 flex-1 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500" />
-          <Button onClick={() => void load(1)}><Search className="h-4 w-4" /> Tim</Button>
+          <input value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void load(1); }} placeholder="Tìm code..." className="h-9 flex-1 rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500" />
+          <Button onClick={() => void load(1)}><Search className="h-4 w-4" /> Tìm</Button>
         </div>
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-            <tr><th className="px-4 py-3">Code</th><th className="px-4 py-3">Mo ta</th><th className="px-4 py-3">Trang thai</th><th className="px-4 py-3">Thao tac</th></tr>
+            <tr><th className="px-4 py-3">Code</th><th className="px-4 py-3">Mô tả</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {items.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-3 font-medium">{item.code}</td>
                 <td className="px-4 py-3 text-slate-600">{item.description ?? "-"}</td>
-                <td className="px-4 py-3">{item.isActive ? "Hoat dong" : "Da tat"}</td>
+                <td className="px-4 py-3">{item.isActive ? "Hoạt động" : "Đã tắt"}</td>
                 <td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td>
               </tr>
             ))}
-            {!isLoading && items.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">Khong co du lieu.</td></tr>}
+            {!isLoading && items.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">Không có dữ liệu.</td></tr>}
           </tbody>
         </table>
         <div className="flex items-center justify-between border-t border-slate-200 p-4 text-sm">
           <span>Trang {page}/{totalPages}</span>
           {isLoading && <LoadingSpinner className="h-4 w-4" />}
           <div className="flex gap-2">
-            <Button variant="secondary" disabled={page <= 1} onClick={() => void load(page - 1)}>Truoc</Button>
+            <Button variant="secondary" disabled={page <= 1} onClick={() => void load(page - 1)}>Trước</Button>
             <Button variant="secondary" disabled={page >= totalPages} onClick={() => void load(page + 1)}>Sau</Button>
           </div>
         </div>
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sua vung gia" : "Them vung gia"}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa vùng giá" : "Thêm vùng giá"}>
         <div className="space-y-4">
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code, VD: HCM_CENTER" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mo ta" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          {editItem && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Hoat dong</label>}
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          {editItem && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Hoạt động</label>}
           {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <div className="flex justify-end gap-2"><Button variant="secondary" onClick={() => setModalOpen(false)}>Huy</Button><Button onClick={handleSave}>Luu</Button></div>
+          <div className="flex justify-end gap-2"><Button variant="secondary" onClick={() => setModalOpen(false)}>Hủy</Button><Button onClick={handleSave}>Lưu</Button></div>
         </div>
       </Modal>
     </div>

@@ -186,7 +186,7 @@ export default function OwnerVehicleEditPage() {
           <h2 className="text-sm font-semibold text-slate-800">Gia xe</h2>
           {pricing?.suggestion && (
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-              {pricing.suggestion.hasSuggestion ? `Goi y: ${pricing.suggestion.suggestedMinPrice?.toLocaleString("vi-VN")} - ${pricing.suggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}d/ngay, base ${pricing.suggestion.basePrice?.toLocaleString("vi-VN")}d.` : "Chua co khung gia goi y cho xe nay."}
+              {pricing.suggestion.hasSuggestion ? `Gợi ý: ${pricing.suggestion.suggestedMinPrice?.toLocaleString("vi-VN")} - ${pricing.suggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}đ/ngày, base ${pricing.suggestion.basePrice?.toLocaleString("vi-VN")}đ.` : "Chưa có khung giá gợi ý cho xe này."}
             </div>
           )}
           <div className="flex gap-2">

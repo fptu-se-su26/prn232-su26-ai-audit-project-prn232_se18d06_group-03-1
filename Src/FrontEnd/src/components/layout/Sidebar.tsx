@@ -53,10 +53,13 @@ const vehicleCatalogItems = [
   { to: "/admin/car-variants", label: "Phiên bản ô tô", icon: Car },
   { to: "/admin/motorbike-variants", label: "Phiên bản xe máy", icon: Bike },
   { to: "/admin/driver-license-classes", label: "Giấy phép lái xe", icon: FileBadge },
-  { to: "/admin/pricing-regions", label: "Vung gia", icon: Map },
-  { to: "/admin/areas", label: "Khu vuc", icon: MapPinned },
-  { to: "/admin/vehicle-model-pricings", label: "Khung gia", icon: BadgeDollarSign },
-  { to: "/admin/pricing-rules", label: "Quy tac gia", icon: ReceiptText },
+  { to: "/admin/areas", label: "Khu vực", icon: MapPinned },
+];
+
+const vehiclePricingItems = [
+  { to: "/admin/pricing-regions", label: "Vùng giá", icon: Map },
+  { to: "/admin/vehicle-model-pricings", label: "Khung giá", icon: BadgeDollarSign },
+  { to: "/admin/pricing-rules", label: "Quy tắc giá", icon: ReceiptText },
 ];
 
 const ownerVehicleItems = [
@@ -98,13 +101,16 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const isProfileSection = location.pathname === "/account" || location.pathname === "/change-password";
   const isVehicleCatalogPath = location.pathname === "/admin/vehicle-catalog" || vehicleCatalogItems.some((item) => location.pathname.startsWith(item.to));
   const [vehicleCatalogOpen, setVehicleCatalogOpen] = useState(isVehicleCatalogPath);
+  const isVehiclePricingPath = vehiclePricingItems.some((item) => location.pathname.startsWith(item.to));
+  const [vehiclePricingOpen, setVehiclePricingOpen] = useState(isVehiclePricingPath);
   const isOwnerVehiclePath = ownerVehicleItems.some((item) => location.pathname.startsWith(item.to));
   const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
 
   useEffect(() => {
     if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
+    if (isVehiclePricingPath) setVehiclePricingOpen(true);
     if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
-  }, [isVehicleCatalogPath, isOwnerVehiclePath]);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isOwnerVehiclePath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -248,6 +254,54 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               {!collapsed && vehicleCatalogOpen && (
                 <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
                   {vehicleCatalogItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
+
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setVehiclePricingOpen(true);
+                  navigate("/admin/pricing-regions");
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isVehiclePricingPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Giá xe"
+              >
+                <BadgeDollarSign className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Giá xe</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setVehiclePricingOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setVehiclePricingOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở danh mục giá xe"
+                    >
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${vehiclePricingOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && vehiclePricingOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {vehiclePricingItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
                 </div>

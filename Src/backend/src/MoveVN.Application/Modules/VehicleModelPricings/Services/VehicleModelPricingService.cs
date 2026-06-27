@@ -18,7 +18,7 @@ public class VehicleModelPricingService : IVehicleModelPricingService
         _repository = repository;
     }
 
-    public async Task<PagedResult<VehicleModelPricingResponse>> GetAllAsync(string? keyword, string? sortBy, string? vehicleType, int? brandId, int? modelId, int? pricingRegionId, bool? isActive, int page, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<VehicleModelPricingResponse>> GetAllAsync(string? keyword, string? sortBy, string? vehicleType, int? brandId, int? modelId, int? pricingRegionId, bool? isActive, decimal? minPrice, decimal? maxPrice, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _repository.VehicleModelPricings;
 
@@ -33,6 +33,12 @@ public class VehicleModelPricingService : IVehicleModelPricingService
 
         if (brandId.HasValue)
             query = query.Where(x => _repository.VehicleModels.Any(m => m.Id == x.ModelId && m.BrandId == brandId.Value));
+
+        if (minPrice.HasValue)
+            query = query.Where(x => x.BasePrice >= minPrice.Value);
+
+        if (maxPrice.HasValue)
+            query = query.Where(x => x.BasePrice <= maxPrice.Value);
 
         if (!string.IsNullOrWhiteSpace(vehicleType))
         {

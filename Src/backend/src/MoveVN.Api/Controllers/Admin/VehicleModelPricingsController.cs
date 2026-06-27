@@ -26,10 +26,12 @@ public class VehicleModelPricingsController : BaseApiController
         [FromQuery] int? modelId,
         [FromQuery] int? pricingRegionId,
         [FromQuery] bool? isActive,
+        [FromQuery] decimal? minPrice,
+        [FromQuery] decimal? maxPrice,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
-        => Success(await _service.GetAllAsync(keyword, sortBy, vehicleType, brandId, modelId, pricingRegionId, isActive, page, pageSize, cancellationToken));
+        => Success(await _service.GetAllAsync(keyword, sortBy, vehicleType, brandId, modelId, pricingRegionId, isActive, minPrice, maxPrice, page, pageSize, cancellationToken));
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<VehicleModelPricingResponse>>> GetById(int id, CancellationToken cancellationToken = default)

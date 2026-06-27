@@ -35,7 +35,7 @@ export default function AdminAreasPage() {
       setPage(result.page);
       setTotalPages(result.totalPages || 1);
     } catch {
-      setError("Khong the tai danh sach khu vuc.");
+      setError("Không thể tải danh sách khu vực.");
     }
   }, [keyword, page]);
 
@@ -63,7 +63,7 @@ export default function AdminAreasPage() {
 
   async function handleSave() {
     if (!province.trim() || !district.trim() || !pricingRegionId) {
-      setFormError("Vui long nhap day du tinh/thanh, quan/huyen va vung gia.");
+      setFormError("Vui lòng nhập đầy đủ tỉnh/thành, quận/huyện và vùng giá.");
       return;
     }
 
@@ -74,33 +74,33 @@ export default function AdminAreasPage() {
       setModalOpen(false);
       void load(page);
     } catch {
-      setFormError("Luu khu vuc that bai.");
+      setFormError("Lưu khu vực thất bại.");
     }
   }
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-semibold text-slate-950">Khu vuc</h1><p className="mt-1 text-sm text-slate-500">Map tinh/quan vao vung gia.</p></div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Them khu vuc</Button>
+        <div><h1 className="text-2xl font-semibold text-slate-950">Khu vực</h1><p className="mt-1 text-sm text-slate-500">Map tỉnh/quận vào vùng giá.</p></div>
+        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Thêm khu vực</Button>
       </div>
       {error && <Alert variant="error">{error}</Alert>}
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-        <div className="flex gap-2 border-b border-slate-200 p-4"><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tim khu vuc..." className="h-9 flex-1 rounded-md border border-slate-300 px-3 text-sm" /><Button onClick={() => void load(1)}><Search className="h-4 w-4" /> Tim</Button></div>
+        <div className="flex gap-2 border-b border-slate-200 p-4"><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm khu vực..." className="h-9 flex-1 rounded-md border border-slate-300 px-3 text-sm" /><Button onClick={() => void load(1)}><Search className="h-4 w-4" /> Tìm</Button></div>
         <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="px-4 py-3">Tinh/TP</th><th className="px-4 py-3">Quan/Huyen</th><th className="px-4 py-3">Vung gia</th><th className="px-4 py-3">Trang thai</th><th className="px-4 py-3">Thao tac</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{items.map((item) => <tr key={item.id}><td className="px-4 py-3 font-medium">{item.province}</td><td className="px-4 py-3">{item.district}</td><td className="px-4 py-3">{item.pricingRegionCode}</td><td className="px-4 py-3">{item.isActive ? "Hoat dong" : "Da tat"}</td><td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td></tr>)}</tbody>
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="px-4 py-3">Tỉnh/TP</th><th className="px-4 py-3">Quận/Huyện</th><th className="px-4 py-3">Vùng giá</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">{items.map((item) => <tr key={item.id}><td className="px-4 py-3 font-medium">{item.province}</td><td className="px-4 py-3">{item.district}</td><td className="px-4 py-3">{item.pricingRegionCode}</td><td className="px-4 py-3">{item.isActive ? "Hoạt động" : "Đã tắt"}</td><td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td></tr>)}</tbody>
         </table>
-        <div className="flex justify-end gap-2 border-t border-slate-200 p-4"><Button variant="secondary" disabled={page <= 1} onClick={() => void load(page - 1)}>Truoc</Button><Button variant="secondary" disabled={page >= totalPages} onClick={() => void load(page + 1)}>Sau</Button></div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 p-4"><Button variant="secondary" disabled={page <= 1} onClick={() => void load(page - 1)}>Trước</Button><Button variant="secondary" disabled={page >= totalPages} onClick={() => void load(page + 1)}>Sau</Button></div>
       </div>
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sua khu vuc" : "Them khu vuc"}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa khu vực" : "Thêm khu vực"}>
         <div className="space-y-4">
-          <input value={province} onChange={(e) => setProvince(e.target.value)} placeholder="Tinh/Thanh pho" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm" />
-          <input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Quan/Huyen" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm" />
-          <FormDropdown value={pricingRegionId} onChange={setPricingRegionId} placeholder="Chon vung gia" options={regions.map((r) => ({ value: String(r.id), label: r.code }))} />
-          {editItem && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Hoat dong</label>}
+          <input value={province} onChange={(e) => setProvince(e.target.value)} placeholder="Tỉnh/Thành phố" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm" />
+          <input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Quận/Huyện" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm" />
+          <FormDropdown value={pricingRegionId} onChange={setPricingRegionId} placeholder="Chọn vùng giá" options={regions.map((r) => ({ value: String(r.id), label: r.code }))} />
+          {editItem && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Hoạt động</label>}
           {formError && <p className="text-sm text-red-600">{formError}</p>}
-          <div className="flex justify-end gap-2"><Button variant="secondary" onClick={() => setModalOpen(false)}>Huy</Button><Button onClick={handleSave}>Luu</Button></div>
+          <div className="flex justify-end gap-2"><Button variant="secondary" onClick={() => setModalOpen(false)}>Hủy</Button><Button onClick={handleSave}>Lưu</Button></div>
         </div>
       </Modal>
     </div>

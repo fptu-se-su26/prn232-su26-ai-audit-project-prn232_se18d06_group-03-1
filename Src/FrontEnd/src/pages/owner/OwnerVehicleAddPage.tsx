@@ -242,7 +242,7 @@ export default function OwnerVehicleAddPage() {
             <FormDropdown value={areaId != null ? String(areaId) : ""} onChange={(v) => setAreaId(Number(v))} placeholder="Chon khu vuc tinh gia" options={areas.map((a) => ({ value: String(a.id), label: `${a.province} - ${a.district} (${a.pricingRegionCode})` }))} />
             {pricingSuggestion && (
               <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                {pricingSuggestion.hasSuggestion ? `Goi y: ${pricingSuggestion.suggestedMinPrice?.toLocaleString("vi-VN")} - ${pricingSuggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}d/ngay, base ${pricingSuggestion.basePrice?.toLocaleString("vi-VN")}d.` : "Chua co khung gia goi y cho dong xe va khu vuc nay."}
+                {pricingSuggestion.hasSuggestion ? `Gợi ý: ${pricingSuggestion.suggestedMinPrice?.toLocaleString("vi-VN")} - ${pricingSuggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}đ/ngày, base ${pricingSuggestion.basePrice?.toLocaleString("vi-VN")}đ.` : "Chưa có khung giá gợi ý cho dòng xe và khu vực này."}
               </div>
             )}
             <div className="flex gap-2">
