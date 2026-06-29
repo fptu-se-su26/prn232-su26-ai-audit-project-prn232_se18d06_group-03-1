@@ -241,15 +241,24 @@ class VehicleRegistrationService:
         expected_base = self._base_model_name(expected)
         if not extracted_base:
             return False
-        return self._text_matches(extracted_base, expected_base)
+        return self._text_matches(extracted_base, expected_base, allow_contains=False)
 
     def _base_model_name(self, value: str | None) -> str:
         normalized = normalize_compare_text(value)
-        normalized = re.sub(r"\b[0-9]{2,4}\s*(cc)?\b", " ", normalized)
         normalized = re.sub(r"\b(abs|cbs|fi|esp|deluxe|special|premium|standard)\b", " ", normalized)
-        return re.sub(r"\s+", " ", normalized).strip()
+        normalized = re.sub(r"\s+", " ", normalized).strip()
 
-    def _text_matches(self, left: str, right: str) -> bool:
+        compact = normalized.replace(" ", "")
+        if compact.startswith("airblade"):
+            return "air blade"
+        if compact.startswith("vario"):
+            return "vario"
+        if re.fullmatch(r"sh\s*(125|150|160|300|350)?", normalized):
+            return "sh"
+
+        return normalized
+
+    def _text_matches(self, left: str, right: str, allow_contains: bool = True) -> bool:
         if not left or not right:
             return False
         if left == right:
@@ -258,10 +267,11 @@ class VehicleRegistrationService:
         right_compact = right.replace(" ", "")
         if left_compact == right_compact:
             return True
-        if len(left_compact) >= 4 and left_compact in right_compact:
-            return True
-        if len(right_compact) >= 4 and right_compact in left_compact:
-            return True
+        if allow_contains:
+            if len(left_compact) >= 4 and left_compact in right_compact:
+                return True
+            if len(right_compact) >= 4 and right_compact in left_compact:
+                return True
         return SequenceMatcher(None, left_compact, right_compact).ratio() >= 0.88
 
     def _extract_after_label(self, lines: list[str], labels: list[str]) -> str | None:
@@ -287,9 +297,6 @@ class VehicleRegistrationService:
             "DOCUMENT_NOT_READABLE",
         }
         non_blocking_flags = {
-            "IMAGE_TOO_BLURRY",
-            "IMAGE_TOO_DARK",
-            "IMAGE_TOO_BRIGHT",
             "VEHICLE_TYPE_UNCERTAIN",
             "VEHICLE_TYPE_MISMATCH_SIGNAL",
         }
@@ -299,6 +306,8 @@ class VehicleRegistrationService:
             return Recommendation.NEED_MORE_INFO
         if flags and all(flag in non_blocking_flags for flag in flags):
             return Recommendation.PASS
+        if flags and all(flag in non_blocking_flags | {"IMAGE_TOO_BLURRY"} for flag in flags):
+            return Recommendation.PASS if confidence >= get_settings().good_ocr_confidence_threshold else Recommendation.MANUAL_REVIEW
         if flags or confidence < get_settings().good_ocr_confidence_threshold:
             return Recommendation.MANUAL_REVIEW
         return Recommendation.PASS

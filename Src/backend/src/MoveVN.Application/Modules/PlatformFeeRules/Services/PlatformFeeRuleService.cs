@@ -12,6 +12,7 @@ namespace MoveVN.Application.Modules.PlatformFeeRules.Services;
 public class PlatformFeeRuleService : IPlatformFeeRuleService
 {
     private readonly IVehicleCatalogRepository _repository;
+    private static readonly string[] GlobalTargetTypes = ["All", "Global"];
 
     public PlatformFeeRuleService(IVehicleCatalogRepository repository)
     {
@@ -29,7 +30,12 @@ public class PlatformFeeRuleService : IPlatformFeeRuleService
         }
 
         if (!string.IsNullOrWhiteSpace(targetType))
-            query = query.Where(x => x.TargetType == targetType);
+        {
+            var normalizedTargetType = NormalizeTargetType(targetType);
+            query = IsGlobalTargetType(normalizedTargetType)
+                ? query.Where(x => GlobalTargetTypes.Contains(x.TargetType))
+                : query.Where(x => x.TargetType == normalizedTargetType);
+        }
 
         if (isActive.HasValue)
             query = query.Where(x => x.IsActive == isActive.Value);
@@ -72,8 +78,8 @@ public class PlatformFeeRuleService : IPlatformFeeRuleService
         var entity = new PlatformFeeRule
         {
             Name = request.Name,
-            TargetType = request.TargetType,
-            TargetId = request.TargetId,
+            TargetType = NormalizeTargetType(request.TargetType),
+            TargetId = IsGlobalTargetType(request.TargetType) ? null : request.TargetId,
             FeeType = request.FeeType,
             FeeValue = request.FeeValue,
             MinFee = request.MinFee,
@@ -97,8 +103,8 @@ public class PlatformFeeRuleService : IPlatformFeeRuleService
             ?? throw new AppException(ErrorCode.PLATFORM_FEE_RULE_NOT_FOUND);
 
         entity.Name = request.Name;
-        entity.TargetType = request.TargetType;
-        entity.TargetId = request.TargetId;
+        entity.TargetType = NormalizeTargetType(request.TargetType);
+        entity.TargetId = IsGlobalTargetType(request.TargetType) ? null : request.TargetId;
         entity.FeeType = request.FeeType;
         entity.FeeValue = request.FeeValue;
         entity.MinFee = request.MinFee;
@@ -140,4 +146,14 @@ public class PlatformFeeRuleService : IPlatformFeeRuleService
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };
+
+    private static string NormalizeTargetType(string targetType)
+    {
+        return IsGlobalTargetType(targetType) ? "All" : targetType.Trim();
+    }
+
+    private static bool IsGlobalTargetType(string targetType)
+    {
+        return GlobalTargetTypes.Contains(targetType.Trim(), StringComparer.OrdinalIgnoreCase);
+    }
 }

@@ -93,6 +93,8 @@ public sealed class ErrorCode
     public static readonly ErrorCode PLATFORM_FEE_RULE_NOT_FOUND = new("PRICE_8511", "Platform fee rule not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_NOT_FOUND = new("VEHICLE_9001", "Vehicle not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_TOGGLE_INVALID = new("VEHICLE_9002", "Can only toggle between Approved and Hidden status.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_FOUND = new("VEHICLE_9003", "Vehicle document not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_VERIFIED = new("VEHICLE_9004", "Vehicle document must be verified before approving listing.", HttpStatusCode.BadRequest);
 
     public override string ToString() => $"{Code}: {Message}";
 }

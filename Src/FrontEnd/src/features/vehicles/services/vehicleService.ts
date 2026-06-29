@@ -16,6 +16,8 @@ import type {
   PricingSuggestionResponse,
   VehiclePricingResponse,
   UpdateVehiclePricingRequest,
+  VehicleModerationListItem,
+  VehicleModerationDetailResponse,
 } from "@/features/vehicles/types";
 
 export async function getMyVehicles(params: Record<string, string | number | boolean | undefined>) {
@@ -31,6 +33,24 @@ export async function getVehicleById(id: number) {
 export async function createVehicle(data: CreateVehicleRequest) {
   const res = await apiClient.post<ApiResponse<VehicleResponse>>(endpoints.vehicles.base, data);
   return res.data.data;
+}
+
+export async function uploadVehicleDocument(id: number, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<ApiResponse<VehicleResponse>>(endpoints.vehicles.uploadDocument(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data;
+}
+
+export async function uploadVehicleImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<ApiResponse<{ url: string }>>(endpoints.vehicles.uploadImage, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data?.url ?? "";
 }
 
 export async function updateVehicle(id: number, data: UpdateVehicleRequest) {
@@ -93,4 +113,44 @@ export async function getCatalogAreas(params?: Record<string, string | number | 
 export async function getCatalogPricingRegions() {
   const res = await apiClient.get<ApiResponse<CatalogPricingRegion[]>>(endpoints.catalog.pricingRegions);
   return res.data.data ?? [];
+}
+
+export async function getModerationVehicles(
+  role: "staff" | "admin",
+  params: Record<string, string | number | undefined>,
+) {
+  const path = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  const res = await apiClient.get<ApiResponse<PagedResult<VehicleModerationListItem>>>(path, { params });
+  return res.data.data ?? { items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 };
+}
+
+export async function getModerationVehicleById(role: "staff" | "admin", id: number) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  const res = await apiClient.get<ApiResponse<VehicleModerationDetailResponse>>(`${base}/${id}`);
+  return res.data.data;
+}
+
+export async function approveVehicleDocument(role: "staff" | "admin", vehicleId: number, documentId: number) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  await apiClient.post(`${base}/${vehicleId}/documents/${documentId}/approve`);
+}
+
+export async function rejectVehicleDocument(role: "staff" | "admin", vehicleId: number, documentId: number, reason: string) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  await apiClient.post(`${base}/${vehicleId}/documents/${documentId}/reject`, { reason });
+}
+
+export async function requestVehicleDocumentMoreInfo(role: "staff" | "admin", vehicleId: number, documentId: number, reason: string) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  await apiClient.post(`${base}/${vehicleId}/documents/${documentId}/request-more-info`, { reason });
+}
+
+export async function approveVehicleListing(role: "staff" | "admin", vehicleId: number) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  await apiClient.post(`${base}/${vehicleId}/approve-listing`);
+}
+
+export async function rejectVehicleListing(role: "staff" | "admin", vehicleId: number, reason: string) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  await apiClient.post(`${base}/${vehicleId}/reject-listing`, { reason });
 }

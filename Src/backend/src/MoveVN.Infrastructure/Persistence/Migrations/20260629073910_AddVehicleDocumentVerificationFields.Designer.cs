@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoveVN.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MoveVN.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260629073910_AddVehicleDocumentVerificationFields")]
+    partial class AddVehicleDocumentVerificationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2157,14 +2160,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("decision_reason");
 
-                    b.Property<string>("DeleteReason")
-                        .HasColumnType("text")
-                        .HasColumnName("delete_reason");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
                     b.Property<string>("DocType")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2174,20 +2169,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("expiry_date");
 
-                    b.Property<string>("FilePublicId")
-                        .HasColumnType("text")
-                        .HasColumnName("file_public_id");
-
                     b.Property<string>("FileUrl")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("file_url");
-
-                    b.Property<bool>("IsCurrent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_current");
 
                     b.Property<string>("OcrBrand")
                         .HasColumnType("text")
@@ -2242,8 +2227,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.HasIndex("VehicleId");
 
                     b.HasIndex("VerificationStatus");
-
-                    b.HasIndex("VehicleId", "IsCurrent");
 
                     b.ToTable("VehicleDocuments");
                 });

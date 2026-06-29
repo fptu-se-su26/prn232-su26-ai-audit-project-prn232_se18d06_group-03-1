@@ -120,6 +120,13 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
+    mainItems.push({ to: "/admin/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
+    mainItems.push({ to: "/admin/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
+  }
+
+  if (primaryRole === "Staff") {
+    mainItems.push({ to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
+    mainItems.push({ to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
   }
 
   const profileItems = [

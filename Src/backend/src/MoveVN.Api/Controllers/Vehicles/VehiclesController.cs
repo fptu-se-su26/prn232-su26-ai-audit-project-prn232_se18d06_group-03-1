@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Auth.Interfaces;
@@ -81,6 +82,63 @@ public class VehiclesController : BaseApiController
     public async Task<ActionResult<ApiResponse<VehicleResponse>>> Create([FromBody] CreateVehicleRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _vehicleService.CreateAsync(_currentUser.UserId!.Value, request, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpPost("images")]
+    public async Task<ActionResult<ApiResponse<object>>> UploadImage(
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(ApiResponse<object>.Failed("VEHICLE_9005", "Vehicle image file is required."));
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            return BadRequest(ApiResponse<object>.Failed("VEHICLE_9005", "Only JPG, PNG, or WebP vehicle images are allowed."));
+        }
+
+        const int maxSize = 10 * 1024 * 1024;
+        if (file.Length > maxSize)
+        {
+            return BadRequest(ApiResponse<object>.Failed("VEHICLE_9005", "Vehicle image must be under 10MB."));
+        }
+
+        await using var stream = file.OpenReadStream();
+        var url = await _vehicleService.UploadImageAsync(_currentUser.UserId!.Value, stream, file.FileName, cancellationToken);
+        return Success<object>(new { url });
+    }
+
+    [HttpPost("{id}/documents")]
+    public async Task<ActionResult<ApiResponse<VehicleResponse>>> UploadDocument(
+        long id,
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(ApiResponse<VehicleResponse>.Failed("VEHICLE_9003", "Vehicle document file is required."));
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            return BadRequest(ApiResponse<VehicleResponse>.Failed("VEHICLE_9003", "Only JPG, PNG, or WebP vehicle document images are allowed."));
+        }
+
+        const int maxSize = 10 * 1024 * 1024;
+        if (file.Length > maxSize)
+        {
+            return BadRequest(ApiResponse<VehicleResponse>.Failed("VEHICLE_9003", "Vehicle document image must be under 10MB."));
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await _vehicleService.UploadDocumentAsync(id, _currentUser.UserId!.Value, stream, file.FileName, cancellationToken);
         return Success(result);
     }
 

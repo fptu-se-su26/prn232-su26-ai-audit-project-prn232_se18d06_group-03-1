@@ -1,5 +1,6 @@
 using MoveVN.Domain.Common;
 using MoveVN.Domain.Entities;
+using MoveVN.Domain.Enums;
 using MoveVN.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -131,6 +132,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .HasForeignKey(entity => entity.AreaId)
             .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
+        builder.Entity<VehicleDocument>().HasIndex(entity => entity.VehicleId);
+        builder.Entity<VehicleDocument>().HasIndex(entity => new { entity.VehicleId, entity.IsCurrent });
+        builder.Entity<VehicleDocument>().HasIndex(entity => entity.VerificationStatus);
+        builder.Entity<VehicleDocument>()
+            .Property(entity => entity.VerificationStatus)
+            .HasConversion<string>()
+            .HasDefaultValue(VehicleDocumentVerificationStatus.Pending);
+        builder.Entity<VehicleDocument>().Property(entity => entity.IsCurrent).HasDefaultValue(true);
+        builder.Entity<VehicleDocument>().Property(entity => entity.OcrConfidence).HasPrecision(15, 2);
         builder.Entity<VehicleModelVariant>()
             .HasOne<DriverLicenseClass>()
             .WithMany()

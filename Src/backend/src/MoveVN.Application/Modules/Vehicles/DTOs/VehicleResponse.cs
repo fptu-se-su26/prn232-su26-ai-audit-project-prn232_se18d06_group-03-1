@@ -34,6 +34,7 @@ public class VehicleResponse
     public string? FeaturedImage { get; set; }
     public List<VehicleImageResponse> Images { get; set; } = [];
     public List<VehicleFeatureResponse> Features { get; set; } = [];
+    public List<VehicleDocumentResponse> Documents { get; set; } = [];
     public DateTime CreatedAt { get; set; }
 }
 
@@ -49,4 +50,25 @@ public class VehicleFeatureResponse
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+}
+
+public class VehicleDocumentResponse
+{
+    public long Id { get; set; }
+    public string DocType { get; set; } = string.Empty;
+    public string FileUrl { get; set; } = string.Empty;
+    public DateOnly? ExpiryDate { get; set; }
+    public bool Verified { get; set; }
+    public bool IsCurrent { get; set; }
+    public string VerificationStatus { get; set; } = string.Empty;
+    public string? VerificationProvider { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+    public string? DecisionReason { get; set; }
+    public string? OcrLicensePlate { get; set; }
+    public string? OcrBrand { get; set; }
+    public string? OcrModel { get; set; }
+    public string? OcrEngineNumber { get; set; }
+    public string? OcrChassisNumber { get; set; }
+    public decimal? OcrConfidence { get; set; }
+    public DateTime? CreatedAt { get; set; }
 }

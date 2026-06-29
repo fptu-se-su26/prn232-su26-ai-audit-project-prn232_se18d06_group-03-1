@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.VehiclePricings.DTOs;
@@ -8,6 +9,7 @@ using MoveVN.Application.Modules.VehiclePricings.Interfaces;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 using MoveVN.Domain.Entities;
+using MoveVN.Domain.Enums;
 
 namespace MoveVN.Application.Modules.Vehicles.Services;
 
@@ -15,11 +17,22 @@ public class VehicleService : IVehicleService
 {
     private readonly IVehicleCatalogRepository _repository;
     private readonly IPricingCalculatorService _pricingCalculator;
+    private readonly ICloudinaryService _cloudinaryService;
+    private readonly IVehicleRegistrationVerificationService _vehicleRegistrationVerificationService;
+    private readonly IVehicleVerificationLogService _vehicleVerificationLogService;
 
-    public VehicleService(IVehicleCatalogRepository repository, IPricingCalculatorService pricingCalculator)
+    public VehicleService(
+        IVehicleCatalogRepository repository,
+        IPricingCalculatorService pricingCalculator,
+        ICloudinaryService cloudinaryService,
+        IVehicleRegistrationVerificationService vehicleRegistrationVerificationService,
+        IVehicleVerificationLogService vehicleVerificationLogService)
     {
         _repository = repository;
         _pricingCalculator = pricingCalculator;
+        _cloudinaryService = cloudinaryService;
+        _vehicleRegistrationVerificationService = vehicleRegistrationVerificationService;
+        _vehicleVerificationLogService = vehicleVerificationLogService;
     }
 
     public async Task<PagedResult<VehicleListItemResponse>> GetMyVehiclesAsync(
@@ -153,6 +166,13 @@ public class VehicleService : IVehicleService
             .Select(f => new VehicleFeatureResponse { Id = f.Id, Name = f.Name })
             .ToListAsync(cancellationToken);
 
+        var documentEntities = await _repository.VehicleDocuments
+            .Where(doc => doc.VehicleId == vehicle.Id && doc.DeletedAt == null)
+            .OrderByDescending(doc => doc.IsCurrent)
+            .ThenByDescending(doc => doc.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var documents = documentEntities.Select(ToVehicleDocumentResponse).ToList();
+
         return new VehicleResponse
         {
             Id = vehicle.Id,
@@ -187,6 +207,7 @@ public class VehicleService : IVehicleService
             FeaturedImage = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
             Images = images,
             Features = features,
+            Documents = documents,
             CreatedAt = vehicle.CreatedAt,
         };
     }
@@ -277,13 +298,16 @@ public class VehicleService : IVehicleService
 
         if (!string.IsNullOrWhiteSpace(request.DocumentFileUrl))
         {
-            _repository.Add(new VehicleDocument
+            var document = new VehicleDocument
             {
                 VehicleId = vehicle.Id,
                 DocType = "Registration",
                 FileUrl = request.DocumentFileUrl,
-            });
+                IsCurrent = true
+            };
+            _repository.Add(document);
             await _repository.SaveChangesAsync(cancellationToken);
+            await VerifyVehicleDocumentAsync(vehicle, brand.Name, model.Name, document, cancellationToken);
         }
 
         _repository.Add(new VehiclePricing
@@ -299,6 +323,68 @@ public class VehicleService : IVehicleService
         });
         await _repository.SaveChangesAsync(cancellationToken);
 
+        return await GetByIdAsync(vehicle.Id, ownerId, cancellationToken);
+    }
+
+    public async Task<string> UploadImageAsync(long ownerId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+    {
+        var upload = await _cloudinaryService.UploadAsync(
+            fileStream,
+            fileName,
+            $"movevn/vehicles/{ownerId}/images",
+            cancellationToken);
+
+        return upload.Url;
+    }
+
+    public async Task<VehicleResponse> UploadDocumentAsync(long id, long ownerId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await _repository.Vehicles
+            .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
+
+        var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+        var model = await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+
+        var existingCurrentDocuments = await _repository.VehicleDocuments
+            .Where(doc => doc.VehicleId == vehicle.Id && doc.IsCurrent)
+            .ToListAsync(cancellationToken);
+
+        foreach (var existing in existingCurrentDocuments)
+        {
+            existing.IsCurrent = false;
+        }
+
+        var upload = await _cloudinaryService.UploadAsync(
+            fileStream,
+            fileName,
+            $"movevn/private/vehicles/{ownerId}/{vehicle.Id}/registration",
+            cancellationToken);
+
+        var document = new VehicleDocument
+        {
+            VehicleId = vehicle.Id,
+            DocType = "Registration",
+            FileUrl = upload.Url,
+            FilePublicId = upload.PublicId,
+            IsCurrent = true,
+            VerificationStatus = VehicleDocumentVerificationStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _repository.Add(document);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        await VerifyVehicleDocumentAsync(vehicle, brand.Name, model.Name, document, cancellationToken);
+
+        if (document.VerificationStatus == VehicleDocumentVerificationStatus.Verified)
+        {
+            await DeleteReplacedDocumentsAsync(vehicle.Id, document.Id, cancellationToken);
+        }
+
+        await _repository.SaveChangesAsync(cancellationToken);
         return await GetByIdAsync(vehicle.Id, ownerId, cancellationToken);
     }
 
@@ -374,6 +460,172 @@ public class VehicleService : IVehicleService
         };
 
         await _repository.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task VerifyVehicleDocumentAsync(
+        Vehicle vehicle,
+        string brandName,
+        string modelName,
+        VehicleDocument document,
+        CancellationToken cancellationToken)
+    {
+        var request = new VehicleRegistrationVerificationRequest
+        {
+            ExpectedVehicleType = NormalizeVehicleType(vehicle.VehicleType),
+            ExpectedLicensePlate = vehicle.LicensePlate,
+            ExpectedBrand = brandName,
+            ExpectedModel = modelName,
+            FileUrl = document.FileUrl
+        };
+
+        try
+        {
+            var result = await _vehicleRegistrationVerificationService.VerifyAsync(request, cancellationToken);
+            ApplyVerificationResult(vehicle, document, result);
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            await _vehicleVerificationLogService.LogAsync(new VehicleVerificationLogEntry
+            {
+                VehicleId = vehicle.Id,
+                VehicleDocumentId = document.Id,
+                OwnerId = vehicle.OwnerId,
+                Request = request,
+                Response = result,
+                Recommendation = result.Recommendation,
+                Flags = result.Flags,
+                OcrConfidence = result.OcrConfidence,
+                Message = result.Message,
+                FilePublicId = document.FilePublicId
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            document.Verified = false;
+            document.VerificationStatus = VehicleDocumentVerificationStatus.Failed;
+            document.VerificationProvider = "AI_VERIFICATION";
+            document.ProcessedAt = DateTime.UtcNow;
+            document.DecisionReason = ex.Message;
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            await _vehicleVerificationLogService.LogAsync(new VehicleVerificationLogEntry
+            {
+                VehicleId = vehicle.Id,
+                VehicleDocumentId = document.Id,
+                OwnerId = vehicle.OwnerId,
+                Request = request,
+                ErrorMessage = ex.Message,
+                FilePublicId = document.FilePublicId
+            }, cancellationToken);
+        }
+    }
+
+    private static void ApplyVerificationResult(
+        Vehicle vehicle,
+        VehicleDocument document,
+        VehicleRegistrationVerificationResult result)
+    {
+        document.VerificationProvider = "AI_VERIFICATION";
+        document.ProcessedAt = DateTime.UtcNow;
+        document.OcrLicensePlate = result.Extracted.LicensePlate;
+        document.OcrBrand = result.Extracted.Brand;
+        document.OcrModel = result.Extracted.Model;
+        document.OcrEngineNumber = result.Extracted.EngineNumber;
+        document.OcrChassisNumber = result.Extracted.ChassisNumber;
+        document.OcrConfidence = result.OcrConfidence;
+        document.DecisionReason = result.Message ?? BuildDecisionReason(result);
+
+        switch (result.Recommendation)
+        {
+            case "Pass":
+                document.Verified = true;
+                document.VerificationStatus = VehicleDocumentVerificationStatus.Verified;
+                break;
+            case "NeedMoreInfo":
+                document.Verified = false;
+                document.VerificationStatus = VehicleDocumentVerificationStatus.NeedMoreInfo;
+                break;
+            case "ManualReview":
+                document.Verified = false;
+                document.VerificationStatus = VehicleDocumentVerificationStatus.ManualReview;
+                break;
+            case "Reject":
+                document.Verified = false;
+                document.VerificationStatus = VehicleDocumentVerificationStatus.Rejected;
+                vehicle.Status = VehicleStatus.Rejected;
+                vehicle.RejectionReason = document.DecisionReason;
+                break;
+            default:
+                document.Verified = false;
+                document.VerificationStatus = VehicleDocumentVerificationStatus.Failed;
+                break;
+        }
+    }
+
+    private static string? BuildDecisionReason(VehicleRegistrationVerificationResult result)
+    {
+        return result.Flags.Count == 0
+            ? null
+            : string.Join(", ", result.Flags);
+    }
+
+    private static VehicleDocumentResponse ToVehicleDocumentResponse(VehicleDocument doc)
+    {
+        return new VehicleDocumentResponse
+        {
+            Id = doc.Id,
+            DocType = doc.DocType,
+            FileUrl = doc.FileUrl,
+            ExpiryDate = doc.ExpiryDate,
+            Verified = doc.Verified,
+            IsCurrent = doc.IsCurrent,
+            VerificationStatus = doc.VerificationStatus.ToString(),
+            VerificationProvider = doc.VerificationProvider,
+            ProcessedAt = doc.ProcessedAt,
+            DecisionReason = doc.DecisionReason,
+            OcrLicensePlate = doc.OcrLicensePlate,
+            OcrBrand = doc.OcrBrand,
+            OcrModel = doc.OcrModel,
+            OcrEngineNumber = doc.OcrEngineNumber,
+            OcrChassisNumber = doc.OcrChassisNumber,
+            OcrConfidence = doc.OcrConfidence,
+            CreatedAt = doc.CreatedAt
+        };
+    }
+
+    private async Task DeleteReplacedDocumentsAsync(long vehicleId, long currentDocumentId, CancellationToken cancellationToken)
+    {
+        var oldDocuments = await _repository.VehicleDocuments
+            .Where(doc => doc.VehicleId == vehicleId
+                && doc.Id != currentDocumentId
+                && doc.DeletedAt == null
+                && doc.FilePublicId != null
+                && (doc.VerificationStatus == VehicleDocumentVerificationStatus.Rejected
+                    || doc.VerificationStatus == VehicleDocumentVerificationStatus.NeedMoreInfo
+                    || doc.VerificationStatus == VehicleDocumentVerificationStatus.Failed))
+            .ToListAsync(cancellationToken);
+
+        foreach (var document in oldDocuments)
+        {
+            try
+            {
+                await _cloudinaryService.DeleteAsync(document.FilePublicId!, cancellationToken);
+                document.DeletedAt = DateTime.UtcNow;
+                document.DeleteReason = "Replaced by verified document";
+
+                await _vehicleVerificationLogService.LogAsync(new VehicleVerificationLogEntry
+                {
+                    VehicleId = document.VehicleId,
+                    VehicleDocumentId = document.Id,
+                    FilePublicId = document.FilePublicId,
+                    FileDeletedAt = document.DeletedAt,
+                    DeletionReason = document.DeleteReason
+                }, cancellationToken);
+            }
+            catch
+            {
+                // Cleanup must not block a verified replacement document.
+            }
+        }
     }
 
     private static UpdateVehiclePricingRequest BuildPricingRequest(CreateVehicleRequest request)

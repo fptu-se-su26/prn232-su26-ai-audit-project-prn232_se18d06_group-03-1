@@ -46,6 +46,13 @@ public class MongoIndexInitializer
             new CreateIndexModel<PricingCalculationLogDocument>(Builders<PricingCalculationLogDocument>.IndexKeys.Ascending(x => x.CreatedAt), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(7) }),
             cancellationToken: cancellationToken);
 
+        await _context.VehicleVerificationLogs.Indexes.CreateManyAsync([
+            new CreateIndexModel<VehicleVerificationLogDocument>(
+                Builders<VehicleVerificationLogDocument>.IndexKeys.Ascending(x => x.VehicleId).Descending(x => x.CreatedAt)),
+            new CreateIndexModel<VehicleVerificationLogDocument>(
+                Builders<VehicleVerificationLogDocument>.IndexKeys.Ascending(x => x.VehicleDocumentId).Descending(x => x.CreatedAt))
+        ], cancellationToken);
+
         await _context.PricingRules.Indexes.CreateOneAsync(
             new CreateIndexModel<PricingRuleDocument>(Builders<PricingRuleDocument>.IndexKeys.Ascending(x => x.RuleCode).Ascending(x => x.IsActive)),
             cancellationToken: cancellationToken);
