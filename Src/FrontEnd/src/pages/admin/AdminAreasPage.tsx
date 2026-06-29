@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import FormDropdown from "@/components/common/FormDropdown";
@@ -112,6 +113,11 @@ export default function AdminAreasPage() {
     return pages;
   }, [page, totalPages]);
 
+  async function handleToggleActive(item: AreaResponse) {
+    await updateArea(item.id, { province: item.province, district: item.district, pricingRegionId: item.pricingRegionId, isActive: !item.isActive });
+    void load(page);
+  }
+
   function openCreate() {
     setEditItem(null);
     setProvince("");
@@ -179,7 +185,7 @@ export default function AdminAreasPage() {
         <div className="overflow-hidden">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="w-10 px-4 py-3 text-center">#</th><th className="px-4 py-3">Tỉnh/TP</th><th className="px-4 py-3">Phường/Xã</th><th className="px-4 py-3">Vùng giá</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr></thead>
-            <tbody className="divide-y divide-slate-100">{items.map((item, idx) => <tr key={item.id}><td className="w-10 px-4 py-3 text-center text-slate-400">{(page - 1) * PAGE_SIZE + idx + 1}</td><td className="px-4 py-3 font-medium">{item.province}</td><td className="px-4 py-3">{item.district}</td><td className="px-4 py-3">{item.pricingRegionCode}</td><td className="px-4 py-3">{item.isActive ? "Hoạt động" : "Đã tắt"}</td><td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td></tr>)}</tbody>
+            <tbody className="divide-y divide-slate-100">{items.map((item, idx) => <tr key={item.id}><td className="w-10 px-4 py-3 text-center text-slate-400">{(page - 1) * PAGE_SIZE + idx + 1}</td><td className="px-4 py-3 font-medium">{item.province}</td><td className="px-4 py-3">{item.district}</td><td className="px-4 py-3">{item.pricingRegionCode}</td><td className="px-4 py-3"><ActiveToggle isActive={item.isActive} itemName={`${item.province} - ${item.district}`} onToggle={() => handleToggleActive(item)} /></td><td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td></tr>)}</tbody>
           </table>
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">

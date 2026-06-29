@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
@@ -269,7 +269,6 @@ export default function AdminVehicleModelPricingsPage() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
               <tr>
-                <th className="px-4 py-3 w-10"></th>
                 <th className="px-4 py-3">Dòng xe</th>
                 <th className="px-4 py-3">Min</th>
                 <th className="px-4 py-3">Base</th>
@@ -281,12 +280,7 @@ export default function AdminVehicleModelPricingsPage() {
             <tbody className="divide-y divide-slate-100">
               {items.map((item) => (
                 <Fragment key={item.id}>
-                  <tr className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <button onClick={() => toggleExpand(item.modelId)} className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100">
-                        {expandedId === item.modelId ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </button>
-                    </td>
+                  <tr onClick={() => toggleExpand(item.modelId)} className="cursor-pointer hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">{item.brandName} {item.modelName}</td>
                     <td className="px-4 py-3 text-slate-600">{money(item.suggestedMinPrice)}</td>
                     <td className="px-4 py-3 text-slate-600">{money(item.basePrice)}</td>
@@ -295,12 +289,12 @@ export default function AdminVehicleModelPricingsPage() {
                       <span className={`rounded px-2 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{item.isActive ? "Hoạt động" : "Đã tắt"}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => openEdit(item)} className="flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50"><Pencil className="h-4 w-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(item); }} className="flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50"><Pencil className="h-4 w-4" /></button>
                     </td>
                   </tr>
                   {expandedId === item.modelId && (
                     <tr>
-                      <td colSpan={7} className="bg-slate-50 px-6 py-4">
+                      <td colSpan={6} className="bg-slate-50 px-6 py-4">
                         {loadingRegion ? (
                           <LoadingSpinner className="mx-auto h-5 w-5" />
                         ) : regionPrices.length === 0 ? (
@@ -336,7 +330,7 @@ export default function AdminVehicleModelPricingsPage() {
                   )}
                 </Fragment>
               ))}
-              {!isLoading && items.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">Không có khung giá nào.</td></tr>}
+              {!isLoading && items.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">Không có khung giá nào.</td></tr>}
             </tbody>
           </table>
         </div>

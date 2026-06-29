@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@/components/common/Alert";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
@@ -59,6 +60,11 @@ export default function AdminPricingRegionsPage() {
     }
     return pages;
   }, [page, totalPages]);
+
+  async function handleToggleActive(item: PricingRegionResponse) {
+    await updatePricingRegion(item.id, { code: item.code, description: item.description, coefficient: item.coefficient, isActive: !item.isActive });
+    void load(page);
+  }
 
   function openCreate() {
     setEditItem(null);
@@ -131,7 +137,7 @@ export default function AdminPricingRegionsPage() {
                 <td className="px-4 py-3 font-medium">{item.code}</td>
                 <td className="px-4 py-3 text-slate-600">{item.description ?? "-"}</td>
                 <td className="px-4 py-3 text-slate-600">{item.coefficient.toFixed(2)}</td>
-                <td className="px-4 py-3">{item.isActive ? "Hoạt động" : "Đã tắt"}</td>
+                <td className="px-4 py-3"><ActiveToggle isActive={item.isActive} itemName={item.code} onToggle={() => handleToggleActive(item)} /></td>
                 <td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td>
               </tr>
             ))}

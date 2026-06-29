@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import ActiveToggle from "@/components/common/ActiveToggle";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import FormDropdown from "@/components/common/FormDropdown";
@@ -117,6 +118,23 @@ export default function AdminPricingRulesPage() {
     setModalOpen(true);
   }
 
+  async function handleToggleActive(item: PricingRuleResponse) {
+    await updatePricingRule(item.id, {
+      name: item.name,
+      ruleType: item.ruleType,
+      multiplier: item.multiplier,
+      fixedPrice: item.fixedPrice,
+      brandId: item.brandId,
+      modelId: item.modelId,
+      pricingRegionId: item.pricingRegionId,
+      priority: item.priority,
+      startDate: item.startDate,
+      endDate: item.endDate,
+      isActive: !item.isActive,
+    });
+    void load(page);
+  }
+
   async function handleSave() {
     const pri = Number(priority);
     const mult = multiplier ? Number(multiplier) : null;
@@ -163,7 +181,7 @@ export default function AdminPricingRulesPage() {
         <div className="flex gap-2 border-b border-slate-200 p-4"><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm tên rule..." className="h-9 flex-1 rounded-md border border-slate-300 px-3 text-sm" /><Button onClick={() => void load(1)}><Search className="h-4 w-4" /> Tìm</Button></div>
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500"><tr><th className="px-4 py-3">Tên rule</th><th className="px-4 py-3">Thương hiệu</th><th className="px-4 py-3">Dòng xe</th><th className="px-4 py-3">Vùng giá</th><th className="px-4 py-3">Loại</th><th className="px-4 py-3">Giá trị</th><th className="px-4 py-3">Ngày</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">{items.map((item) => <tr key={item.id}><td className="px-4 py-3 font-medium">{item.name}</td><td className="px-4 py-3">{item.brandName ?? "*"}</td><td className="px-4 py-3">{item.modelName ?? "*"}</td><td className="px-4 py-3">{item.pricingRegionCode ?? "*"}</td><td className="px-4 py-3">{item.ruleType === "Multiplier" ? "Hệ số" : "Giá cố định"}</td><td className="px-4 py-3">{item.ruleType === "Multiplier" ? item.multiplier : item.fixedPrice?.toLocaleString("vi-VN")}</td><td className="px-4 py-3">{item.startDate ?? "*"} - {item.endDate ?? "*"}</td><td className="px-4 py-3">{item.isActive ? "Hoạt động" : "Đã tắt"}</td><td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td></tr>)}</tbody>
+          <tbody className="divide-y divide-slate-100">{items.map((item) => <tr key={item.id}><td className="px-4 py-3 font-medium">{item.name}</td><td className="px-4 py-3">{item.brandName ?? "*"}</td><td className="px-4 py-3">{item.modelName ?? "*"}</td><td className="px-4 py-3">{item.pricingRegionCode ?? "*"}</td><td className="px-4 py-3">{item.ruleType === "Multiplier" ? "Hệ số" : "Giá cố định"}</td><td className="px-4 py-3">{item.ruleType === "Multiplier" ? item.multiplier : item.fixedPrice?.toLocaleString("vi-VN")}</td><td className="px-4 py-3">{item.startDate ?? "*"} - {item.endDate ?? "*"}</td><td className="px-4 py-3"><ActiveToggle isActive={item.isActive} itemName={item.name} onToggle={() => handleToggleActive(item)} /></td><td className="px-4 py-3"><button onClick={() => openEdit(item)} className="text-brand-700"><Pencil className="h-4 w-4" /></button></td></tr>)}</tbody>
         </table>
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">

@@ -54,7 +54,6 @@ const vehicleCatalogItems = [
   { to: "/admin/car-variants", label: "Phiên bản ô tô", icon: Car },
   { to: "/admin/motorbike-variants", label: "Phiên bản xe máy", icon: Bike },
   { to: "/admin/driver-license-classes", label: "Giấy phép lái xe", icon: FileBadge },
-  { to: "/admin/areas", label: "Khu vực", icon: MapPinned },
 ];
 
 const vehiclePricingItems = [
@@ -62,6 +61,7 @@ const vehiclePricingItems = [
   { to: "/admin/vehicle-model-pricings", label: "Khung giá", icon: BadgeDollarSign },
   { to: "/admin/pricing-rules", label: "Quy tắc giá", icon: ReceiptText },
   { to: "/admin/platform-fee-rules", label: "Phí nền tảng", icon: Percent },
+  { to: "/admin/areas", label: "Khu vực", icon: MapPinned },
 ];
 
 const ownerVehicleItems = [
