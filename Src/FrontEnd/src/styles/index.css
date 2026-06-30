@@ -74,3 +74,25 @@ body {
 .popup-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6b21a8;
 }
+
+.sidebar-scrollbar {
+  scrollbar-color: rgba(122, 31, 242, 0.32) transparent;
+  scrollbar-width: thin;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(122, 31, 242, 0.32);
+  border-radius: 999px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(101, 23, 201, 0.5);
+}

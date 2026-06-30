@@ -7,6 +7,8 @@ export type VehicleListItemResponse = {
   year: number;
   licensePlate: string;
   pricePerDay: number;
+  areaName: string | null;
+  pricingMode: "Fixed" | "Auto" | null;
   status: string;
   featuredImage: string | null;
   createdAt: string;
@@ -22,6 +24,26 @@ export type VehicleImageResponse = {
 export type VehicleFeatureResponse = {
   id: number;
   name: string;
+};
+
+export type VehicleDocumentResponse = {
+  id: number;
+  docType: string;
+  fileUrl: string;
+  expiryDate: string | null;
+  verified: boolean;
+  isCurrent: boolean;
+  verificationStatus: string;
+  verificationProvider: string | null;
+  processedAt: string | null;
+  decisionReason: string | null;
+  ocrLicensePlate: string | null;
+  ocrBrand: string | null;
+  ocrModel: string | null;
+  ocrEngineNumber: string | null;
+  ocrChassisNumber: string | null;
+  ocrConfidence: number | null;
+  createdAt: string | null;
 };
 
 export type VehicleResponse = {
@@ -57,6 +79,7 @@ export type VehicleResponse = {
   featuredImage: string | null;
   images: VehicleImageResponse[];
   features: VehicleFeatureResponse[];
+  documents: VehicleDocumentResponse[];
   createdAt: string;
 };
 
@@ -166,4 +189,37 @@ export type UpdateVehiclePricingRequest = {
   fixedPricePerDay?: number | null;
   autoMinPrice?: number | null;
   autoMaxPrice?: number | null;
+};
+
+export type VehicleModerationListItem = {
+  id: number;
+  ownerId: number;
+  ownerName: string;
+  brandName: string;
+  modelName: string;
+  vehicleType: string;
+  year: number;
+  licensePlate: string;
+  pricePerDay: number;
+  status: string;
+  documentStatus: string | null;
+  documentVerified: boolean;
+  createdAt: string;
+};
+
+export type VehicleVerificationLogResponse = {
+  id: string | null;
+  vehicleId: number;
+  vehicleDocumentId: number;
+  recommendation: string | null;
+  flags: string[];
+  ocrConfidence: number | null;
+  message: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export type VehicleModerationDetailResponse = VehicleResponse & {
+  ownerName: string;
+  verificationLogs: VehicleVerificationLogResponse[];
 };

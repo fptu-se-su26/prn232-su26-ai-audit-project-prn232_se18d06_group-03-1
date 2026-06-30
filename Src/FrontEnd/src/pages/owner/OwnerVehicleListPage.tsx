@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Plus, Car, Bike, AlertCircle } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Plus, Car, Bike, AlertCircle, MapPin } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getMyVehicles, getCatalogBrands, getCatalogModels, toggleVehicleStatus } from "@/features/vehicles/services/vehicleService";
@@ -10,6 +10,16 @@ import useClickOutside from "@/hooks/useClickOutside";
 
 function vehicleTypeLabel(value: string) {
   return value === "Car" ? "Ô tô" : "Xe máy";
+}
+
+function splitAreaName(areaName: string | null) {
+  if (!areaName) return null;
+  const [province, ...wardParts] = areaName.split(" - ");
+  const ward = wardParts.join(" - ").trim();
+  return {
+    province: province?.trim() ?? "",
+    ward,
+  };
 }
 
 function FilterDropdown({ value, label, options, onChange }: { value: string; label: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
@@ -333,6 +343,17 @@ export default function OwnerVehicleListPage() {
                         {statusLabels[vehicle.status] ?? vehicle.status}
                       </span>
                     </div>
+                    {(() => {
+                      const area = splitAreaName(vehicle.areaName);
+                      if (!area) return null;
+                      return (
+                        <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{area.province}</span>
+                          {area.ward && <span className="truncate text-slate-400">- {area.ward}</span>}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ/ngày</span>
                       <span className="text-xs text-slate-400">{vehicle.year}</span>

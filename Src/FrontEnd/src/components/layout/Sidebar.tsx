@@ -120,6 +120,13 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
+    mainItems.push({ to: "/admin/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
+    mainItems.push({ to: "/admin/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
+  }
+
+  if (primaryRole === "Staff") {
+    mainItems.push({ to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
+    mainItems.push({ to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
   }
 
   const profileItems = [
@@ -145,8 +152,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     <aside
       className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:h-[calc(100vh-3.5rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-56"}`}
     >
-      <nav className="flex flex-1 flex-col gap-1 p-3">
-        <div className="flex-1 space-y-1">
+      <nav className="flex min-h-0 flex-1 flex-col p-3">
+        <div className="sidebar-scrollbar -mr-2 min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden pr-2 pb-3">
           {isOwnerVerificationSection && (
             <>
               <NavItem end collapsed={collapsed} to={backItem!.to} label={backItem!.label} icon={backItem!.icon} />
@@ -312,13 +319,15 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex h-8 w-full items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        <div className="shrink-0 border-t border-slate-100 bg-white pt-2">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex h-8 w-full items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        </div>
       </nav>
     </aside>
   );

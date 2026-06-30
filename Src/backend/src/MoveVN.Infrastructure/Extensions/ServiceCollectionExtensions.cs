@@ -63,6 +63,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRedisLockService, RedisLockService>();
         services.AddSingleton<IPresenceService, RedisPresenceService>();
         services.AddScoped<IFptAiService, FptAiService>();
+        services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
+        services.AddSingleton<IVehicleVerificationLogService, VehicleVerificationLogService>();
+        services.AddSingleton<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
 
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))

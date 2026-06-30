@@ -2,7 +2,7 @@ import { AlertCircle, ArrowLeft, Bike, Car, Check, ChevronLeft, ChevronRight, Im
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FormDropdown from "@/components/common/FormDropdown";
-import { createVehicle, getCatalogAreas, getCatalogBrands, getCatalogFeatures, getCatalogModels, getCatalogVariants, getPricingSuggestion } from "@/features/vehicles/services/vehicleService";
+import { createVehicle, getCatalogAreas, getCatalogBrands, getCatalogFeatures, getCatalogModels, getCatalogVariants, getPricingSuggestion, uploadVehicleDocument, uploadVehicleImage } from "@/features/vehicles/services/vehicleService";
 import type { CatalogArea, CatalogBrand, CatalogFeature, CatalogModel, CatalogVariant, PricingSuggestionResponse } from "@/features/vehicles/types";
 
 const steps = ["Loại xe", "Hãng & dòng xe", "Thông tin", "Giá & địa chỉ", "Tính năng", "Hình ảnh", "Xác nhận"];
@@ -48,6 +48,7 @@ export default function OwnerVehicleAddPage() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
   const [documentFileUrl, setDocumentFileUrl] = useState<string | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [verificationResult, setVerificationResult] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -172,19 +173,22 @@ export default function OwnerVehicleAddPage() {
     setSelectedFeatureIds((prev) => prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]);
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
-    for (const file of Array.from(files)) {
-      setImageUrls((prev) => [...prev, URL.createObjectURL(file)]);
+    try {
+      for (const file of Array.from(files)) {
+        const url = await uploadVehicleImage(file);
+        if (url) setImageUrls((prev) => [...prev, url]);
+      }
+    } finally {
+      e.target.value = "";
     }
-    e.target.value = "";
   }
 
   function removeImage(index: number) {
     setImageUrls((prev) => {
       const next = [...prev];
-      URL.revokeObjectURL(next[index]);
       next.splice(index, 1);
       return next;
     });
@@ -194,7 +198,10 @@ export default function OwnerVehicleAddPage() {
   function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (documentFileUrl) URL.revokeObjectURL(documentFileUrl);
+    setDocumentFile(file);
     setDocumentFileUrl(URL.createObjectURL(file));
+    setVerificationResult(null);
     e.target.value = "";
   }
 
@@ -209,7 +216,7 @@ export default function OwnerVehicleAddPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      await createVehicle({
+      const created = await createVehicle({
         brandId: brandId!,
         modelId: modelId!,
         variantId,
@@ -228,8 +235,11 @@ export default function OwnerVehicleAddPage() {
         featureIds: selectedFeatureIds,
         imageUrls,
         featuredImageIndex,
-        documentFileUrl,
+        documentFileUrl: null,
       });
+      if (created?.id && documentFile) {
+        await uploadVehicleDocument(created.id, documentFile);
+      }
       navigate("/owner/vehicles");
     } catch {
       setSubmitError("Đăng ký thất bại. Vui lòng thử lại.");

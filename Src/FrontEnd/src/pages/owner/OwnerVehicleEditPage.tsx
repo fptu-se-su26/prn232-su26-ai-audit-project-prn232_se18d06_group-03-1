@@ -1,5 +1,5 @@
 import { AlertCircle, ArrowLeft, Save, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import FormDropdown from "@/components/common/FormDropdown";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -25,12 +25,19 @@ export default function OwnerVehicleEditPage() {
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [areaId, setAreaId] = useState<number | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]);
 
   const [pricingMode, setPricingMode] = useState<"Fixed" | "Auto">("Fixed");
   const [fixedPricePerDay, setFixedPricePerDay] = useState("");
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
+
+  const provinces = useMemo(() => [...new Set(areas.map((area) => area.province))].sort(), [areas]);
+  const provinceAreas = useMemo(
+    () => areas.filter((area) => area.province === selectedProvince).sort((a, b) => a.district.localeCompare(b.district)),
+    [areas, selectedProvince],
+  );
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -54,6 +61,7 @@ export default function OwnerVehicleEditPage() {
       setDescription(vehicleData.description ?? "");
       setAddress(vehicleData.address);
       setAreaId(vehicleData.areaId);
+      setSelectedProvince(areaList.find((area) => area.id === vehicleData.areaId)?.province ?? "");
       setSelectedFeatureIds(vehicleData.features.map((f) => f.id));
       setPricingMode(pricingData?.pricingMode ?? vehicleData.pricingMode ?? "Fixed");
       setFixedPricePerDay((pricingData?.fixedPricePerDay ?? vehicleData.fixedPricePerDay ?? vehicleData.pricePerDay).toString());
@@ -86,6 +94,11 @@ export default function OwnerVehicleEditPage() {
 
   function toggleFeature(featureId: number) {
     setSelectedFeatureIds((prev) => prev.includes(featureId) ? prev.filter((f) => f !== featureId) : [...prev, featureId]);
+  }
+
+  function handleProvinceChange(value: string) {
+    setSelectedProvince(value);
+    setAreaId(null);
   }
 
   async function handleSaveInfo(e: React.FormEvent) {
@@ -164,7 +177,14 @@ export default function OwnerVehicleEditPage() {
             <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} min={1990} max={2030} className="h-9 rounded-md border border-slate-300 px-3 text-sm" />
             <input value={licensePlate} onChange={(e) => setLicensePlate(e.target.value)} className="h-9 rounded-md border border-slate-300 px-3 text-sm" />
             <input type="number" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} min={0} className="h-9 rounded-md border border-slate-300 px-3 text-sm" />
-            <FormDropdown value={areaId != null ? String(areaId) : ""} onChange={(v) => setAreaId(Number(v))} placeholder="Chon khu vuc" options={areas.map((a) => ({ value: String(a.id), label: `${a.province} - ${a.district} (${a.pricingRegionCode})` }))} />
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">Tỉnh/Thành phố</label>
+              <FormDropdown value={selectedProvince} onChange={handleProvinceChange} placeholder="Chon tinh/thanh pho" options={provinces.map((province) => ({ value: province, label: province }))} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">Phường/Xã</label>
+              <FormDropdown value={areaId != null ? String(areaId) : ""} onChange={(v) => setAreaId(Number(v))} placeholder="Chon phuong/xa" disabled={!selectedProvince} options={provinceAreas.map((area) => ({ value: String(area.id), label: `${area.district} (${area.pricingRegionCode})` }))} />
+            </div>
             <input value={address} onChange={(e) => setAddress(e.target.value)} className="col-span-2 h-9 rounded-md border border-slate-300 px-3 text-sm" />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </div>

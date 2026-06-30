@@ -18,6 +18,7 @@ import AdminAreasPage from "@/pages/admin/AdminAreasPage";
 import AdminVehicleModelPricingsPage from "@/pages/admin/AdminVehicleModelPricingsPage";
 import AdminPricingRulesPage from "@/pages/admin/AdminPricingRulesPage";
 import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
+import AdminVehiclesPage from "@/pages/admin/AdminVehiclesPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
@@ -36,6 +37,7 @@ import OwnerVehicleAddPage from "@/pages/owner/OwnerVehicleAddPage";
 import OwnerVehicleEditPage from "@/pages/owner/OwnerVehicleEditPage";
 import HomePage from "@/pages/public/HomePage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
+import StaffVehiclesPage from "@/pages/staff/StaffVehiclesPage";
 import GuestRoute from "@/routes/GuestRoute";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RoleRoute from "@/routes/RoleRoute";
@@ -81,11 +83,23 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Staff"]} />}>
             <Route path="/staff" element={<StaffHomePage />} />
+            <Route path="/staff/vehicles" element={<StaffVehiclesPage />} />
+            <Route path="/staff/vehicles/:id" element={<StaffVehiclesPage />} />
+            <Route path="/staff/vehicle-documents" element={<StaffVehiclesPage />} />
+            <Route path="/staff/vehicle-documents/:id" element={<StaffVehiclesPage />} />
+            <Route path="/staff/vehicle-listings" element={<StaffVehiclesPage />} />
+            <Route path="/staff/vehicle-listings/:id" element={<StaffVehiclesPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
             <Route path="/admin" element={<AdminHomePage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/vehicles" element={<AdminVehiclesPage />} />
+            <Route path="/admin/vehicles/:id" element={<AdminVehiclesPage />} />
+            <Route path="/admin/vehicle-documents" element={<AdminVehiclesPage />} />
+            <Route path="/admin/vehicle-documents/:id" element={<AdminVehiclesPage />} />
+            <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
+            <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
             <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
             <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />

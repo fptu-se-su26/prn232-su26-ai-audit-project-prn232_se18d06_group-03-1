@@ -14,6 +14,7 @@ export const endpoints = {
   },
   admin: {
     users: "/api/admin/users",
+    vehicles: "/api/admin/vehicles",
     vehicleBrands: "/api/admin/vehicle-brands",
     vehicleModels: "/api/admin/vehicle-models",
     vehicleModelVariants: "/api/admin/vehicle-model-variants",
@@ -28,10 +29,15 @@ export const endpoints = {
   vehicles: {
     my: "/api/vehicles/my",
     byId: (id: number) => `/api/vehicles/${id}`,
+    uploadDocument: (id: number) => `/api/vehicles/${id}/documents`,
+    uploadImage: "/api/vehicles/images",
     pricing: (id: number) => `/api/vehicles/${id}/pricing`,
     pricingSuggestion: "/api/vehicles/pricing/suggestion",
     toggleStatus: (id: number) => `/api/vehicles/${id}/toggle-status`,
     base: "/api/vehicles",
+  },
+  staff: {
+    vehicles: "/api/staff/vehicles",
   },
   catalog: {
     brands: "/api/catalog/brands",
