@@ -47,10 +47,12 @@ function persistSession(session: AuthSession) {
   localStorage.removeItem(legacyTokenKey);
 }
 
+const rolePriority: UserRole[] = ["Admin", "Staff", "Owner", "Customer"];
+
 function readActiveRole(roles: UserRole[]): UserRole | null {
   const stored = localStorage.getItem(activeRoleKey) as UserRole | null;
   if (stored && roles.includes(stored)) return stored;
-  return roles[0] ?? null;
+  return rolePriority.find((r) => roles.includes(r)) ?? null;
 }
 
 const initialSession = readStoredSession();

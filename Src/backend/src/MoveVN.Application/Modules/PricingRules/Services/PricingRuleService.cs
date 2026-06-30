@@ -6,6 +6,7 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.PricingRules.DTOs;
 using MoveVN.Application.Modules.PricingRules.Interfaces;
 using MoveVN.Application.Modules.VehiclePricings.DTOs;
+using MoveVN.Application.Modules.VehiclePricings.Interfaces;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Modules.PricingRules.Services;
@@ -13,10 +14,13 @@ namespace MoveVN.Application.Modules.PricingRules.Services;
 public class PricingRuleService : IPricingRuleService
 {
     private readonly IVehicleCatalogRepository _repository;
+    private readonly IPricingCalculatorService _pricingCalculator;
+    private readonly record struct RuleScope(int? BrandId, int? ModelId, int? PricingRegionId);
 
-    public PricingRuleService(IVehicleCatalogRepository repository)
+    public PricingRuleService(IVehicleCatalogRepository repository, IPricingCalculatorService pricingCalculator)
     {
         _repository = repository;
+        _pricingCalculator = pricingCalculator;
     }
 
     public async Task<PagedResult<PricingRuleResponse>> GetAllAsync(string? keyword, int? brandId, int? modelId, int? pricingRegionId, string? ruleType, bool? isActive, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -97,6 +101,7 @@ public class PricingRuleService : IPricingRuleService
 
         _repository.Add(entity);
         await _repository.SaveChangesAsync(cancellationToken);
+        await RecalculateAutoVehiclePricesAsync([GetScope(entity)], cancellationToken);
         return await GetByIdAsync(entity.Id, cancellationToken);
     }
 
@@ -104,6 +109,7 @@ public class PricingRuleService : IPricingRuleService
     {
         var entity = await _repository.GetPricingRuleByIdAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.PRICING_RULE_NOT_FOUND);
+        var previousScope = GetScope(entity);
 
         if (request.BrandId.HasValue)
         {
@@ -139,6 +145,7 @@ public class PricingRuleService : IPricingRuleService
         entity.IsActive = request.IsActive;
 
         await _repository.SaveChangesAsync(cancellationToken);
+        await RecalculateAutoVehiclePricesAsync([previousScope, GetScope(entity)], cancellationToken);
         return await GetByIdAsync(id, cancellationToken);
     }
 
@@ -146,8 +153,66 @@ public class PricingRuleService : IPricingRuleService
     {
         var entity = await _repository.GetPricingRuleByIdAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.PRICING_RULE_NOT_FOUND);
+        var previousScope = GetScope(entity);
 
         entity.IsActive = false;
+        await _repository.SaveChangesAsync(cancellationToken);
+        await RecalculateAutoVehiclePricesAsync([previousScope], cancellationToken);
+    }
+
+    private static RuleScope GetScope(PricingRule rule)
+        => new(rule.BrandId, rule.ModelId, rule.PricingRegionId);
+
+    private async Task RecalculateAutoVehiclePricesAsync(IReadOnlyCollection<RuleScope> scopes, CancellationToken cancellationToken)
+    {
+        if (scopes.Count == 0)
+            return;
+
+        var affected = await (
+            from pricing in _repository.VehiclePricings
+            join vehicle in _repository.Vehicles on pricing.VehicleId equals vehicle.Id
+            join area in _repository.Areas on vehicle.AreaId equals area.Id into areaJoin
+            from area in areaJoin.DefaultIfEmpty()
+            where pricing.PricingMode == PricingModes.Auto
+                && pricing.AutoMinPrice.HasValue
+                && pricing.AutoMaxPrice.HasValue
+            select new
+            {
+                Pricing = pricing,
+                Vehicle = vehicle,
+                PricingRegionId = area != null ? (int?)area.PricingRegionId : null
+            })
+            .ToListAsync(cancellationToken);
+
+        var affectedByScope = affected
+            .Where(x => scopes.Any(scope =>
+                (!scope.BrandId.HasValue || x.Vehicle.BrandId == scope.BrandId.Value)
+                && (!scope.ModelId.HasValue || x.Vehicle.ModelId == scope.ModelId.Value)
+                && (!scope.PricingRegionId.HasValue || x.PricingRegionId == scope.PricingRegionId.Value)))
+            .GroupBy(x => x.Pricing.VehicleId)
+            .Select(x => x.First())
+            .ToList();
+
+        if (affectedByScope.Count == 0)
+            return;
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        foreach (var item in affectedByScope)
+        {
+            var request = new UpdateVehiclePricingRequest
+            {
+                PricingMode = PricingModes.Auto,
+                AutoMinPrice = item.Pricing.AutoMinPrice,
+                AutoMaxPrice = item.Pricing.AutoMaxPrice
+            };
+
+            var currentPrice = await _pricingCalculator.CalculateCurrentPriceAsync(item.Vehicle, request, today, cancellationToken);
+            item.Pricing.CurrentPricePerDay = currentPrice;
+            item.Pricing.LastCalculatedAt = DateTime.UtcNow;
+            item.Pricing.LastUpdatedAt = DateTime.UtcNow;
+            item.Vehicle.PricePerDay = currentPrice;
+        }
+
         await _repository.SaveChangesAsync(cancellationToken);
     }
 

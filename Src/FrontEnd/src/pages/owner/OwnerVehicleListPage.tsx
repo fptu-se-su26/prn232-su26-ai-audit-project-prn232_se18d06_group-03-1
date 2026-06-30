@@ -314,25 +314,25 @@ export default function OwnerVehicleListPage() {
           <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
             <Car className="h-16 w-16 text-slate-300" />
             <p className="mt-3 text-sm text-slate-500">Chưa có xe nào</p>
-            <button type="button" onClick={() => navigate("/owner/vehicles/add")} className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
+            <button type="button" onClick={() => navigate("/owner/vehicles/add")} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-800">
               <Plus className="h-4 w-4" /> Thêm xe
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((vehicle) => (
-              <div key={vehicle.id} className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition-shadow hover:shadow-md">
+              <div key={vehicle.id} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
                 <button type="button" onClick={() => navigate(`/owner/vehicles/${vehicle.id}`)} className="block w-full text-left">
                   <div className="aspect-[16/9] overflow-hidden bg-slate-100">
                     {vehicle.featuredImage ? (
-                      <img src={vehicle.featuredImage} alt={vehicle.licensePlate} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                      <img src={vehicle.featuredImage} alt={vehicle.licensePlate} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         {vehicle.vehicleType === "Car" ? <Car className="h-12 w-12 text-slate-300" /> : <Bike className="h-12 w-12 text-slate-300" />}
                       </div>
                     )}
                   </div>
-                  <div className="p-3">
+                  <div className="p-4">
                     <div className="mb-1 flex items-center gap-2">
                       <span className="text-xs font-medium text-slate-500">{vehicle.brandName} {vehicle.modelName}</span>
                       {vehicle.variantName && <span className="text-xs text-slate-400">- {vehicle.variantName}</span>}
@@ -355,7 +355,7 @@ export default function OwnerVehicleListPage() {
                       );
                     })()}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ/ngày</span>
+                      <span className="text-sm font-semibold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ/ngày</span>
                       <span className="text-xs text-slate-400">{vehicle.year}</span>
                     </div>
                   </div>
