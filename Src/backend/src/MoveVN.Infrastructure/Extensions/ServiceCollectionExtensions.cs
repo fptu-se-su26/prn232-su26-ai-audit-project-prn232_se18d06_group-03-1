@@ -62,7 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICloudinaryService, CloudinaryService>();
         services.AddSingleton<IRedisLockService, RedisLockService>();
         services.AddSingleton<IPresenceService, RedisPresenceService>();
-        services.AddScoped<IFptAiService, FptAiService>();
+        services.AddScoped<IVnptAiService, VnptAiService>();
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
         services.AddSingleton<IVehicleVerificationLogService, VehicleVerificationLogService>();
         services.AddSingleton<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
