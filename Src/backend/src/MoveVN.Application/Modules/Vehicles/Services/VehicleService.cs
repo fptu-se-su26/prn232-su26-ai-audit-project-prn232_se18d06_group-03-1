@@ -40,90 +40,11 @@ public class VehicleService : IVehicleService
         int? brandId, int? modelId, string? status,
         string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity,
         CancellationToken cancellationToken = default)
-    {
-        var query = _repository.Vehicles
-            .Where(v => v.OwnerId == ownerId);
-
-        if (!string.IsNullOrWhiteSpace(type))
-            query = query.Where(v => v.VehicleType == type);
-
-        if (brandId.HasValue)
-            query = query.Where(v => v.BrandId == brandId.Value);
-
-        if (modelId.HasValue)
-            query = query.Where(v => v.ModelId == modelId.Value);
-
-        if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(v => v.Status == status);
-
-        if (!string.IsNullOrWhiteSpace(fuelType))
-            query = query.Where(v => v.VariantId != null && _repository.VehicleModelVariants.Any(var => var.Id == v.VariantId && var.FuelType == fuelType));
-
-        if (!string.IsNullOrWhiteSpace(seatCount) && byte.TryParse(seatCount, out var seatVal))
-            query = query.Where(v => v.VariantId != null && _repository.VehicleModelVariants.Any(var => var.Id == v.VariantId && var.SeatCount == seatVal));
-
-        if (!string.IsNullOrWhiteSpace(transmission))
-            query = query.Where(v => v.VariantId != null && _repository.VehicleModelVariants.Any(var => var.Id == v.VariantId && var.Transmission == transmission));
-
-        if (!string.IsNullOrWhiteSpace(bodyType))
-            query = query.Where(v => v.VariantId != null && _repository.VehicleModelVariants.Any(var => var.Id == v.VariantId && var.BodyType == bodyType));
-
-        if (!string.IsNullOrWhiteSpace(bikeType))
-            query = query.Where(v => v.VariantId != null && _repository.VehicleModelVariants.Any(var => var.Id == v.VariantId && var.BikeType == bikeType));
-
-        if (!string.IsNullOrWhiteSpace(engineCapacity))
-            query = query.Where(v => v.VariantId != null && _repository.VehicleModelVariants.Any(var => var.Id == v.VariantId && var.EngineCapacity == engineCapacity));
-
-        if (!string.IsNullOrWhiteSpace(keyword))
-        {
-            var kw = keyword.Trim().ToLower();
-            query = query.Where(v => v.LicensePlate.ToLower().Contains(kw)
-                || v.Description != null && v.Description.ToLower().Contains(kw));
-        }
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        query = sortBy switch
-        {
-            "price_asc" => query.OrderBy(v => v.PricePerDay),
-            "price_desc" => query.OrderByDescending(v => v.PricePerDay),
-            _ => query.OrderByDescending(v => v.CreatedAt)
-        };
-
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(v => new VehicleListItemResponse
-            {
-                Id = v.Id,
-                BrandName = _repository.VehicleBrands.Where(b => b.Id == v.BrandId).Select(b => b.Name).FirstOrDefault() ?? "",
-                ModelName = _repository.VehicleModels.Where(m => m.Id == v.ModelId).Select(m => m.Name).FirstOrDefault() ?? "",
-                VariantName = v.VariantId != null ? _repository.VehicleModelVariants.Where(var => var.Id == v.VariantId).Select(var => var.Name).FirstOrDefault() : null,
-                VehicleType = v.VehicleType,
-                Year = v.Year,
-                LicensePlate = v.LicensePlate,
-                PricePerDay = v.PricePerDay,
-                AreaName = v.AreaId.HasValue ? _repository.Areas.Where(a => a.Id == v.AreaId.Value).Select(a => a.Province + " - " + a.District).FirstOrDefault() : null,
-                PricingMode = _repository.VehiclePricings.Where(p => p.VehicleId == v.Id).Select(p => p.PricingMode).FirstOrDefault(),
-                Status = v.Status,
-                FeaturedImage = _repository.VehicleImages.Where(img => img.VehicleId == v.Id && img.IsPrimary).Select(img => img.ImageUrl).FirstOrDefault(),
-                CreatedAt = v.CreatedAt,
-            })
-            .ToListAsync(cancellationToken);
-
-        return new PagedResult<VehicleListItemResponse>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize,
-        };
-    }
+        => await _repository.GetOwnerVehiclesAsync(ownerId, type, keyword, sortBy, page, pageSize, brandId, modelId, status, fuelType, seatCount, transmission, bodyType, bikeType, engineCapacity, cancellationToken);
 
     public async Task<VehicleResponse> GetByIdAsync(long id, long ownerId, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _repository.Vehicles
-            .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
+        var vehicle = await _repository.GetVehicleByIdAndOwnerIdAsync(id, ownerId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken);
@@ -144,33 +65,9 @@ public class VehicleService : IVehicleService
             suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken);
         }
 
-        var images = await _repository.VehicleImages
-            .Where(img => img.VehicleId == vehicle.Id)
-            .OrderBy(img => img.SortOrder)
-            .Select(img => new VehicleImageResponse
-            {
-                Id = img.Id,
-                ImageUrl = img.ImageUrl,
-                IsPrimary = img.IsPrimary,
-                SortOrder = img.SortOrder,
-            })
-            .ToListAsync(cancellationToken);
-
-        var featureMappings = await _repository.VehicleFeatureMappings
-            .Where(fm => fm.VehicleId == vehicle.Id)
-            .ToListAsync(cancellationToken);
-
-        var featureIds = featureMappings.Select(fm => fm.FeatureId).ToList();
-        var features = await _repository.VehicleFeatures
-            .Where(f => featureIds.Contains(f.Id))
-            .Select(f => new VehicleFeatureResponse { Id = f.Id, Name = f.Name })
-            .ToListAsync(cancellationToken);
-
-        var documentEntities = await _repository.VehicleDocuments
-            .Where(doc => doc.VehicleId == vehicle.Id && doc.DeletedAt == null)
-            .OrderByDescending(doc => doc.IsCurrent)
-            .ThenByDescending(doc => doc.CreatedAt)
-            .ToListAsync(cancellationToken);
+        var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
+        var features = await _repository.GetVehicleFeatureResponsesAsync(vehicle.Id, cancellationToken);
+        var documentEntities = await _repository.GetVehicleDocumentsAsync(vehicle.Id, includeDeleted: false, cancellationToken);
         var documents = documentEntities.Select(ToVehicleDocumentResponse).ToList();
 
         return new VehicleResponse
@@ -339,8 +236,7 @@ public class VehicleService : IVehicleService
 
     public async Task<VehicleResponse> UploadDocumentAsync(long id, long ownerId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _repository.Vehicles
-            .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
+        var vehicle = await _repository.GetVehicleByIdAndOwnerIdAsync(id, ownerId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken)
@@ -348,9 +244,7 @@ public class VehicleService : IVehicleService
         var model = await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
 
-        var existingCurrentDocuments = await _repository.VehicleDocuments
-            .Where(doc => doc.VehicleId == vehicle.Id && doc.IsCurrent)
-            .ToListAsync(cancellationToken);
+        var existingCurrentDocuments = await _repository.GetCurrentVehicleDocumentsAsync(vehicle.Id, cancellationToken);
 
         foreach (var existing in existingCurrentDocuments)
         {
@@ -390,8 +284,7 @@ public class VehicleService : IVehicleService
 
     public async Task<VehicleResponse> UpdateAsync(long id, long ownerId, UpdateVehicleRequest request, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _repository.Vehicles
-            .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
+        var vehicle = await _repository.GetVehicleByIdAndOwnerIdAsync(id, ownerId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         vehicle.Year = request.Year;
@@ -412,9 +305,7 @@ public class VehicleService : IVehicleService
         await _repository.SaveChangesAsync(cancellationToken);
 
         await ValidateFeaturesAsync(request.FeatureIds, vehicle.VehicleType, cancellationToken);
-        var existingMappings = await _repository.VehicleFeatureMappings
-            .Where(fm => fm.VehicleId == vehicle.Id)
-            .ToListAsync(cancellationToken);
+        var existingMappings = await _repository.GetVehicleFeatureMappingsAsync(vehicle.Id, cancellationToken);
         foreach (var mapping in existingMappings)
         {
             _repository.Remove(mapping);
@@ -448,8 +339,7 @@ public class VehicleService : IVehicleService
 
     public async Task ToggleStatusAsync(long id, long ownerId, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _repository.Vehicles
-            .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
+        var vehicle = await _repository.GetVehicleByIdAndOwnerIdAsync(id, ownerId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         vehicle.Status = vehicle.Status switch
@@ -595,15 +485,7 @@ public class VehicleService : IVehicleService
 
     private async Task DeleteReplacedDocumentsAsync(long vehicleId, long currentDocumentId, CancellationToken cancellationToken)
     {
-        var oldDocuments = await _repository.VehicleDocuments
-            .Where(doc => doc.VehicleId == vehicleId
-                && doc.Id != currentDocumentId
-                && doc.DeletedAt == null
-                && doc.FilePublicId != null
-                && (doc.VerificationStatus == VehicleDocumentVerificationStatus.Rejected
-                    || doc.VerificationStatus == VehicleDocumentVerificationStatus.NeedMoreInfo
-                    || doc.VerificationStatus == VehicleDocumentVerificationStatus.Failed))
-            .ToListAsync(cancellationToken);
+        var oldDocuments = await _repository.GetReplacedVehicleDocumentsForCleanupAsync(vehicleId, currentDocumentId, cancellationToken);
 
         foreach (var document in oldDocuments)
         {
@@ -652,12 +534,7 @@ public class VehicleService : IVehicleService
             throw new AppException(ErrorCode.VEHICLE_FEATURE_NOT_FOUND);
 
         var normalizedVehicleType = NormalizeVehicleType(vehicleType);
-        var query = _repository.VehicleFeatures.Where(f => ids.Contains(f.Id) && f.IsActive);
-        query = normalizedVehicleType == "Motorbike"
-            ? query.Where(f => f.VehicleType == "Motorbike" || f.VehicleType == "Motorcycle")
-            : query.Where(f => f.VehicleType == normalizedVehicleType);
-
-        var count = await query.CountAsync(cancellationToken);
+        var count = await _repository.CountActiveVehicleFeaturesAsync(ids, normalizedVehicleType, cancellationToken);
 
         if (count != ids.Count)
             throw new AppException(ErrorCode.VEHICLE_FEATURE_NOT_FOUND);

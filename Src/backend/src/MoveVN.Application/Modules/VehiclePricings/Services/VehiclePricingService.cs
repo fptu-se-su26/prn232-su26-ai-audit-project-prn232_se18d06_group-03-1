@@ -73,7 +73,7 @@ public class VehiclePricingService : IVehiclePricingService
 
     private async Task<Vehicle> GetOwnedVehicleAsync(long vehicleId, long ownerId, CancellationToken cancellationToken)
     {
-        return await _repository.Vehicles.FirstOrDefaultAsync(x => x.Id == vehicleId && x.OwnerId == ownerId, cancellationToken)
+        return await _repository.GetVehicleByIdAndOwnerIdAsync(vehicleId, ownerId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
     }
 

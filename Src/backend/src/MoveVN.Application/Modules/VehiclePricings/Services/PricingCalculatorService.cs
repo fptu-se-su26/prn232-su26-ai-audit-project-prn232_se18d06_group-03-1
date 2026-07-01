@@ -19,17 +19,15 @@ public class PricingCalculatorService : IPricingCalculatorService
 
     public async Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, CancellationToken cancellationToken = default)
     {
-        var modelExists = await _repository.VehicleModels.AnyAsync(x => x.Id == modelId, cancellationToken);
-        if (!modelExists)
+        var model = await _repository.GetVehicleModelByIdAsync(modelId, cancellationToken);
+        if (model is null)
             throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
 
         var area = await _repository.GetAreaByIdAsync(areaId, cancellationToken)
             ?? throw new AppException(ErrorCode.AREA_NOT_FOUND);
 
         var region = await _repository.GetPricingRegionByIdAsync(area.PricingRegionId, cancellationToken);
-        var pricing = await _repository.VehicleModelPricings
-            .Where(x => x.ModelId == modelId && x.IsActive)
-            .FirstOrDefaultAsync(cancellationToken);
+        var pricing = await _repository.GetActiveVehicleModelPricingByModelIdAsync(modelId, cancellationToken);
 
         if (pricing is null || region is null)
         {
@@ -121,16 +119,7 @@ public class PricingCalculatorService : IPricingCalculatorService
             ? await _repository.GetAreaByIdAsync(vehicle.AreaId.Value, cancellationToken)
             : null;
 
-        var rules = await _repository.PricingRules
-            .Where(x => x.IsActive
-                && (!x.StartDate.HasValue || x.StartDate <= date)
-                && (!x.EndDate.HasValue || x.EndDate >= date)
-                && (x.BrandId == null || x.BrandId == vehicle.BrandId)
-                && (x.ModelId == null || x.ModelId == vehicle.ModelId)
-                && (x.PricingRegionId == null || x.PricingRegionId == (area != null ? area.PricingRegionId : null)))
-            .OrderBy(x => x.Priority)
-            .ThenBy(x => x.Id)
-            .ToListAsync(cancellationToken);
+        var rules = await _repository.GetActivePricingRulesForVehicleAsync(vehicle, area?.PricingRegionId, date, cancellationToken);
 
         foreach (var rule in rules)
         {
