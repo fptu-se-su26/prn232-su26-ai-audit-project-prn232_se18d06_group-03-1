@@ -58,6 +58,14 @@ export default function HomePage() {
             </Card>
           ))}
         </div>
+
+        <section className="rounded-xl border border-brand-100 bg-brand-50 p-8 text-center">
+          <h2 className="text-xl font-bold text-slate-950">Bạn muốn cho thuê xe?</h2>
+          <p className="mt-2 text-slate-600">Đăng ký làm chủ xe ngay để bắt đầu đăng tải xe cho thuê trên MoveVN.</p>
+          <Link to="/register-owner" className="mt-4 inline-block">
+            <Button type="button" size="lg">Đăng ký làm chủ xe</Button>
+          </Link>
+        </section>
       </div>
     </div>
   );

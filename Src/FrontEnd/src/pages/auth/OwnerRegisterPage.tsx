@@ -6,23 +6,30 @@ import FormField from "@/components/common/FormField";
 import PasswordField from "@/components/common/PasswordField";
 import { showToast } from "@/components/common/toastStore";
 import AuthLayout from "@/features/auth/components/AuthLayout";
-import { register, type RegisterPayload } from "@/features/auth/services/authService";
+import { registerOwnerOnboarding } from "@/features/owner/services/ownerService";
 import { getFriendlyAuthError } from "@/features/auth/utils/authErrors";
 import { validateConfirmPassword, validateEmail, validateFullName, validatePassword, validatePhone } from "@/utils/validation";
 
-type RegisterErrors = Partial<Record<keyof RegisterPayload, string>>;
+type FormFields = {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+};
 
-export default function RegisterPage() {
+type FormErrors = Partial<Record<keyof FormFields, string>>;
+
+export default function OwnerRegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState<RegisterPayload>({
+  const [form, setForm] = useState<FormFields>({
     fullName: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
-    role: "Customer",
   });
-  const [errors, setErrors] = useState<RegisterErrors>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,23 +44,22 @@ export default function RegisterPage() {
     [form, isSubmitting],
   );
 
-  function updateField<K extends keyof RegisterPayload>(key: K, value: RegisterPayload[K]) {
+  function updateField<K extends keyof FormFields>(key: K, value: FormFields[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
   function validate() {
-    const nextErrors: RegisterErrors = {
+    const nextErrors: FormErrors = {
       fullName: validateFullName(form.fullName),
       email: validateEmail(form.email),
       phone: validatePhone(form.phone),
       password: validatePassword(form.password),
       confirmPassword: validateConfirmPassword(form.password, form.confirmPassword),
-      role: form.role === "Customer" || form.role === "Owner" ? "" : "Chỉ được đăng ký vai trò Customer hoặc Owner.",
     };
 
     Object.keys(nextErrors).forEach((key) => {
-      if (!nextErrors[key as keyof RegisterPayload]) {
-        delete nextErrors[key as keyof RegisterPayload];
+      if (!nextErrors[key as keyof FormFields]) {
+        delete nextErrors[key as keyof FormFields];
       }
     });
 
@@ -65,15 +71,18 @@ export default function RegisterPage() {
     event.preventDefault();
     setApiError("");
 
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
 
     setIsSubmitting(true);
     try {
-      await register({ ...form, email: form.email.trim(), phone: form.phone.trim(), fullName: form.fullName.trim() });
+      await registerOwnerOnboarding({
+        ...form,
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        fullName: form.fullName.trim(),
+      });
       showToast({ type: "success", title: "Đăng ký thành công", message: "MoveVN đã gửi OTP tới email của bạn." });
-      navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}&purpose=Register`, { replace: true });
+      navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}&purpose=Register&from=/become-owner`, { replace: true });
     } catch (error) {
       setApiError(getFriendlyAuthError(error));
     } finally {
@@ -82,7 +91,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Đăng ký" description="Chào mừng bạn đến với MoveVN!">
+    <AuthLayout title="Đăng ký chủ xe" description="Tạo tài khoản và đăng ký làm chủ xe trên MoveVN!">
       <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         {apiError ? <Alert variant="error">{apiError}</Alert> : null}
 
@@ -149,13 +158,6 @@ export default function RegisterPage() {
           </Link>
         </p>
       </form>
-
-      <p className="mt-4 text-center text-sm font-medium text-slate-600">
-        Hoặc{" "}
-        <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/register-owner">
-          đăng ký làm chủ xe
-        </Link>
-      </p>
     </AuthLayout>
   );
 }

@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { getMyApplication, createApplication, uploadNationalId, updateBankInfo, submitApplication } from "@/features/owner/services/ownerService";
+import { refreshSession } from "@/features/auth/services/authService";
+import { getRefreshToken } from "@/features/auth/hooks/useAuth";
 import type { OwnerApplicationDto, OwnerWizardStep, NationalIdOcrResult } from "@/features/owner/types";
+
+function nextStepToWizardStep(nextStep: string): OwnerWizardStep {
+  switch (nextStep) {
+    case "UploadNationalId": return "upload";
+    case "BankInfo": return "bank-info";
+    case "ReviewSubmit": return "review-submit";
+    case "ManualReview": return "manual-review";
+    case "NeedMoreInfo": return "pending";
+    case "OwnerDashboard": return "owner-success";
+    default: return "check-status";
+  }
+}
 
 export function useOwnerApplication(stepParam?: string | null) {
   const [application, setApplication] = useState<OwnerApplicationDto | null>(null);
@@ -46,7 +60,7 @@ export function useOwnerApplication(stepParam?: string | null) {
       } else if (stepParam === "bank") {
         setWizardStep("bank-info");
       } else {
-        setWizardStep("check-status");
+        setWizardStep(nextStepToWizardStep(app.nextStep));
       }
     } catch {
       setApplication(null);
@@ -98,15 +112,9 @@ export function useOwnerApplication(stepParam?: string | null) {
       setIsLoading(true);
       setError(null);
       try {
-        await updateBankInfo({ bankName, bankAccountNumber, bankAccountHolderName });
-        const updated = await refetch();
-        if (updated?.isOwner) {
-          setWizardStep("owner-success");
-        } else if (updated?.nationalIdVerified && updated?.bankInfoCompleted) {
-          setWizardStep("review-submit");
-        } else {
-          setWizardStep("check-status");
-        }
+        const result = await updateBankInfo({ bankName, bankAccountNumber, bankAccountHolderName });
+        setApplication(result);
+        setWizardStep(nextStepToWizardStep(result.nextStep));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Cập nhật thông tin ngân hàng thất bại.";
         setError(msg);
@@ -115,14 +123,24 @@ export function useOwnerApplication(stepParam?: string | null) {
         setIsLoading(false);
       }
     },
-    [refetch],
+    [],
   );
 
   const handleSubmit = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      await submitApplication();
+      const result = await submitApplication();
+      if (result.requiresTokenRefresh) {
+        const rt = getRefreshToken();
+        if (rt) {
+          try {
+            await refreshSession(rt);
+          } catch {
+            // refresh silently fails — user can still see success, logout later
+          }
+        }
+      }
       setWizardStep("owner-success");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gửi hồ sơ thất bại.";

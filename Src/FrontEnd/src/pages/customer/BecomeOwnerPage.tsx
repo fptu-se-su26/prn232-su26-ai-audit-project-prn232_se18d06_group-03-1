@@ -14,6 +14,8 @@ export default function BecomeOwnerPage() {
   useEffect(() => {
     if (wizardStep === "already-owner") {
       navigate("/account", { replace: true });
+    } else if (wizardStep === "manual-review" || wizardStep === "pending") {
+      navigate("/become-owner/pending", { replace: true });
     }
   }, [wizardStep, navigate]);
 
@@ -42,11 +44,8 @@ export default function BecomeOwnerPage() {
     );
   }
 
-  const needCccd = !application?.nationalIdVerified;
-  const needBank = !application?.bankInfoCompleted;
-
   // Show review/submit when both are done
-  if (!needCccd && !needBank && application) {
+  if (wizardStep === "review-submit" && application) {
     return (
       <div className="mx-auto max-w-3xl py-8">
         {error && (
@@ -60,6 +59,9 @@ export default function BecomeOwnerPage() {
       </div>
     );
   }
+
+  const needCccd = !application?.nationalIdVerified;
+  const needBank = !application?.bankInfoCompleted;
 
   let title: string;
   let message: string;

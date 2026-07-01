@@ -22,6 +22,7 @@ export default function VerifyEmailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const purpose = (searchParams.get("purpose") as OtpPurpose | null) ?? "Register";
+  const fromParam = searchParams.get("from");
   const canSubmit = useMemo(() => email.trim().length > 0 && otp.length === 6 && !isSubmitting, [email, otp, isSubmitting]);
 
   function validate() {
@@ -44,7 +45,7 @@ export default function VerifyEmailPage() {
     try {
       await verifyOtp({ email: email.trim(), otp, purpose });
       showToast({ type: "success", title: "Xác thực thành công", message: "Bạn có thể đăng nhập vào MoveVN." });
-      navigate("/login", { replace: true });
+      navigate(fromParam ? "/login" : "/login", { state: fromParam ? { from: { pathname: fromParam } } : undefined, replace: true });
     } catch (error) {
       setApiError(getFriendlyAuthError(error));
     } finally {

@@ -434,7 +434,7 @@ public class OwnerApplicationService : IOwnerApplicationService
                 frontForFpt, frontFileName, backForFpt, backFileName, cancellationToken);
 
             verificationRequest.ExternalProvider = "FPT_AI";
-            verificationRequest.ExternalResultJson = fptResult.RawResponse;
+            verificationRequest.ExternalResultJson = string.IsNullOrEmpty(fptResult.RawResponse) ? "{}" : fptResult.RawResponse;
             verificationRequest.Confidence = fptResult.Confidence;
             verificationRequest.ProcessedAt = DateTime.UtcNow;
 
@@ -520,6 +520,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         catch (AppException)
         {
             verificationRequest.Status = "Failed";
+            verificationRequest.ExternalResultJson ??= "{}";
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw;
@@ -528,6 +529,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         {
             _logger.LogError(ex, "UploadNationalIdAsync failed for user {UserId}. Error: {Message}", userId, ex.Message);
             verificationRequest.Status = "Failed";
+            verificationRequest.ExternalResultJson ??= "{}";
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw new AppException(ErrorCode.OWNER_VERIFICATION_REQUEST_FAILED, [ex.Message]);
@@ -566,16 +568,23 @@ public class OwnerApplicationService : IOwnerApplicationService
             ?? throw new AppException(ErrorCode.UNAUTHORIZED);
     }
 
-    private static void EnsureUserCanBecomeOwner(User user)
+    private void EnsureUserCanBecomeOwner(User user)
     {
-        if (user.Status != UserStatus.Active.ToString())
+        if (!user.IsEmailVerified)
+        {
+            throw new AppException(ErrorCode.OWNER_EMAIL_NOT_VERIFIED);
+        }
+
+        if (user.Status == UserStatus.Suspended.ToString())
         {
             throw new AppException(ErrorCode.OWNER_USER_NOT_ACTIVE);
         }
 
-        if (!user.IsEmailVerified)
+        if (user.Status != UserStatus.Active.ToString())
         {
-            throw new AppException(ErrorCode.OWNER_EMAIL_NOT_VERIFIED);
+            user.Status = UserStatus.Active.ToString();
+            user.UpdatedAt = DateTime.UtcNow;
+            _userRepository.Update(user);
         }
     }
 

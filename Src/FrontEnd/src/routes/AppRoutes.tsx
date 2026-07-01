@@ -8,12 +8,14 @@ import AdminHomePage from "@/pages/admin/AdminHomePage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
+import OwnerRegisterPage from "@/pages/auth/OwnerRegisterPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
 import BankInfoPage from "@/pages/customer/BankInfoPage";
 import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
 import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
+import OwnerPendingPage from "@/pages/customer/OwnerPendingPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -34,6 +36,7 @@ export default function AppRoutes() {
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register-owner" element={<OwnerRegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -51,6 +54,7 @@ export default function AppRoutes() {
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
             <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
             <Route path="/become-owner/bank" element={<BankInfoPage />} />
+            <Route path="/become-owner/pending" element={<OwnerPendingPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Owner"]} />}>

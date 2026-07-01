@@ -4,6 +4,8 @@ export type OwnerApplicationStatus =
   | "ReadyToSubmit"
   | "Submitted"
   | "Approved"
+  | "ManualReview"
+  | "NeedMoreInfo"
   | "Rejected"
   | "Cancelled";
 
@@ -23,6 +25,8 @@ export type OwnerWizardStep =
   | "success"
   | "bank-info"
   | "review-submit"
+  | "manual-review"
+  | "pending"
   | "owner-success"
   | "already-owner";
 
@@ -74,4 +78,25 @@ export interface SubmitApplicationRequest {
   fullName: string;
   nationalIdNumber: string;
   bankName: string;
+}
+
+export interface SubmitOwnerApplicationResponse {
+  status: string;
+  isOwner: boolean;
+  requiresTokenRefresh: boolean;
+  nextStep: OwnerNextStep;
+}
+
+export interface OwnerOnboardingRegisterRequest {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface OwnerOnboardingRegisterResponse {
+  userId: number;
+  ownerApplicationId: number;
+  nextStep: string;
 }
