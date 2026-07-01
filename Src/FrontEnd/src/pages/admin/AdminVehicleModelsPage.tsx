@@ -1,0 +1,355 @@
+import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Alert from "@/components/common/Alert";
+import Button from "@/components/common/Button";
+import FormDropdown from "@/components/common/FormDropdown";
+import ActiveToggle from "@/components/common/ActiveToggle";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import Modal from "@/components/common/Modal";
+import useClickOutside from "@/hooks/useClickOutside";
+import { getVehicleBrands } from "@/features/vehicleBrands/services/vehicleBrandService";
+import { getVehicleModels, createVehicleModel, updateVehicleModel, getVehicleModelCascadeInfo } from "@/features/vehicleModels/services/vehicleModelService";
+import { getVehicleModelVariants } from "@/features/vehicleModelVariants/services/vehicleModelVariantService";
+import { getFuelTypeLabel, getMotorbikeTypeLabel } from "@/features/vehicleModelVariants/options";
+import type { VehicleModelResponse } from "@/features/vehicleModels/types";
+import type { VehicleBrandResponse } from "@/features/vehicleBrands/types";
+import type { VehicleModelVariantResponse } from "@/features/vehicleModelVariants/types";
+
+const PAGE_SIZE = 10;
+
+function normalizeVehicleType(value: string) {
+  return value === "Motorcycle" ? "Motorbike" : value;
+}
+
+function vehicleTypeLabel(value: string) {
+  return normalizeVehicleType(value) === "Car" ? "Ô tô" : "Xe máy";
+}
+
+function FilterDropdown({ value, label, options, onChange }: { value: string; label: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, () => setOpen(false));
+  const current = options.find((o) => o.value === value);
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen((prev) => !prev)} className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+        <span className="text-xs text-slate-400">{label}:</span>
+        <span className="font-medium">{current?.label ?? "Tất cả"}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="dropdown-scrollbar absolute left-0 top-full z-20 mt-1 max-h-72 w-44 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+          {options.map((opt) => (
+            <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${opt.value === value ? "bg-brand-100 font-medium text-brand-700" : "text-slate-700 hover:bg-brand-50 hover:text-brand-700"}`}>{opt.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AdminVehicleModelsPage() {
+  const [items, setItems] = useState<VehicleModelResponse[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [keyword, setKeyword] = useState("");
+  const [sortBy, setSortBy] = useState("");
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState<VehicleModelResponse | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formBrandId, setFormBrandId] = useState("");
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [brands, setBrands] = useState<VehicleBrandResponse[]>([]);
+  const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
+  const [rowVariants, setRowVariants] = useState<VehicleModelVariantResponse[]>([]);
+  const [rowVariantsLoading, setRowVariantsLoading] = useState(false);
+
+  useEffect(() => {
+    getVehicleBrands({ pageSize: 500 }).then((r) => setBrands(r.items)).catch(() => {});
+  }, []);
+
+  const load = useCallback(async (p: number, kw: string, sort: string, vt: string, brandId: string) => {
+    setIsLoading(true);
+    setError(null);
+    setExpandedRowId(null);
+    setRowVariants([]);
+    try {
+      const result = await getVehicleModels({
+        page: p,
+        pageSize: PAGE_SIZE,
+        keyword: kw || undefined,
+        sortBy: sort || undefined,
+        vehicleType: vt || undefined,
+        brandId: brandId || undefined,
+      });
+      setItems(result.items);
+      setTotalCount(result.totalCount);
+      setPage(result.page);
+      setTotalPages(result.totalPages);
+    } catch {
+      setError("Không thể tải danh sách dòng xe.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(1, "", "", "", ""); }, [load]);
+
+  const visibleBrands = brands.filter((brand) => !vehicleTypeFilter || normalizeVehicleType(brand.vehicleType) === vehicleTypeFilter);
+  const hasActiveFilters = sortBy || vehicleTypeFilter || brandFilter;
+
+  function handleSearch() {
+    setPage(1);
+    void load(1, keyword, sortBy, vehicleTypeFilter, brandFilter);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") handleSearch();
+  }
+
+  function goToPage(nextPage: number) {
+    if (nextPage < 1 || nextPage > totalPages) return;
+    setPage(nextPage);
+    void load(nextPage, keyword, sortBy, vehicleTypeFilter, brandFilter);
+  }
+
+  function openCreate() {
+    setEditItem(null);
+    setFormName("");
+    setFormBrandId("");
+    setFormError("");
+    setModalOpen(true);
+  }
+
+  function openEdit(item: VehicleModelResponse) {
+    setEditItem(item);
+    setFormName(item.name);
+    setFormBrandId(String(item.brandId));
+    setFormError("");
+    setModalOpen(true);
+  }
+
+  async function toggleExpand(item: VehicleModelResponse) {
+    if (expandedRowId === item.id) {
+      setExpandedRowId(null);
+      setRowVariants([]);
+      return;
+    }
+    setExpandedRowId(item.id);
+    setRowVariants([]);
+    setRowVariantsLoading(true);
+    try {
+      const result = await getVehicleModelVariants({
+        page: 1,
+        pageSize: 500,
+        modelId: item.id,
+      });
+      setRowVariants(result.items);
+    } finally {
+      setRowVariantsLoading(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!formName.trim() || !formBrandId) {
+      setFormError("Vui lòng nhập đầy đủ thông tin.");
+      return;
+    }
+
+    setSaving(true);
+    setFormError("");
+    try {
+      const data = { name: formName.trim(), brandId: Number(formBrandId) };
+      if (editItem) {
+        await updateVehicleModel(editItem.id, { ...data, isActive: editItem.isActive });
+      } else {
+        await createVehicleModel(data);
+      }
+      setModalOpen(false);
+      void load(page, keyword, sortBy, vehicleTypeFilter, brandFilter);
+    } catch {
+      setFormError("Có lỗi xảy ra.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleActive(item: VehicleModelResponse) {
+    await updateVehicleModel(item.id, { name: item.name, brandId: item.brandId, isActive: !item.isActive });
+    void load(page, keyword, sortBy, vehicleTypeFilter, brandFilter);
+  }
+
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push("...");
+      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+      if (page < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  }, [page, totalPages]);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-950">Dòng xe</h1>
+          <p className="mt-1 text-sm text-slate-500">Quản lý danh sách dòng xe theo hãng và loại phương tiện.</p>
+        </div>
+        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Thêm dòng xe</Button>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-3">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input ref={searchRef} type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} placeholder="Tìm tên dòng xe..." className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <button type="button" onClick={handleSearch} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"><Search className="h-4 w-4" /> Tìm</button>
+          <button type="button" onClick={() => setShowFilters((prev) => !prev)}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors ${showFilters || hasActiveFilters ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}><SlidersHorizontal className="h-4 w-4" /> Bộ lọc</button>
+        </div>
+
+        {showFilters && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+            <FilterDropdown label="Sắp xếp" value={sortBy} onChange={(v) => { setSortBy(v); setPage(1); void load(1, keyword, v, vehicleTypeFilter, brandFilter); }}
+              options={[{ value: "", label: "Mới nhất" }, { value: "name_asc", label: "Tên A-Z" }, { value: "name_desc", label: "Tên Z-A" }]} />
+            <FilterDropdown label="Loại xe" value={vehicleTypeFilter} onChange={(v) => { setVehicleTypeFilter(v); setBrandFilter(""); setPage(1); void load(1, keyword, sortBy, v, ""); }}
+              options={[{ value: "", label: "Tất cả" }, { value: "Car", label: "Ô tô" }, { value: "Motorbike", label: "Xe máy" }]} />
+            <FilterDropdown label="Hãng xe" value={brandFilter} onChange={(v) => { setBrandFilter(v); setPage(1); void load(1, keyword, sortBy, vehicleTypeFilter, v); }}
+              options={[{ value: "", label: "Tất cả" }, ...visibleBrands.map((brand) => ({ value: String(brand.id), label: brand.name }))]} />
+            {hasActiveFilters && <button type="button" onClick={() => { setKeyword(""); setSortBy(""); setVehicleTypeFilter(""); setBrandFilter(""); setPage(1); if (searchRef.current) searchRef.current.value = ""; void load(1, "", "", "", ""); }} className="text-xs font-medium text-brand-700 hover:text-brand-800">Xóa bộ lọc</button>}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div className="text-sm font-medium text-slate-700">{totalCount} dòng xe</div>
+          {isLoading && <LoadingSpinner className="h-4 w-4" />}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+              <tr><th className="px-4 py-3">Tên dòng xe</th><th className="px-4 py-3">Hãng xe</th><th className="px-4 py-3">Loại xe</th><th className="px-4 py-3 text-center">Số P.B</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3">Thao tác</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {items.map((item) => (
+                <Fragment key={item.id}>
+                  <tr onClick={() => void toggleExpand(item)} className="cursor-pointer hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">{item.name}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); const normalized = normalizeVehicleType(item.vehicleType); setVehicleTypeFilter(normalized); setBrandFilter(String(item.brandId)); setPage(1); void load(1, keyword, sortBy, normalized, String(item.brandId)); }} className="font-medium text-brand-700 hover:text-brand-800">
+                        {item.brandName}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{vehicleTypeLabel(item.vehicleType)}</td>
+                    <td className="px-4 py-3 text-center text-slate-600">{item.variantCount}</td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <ActiveToggle isActive={item.isActive} itemName={item.name}
+                        onToggle={() => handleToggleActive(item)}
+                        cascadeInfo={() => getVehicleModelCascadeInfo(item.id)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(item); }} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedRowId === item.id && (
+                    <tr>
+                      <td colSpan={6} className="bg-slate-50 px-4 py-4">
+                        {rowVariantsLoading ? (
+                          <div className="flex items-center justify-center py-6"><LoadingSpinner className="h-5 w-5" /></div>
+                        ) : rowVariants.length === 0 ? (
+                          <div className="py-6 text-center text-sm text-slate-500">Chưa có phiên bản nào thuộc dòng xe này.</div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {rowVariants.map((variant) => {
+                              const isCar = normalizeVehicleType(variant.vehicleType) === "Car";
+                              const specs = isCar
+                                ? [variant.seatCount ? `${variant.seatCount} chỗ` : null, variant.bodyType, variant.transmission].filter(Boolean).join(" - ")
+                                : [getMotorbikeTypeLabel(variant.bikeType), variant.engineCapacity].filter(Boolean).join(" - ");
+                              return (
+                                <div key={variant.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                                  <div className="mb-2 flex items-center justify-between gap-2">
+                                    <span className="truncate font-medium text-slate-900">{variant.name}</span>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${normalizeVehicleType(variant.vehicleType) === "Car" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                                        {vehicleTypeLabel(variant.vehicleType)}
+                                      </span>
+                                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${variant.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
+                                        {variant.isActive ? "Hoạt động" : "Đã tắt"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1 text-xs text-slate-600">
+                                    <div><span className="font-medium text-slate-500">Thông số:</span> {specs || "-"}</div>
+                                    <div><span className="font-medium text-slate-500">Nhiên liệu:</span> {getFuelTypeLabel(variant.fuelType)}</div>
+                                    <div><span className="font-medium text-slate-500">GPLX:</span> {variant.requiredLicenseClassCode ? `${variant.requiredLicenseClassCode}${variant.requiredLicenseClassSystemVersion === "LegacyBefore2025" ? " (cũ)" : ""}` : "-"}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+              {!isLoading && items.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">Không có dòng xe nào.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+            <div className="text-sm text-slate-500">Trang {page} / {totalPages}</div>
+            <div className="flex items-center gap-1">
+              <button type="button" disabled={page <= 1} onClick={() => goToPage(page - 1)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+              {pageNumbers.map((p, i) => p === "..." ? <span key={`e-${i}`} className="flex h-8 w-8 items-center justify-center text-sm text-slate-400">...</span> : (
+                <button key={p} type="button" onClick={() => goToPage(p as number)} className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors ${p === page ? "bg-brand-700 text-white" : "text-slate-600 hover:bg-slate-100"}`}>{p}</button>
+              ))}
+              <button type="button" disabled={page >= totalPages} onClick={() => goToPage(page + 1)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Sửa dòng xe" : "Thêm dòng xe"}>
+        <div className="hide-scrollbar max-h-[70vh] space-y-4 overflow-y-auto">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Tên dòng xe</label>
+            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Hãng xe</label>
+            <FormDropdown value={formBrandId} onChange={setFormBrandId} placeholder="Chọn hãng xe"
+              options={brands.map((brand) => ({value: String(brand.id), label: `${brand.name} - ${vehicleTypeLabel(brand.vehicleType)}`}))} />
+          </div>
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>Hủy</Button>
+            <Button onClick={handleSave} isLoading={saving}>{editItem ? "Cập nhật" : "Thêm mới"}</Button>
+          </div>
+        </div>
+      </Modal>
+
+    </div>
+  );
+}

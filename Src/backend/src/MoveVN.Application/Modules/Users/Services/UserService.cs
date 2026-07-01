@@ -1,4 +1,7 @@
+using AutoMapper;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Users.DTOs;
 using MoveVN.Application.Modules.Users.Interfaces;
@@ -7,33 +10,36 @@ namespace MoveVN.Application.Modules.Users.Services;
 
 public class UserService : IUserService
 {
-    private readonly IIdentityService _identityService;
+    private readonly IUserRepository _userRepository;
     private readonly ICurrentUserContext _currentUserContext;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
 
-    public UserService(IIdentityService identityService, ICurrentUserContext currentUserContext)
+    public UserService(
+        IUserRepository userRepository,
+        ICurrentUserContext currentUserContext,
+        IUnitOfWork unitOfWork,
+        IMapper mapper)
     {
-        _identityService = identityService;
+        _userRepository = userRepository;
         _currentUserContext = currentUserContext;
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
     }
 
-    public async Task<UserResponse> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<UserResponse> GetByIdAsync(long userId, CancellationToken cancellationToken = default)
     {
-        var user = await _identityService.FindByIdAsync(userId, cancellationToken)
-            ?? throw new NotFoundException("User was not found.");
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
-        return new UserResponse
-        {
-            UserId = user.UserId,
-            FullName = user.FullName,
-            Email = user.Email
-        };
+        return _mapper.Map<UserResponse>(user);
     }
 
     public async Task<UserResponse> GetCurrentProfileAsync(CancellationToken cancellationToken = default)
     {
         if (_currentUserContext.UserId is not { } userId)
         {
-            throw new ValidationException(new[] { "Invalid user id claim." });
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         return await GetByIdAsync(userId, cancellationToken);
@@ -43,9 +49,17 @@ public class UserService : IUserService
     {
         if (_currentUserContext.UserId is not { } userId)
         {
-            throw new ValidationException(new[] { "Invalid user id claim." });
+            throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        return await _identityService.UpdateProfileAsync(userId, request, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        user.FullName = request.FullName.Trim();
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return _mapper.Map<UserResponse>(user);
     }
 }

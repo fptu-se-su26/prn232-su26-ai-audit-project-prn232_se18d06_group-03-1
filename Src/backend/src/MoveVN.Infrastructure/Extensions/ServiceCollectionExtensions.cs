@@ -1,29 +1,13 @@
 using MoveVN.Application.Interfaces;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
-using MoveVN.Application.Modules.Bookings.Interfaces;
-using MoveVN.Application.Modules.Contracts.Interfaces;
-using MoveVN.Application.Modules.Notifications.Interfaces;
-using MoveVN.Application.Modules.Payments.Interfaces;
-using MoveVN.Application.Modules.Reports.Interfaces;
-using MoveVN.Application.Modules.Reviews.Interfaces;
-using MoveVN.Application.Modules.System.Interfaces;
-using MoveVN.Application.Modules.Users.Interfaces;
-using MoveVN.Application.Modules.Vehicles.Interfaces;
-using MoveVN.Infrastructure.Services;
+using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Infrastructure.Identity;
-using MoveVN.Infrastructure.Identity.Services;
 using MoveVN.Infrastructure.Persistence;
+using MoveVN.Infrastructure.Persistence.Mongo;
+using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 using MoveVN.Infrastructure.Persistence.Repositories;
-using MoveVN.Infrastructure.Persistence.Repositories.Auth;
-using MoveVN.Infrastructure.Persistence.Repositories.Bookings;
-using MoveVN.Infrastructure.Persistence.Repositories.Contracts;
-using MoveVN.Infrastructure.Persistence.Repositories.Notifications;
-using MoveVN.Infrastructure.Persistence.Repositories.Payments;
-using MoveVN.Infrastructure.Persistence.Repositories.Reports;
-using MoveVN.Infrastructure.Persistence.Repositories.Reviews;
-using MoveVN.Infrastructure.Persistence.Repositories.System;
-using MoveVN.Infrastructure.Persistence.Repositories.Users;
-using MoveVN.Infrastructure.Persistence.Repositories.Vehicles;
+using MoveVN.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -40,8 +24,7 @@ public static class ServiceCollectionExtensions
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString, npgsqlOptions =>
-                npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
-            .UseSnakeCaseNamingConvention());
+                npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
         services
             .AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -58,57 +41,52 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(Persistence.Repositories.GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IIdentityService, IdentityService>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
-
-        // ─── Auth repositories ────────────────────────────────────────────────
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IVehicleCatalogRepository, VehicleCatalogRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-        services.AddScoped<IAuthLogRepository, AuthLogRepository>();
+        services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient("UpstashRedis", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(3);
+        });
+        services.AddSingleton<ITokenSessionService, RedisTokenSessionService>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<DbInitializer>();
 
-        // ─── Auth services ──────────────────────────────────────────────────────
-        services.AddScoped<IAesEncryptionService, AesEncryptionService>();
-        services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<IRateLimitService, RateLimitService>();
+        services.AddSingleton<ICloudinaryService, CloudinaryService>();
+        services.AddSingleton<IRedisLockService, RedisLockService>();
+        services.AddSingleton<IPresenceService, RedisPresenceService>();
+        services.AddScoped<IVnptAiService, VnptAiService>();
+        services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
+        services.AddSingleton<IVehicleVerificationLogService, VehicleVerificationLogService>();
+        services.AddSingleton<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
 
-        // ─── Vehicle repositories ──────────────────────────────────────────────
-        services.AddScoped<IVehicleRepository, VehicleRepository>();
-        services.AddScoped<IBlockedDateRepository, BlockedDateRepository>();
+        var mongoConnection = configuration["MONGO_CONNECTION"];
+        if (!string.IsNullOrWhiteSpace(mongoConnection))
+        {
+            services.Configure<MongoDbSettings>(settings =>
+            {
+                settings.ConnectionString = mongoConnection;
+                settings.DatabaseName = configuration["MONGO_DATABASE"] ?? "movevn";
+            });
 
-        // ─── Vehicle services ──────────────────────────────────────────────────
-        services.AddScoped<ICloudinaryService, CloudinaryService>();
+            services.AddSingleton<MongoDbContext>();
+            services.AddSingleton<MongoIndexInitializer>();
+            services.AddSingleton<MongoMigrationRunner>();
 
-        // ─── Booking repositories ──────────────────────────────────────────────
-        services.AddScoped<IBookingRepository, BookingRepository>();
-        services.AddScoped<IInspectionRepository, InspectionRepository>();
-
-        // ─── Contract repositories & services ──────────────────────────────────
-        services.AddScoped<IContractRepository, ContractRepository>();
-        services.AddScoped<IPdfGeneratorService, PdfGeneratorService>();
-
-        // ─── Payment repositories ──────────────────────────────────────────────
-        services.AddScoped<IPaymentRepository, PaymentRepository>();
-
-        // ─── Notification repositories & services ──────────────────────────────
-        services.AddScoped<INotificationRepository, NotificationRepository>();
-        services.AddScoped<INotificationHub, NotificationHub>();
-
-        // ─── Report repositories ───────────────────────────────────────────────
-        services.AddScoped<IDisputeRepository, DisputeRepository>();
-        services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
-
-        // ─── Review repositories ───────────────────────────────────────────────
-        services.AddScoped<IReviewRepository, ReviewRepository>();
-
-        // ─── User repositories ─────────────────────────────────────────────────
-        services.AddScoped<IVerificationRepository, VerificationRepository>();
-        services.AddScoped<IAdminUserRepository, AdminUserRepository>();
-
-        // ─── System repositories ───────────────────────────────────────────────
-        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-        services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
-        services.AddScoped<IDashboardRepository, DashboardRepository>();
-        services.AddScoped<ITrustScoreRepository, TrustScoreRepository>();
+            foreach (var migrationType in typeof(IMongoMigration).Assembly.GetTypes()
+                .Where(type => typeof(IMongoMigration).IsAssignableFrom(type)
+                    && type is { IsAbstract: false, IsInterface: false }))
+            {
+                services.AddSingleton(typeof(IMongoMigration), migrationType);
+            }
+        }
 
         return services;
     }

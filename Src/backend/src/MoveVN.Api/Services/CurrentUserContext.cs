@@ -13,7 +13,7 @@ public class CurrentUserContext : ICurrentUserContext
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Guid? UserId
+    public long? UserId
     {
         get
         {
@@ -21,7 +21,7 @@ public class CurrentUserContext : ICurrentUserContext
             var userId = user?.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? user?.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-            return Guid.TryParse(userId, out var parsedUserId) ? parsedUserId : null;
+            return long.TryParse(userId, out var parsedUserId) ? parsedUserId : null;
         }
     }
 

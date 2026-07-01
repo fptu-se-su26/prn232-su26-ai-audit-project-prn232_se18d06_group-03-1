@@ -1,77 +1,82 @@
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using MoveVN.Application.Modules.Vehicles.Interfaces;
+using Microsoft.Extensions.Configuration;
+using MoveVN.Application.Common.Errors;
+using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Interfaces;
 
 namespace MoveVN.Infrastructure.Services;
 
 public class CloudinaryService : ICloudinaryService
 {
-    private readonly Cloudinary? _cloudinary;
-    private readonly ILogger<CloudinaryService> _logger;
+    private readonly Cloudinary _cloudinary;
 
-    public CloudinaryService(ILogger<CloudinaryService> logger)
+    public CloudinaryService(IConfiguration configuration)
     {
-        _logger = logger;
+        var cloudName = configuration["CLOUDINARY_CLOUD_NAME"];
+        var apiKey = configuration["CLOUDINARY_API_KEY"];
+        var apiSecret = configuration["CLOUDINARY_API_SECRET"];
 
-        var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
-        var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
-        var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
+        if (string.IsNullOrWhiteSpace(cloudName) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiSecret))
+        {
+            throw new InvalidOperationException("Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+        }
 
-        if (!string.IsNullOrEmpty(cloudName) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
-        {
-            var account = new Account(cloudName, apiKey, apiSecret);
-            _cloudinary = new Cloudinary(account);
-        }
-        else
-        {
-            _logger.LogWarning("Cloudinary not configured. Will return mock URLs.");
-        }
+        var account = new Account(cloudName, apiKey, apiSecret);
+        _cloudinary = new Cloudinary(account);
     }
 
-    public async Task<string> UploadImageAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
+    public async Task<CloudinaryUploadResult> UploadAsync(Stream fileStream, string fileName, string folder, CancellationToken cancellationToken = default)
     {
-        if (_cloudinary == null)
-            return $"https://mock.cloudinary.com/{folder}/{file.FileName}";
-
-        using var stream = file.OpenReadStream();
         var uploadParams = new ImageUploadParams
         {
-            File = new FileDescription(file.FileName, stream),
+            File = new FileDescription(fileName, fileStream),
             Folder = folder,
-            Transformation = new Transformation().Quality("auto").FetchFormat("auto")
+            UseFilename = false,
+            UniqueFilename = true,
+            Overwrite = false
         };
 
         var result = await _cloudinary.UploadAsync(uploadParams, cancellationToken);
-        return result.SecureUrl?.AbsoluteUri ?? result.Url?.AbsoluteUri ?? string.Empty;
+
+        if (result.Error is not null)
+        {
+            throw new AppException(ErrorCode.CLOUDINARY_UPLOAD_FAILED, [result.Error.Message]);
+        }
+
+        return new CloudinaryUploadResult(
+            result.PublicId,
+            result.SecureUrl.AbsoluteUri,
+            result.Width,
+            result.Height,
+            result.Bytes);
     }
 
-    public async Task<string> UploadFileAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
+    public Task<string> GetSignedUrlAsync(string publicId, int expiryMinutes = 60)
     {
-        if (_cloudinary == null)
-            return $"https://mock.cloudinary.com/{folder}/{file.FileName}";
-
-        using var stream = file.OpenReadStream();
-        var uploadParams = new RawUploadParams
+        try
         {
-            File = new FileDescription(file.FileName, stream),
-            Folder = folder
-        };
+            var url = _cloudinary.Api.UrlImgUp
+                .ResourceType("image")
+                .Signed(true)
+                .BuildUrl(publicId);
 
-        var result = await _cloudinary.UploadAsync(uploadParams);
-        return result.SecureUrl?.AbsoluteUri ?? result.Url?.AbsoluteUri ?? string.Empty;
+            return Task.FromResult(url);
+        }
+        catch (Exception)
+        {
+            throw new AppException(ErrorCode.CLOUDINARY_SIGNED_URL_FAILED);
+        }
     }
 
     public async Task DeleteAsync(string publicId, CancellationToken cancellationToken = default)
     {
-        if (_cloudinary == null)
-        {
-            _logger.LogWarning("Cloudinary not configured. Skipping delete for {PublicId}.", publicId);
-            return;
-        }
-
         var deleteParams = new DeletionParams(publicId);
-        await _cloudinary.DestroyAsync(deleteParams);
+        var result = await _cloudinary.DestroyAsync(deleteParams);
+
+        if (result.Error is not null)
+        {
+            throw new AppException(ErrorCode.CLOUDINARY_DELETE_FAILED, [result.Error.Message]);
+        }
     }
 }

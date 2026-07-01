@@ -4,7 +4,7 @@ namespace MoveVN.Application.Modules.Users.Interfaces;
 
 public interface IUserService
 {
-    Task<UserResponse> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UserResponse> GetByIdAsync(long userId, CancellationToken cancellationToken = default);
 
     Task<UserResponse> GetCurrentProfileAsync(CancellationToken cancellationToken = default);
 

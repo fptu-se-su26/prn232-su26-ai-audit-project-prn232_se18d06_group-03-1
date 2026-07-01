@@ -1,22 +1,17 @@
-using Hangfire;
-using Hangfire.PostgreSql;
 using MoveVN.Api.Extensions;
 using MoveVN.Api.Hubs;
 using MoveVN.Api.Services;
 using MoveVN.Application;
 using MoveVN.Application.Modules.Auth.Interfaces;
-using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Infrastructure.Extensions;
-using MoveVN.Infrastructure.Persistence;
 using DotNetEnv;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using System.Threading.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 
 var envFilePath = FindEnvFile();
 if (envFilePath is not null)
@@ -25,6 +20,15 @@ if (envFilePath is not null)
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".keys");
+Directory.CreateDirectory(dataProtectionKeysPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 
 builder.Configuration["ConnectionStrings:DefaultConnection"] =
     GetRequiredEnvironmentVariable("DB_CONNECTION");
@@ -41,10 +45,31 @@ builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<PresenceCleanupService>();
+
+const string frontendCorsPolicy = "Frontend";
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(frontendCorsPolicy, policy =>
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
+
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "MoveVN API",
@@ -98,57 +123,38 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.Zero
         };
-
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+
+                if (!string.IsNullOrWhiteSpace(accessToken) && path.StartsWithSegments("/hubs/presence"))
                 {
                     context.Token = accessToken;
                 }
+
                 return Task.CompletedTask;
+            },
+            OnTokenValidated = async context =>
+            {
+                var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                var tokenSessionService = context.HttpContext.RequestServices.GetRequiredService<ITokenSessionService>();
+
+                if (string.IsNullOrWhiteSpace(jti) || !await tokenSessionService.IsActiveAsync(jti, context.HttpContext.RequestAborted))
+                {
+                    context.Fail("Token session is inactive.");
+                }
             }
         };
     });
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.SetIsOriginAllowed(_ => true)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
-    });
-});
-
-builder.Services.AddSignalR();
-
-var hangfireConn = GetRequiredEnvironmentVariable("DB_CONNECTION");
-builder.Services.AddHangfire(config => config.UsePostgreSqlStorage(hangfireConn));
-builder.Services.AddHangfireServer();
-
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddFixedWindowLimiter("Fixed", cfg =>
-    {
-        cfg.PermitLimit = 100;
-        cfg.Window = TimeSpan.FromMinutes(1);
-        cfg.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        cfg.QueueLimit = 0;
-    });
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-});
-
-builder.Services.AddMemoryCache();
-builder.Services.AddScoped<INotificationHub, NotificationHubForwarder>();
-
 var app = builder.Build();
+
+await app.ApplyDatabaseMigrationsAsync();
 
 app.UseGlobalExceptionMiddleware();
 
@@ -158,42 +164,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAll");
-app.UseRateLimiter();
 app.UseHttpsRedirection();
+app.UseCors(frontendCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-app.MapHub<UserPresenceHub>("/hubs/presence");
-app.MapHub<NotificationHub>("/hubs/notifications");
-app.MapHub<ChatHub>("/hubs/chat");
-
-using (var scope = app.Services.CreateScope())
-{
-    // Ensure AuthLogs table exists (added after initial migration)
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.ExecuteSqlRawAsync("""
-        CREATE TABLE IF NOT EXISTS "AuthLogs" (
-            id BIGINT GENERATED BY DEFAULT AS IDENTITY,
-            user_id BIGINT NULL,
-            email TEXT NULL,
-            event_type TEXT NOT NULL DEFAULT '',
-            ip_address TEXT NULL,
-            user_agent TEXT NULL,
-            device_info TEXT NULL,
-            success BOOLEAN NOT NULL DEFAULT FALSE,
-            fail_reason TEXT NULL,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            CONSTRAINT "PK_AuthLogs" PRIMARY KEY (id),
-            CONSTRAINT "FK_AuthLogs_Users_user_id" FOREIGN KEY (user_id) REFERENCES "Users"(id) ON DELETE SET NULL
-        );
-        CREATE INDEX IF NOT EXISTS "IX_AuthLogs_user_id" ON "AuthLogs"(user_id);
-        CREATE INDEX IF NOT EXISTS "IX_AuthLogs_created_at" ON "AuthLogs"(created_at DESC);
-    """);
-
-    await SeedData.InitializeAsync(scope.ServiceProvider);
-}
+app.MapHub<PresenceHub>("/hubs/presence");
 
 app.Run();
 

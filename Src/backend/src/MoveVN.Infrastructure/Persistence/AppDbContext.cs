@@ -1,10 +1,11 @@
 using MoveVN.Domain.Common;
 using MoveVN.Domain.Entities;
+using MoveVN.Domain.Enums;
 using MoveVN.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 
 namespace MoveVN.Infrastructure.Persistence;
 
@@ -15,80 +16,163 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     {
     }
 
-    // ─── Domain tables ───────────────────────────────────────────────────────
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Role> Roles => Set<Role>();
-    public DbSet<UserRole> UserRoles => Set<UserRole>();
-    public DbSet<Permission> Permissions => Set<Permission>();
-    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
-    public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
-    public DbSet<OwnerProfile> OwnerProfiles => Set<OwnerProfile>();
-    public DbSet<StaffProfile> StaffProfiles => Set<StaffProfile>();
-    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-    public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
-    public DbSet<AuthLog> AuthLogs => Set<AuthLog>();
-    public DbSet<UserSession> UserSessions => Set<UserSession>();
-    public DbSet<TrustScore> TrustScores => Set<TrustScore>();
-    public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
-
-    // ─── Vehicle tables ───────────────────────────────────────────────────────
-    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
-    public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
-    public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
-    public DbSet<VehicleImage> VehicleImages => Set<VehicleImage>();
-    public DbSet<VehicleDocument> VehicleDocuments => Set<VehicleDocument>();
-    public DbSet<VehicleFeature> VehicleFeatures => Set<VehicleFeature>();
-    public DbSet<VehicleFeatureMapping> VehicleFeatureMappings => Set<VehicleFeatureMapping>();
-    public DbSet<VehiclePricing> VehiclePricings => Set<VehiclePricing>();
-    public DbSet<VehicleModelPricing> VehicleModelPricings => Set<VehicleModelPricing>();
+    public DbSet<Area> Area => Set<Area>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<BlockedDate> BlockedDates => Set<BlockedDate>();
-    public DbSet<CarDetail> CarDetails => Set<CarDetail>();
-    public DbSet<MotorbikeDetail> MotorbikeDetails => Set<MotorbikeDetail>();
-    public DbSet<PricingRegion> PricingRegions => Set<PricingRegion>();
-    public DbSet<Area> Areas => Set<Area>();
-    public DbSet<PricingRule> PricingRules => Set<PricingRule>();
-
-    // ─── Booking tables ───────────────────────────────────────────────────────
     public DbSet<Booking> Bookings => Set<Booking>();
-    public DbSet<BookingStatusHistory> BookingStatusHistories => Set<BookingStatusHistory>();
-    public DbSet<Contract> Contracts => Set<Contract>();
-    public DbSet<Payment> Payments => Set<Payment>();
-    public DbSet<InspectionReport> InspectionReports => Set<InspectionReport>();
+    public DbSet<BookingStatusHistory> BookingStatusHistory => Set<BookingStatusHistory>();
+    public DbSet<CarDetail> CarDetail => Set<CarDetail>();
+    public DbSet<CashbackRule> CashbackRules => Set<CashbackRule>();
     public DbSet<CheckInOutImage> CheckInOutImages => Set<CheckInOutImage>();
+    public DbSet<Contract> Contracts => Set<Contract>();
+    public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
+    public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
-    public DbSet<Report> Reports => Set<Report>();
-    public DbSet<Review> Reviews => Set<Review>();
-
-    // ─── Notification & Support ───────────────────────────────────────────────
+    public DbSet<DriverLicenseClass> DriverLicenseClasses => Set<DriverLicenseClass>();
+    public DbSet<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => Set<DriverLicenseClassCompatibility>();
+    public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
+    public DbSet<InspectionReport> InspectionReports => Set<InspectionReport>();
+    public DbSet<MLPredictionLog> MLPredictionLogs => Set<MLPredictionLog>();
+    public DbSet<MotorbikeDetail> MotorbikeDetail => Set<MotorbikeDetail>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
+    public DbSet<OwnerApplication> OwnerApplications => Set<OwnerApplication>();
+    public DbSet<OwnerProfile> OwnerProfiles => Set<OwnerProfile>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<PlatformFeeRule> PlatformFeeRules => Set<PlatformFeeRule>();
+    public DbSet<PricingRegion> PricingRegion => Set<PricingRegion>();
+    public DbSet<PricingRule> PricingRules => Set<PricingRule>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<Review> Reviews => Set<Review>();
+    public new DbSet<Role> Roles => Set<Role>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<StaffProfile> StaffProfiles => Set<StaffProfile>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SystemConfig> SystemConfig => Set<SystemConfig>();
     public DbSet<TicketMessage> TicketMessages => Set<TicketMessage>();
-
-    // ─── Financial ───────────────────────────────────────────────────────────
+    public DbSet<TrustScore> TrustScores => Set<TrustScore>();
+    public new DbSet<User> Users => Set<User>();
+    public new DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<VehicleBrand> VehicleBrand => Set<VehicleBrand>();
+    public DbSet<VehicleDocument> VehicleDocuments => Set<VehicleDocument>();
+    public DbSet<VehicleFeature> VehicleFeature => Set<VehicleFeature>();
+    public DbSet<VehicleFeatureMapping> VehicleFeatureMapping => Set<VehicleFeatureMapping>();
+    public DbSet<VehicleImage> VehicleImages => Set<VehicleImage>();
+    public DbSet<VehicleModel> VehicleModel => Set<VehicleModel>();
+    public DbSet<VehicleModelVariant> VehicleModelVariant => Set<VehicleModelVariant>();
+    public DbSet<VehicleModelPricing> VehicleModelPricing => Set<VehicleModelPricing>();
+    public DbSet<VehiclePricing> VehiclePricing => Set<VehiclePricing>();
+    public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
-    public DbSet<PlatformFeeRule> PlatformFeeRules => Set<PlatformFeeRule>();
-    public DbSet<CashbackRule> CashbackRules => Set<CashbackRule>();
-
-    // ─── System ───────────────────────────────────────────────────────────────
-    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-    public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
-    public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
-    public DbSet<MLPredictionLog> MLPredictionLogs => Set<MLPredictionLog>();
-    public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
-        // Composite keys
-        builder.Entity<VehicleFeatureMapping>().HasKey(x => new { x.VehicleId, x.FeatureId });
-        builder.Entity<RolePermission>().HasKey(x => new { x.RoleId, x.PermissionId });
+        builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
+        builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
+        builder.Entity<DriverLicenseClass>().HasIndex(entity => entity.Code).IsUnique();
+        builder.Entity<VehicleBrand>().HasIndex(entity => new { entity.Name, entity.VehicleType }).IsUnique();
+        builder.Entity<DriverLicenseClassCompatibility>().HasKey(entity => new { entity.LicenseClassId, entity.AllowedRequiredLicenseClassId });
+        builder.Entity<DriverLicenseClassCompatibility>()
+            .HasOne<DriverLicenseClass>()
+            .WithMany()
+            .HasForeignKey(entity => entity.LicenseClassId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<DriverLicenseClassCompatibility>()
+            .HasOne<DriverLicenseClass>()
+            .WithMany()
+            .HasForeignKey(entity => entity.AllowedRequiredLicenseClassId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<RolePermission>().HasKey(entity => new { entity.RoleId, entity.PermissionId });
+        builder.Entity<VehicleFeatureMapping>().HasKey(entity => new { entity.VehicleId, entity.FeatureId });
+        builder.Entity<PricingRegion>().HasIndex(entity => entity.Code).IsUnique();
+        builder.Entity<Area>().HasIndex(entity => new { entity.Province, entity.District }).IsUnique();
+        builder.Entity<VehicleModelPricing>().HasIndex(entity => entity.ModelId).IsUnique();
+        builder.Entity<VehicleModelPricing>()
+            .HasOne(x => x.Model)
+            .WithMany()
+            .HasForeignKey(x => x.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<PricingRule>()
+            .HasOne(x => x.Brand)
+            .WithMany()
+            .HasForeignKey(x => x.BrandId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<PricingRule>()
+            .HasOne(x => x.Model)
+            .WithMany()
+            .HasForeignKey(x => x.ModelId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<PricingRule>()
+            .HasOne(x => x.PricingRegion)
+            .WithMany()
+            .HasForeignKey(x => x.PricingRegionId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<VehicleModelVariant>().HasIndex(entity => new { entity.ModelId, entity.Name });
+        builder.Entity<VehicleModelVariant>()
+            .HasOne<VehicleModel>()
+            .WithMany()
+            .HasForeignKey(entity => entity.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Vehicle>()
+            .HasOne<VehicleModelVariant>()
+            .WithMany()
+            .HasForeignKey(entity => entity.VariantId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Vehicle>()
+            .HasOne<Area>()
+            .WithMany()
+            .HasForeignKey(entity => entity.AreaId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
+        builder.Entity<VehicleDocument>().HasIndex(entity => entity.VehicleId);
+        builder.Entity<VehicleDocument>().HasIndex(entity => new { entity.VehicleId, entity.IsCurrent });
+        builder.Entity<VehicleDocument>().HasIndex(entity => entity.VerificationStatus);
+        builder.Entity<VehicleDocument>()
+            .Property(entity => entity.VerificationStatus)
+            .HasConversion<string>()
+            .HasDefaultValue(VehicleDocumentVerificationStatus.Pending);
+        builder.Entity<VehicleDocument>().Property(entity => entity.IsCurrent).HasDefaultValue(true);
+        builder.Entity<VehicleDocument>().Property(entity => entity.OcrConfidence).HasPrecision(15, 2);
+        builder.Entity<VehicleModelVariant>()
+            .HasOne<DriverLicenseClass>()
+            .WithMany()
+            .HasForeignKey(entity => entity.RequiredLicenseClassId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CarDetail>()
+            .HasOne<VehicleModelVariant>()
+            .WithMany()
+            .HasForeignKey(entity => entity.ModelVariantId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<MotorbikeDetail>()
+            .HasOne<VehicleModelVariant>()
+            .WithMany()
+            .HasForeignKey(entity => entity.ModelVariantId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CustomerProfile>().HasIndex(entity => entity.NationalIdHash);
+        builder.Entity<OwnerApplication>().HasIndex(entity => new { entity.UserId, entity.Status });
+        builder.Entity<OwnerApplication>().HasIndex(entity => entity.NationalIdVerificationRequestId);
+        builder.Entity<OwnerApplication>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<OwnerApplication>()
+            .HasOne<VerificationRequest>()
+            .WithMany()
+            .HasForeignKey(entity => entity.NationalIdVerificationRequestId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<VerificationRequest>().Property(entity => entity.ExternalResultJson).HasColumnType("jsonb");
+        builder.Entity<VerificationRequest>().Property(entity => entity.Confidence).HasPrecision(15, 2);
 
-        // CarDetail / MotorbikeDetail use VehicleId as PK
-        builder.Entity<CarDetail>().HasKey(x => x.VehicleId);
-        builder.Entity<MotorbikeDetail>().HasKey(x => x.VehicleId);
+        ApplySnakeCaseColumnNames(builder);
 
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
@@ -98,36 +182,46 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 builder.Entity(entityType.ClrType).HasQueryFilter(CreateSoftDeleteFilter(entityType.ClrType));
             }
         }
+    }
 
-        // Fix snake_case table names back to PascalCase, matching the DB schema from the initial migration
-        var singularTables = new HashSet<string>
-        {
-            "Area", "CarDetail", "MotorbikeDetail", "VehicleBrand", "VehicleFeature",
-            "VehicleModel", "VehicleModelPricing", "VehiclePricing", "SystemConfig",
-            "VehicleFeatureMapping", "VehicleFeatureMapping",
-        };
+    private static void ApplySnakeCaseColumnNames(ModelBuilder builder)
+    {
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
-            var tableName = entityType.GetTableName();
-            if (tableName is null) continue;
-            var pascalName = SnakeToPascal(tableName);
-            // If the entity type name is singular but SnakeToPascal gives plural, override
-            var clrName = entityType.ClrType.Name;
-            if (singularTables.Contains(clrName))
+            foreach (var property in entityType.GetProperties())
             {
-                entityType.SetTableName(clrName);
-            }
-            else
-            {
-                entityType.SetTableName(pascalName);
+                property.SetColumnName(ToSnakeCase(property.Name));
             }
         }
     }
 
-    private static string SnakeToPascal(string name)
+    private static string ToSnakeCase(string value)
     {
-        return string.Concat(name.Split('_', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => char.ToUpper(p[0]) + p[1..]));
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        var builder = new StringBuilder(value.Length + 8);
+        for (var index = 0; index < value.Length; index++)
+        {
+            var character = value[index];
+            if (char.IsUpper(character))
+            {
+                if (index > 0)
+                {
+                    builder.Append('_');
+                }
+
+                builder.Append(char.ToLowerInvariant(character));
+            }
+            else
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

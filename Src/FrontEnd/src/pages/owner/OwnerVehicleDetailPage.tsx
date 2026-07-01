@@ -1,0 +1,499 @@
+import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, BadgeInfo, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getVehicleById, toggleVehicleStatus, uploadVehicleDocument } from "@/features/vehicles/services/vehicleService";
+import type { VehicleResponse } from "@/features/vehicles/types";
+import ActiveToggle from "@/components/common/ActiveToggle";
+import ImagePreviewModal from "@/components/common/ImagePreviewModal";
+import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
+import { Skeleton } from "@/components/common/Skeleton";
+
+function splitAreaName(areaName: string | null) {
+  if (!areaName) return { province: "-", ward: "-" };
+  const [province, ...wardParts] = areaName.split(" - ");
+  return {
+    province: province?.trim() || "-",
+    ward: wardParts.join(" - ").trim() || "-",
+  };
+}
+
+function formatVnd(value: number | null | undefined) {
+  return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
+}
+
+const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  Pending: { label: "Chờ duyệt", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
+  Approved: { label: "Đã duyệt", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+  Rejected: { label: "Từ chối", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
+  Hidden: { label: "Đã ẩn", bg: "bg-slate-50", text: "text-slate-500", dot: "bg-slate-400" },
+};
+
+const docStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  Pending: { label: "Chờ xử lý", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
+  Verified: { label: "Đã xác thực", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+  NeedMoreInfo: { label: "Cần bổ sung", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
+  ManualReview: { label: "Chờ nhân viên xem", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-400" },
+  Rejected: { label: "Từ chối", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
+  Failed: { label: "Lỗi xử lý", bg: "bg-slate-50", text: "text-slate-600", dot: "bg-slate-400" },
+};
+
+function OwnerVehicleDetailSkeleton() {
+  return (
+    <div className="mx-auto max-w-6xl space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <Skeleton className="h-9 w-9 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-52" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <Skeleton className="h-9 w-24 rounded-xl" />
+        <Skeleton className="h-9 w-9 rounded-xl" />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className={index === 5 ? "col-span-2 space-y-2" : "space-y-2"}>
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-full max-w-44" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-3/4" />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="aspect-[4/3] rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <Skeleton className="mb-3 h-4 w-24" />
+            <Skeleton className="h-8 w-44" />
+            <div className="mt-3 flex gap-2">
+              <Skeleton className="h-7 w-20 rounded-full" />
+              <Skeleton className="h-7 w-16 rounded-full" />
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+            <Skeleton className="h-7 w-32 rounded-full" />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-12 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function OwnerVehicleDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
+    getVehicleById(Number(id))
+      .then((data) => setVehicle(data))
+      .catch(() => setError("Không thể tải thông tin xe."))
+      .finally(() => setIsLoading(false));
+  }, [id]);
+
+  const handleToggleStatus = async () => {
+    if (!vehicle) return;
+    await toggleVehicleStatus(vehicle.id);
+    const updated = await getVehicleById(vehicle.id);
+    setVehicle(updated);
+  };
+
+  const currentDocument = vehicle?.documents.find((doc) => doc.isCurrent) ?? vehicle?.documents[0];
+  const canUploadReplacementDocument = !currentDocument
+    || ["NeedMoreInfo", "Rejected", "Failed"].includes(currentDocument.verificationStatus);
+
+  const handleDocumentUpload = async () => {
+    if (!vehicle || !documentFile) return;
+    setIsUploadingDocument(true);
+    setDocumentError(null);
+    try {
+      const updated = await uploadVehicleDocument(vehicle.id, documentFile);
+      setVehicle(updated ?? await getVehicleById(vehicle.id));
+      setDocumentFile(null);
+    } catch {
+      setDocumentError("Không thể gửi lại giấy tờ xe. Vui lòng thử lại.");
+    } finally {
+      setIsUploadingDocument(false);
+    }
+  };
+
+  if (isLoading) return <OwnerVehicleDetailSkeleton />;
+
+  if (error || !vehicle) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+          </div>
+          <p className="mt-4 text-sm text-red-600">{error ?? "Không tìm thấy xe."}</p>
+          <button type="button" onClick={() => navigate("/owner/vehicles")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800 hover:shadow-md">
+            <ArrowLeft className="h-4 w-4" /> Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const sc = statusConfig[vehicle.status] ?? statusConfig.Pending;
+  const vehicleArea = splitAreaName(vehicle.areaName);
+  const displayPrice = vehicle.currentPricePerDay ?? vehicle.pricePerDay;
+  const vehicleImages = vehicle.images.map((image, index) => ({
+    url: image.imageUrl,
+    label: image.isPrimary ? "Ảnh chính" : `Ảnh xe ${index + 1}`,
+  }));
+  const documentImages = vehicle.documents.map((document, index) => ({
+    url: document.fileUrl,
+    label: document.isCurrent ? "Cavet hiện tại" : `Cavet ${index + 1}`,
+  }));
+
+  function openPreview(images: ImagePreviewItem[], index = 0) {
+    setPreviewImages(images);
+    setPreviewIndex(index);
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <button type="button" onClick={() => navigate("/owner/vehicles")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-slate-900 truncate">{vehicle.brandName} {vehicle.modelName}</h1>
+            <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${sc.bg} ${sc.text}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
+              {sc.label}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">{vehicle.licensePlate}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {(vehicle.status === "Approved" || vehicle.status === "Hidden") && (
+            <ActiveToggle isActive={vehicle.status === "Approved"} itemName={vehicle.licensePlate} onToggle={handleToggleStatus} />
+          )}
+          <button type="button" onClick={() => navigate(`/owner/vehicles/${vehicle.id}/edit`)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white shadow-sm transition-all hover:bg-brand-800 hover:shadow-md" title="Sửa xe">
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {vehicle.rejectionReason && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 p-4 shadow-sm">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
+            <XCircle className="h-4 w-4 text-red-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-red-800">Xe đã bị từ chối</p>
+            <p className="mt-1 text-sm text-red-600">{vehicle.rejectionReason}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                <Car className="h-3.5 w-3.5 text-slate-500" />
+              </div>
+              <h2 className="text-sm font-semibold text-slate-900">Thông tin xe</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-xs font-medium text-slate-400">Biển số</label>
+                <p className="mt-1 font-semibold text-slate-800">{vehicle.licensePlate}</p>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-xs font-medium text-slate-400">Dòng xe</label>
+                <p className="mt-1 font-medium text-slate-800">{vehicle.brandName} {vehicle.modelName}</p>
+                {vehicle.variantName && <p className="text-xs text-slate-400">{vehicle.variantName}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400">Năm sản xuất</label>
+                <p className="mt-1 font-medium text-slate-800">{vehicle.year}</p>
+              </div>
+              {vehicle.odometerKm != null && (
+                <div>
+                  <label className="flex items-center gap-1 text-xs font-medium text-slate-400"><Gauge className="h-3 w-3" /> Số km đã đi</label>
+                  <p className="mt-1 font-medium text-slate-800">{vehicle.odometerKm.toLocaleString("vi-VN")} km</p>
+                </div>
+              )}
+              {vehicle.description && (
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-slate-400">Mô tả</label>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{vehicle.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {vehicle.features.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                  <BadgeInfo className="h-3.5 w-3.5 text-slate-500" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Tính năng</h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {vehicle.features.map((f) => (
+                  <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">
+                    <CheckCircle className="h-3 w-3" /> {f.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                <MapPin className="h-3.5 w-3.5 text-slate-500" />
+              </div>
+              <h2 className="text-sm font-semibold text-slate-900">Địa chỉ</h2>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 text-slate-800">
+                <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                <span>{vehicle.address}</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-slate-500">
+                <span>{vehicleArea.province}</span>
+                {vehicleArea.ward !== "-" && <span>- {vehicleArea.ward}</span>}
+                {vehicle.pricingRegionCode && <span className="rounded bg-slate-100 px-2 py-0.5">Mã vùng: {vehicle.pricingRegionCode}</span>}
+              </div>
+            </div>
+          </div>
+
+          {vehicle.images.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                  <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Hình ảnh ({vehicle.images.length})</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {vehicle.images.map((img, index) => (
+                  <button
+                    key={img.id}
+                    type="button"
+                    onClick={() => openPreview(vehicleImages, index)}
+                    className={`group relative overflow-hidden rounded-xl border-2 text-left transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-500 ${img.isPrimary ? "border-brand-500 ring-2 ring-brand-100" : "border-slate-200"}`}
+                  >
+                    <img src={img.imageUrl} alt="" className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" />
+                    {img.isPrimary && <span className="absolute left-2 top-2 rounded-lg bg-brand-600 px-2 py-1 text-[10px] font-semibold text-white shadow-sm">Ảnh chính</span>}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                      <Eye className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-900 mb-3">Giá thuê</h2>
+            <p className="text-2xl font-bold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span></p>
+            {vehicle.pricingMode === "Auto" ? (
+              <>
+              <div className="mt-3 rounded-lg bg-violet-50 p-3 text-xs text-violet-800">
+                <div className="font-semibold">Giá tự động</div>
+                <div className="mt-1">Khung owner đặt: {formatVnd(vehicle.autoMinPrice)} - {formatVnd(vehicle.autoMaxPrice)}/ngày</div>
+                <div className="mt-1 text-violet-600">Base gợi ý: {formatVnd(vehicle.suggestedBasePrice)} | Gợi ý: {formatVnd(vehicle.suggestedMinPrice)} - {formatVnd(vehicle.suggestedMaxPrice)}</div>
+              </div>
+              <div className="hidden">
+                <div className="font-semibold">GiÃ¡ tá»± Ä‘á»™ng</div>
+                <div className="mt-1">Khung owner Ä‘áº·t: {formatVnd(vehicle.autoMinPrice)} - {formatVnd(vehicle.autoMaxPrice)}/ngÃ y</div>
+                <div className="mt-1 text-violet-600">Base gá»£i Ã½: {formatVnd(vehicle.suggestedBasePrice)} | Gá»£i Ã½: {formatVnd(vehicle.suggestedMinPrice)} - {formatVnd(vehicle.suggestedMaxPrice)}</div>
+              </div>
+              </>
+            ) : (
+              <>
+              <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                Giá cố định: {formatVnd(vehicle.fixedPricePerDay ?? vehicle.pricePerDay)}/ngày
+              </div>
+              <div className="hidden">
+                GiÃ¡ cá»‘ Ä‘á»‹nh: {formatVnd(vehicle.fixedPricePerDay ?? vehicle.pricePerDay)}/ngÃ y
+              </div>
+              </>
+            )}
+            <div className="mt-3 flex items-center gap-2">
+              {vehicle.vehicleType === "Car" ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"><Car className="h-3 w-3" /> Ô tô</span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700"><Bike className="h-3 w-3" /> Xe máy</span>
+              )}
+              <span className="text-xs text-slate-400">{vehicle.year}</span>
+            </div>
+          </div>
+
+          {currentDocument && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                  <FileText className="h-3.5 w-3.5 text-slate-500" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Giấy tờ xe</h2>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).bg} ${(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).text}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).dot}`} />
+                  {(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).label}
+                </span>
+                <button type="button" onClick={() => openPreview(documentImages, Math.max(0, documentImages.findIndex((image) => image.url === currentDocument.fileUrl)))} className="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">
+                  <Eye className="h-3.5 w-3.5" /> Xem cavet
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs">
+                <div><span className="text-slate-400">Biển số OCR</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrLicensePlate ?? "-"}</p></div>
+                <div><span className="text-slate-400">Hãng OCR</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrBrand ?? "-"}</p></div>
+                <div><span className="text-slate-400">Dòng xe OCR</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrModel ?? "-"}</p></div>
+                <div><span className="text-slate-400">Độ tin cậy</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrConfidence ?? "-"}</p></div>
+              </div>
+              {currentDocument.verificationStatus !== "Verified" && currentDocument.decisionReason && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 p-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                  <p className="text-xs text-red-700">{currentDocument.decisionReason}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {canUploadReplacementDocument && (
+            <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                  <UploadCloud className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-sm font-semibold text-orange-900">Bổ sung lại giấy tờ xe</h2>
+                  <p className="mt-1 text-xs text-orange-700">
+                    Hồ sơ hiện tại cần bổ sung hoặc đã bị từ chối. Chọn ảnh cà vẹt mới để hệ thống xác thực lại.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer rounded-lg border border-orange-200 bg-white px-3 py-2 text-xs font-medium text-orange-700 shadow-sm transition-colors hover:bg-orange-50">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => {
+                          setDocumentFile(event.target.files?.[0] ?? null);
+                          setDocumentError(null);
+                        }}
+                        className="hidden"
+                      />
+                      Chọn ảnh
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!documentFile || isUploadingDocument}
+                      onClick={handleDocumentUpload}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-orange-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <UploadCloud className="h-3.5 w-3.5" />
+                      {isUploadingDocument ? "Đang gửi..." : "Gửi xác thực lại"}
+                    </button>
+                  </div>
+                  {documentFile && <p className="mt-2 text-xs text-orange-700">Đã chọn: {documentFile.name}</p>}
+                  {documentError && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 p-2.5">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
+                      <p className="text-xs text-red-700">{documentError}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {vehicle.documents.length > 1 && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-200">
+                  <Clock className="h-3 w-3 text-slate-500" />
+                </div>
+                <h2 className="text-xs font-semibold text-slate-700">Lịch sử giấy tờ</h2>
+              </div>
+              <div className="space-y-2">
+                {vehicle.documents
+                  .sort((a, b) => (a.isCurrent ? -1 : b.isCurrent ? 1 : 0))
+                  .slice(1).map((doc, index) => {
+                    const dc = docStatusConfig[doc.verificationStatus] ?? docStatusConfig.Pending;
+                    return (
+                      <div key={doc.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 text-slate-400" />
+                          <span className="text-xs text-slate-600">Lần {index + 2}</span>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${dc.bg} ${dc.text}`}>{dc.label}</span>
+                        </div>
+                        <button type="button" onClick={() => openPreview(documentImages, Math.max(0, documentImages.findIndex((image) => image.url === doc.fileUrl)))} className="text-xs font-medium text-brand-700 hover:text-brand-800">
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ImagePreviewModal
+        images={previewImages}
+        index={previewIndex}
+        onIndexChange={setPreviewIndex}
+        onClose={() => setPreviewImages([])}
+      />
+    </div>
+  );
+}

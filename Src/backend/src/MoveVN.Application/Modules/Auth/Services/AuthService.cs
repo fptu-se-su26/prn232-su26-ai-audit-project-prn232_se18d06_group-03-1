@@ -1,266 +1,415 @@
+using System.Net.Http.Json;
+using AutoMapper;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.DTOs;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Domain.Entities;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
-using System.Security.Cryptography;
-using System.Text;
+using MoveVN.Domain.Enums;
 
 namespace MoveVN.Application.Modules.Auth.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly IIdentityService _identityService;
-    private readonly IJwtTokenService _jwtTokenService;
-    private readonly ICurrentUserContext _currentUserContext;
-    private readonly IAuthLogService _authLogService;
-    private readonly IRateLimitService _rateLimitService;
-    private readonly IEmailService _emailService;
     private readonly IUserRepository _userRepository;
-    private readonly IRefreshTokenRepository _refreshTokenRepository;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IOtpService _otpService;
+    private readonly IPasswordHasherService _passwordHasherService;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly ITokenSessionService _tokenSessionService;
+    private readonly ICurrentUserContext _currentUserContext;
+    private readonly IAuthActivityLogger _activityLogger;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
 
     public AuthService(
-        IIdentityService identityService,
-        IJwtTokenService jwtTokenService,
-        ICurrentUserContext currentUserContext,
-        IAuthLogService authLogService,
-        IRateLimitService rateLimitService,
-        IEmailService emailService,
         IUserRepository userRepository,
-        IRefreshTokenRepository refreshTokenRepository,
-        IHttpContextAccessor httpContextAccessor)
+        IRoleRepository roleRepository,
+        IRefreshTokenService refreshTokenService,
+        IOtpService otpService,
+        IPasswordHasherService passwordHasherService,
+        IJwtTokenService jwtTokenService,
+        ITokenSessionService tokenSessionService,
+        ICurrentUserContext currentUserContext,
+        IAuthActivityLogger activityLogger,
+        IUnitOfWork unitOfWork,
+        IMapper mapper)
     {
-        _identityService = identityService;
-        _jwtTokenService = jwtTokenService;
-        _currentUserContext = currentUserContext;
-        _authLogService = authLogService;
-        _rateLimitService = rateLimitService;
-        _emailService = emailService;
         _userRepository = userRepository;
-        _refreshTokenRepository = refreshTokenRepository;
-        _httpContextAccessor = httpContextAccessor;
+        _roleRepository = roleRepository;
+        _refreshTokenService = refreshTokenService;
+        _otpService = otpService;
+        _passwordHasherService = passwordHasherService;
+        _jwtTokenService = jwtTokenService;
+        _tokenSessionService = tokenSessionService;
+        _currentUserContext = currentUserContext;
+        _activityLogger = activityLogger;
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        // Check duplicate email in domain Users table
-        var existingDomainUser = await _userRepository.FindByEmailAsync(request.Email, cancellationToken);
-        if (existingDomainUser is not null)
-            throw new ValidationException(new[] { "Email đã được đăng ký." });
-
-        // Check Identity table
-        var existingIdentity = await _identityService.FindByEmailAsync(request.Email, cancellationToken);
-        if (existingIdentity is not null)
-            throw new ValidationException(new[] { "Email đã được đăng ký." });
-
-        // Create ASP.NET Identity user (for future SSO compatibility)
-        var identityUser = await _identityService.CreateUserAsync(request, cancellationToken);
-
-        // Create domain User
-        var domainUser = new User
+        if (request.Password != request.ConfirmPassword)
         {
-            Email = request.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            FullName = request.FullName,
-            Phone = request.Phone,
-            Status = "Pending",
-            IsEmailVerified = false
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        if (await _userRepository.ExistsByEmailAsync(request.Email, cancellationToken))
+        {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
+
+        if (await _userRepository.ExistsByPhoneAsync(request.Phone, cancellationToken))
+        {
+            throw new AppException(ErrorCode.PHONE_EXISTED);
+        }
+
+        if (!Enum.TryParse<UserRoleType>(request.Role, true, out var roleType)
+            || roleType is UserRoleType.Admin or UserRoleType.Staff)
+        {
+            throw new AppException(ErrorCode.INVALID_ROLE);
+        }
+
+        var role = await _roleRepository.GetByNameAsync(roleType, cancellationToken)
+            ?? throw new AppException(ErrorCode.INVALID_ROLE);
+
+        var user = new User
+        {
+            Email = request.Email.Trim().ToLowerInvariant(),
+            FullName = request.FullName.Trim(),
+            Phone = request.Phone.Trim(),
+            PasswordHash = _passwordHasherService.Hash(request.Password),
+            Status = UserStatus.Pending.ToString(),
+            IsEmailVerified = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
-        await _userRepository.AddAsync(domainUser, cancellationToken);
-        await _userRepository.SaveChangesAsync(cancellationToken);
 
-        // Seed Customer role (RoleId=2)
-        await _userRepository.AssignRoleAsync(domainUser.Id, 2, cancellationToken);
+        await _userRepository.AddAsync(user, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // Generate verify token and send email
-        var verifyToken = await _jwtTokenService.GenerateEmailVerifyTokenAsync(domainUser.Id, domainUser.Email);
-        var verifyUrl = BuildVerifyUrl(verifyToken);
-        _ = Task.Run(() => _emailService.SendEmailVerificationAsync(domainUser.Email, domainUser.FullName, verifyUrl));
+        await _roleRepository.AddUserRoleAsync(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = role.Id,
+            AssignedAt = DateTime.UtcNow
+        }, cancellationToken);
 
-        // Log
-        _ = Task.Run(() => _authLogService.LogAsync(domainUser.Id, domainUser.Email, "Register", true,
-            GetIp(), GetUserAgent()));
+        if (roleType == UserRoleType.Customer)
+        {
+            await _userRepository.AddCustomerProfileAsync(new CustomerProfile { UserId = user.Id }, cancellationToken);
+        }
+        else if (roleType == UserRoleType.Owner)
+        {
+            await _userRepository.AddOwnerProfileAsync(new OwnerProfile { UserId = user.Id }, cancellationToken);
+        }
 
-        return await BuildAuthResponseAsync(domainUser, cancellationToken);
+        await _otpService.CreateOtpAsync(user.Email, OtpPurpose.Register, user.Id, null, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.RegisterRequested, null, null, cancellationToken: cancellationToken);
+
+        var userResponse = _mapper.Map<AuthUserResponse>(user);
+        userResponse.Roles = [roleType.ToString()];
+
+        return new AuthResponse
+        {
+            User = userResponse
+        };
+    }
+
+    public async Task VerifyOtpAsync(VerifyOtpRequest request, CancellationToken cancellationToken = default)
+    {
+        var purpose = ParseOtpPurpose(request.Purpose);
+        await _otpService.VerifyOtpAsync(request.Email, request.Otp, purpose, cancellationToken);
+
+        if (purpose is OtpPurpose.Register or OtpPurpose.VerifyEmail)
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken)
+                ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+            user.IsEmailVerified = true;
+            user.Status = UserStatus.Active.ToString();
+            user.UpdatedAt = DateTime.UtcNow;
+            _userRepository.Update(user);
+            await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.OtpVerified, null, null, cancellationToken: cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ResendOtpAsync(ResendOtpRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        await _otpService.CreateOtpAsync(user.Email, ParseOtpPurpose(request.Purpose), user.Id, null, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AuthResponse> GoogleLoginAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default)
+    {
+        GoogleUserInfo googleUser;
+        try
+        {
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            googleUser = await httpClient.GetFromJsonAsync<GoogleUserInfo>(
+                $"https://www.googleapis.com/oauth2/v3/userinfo?access_token={request.IdToken}",
+                cancellationToken) ?? throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
+
+            if (string.IsNullOrWhiteSpace(googleUser.Email))
+            {
+                throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
+            }
+        }
+        catch
+        {
+            throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
+        }
+
+        var email = googleUser.Email.Trim().ToLowerInvariant();
+        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+
+        if (user is null)
+        {
+            var role = await _roleRepository.GetByNameAsync(UserRoleType.Customer, cancellationToken)
+                ?? throw new AppException(ErrorCode.INVALID_ROLE);
+
+            user = new User
+            {
+                Email = email,
+                FullName = googleUser.Name ?? email,
+                AvatarUrl = googleUser.Picture,
+                ExternalId = googleUser.Sub,
+                AuthProvider = "Google",
+                Status = UserStatus.Active.ToString(),
+                IsEmailVerified = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _userRepository.AddAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _roleRepository.AddUserRoleAsync(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = role.Id,
+                AssignedAt = DateTime.UtcNow
+            }, cancellationToken);
+
+            await _userRepository.AddCustomerProfileAsync(new CustomerProfile { UserId = user.Id }, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            if (user.Status == UserStatus.Suspended.ToString())
+            {
+                throw new AppException(ErrorCode.USER_SUSPENDED);
+            }
+
+            user.ExternalId ??= googleUser.Sub;
+            user.AuthProvider ??= "Google";
+            user.AvatarUrl ??= googleUser.Picture;
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
+        user.LastSeenAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.GoogleLogin, null, null, cancellationToken: cancellationToken);
+        return await CreateAuthResponseAsync(user, cancellationToken);
+    }
+
+    private record GoogleUserInfo
+    {
+        public string Sub { get; init; } = string.Empty;
+        public string? Name { get; init; }
+        public string? Email { get; init; }
+        public string? Picture { get; init; }
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        var ip = GetIp();
-        var ua = GetUserAgent();
-
-        // Brute-force protection
-        if (await _rateLimitService.IsLoginLockedAsync(request.Email, cancellationToken))
+        var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+        if (user is null || user.PasswordHash is null || !_passwordHasherService.Verify(user.PasswordHash, request.Password))
         {
-            _ = Task.Run(() => _authLogService.LogAsync(null, request.Email, "LoginFailed", false, ip, ua, "Account locked due to too many failed attempts"));
-            throw new ValidationException(new[] { "Tài khoản tạm khóa do đăng nhập sai quá nhiều lần. Thử lại sau 15 phút." });
+            await _activityLogger.LogAsync(null, request.Email, AuthEventType.LoginFailed, null, null, cancellationToken: cancellationToken);
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        var user = await _userRepository.FindByEmailAsync(request.Email, cancellationToken);
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-        {
-            await _rateLimitService.RecordLoginFailAsync(request.Email, cancellationToken);
-            _ = Task.Run(() => _authLogService.LogAsync(user?.Id, request.Email, "LoginFailed", false, ip, ua, "Invalid credentials"));
-            throw new ValidationException(new[] { "Email hoặc mật khẩu không đúng." });
-        }
-
-        if (user.Status == "Banned")
-        {
-            _ = Task.Run(() => _authLogService.LogAsync(user.Id, user.Email, "LoginFailed", false, ip, ua, "Account banned"));
-            throw new ValidationException(new[] { "Tài khoản đã bị khóa vĩnh viễn." });
-        }
-
-        await _rateLimitService.ResetLoginAttemptsAsync(request.Email, cancellationToken);
+        EnsureCanLogin(user);
 
         user.LastLoginAt = DateTime.UtcNow;
+        user.LastSeenAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
         _userRepository.Update(user);
-        await _userRepository.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        _ = Task.Run(() => _authLogService.LogAsync(user.Id, user.Email, "Login", true, ip, ua));
-
-        return await BuildAuthResponseAsync(user, cancellationToken);
-    }
-
-    public async Task<AuthUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken = default)
-    {
-        var domainUserId = _currentUserContext.DomainUserId
-            ?? throw new ValidationException(new[] { "Không tìm thấy thông tin người dùng." });
-
-        var user = await _userRepository.GetByIdAsync(domainUserId, cancellationToken)
-            ?? throw new NotFoundException("Người dùng không tồn tại.");
-
-        var roles = await _userRepository.GetRolesAsync(user.Id, cancellationToken);
-
-        return new AuthUserResponse
-        {
-            UserId = Guid.Empty,
-            DomainUserId = user.Id,
-            FullName = user.FullName,
-            Email = user.Email,
-            Roles = roles,
-            IsEmailVerified = user.IsEmailVerified
-        };
-    }
-
-    public async Task VerifyEmailAsync(string token, CancellationToken cancellationToken = default)
-    {
-        var payload = _jwtTokenService.ValidateEmailVerifyToken(token)
-            ?? throw new ValidationException(new[] { "Token xác thực không hợp lệ hoặc đã hết hạn." });
-
-        var user = await _userRepository.GetByIdAsync(payload.UserId, cancellationToken)
-            ?? throw new NotFoundException("Người dùng không tồn tại.");
-
-        if (user.IsEmailVerified)
-            return; // idempotent
-
-        user.IsEmailVerified = true;
-        user.Status = "Active";
-        _userRepository.Update(user);
-        await _userRepository.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.LoginSucceeded, null, null, cancellationToken: cancellationToken);
+        return await CreateAuthResponseAsync(user, cancellationToken);
     }
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
     {
-        var tokenHash = HashToken(request.RefreshToken);
-        var storedToken = await _refreshTokenRepository.FindByHashAsync(tokenHash, cancellationToken)
-            ?? throw new ValidationException(new[] { "Refresh token không hợp lệ." });
+        var oldToken = await _refreshTokenService.ValidateAsync(request.RefreshToken, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(oldToken.UserId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
-        if (storedToken.RevokedAt.HasValue)
-            throw new ValidationException(new[] { "Refresh token đã bị thu hồi." });
+        EnsureCanLogin(user);
+        oldToken.RevokedAt = DateTime.UtcNow;
 
-        if (storedToken.ExpiresAt < DateTime.UtcNow)
-            throw new ValidationException(new[] { "Refresh token đã hết hạn." });
-
-        // Token rotation: revoke old token
-        storedToken.RevokedAt = DateTime.UtcNow;
-        _refreshTokenRepository.Update(storedToken);
-
-        var user = await _userRepository.GetByIdAsync(storedToken.UserId, cancellationToken)
-            ?? throw new NotFoundException("Người dùng không tồn tại.");
-
-        var response = await BuildAuthResponseAsync(user, cancellationToken);
-        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
-
-        _ = Task.Run(() => _authLogService.LogAsync(user.Id, user.Email, "TokenRefreshed", true, GetIp(), GetUserAgent()));
-
-        return response;
+        return await CreateAuthResponseAsync(user, cancellationToken);
     }
 
-    public async Task LogoutAsync(CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(LogoutRequest request, CancellationToken cancellationToken = default)
     {
-        var domainUserId = _currentUserContext.DomainUserId;
-        if (domainUserId is null) return;
-
-        var user = await _userRepository.GetByIdAsync(domainUserId.Value, cancellationToken);
-        _ = Task.Run(() => _authLogService.LogAsync(domainUserId, user?.Email, "Logout", true, GetIp(), GetUserAgent()));
+        await _refreshTokenService.RevokeAsync(request.RefreshToken, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task RevokeAllSessionsAsync(CancellationToken cancellationToken = default)
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var domainUserId = _currentUserContext.DomainUserId
-            ?? throw new ValidationException(new[] { "Không tìm thấy thông tin người dùng." });
+        var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
-        await _refreshTokenRepository.RevokeAllByUserAsync(domainUserId, cancellationToken);
-        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+        await _otpService.CreateOtpAsync(user.Email, OtpPurpose.ForgotPassword, user.Id, null, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordResetRequested, null, null, cancellationToken: cancellationToken);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private async Task<AuthResponse> BuildAuthResponseAsync(User user, CancellationToken cancellationToken)
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var roles = await _userRepository.GetRolesAsync(user.Id, cancellationToken);
-
-        var accessToken = await _jwtTokenService.GenerateAccessTokenAsync(user.Id, user.Email, roles);
-        var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
-
-        // Save refresh token (7 days)
-        var refreshTokenEntity = new RefreshToken
+        if (request.NewPassword != request.ConfirmPassword)
         {
-            UserId = user.Id,
-            TokenHash = HashToken(rawRefreshToken),
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
-            DeviceInfo = GetUserAgent()
-        };
-        await _refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
-        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        await _otpService.VerifyOtpAsync(user.Email, request.Otp, OtpPurpose.ForgotPassword, cancellationToken);
+        user.PasswordHash = _passwordHasherService.Hash(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordResetCompleted, null, null, cancellationToken: cancellationToken);
+    }
+
+    public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        if (_currentUserContext.UserId is not { } userId)
+        {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        if (user.PasswordHash is null || !_passwordHasherService.Verify(user.PasswordHash, request.CurrentPassword))
+        {
+            throw new AppException(ErrorCode.PASSWORD_INCORRECT);
+        }
+
+        user.PasswordHash = _passwordHasherService.Hash(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordChanged, null, null, cancellationToken: cancellationToken);
+    }
+
+    public async Task AdminResetPasswordAsync(AdminResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+        }
+
+        var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        user.PasswordHash = _passwordHasherService.Hash(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordForceReset, null, null, cancellationToken: cancellationToken);
+    }
+
+    public async Task<AuthUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken = default)
+    {
+        if (_currentUserContext.UserId is not { } userId)
+        {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        return await MapUserAsync(user, cancellationToken);
+    }
+
+    private async Task<AuthResponse> CreateAuthResponseAsync(User user, CancellationToken cancellationToken)
+    {
+        var roles = await _roleRepository.GetUserRoleNamesAsync(user.Id, cancellationToken);
+        var refreshToken = await _refreshTokenService.CreateAsync(user.Id, null, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var userResponse = _mapper.Map<AuthUserResponse>(user);
+        userResponse.Roles = roles;
 
         return new AuthResponse
         {
-            AccessToken = accessToken,
-            RefreshToken = rawRefreshToken,
-            AccessTokenExpiry = DateTime.UtcNow.AddMinutes(15),
-            User = new AuthUserResponse
-            {
-                UserId = Guid.Empty,
-                DomainUserId = user.Id,
-                FullName = user.FullName,
-                Email = user.Email,
-                Roles = roles,
-                IsEmailVerified = user.IsEmailVerified
-            }
+            Token = await CreateTokenResponseAsync(user, roles, refreshToken.PlainToken, refreshToken.Entity.ExpiresAt, userResponse, cancellationToken),
+            User = userResponse
         };
     }
 
-    private static string HashToken(string token)
+    private async Task<TokenResponse> CreateTokenResponseAsync(
+        User user,
+        IList<string> roles,
+        string refreshToken,
+        DateTime refreshTokenExpiresAt,
+        AuthUserResponse userResponse,
+        CancellationToken cancellationToken)
     {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(token));
-        return Convert.ToBase64String(bytes);
+        var token = _jwtTokenService.GenerateToken(user.Id, user.Email, roles, refreshToken, refreshTokenExpiresAt);
+        await _tokenSessionService.StoreAsync(userResponse, token, cancellationToken);
+        return token;
     }
 
-    private string GetIp() =>
-        _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-    private string GetUserAgent() =>
-        _httpContextAccessor.HttpContext?.Request.Headers["User-Agent"].ToString() ?? "unknown";
-
-    private string BuildVerifyUrl(string token)
+    private async Task<AuthUserResponse> MapUserAsync(User user, CancellationToken cancellationToken)
     {
-        var request = _httpContextAccessor.HttpContext?.Request;
-        var baseUrl = request is null ? "https://localhost" : $"{request.Scheme}://{request.Host}";
-        return $"{baseUrl}/api/auth/verify-email?token={Uri.EscapeDataString(token)}";
+        var response = _mapper.Map<AuthUserResponse>(user);
+        response.Roles = await _roleRepository.GetUserRoleNamesAsync(user.Id, cancellationToken);
+        return response;
+    }
+
+    private static void EnsureCanLogin(User user)
+    {
+        if (user.Status == UserStatus.Suspended.ToString())
+        {
+            throw new AppException(ErrorCode.USER_SUSPENDED);
+        }
+
+        if (!user.IsEmailVerified)
+        {
+            throw new AppException(ErrorCode.EMAIL_NOT_VERIFIED);
+        }
+    }
+
+    private static OtpPurpose ParseOtpPurpose(string purpose)
+    {
+        return Enum.TryParse<OtpPurpose>(purpose, true, out var parsed)
+            ? parsed
+            : throw new AppException(ErrorCode.OTP_FAIL);
     }
 }

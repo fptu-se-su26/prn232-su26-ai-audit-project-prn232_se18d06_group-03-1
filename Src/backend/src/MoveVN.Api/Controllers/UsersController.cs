@@ -1,6 +1,9 @@
 using MoveVN.Application.Common.Models;
+using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Modules.Users.DTOs;
 using MoveVN.Application.Modules.Users.Interfaces;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,10 +36,9 @@ public class UsersController : BaseApiController
         return Ok(ApiResponse<UserResponse>.Succeeded(result, "Profile updated successfully."));
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ApiResponse<UserResponse>>> GetById(Guid id, CancellationToken cancellationToken)
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> GetById(long id, CancellationToken cancellationToken)
     {
         var result = await _userService.GetByIdAsync(id, cancellationToken);
         return Ok(ApiResponse<UserResponse>.Succeeded(result));
-    }
-}
+    }}

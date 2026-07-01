@@ -5,21 +5,11 @@ namespace MoveVN.Application.Modules.Vehicles.Interfaces;
 
 public interface IVehicleService
 {
-    /// <summary>Owner tạo xe mới, status = Pending.</summary>
-    Task<VehicleResponse> CreateAsync(CreateVehicleRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>Upload ảnh cho xe (multipart), trả về danh sách images mới.</summary>
-    Task<List<VehicleImageDto>> UploadImagesAsync(long vehicleId, IList<Microsoft.AspNetCore.Http.IFormFile> files, CancellationToken cancellationToken = default);
-
-    /// <summary>GET public - chỉ status=Available, có filter + phân trang.</summary>
-    Task<PagedResult<VehicleResponse>> GetPublicListAsync(VehicleListRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>GET /vehicles/{id} - public.</summary>
-    Task<VehicleResponse> GetByIdPublicAsync(long vehicleId, CancellationToken cancellationToken = default);
-
-    /// <summary>Staff approve / reject xe.</summary>
-    Task ApproveAsync(long vehicleId, long staffId, ApproveVehicleRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>Staff: danh sách xe Pending chờ duyệt.</summary>
-    Task<PagedResult<VehicleResponse>> GetPendingQueueAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<PagedResult<VehicleListItemResponse>> GetMyVehiclesAsync(long ownerId, string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId = null, int? modelId = null, string? status = null, string? fuelType = null, string? seatCount = null, string? transmission = null, string? bodyType = null, string? bikeType = null, string? engineCapacity = null, CancellationToken cancellationToken = default);
+    Task<VehicleResponse> GetByIdAsync(long id, long ownerId, CancellationToken cancellationToken = default);
+    Task<VehicleResponse> CreateAsync(long ownerId, CreateVehicleRequest request, CancellationToken cancellationToken = default);
+    Task<string> UploadImageAsync(long ownerId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
+    Task<VehicleResponse> UploadDocumentAsync(long id, long ownerId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
+    Task<VehicleResponse> UpdateAsync(long id, long ownerId, UpdateVehicleRequest request, CancellationToken cancellationToken = default);
+    Task ToggleStatusAsync(long id, long ownerId, CancellationToken cancellationToken = default);
 }

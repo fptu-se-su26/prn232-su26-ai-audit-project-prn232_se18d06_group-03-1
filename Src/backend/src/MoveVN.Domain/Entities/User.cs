@@ -1,10 +1,12 @@
-﻿namespace MoveVN.Domain.Entities;
+namespace MoveVN.Domain.Entities;
 
 public class User
 {
     public long Id { get; set; }
     public string Email { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
+    public string? PasswordHash { get; set; }
+    public string? ExternalId { get; set; }
+    public string? AuthProvider { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? AvatarUrl { get; set; }
