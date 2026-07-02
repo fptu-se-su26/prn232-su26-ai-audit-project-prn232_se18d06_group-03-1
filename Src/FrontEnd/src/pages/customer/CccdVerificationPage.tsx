@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Camera, Upload, CheckCircle, X, ArrowLeft, AlertTriangle, Info, Lock, CloudUpload } from "lucide-react";
+import { Shield, Camera, CheckCircle, X, ArrowLeft, Info, Lock, CloudUpload } from "lucide-react";
 import Button from "@/components/common/Button";
 import { Skeleton } from "@/components/common/Skeleton";
 import { useOwnerApplication } from "@/features/owner/hooks/useOwnerApplication";
@@ -9,8 +9,6 @@ export default function CccdVerificationPage() {
   const navigate = useNavigate();
   const { application, isLoading, error, handleOcrVerification } = useOwnerApplication("upload");
   const [verified, setVerified] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview] = useState<string | null>(null);
@@ -71,7 +69,7 @@ export default function CccdVerificationPage() {
     );
   }
 
-  if (verified && !showConfirm && !showUpload) {
+  if (verified) {
     return (
       <div className="mx-auto max-w-lg py-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -84,42 +82,11 @@ export default function CccdVerificationPage() {
             <> Số CCCD: <span className="font-semibold text-zinc-800">{application.nationalIdNumber}</span></>
           )}
         </p>
-        <div className="flex justify-center gap-3">
+        <div className="flex justify-center">
           <Button variant="secondary" onClick={() => navigate("/account")}>
             Quay lại
           </Button>
-          <Button onClick={() => setShowConfirm(true)}>
-            Cập nhật CCCD
-          </Button>
         </div>
-
-        {showConfirm && (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-            <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl">
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-              </div>
-              <h3 className="mb-2 text-base font-semibold text-zinc-900">Xác nhận cập nhật</h3>
-              <p className="mb-5 text-sm text-zinc-600">
-                Bạn có chắc chắn muốn cập nhật lại CCCD không? Thao tác này sẽ yêu cầu bạn tải lên ảnh CCCD mới.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="flex-1 rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={() => { setShowConfirm(false); setShowUpload(true); }}
-                  className="flex-1 rounded-lg bg-purple-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-800"
-                >
-                  Xác nhận
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -140,7 +107,7 @@ export default function CccdVerificationPage() {
           <div>
             <p className="text-sm font-semibold text-red-800">Không thể xác thực căn cước công dân</p>
             <p className="mt-1 text-sm text-red-700">
-              {error.includes("VNPT.AI") || error.includes("BadRequest")
+              {error.includes("FPT.AI") || error.includes("BadRequest")
                 ? "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn."
                 : error}
             </p>

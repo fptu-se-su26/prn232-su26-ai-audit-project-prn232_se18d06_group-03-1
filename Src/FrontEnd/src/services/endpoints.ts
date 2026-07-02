@@ -47,5 +47,9 @@ export const endpoints = {
     areas: "/api/catalog/areas",
     pricingRegions: "/api/catalog/pricing-regions",
   },
+  publicVehicles: {
+    list: "/api/public/vehicles",
+    byId: (id: number) => `/api/public/vehicles/${id}`,
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

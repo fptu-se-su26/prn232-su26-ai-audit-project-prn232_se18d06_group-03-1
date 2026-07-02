@@ -283,6 +283,55 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public Task<VehicleDocument?> GetVehicleDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default)
         => _context.VehicleDocuments.FirstOrDefaultAsync(doc => doc.Id == documentId && doc.VehicleId == vehicleId, cancellationToken);
 
+    public async Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Vehicles.Where(v => v.Status == VehicleStatus.Approved);
+        if (!string.IsNullOrWhiteSpace(type)) query = query.Where(v => v.VehicleType == type);
+        if (brandId.HasValue) query = query.Where(v => v.BrandId == brandId.Value);
+        if (modelId.HasValue) query = query.Where(v => v.ModelId == modelId.Value);
+        if (!string.IsNullOrWhiteSpace(fuelType)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.FuelType == fuelType));
+        if (!string.IsNullOrWhiteSpace(seatCount) && byte.TryParse(seatCount, out var seatVal)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.SeatCount == seatVal));
+        if (!string.IsNullOrWhiteSpace(transmission)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.Transmission == transmission));
+        if (!string.IsNullOrWhiteSpace(bodyType)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.BodyType == bodyType));
+        if (!string.IsNullOrWhiteSpace(bikeType)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.BikeType == bikeType));
+        if (!string.IsNullOrWhiteSpace(engineCapacity)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.EngineCapacity == engineCapacity));
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLower();
+            query = query.Where(v => v.LicensePlate.ToLower().Contains(kw)
+                || (v.Description != null && v.Description.ToLower().Contains(kw)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        query = sortBy switch
+        {
+            "price_asc" => query.OrderBy(v => v.PricePerDay),
+            "price_desc" => query.OrderByDescending(v => v.PricePerDay),
+            _ => query.OrderByDescending(v => v.CreatedAt)
+        };
+
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(v => new VehicleListItemResponse
+            {
+                Id = v.Id,
+                BrandName = _context.VehicleBrand.Where(b => b.Id == v.BrandId).Select(b => b.Name).FirstOrDefault() ?? "",
+                ModelName = _context.VehicleModel.Where(m => m.Id == v.ModelId).Select(m => m.Name).FirstOrDefault() ?? "",
+                VariantName = v.VariantId != null ? _context.VehicleModelVariant.Where(var => var.Id == v.VariantId).Select(var => var.Name).FirstOrDefault() : null,
+                VehicleType = v.VehicleType,
+                Year = v.Year,
+                LicensePlate = v.LicensePlate,
+                PricePerDay = v.PricePerDay,
+                AreaName = v.AreaId.HasValue ? _context.Area.Where(a => a.Id == v.AreaId.Value).Select(a => a.Province + " - " + a.District).FirstOrDefault() : null,
+                PricingMode = _context.VehiclePricing.Where(p => p.VehicleId == v.Id).Select(p => p.PricingMode).FirstOrDefault(),
+                Status = v.Status,
+                FeaturedImage = _context.VehicleImages.Where(img => img.VehicleId == v.Id && img.IsPrimary).Select(img => img.ImageUrl).FirstOrDefault(),
+                CreatedAt = v.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<VehicleListItemResponse> { Items = items, TotalCount = totalCount, Page = page, PageSize = pageSize };
+    }
+
     public async Task<List<CatalogBrandResponse>> GetCatalogBrandsAsync(string? vehicleType, CancellationToken cancellationToken = default)
     {
         var query = _context.VehicleBrand.Where(b => b.IsActive);

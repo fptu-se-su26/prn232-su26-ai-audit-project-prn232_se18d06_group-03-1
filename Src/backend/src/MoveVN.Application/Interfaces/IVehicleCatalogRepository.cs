@@ -61,6 +61,7 @@ public interface IVehicleCatalogRepository
     Task<PagedResult<VehicleModerationListItem>> GetModerationVehiclesAsync(IReadOnlyCollection<string>? statuses, IReadOnlyCollection<VehicleDocumentVerificationStatus>? documentStatuses, string? keyword, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<bool> HasVerifiedCurrentDocumentAsync(long vehicleId, CancellationToken cancellationToken = default);
     Task<VehicleDocument?> GetVehicleDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default);
+    Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity, CancellationToken cancellationToken = default);
     Task<List<CatalogBrandResponse>> GetCatalogBrandsAsync(string? vehicleType, CancellationToken cancellationToken = default);
     Task<List<CatalogModelResponse>> GetCatalogModelsAsync(int? brandId, CancellationToken cancellationToken = default);
     Task<List<CatalogVariantResponse>> GetCatalogVariantsAsync(int? modelId, string? vehicleType, CancellationToken cancellationToken = default);

@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IDriverLicenseClassService, DriverLicenseClassService>();
         services.AddScoped<IVehicleFeatureService, VehicleFeatureService>();
         services.AddScoped<IVehicleService, VehicleService>();
+        services.AddScoped<IPublicVehicleService, PublicVehicleService>();
         services.AddScoped<IVehicleModerationService, VehicleModerationService>();
         services.AddScoped<IVehicleCatalogService, VehicleCatalogService>();
         services.AddScoped<IPricingRegionService, PricingRegionService>();

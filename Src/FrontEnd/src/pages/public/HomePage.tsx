@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CarFront, ShieldCheck, UserRound } from "lucide-react";
+import { CarFront, ShieldCheck, UserRound, Search } from "lucide-react";
 import Button from "@/components/common/Button";
 import Card from "@/components/ui/Card";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -58,6 +58,29 @@ export default function HomePage() {
             </Card>
           ))}
         </div>
+
+        <section className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-sky-50 p-8">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100">
+              <Search className="h-7 w-7 text-brand-700" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-slate-950">Tìm xe cho thuê</h2>
+              <p className="mt-1 text-slate-600">Duyệt qua hàng ngàn xe ô tô và xe máy sẵn sàng cho thuê trên toàn quốc.</p>
+            </div>
+            <Link to="/xe">
+              <Button type="button" size="lg">Xem danh sách xe</Button>
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-brand-100 bg-brand-50 p-8 text-center">
+          <h2 className="text-xl font-bold text-slate-950">Bạn muốn cho thuê xe?</h2>
+          <p className="mt-2 text-slate-600">Đăng ký làm chủ xe ngay để bắt đầu đăng tải xe cho thuê trên MoveVN.</p>
+          <Link to="/register-owner" className="mt-4 inline-block">
+            <Button type="button" size="lg">Đăng ký làm chủ xe</Button>
+          </Link>
+        </section>
       </div>
     </div>
   );

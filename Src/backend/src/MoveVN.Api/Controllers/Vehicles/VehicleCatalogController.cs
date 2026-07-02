@@ -6,7 +6,7 @@ using MoveVN.Application.Modules.Vehicles.Interfaces;
 
 namespace MoveVN.Api.Controllers.Vehicles;
 
-[Authorize]
+[AllowAnonymous]
 [Route("api/catalog")]
 public class VehicleCatalogController : BaseApiController
 {

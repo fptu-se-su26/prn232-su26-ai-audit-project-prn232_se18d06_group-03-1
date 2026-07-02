@@ -1,6 +1,6 @@
 import { apiClient } from "@/services/apiClient";
 import type { ApiResponse } from "@/features/auth/types";
-import type { OwnerApplicationDto, NationalIdOcrResult, BankInfoRequest, CreateOwnerResponse } from "@/features/owner/types";
+import type { OwnerApplicationDto, NationalIdOcrResult, BankInfoRequest, CreateOwnerResponse, SubmitOwnerApplicationResponse, OwnerOnboardingRegisterRequest, OwnerOnboardingRegisterResponse } from "@/features/owner/types";
 
 function unwrap<T>(response: ApiResponse<T>): T {
   if (!response.status) {
@@ -30,12 +30,17 @@ export async function uploadNationalId(formData: FormData): Promise<NationalIdOc
   return result;
 }
 
-export async function updateBankInfo(body: BankInfoRequest): Promise<void> {
-  const { data } = await apiClient.put<ApiResponse<null>>("/api/owner-applications/me/bank", body);
-  unwrap(data);
+export async function updateBankInfo(body: BankInfoRequest): Promise<OwnerApplicationDto> {
+  const { data } = await apiClient.put<ApiResponse<OwnerApplicationDto>>("/api/owner-applications/me/bank", body);
+  return unwrap(data);
 }
 
-export async function submitApplication(): Promise<void> {
-  const { data } = await apiClient.post<ApiResponse<null>>("/api/owner-applications/me/submit");
-  unwrap(data);
+export async function registerOwnerOnboarding(body: OwnerOnboardingRegisterRequest): Promise<OwnerOnboardingRegisterResponse> {
+  const { data } = await apiClient.post<ApiResponse<OwnerOnboardingRegisterResponse>>("/api/owner-onboarding/register", body);
+  return unwrap(data);
+}
+
+export async function submitApplication(): Promise<SubmitOwnerApplicationResponse> {
+  const { data } = await apiClient.post<ApiResponse<SubmitOwnerApplicationResponse>>("/api/owner-applications/me/submit");
+  return unwrap(data);
 }
