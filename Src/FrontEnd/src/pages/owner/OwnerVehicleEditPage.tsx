@@ -85,6 +85,8 @@ export default function OwnerVehicleEditPage() {
   const [fixedPricePerDay, setFixedPricePerDay] = useState("");
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
+  const [requiresDeposit, setRequiresDeposit] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
 
   const provinces = useMemo(() => [...new Set(areas.map((area) => area.province))].sort(), [areas]);
@@ -121,6 +123,8 @@ export default function OwnerVehicleEditPage() {
       setFixedPricePerDay((pricingData?.fixedPricePerDay ?? vehicleData.fixedPricePerDay ?? vehicleData.pricePerDay).toString());
       setAutoMinPrice((pricingData?.autoMinPrice ?? vehicleData.autoMinPrice ?? "").toString());
       setAutoMaxPrice((pricingData?.autoMaxPrice ?? vehicleData.autoMaxPrice ?? "").toString());
+      setRequiresDeposit(vehicleData.requiresDeposit);
+      setDepositAmount(vehicleData.depositAmount?.toString() ?? "");
     } catch {
       setError("Không thể tải thông tin xe.");
     } finally {
@@ -146,6 +150,10 @@ export default function OwnerVehicleEditPage() {
     return min > 0 && max > 0 && min <= max && isPriceInSuggestion(min) && isPriceInSuggestion(max);
   }
 
+  function isDepositValid() {
+    return !requiresDeposit || Number(depositAmount) > 0;
+  }
+
   function toggleFeature(featureId: number) {
     setSelectedFeatureIds((prev) => prev.includes(featureId) ? prev.filter((f) => f !== featureId) : [...prev, featureId]);
   }
@@ -156,7 +164,7 @@ export default function OwnerVehicleEditPage() {
   }
 
   async function handleSaveInfo() {
-    if (!vehicle || !id) return;
+    if (!vehicle || !id || !isDepositValid()) return;
     setSaving("info");
     setError(null);
     try {
@@ -168,6 +176,8 @@ export default function OwnerVehicleEditPage() {
         address: address.trim(),
         areaId,
         pricePerDay: vehicle.pricePerDay,
+        requiresDeposit,
+        depositAmount: requiresDeposit ? Number(depositAmount) : null,
         featureIds: selectedFeatureIds,
       });
       await loadData();
@@ -179,7 +189,7 @@ export default function OwnerVehicleEditPage() {
   }
 
   async function handleSaveFeatures() {
-    if (!vehicle || !id) return;
+    if (!vehicle || !id || !isDepositValid()) return;
     setSaving("features");
     setError(null);
     try {
@@ -191,6 +201,8 @@ export default function OwnerVehicleEditPage() {
         address: address.trim(),
         areaId,
         pricePerDay: vehicle.pricePerDay,
+        requiresDeposit,
+        depositAmount: requiresDeposit ? Number(depositAmount) : null,
         featureIds: selectedFeatureIds,
       });
       await loadData();
@@ -202,10 +214,22 @@ export default function OwnerVehicleEditPage() {
   }
 
   async function handleSavePricing() {
-    if (!id || !isPricingValid()) return;
+    if (!vehicle || !id || !isPricingValid() || !isDepositValid()) return;
     setSaving("pricing");
     setError(null);
     try {
+      await updateVehicle(Number(id), {
+        year,
+        licensePlate: licensePlate.trim(),
+        odometerKm: odometerKm ? Number(odometerKm) : null,
+        description: description.trim() || null,
+        address: address.trim(),
+        areaId,
+        pricePerDay: vehicle.pricePerDay,
+        requiresDeposit,
+        depositAmount: requiresDeposit ? Number(depositAmount) : null,
+        featureIds: selectedFeatureIds,
+      });
       const updated = await updateVehiclePricing(Number(id), {
         pricingMode,
         fixedPricePerDay: pricingMode === "Fixed" ? Number(fixedPricePerDay) : null,
@@ -407,6 +431,33 @@ export default function OwnerVehicleEditPage() {
                   {!isPricingValid() && <p className="text-sm text-red-600">Giá phải hợp lệ và nằm trong khung min/max nếu có gợi ý.</p>}
                 </div>
               )}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <label className="flex items-center justify-between gap-4">
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">Yêu cầu thế chấp</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Bật nếu khách cần đặt cọc/thế chấp trước khi thuê xe.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={requiresDeposit}
+                    onChange={(e) => {
+                      setRequiresDeposit(e.target.checked);
+                      if (!e.target.checked) setDepositAmount("");
+                    }}
+                    className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+                </label>
+                {requiresDeposit && (
+                  <div className="mt-4 space-y-1">
+                    <label className="block text-sm font-medium text-slate-700">Số tiền thế chấp</label>
+                    <div className="relative">
+                      <input type="number" min={0} value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="VD: 2000000" className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 pr-12 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">VNĐ</span>
+                    </div>
+                    {!isDepositValid() && <p className="text-sm text-red-600">Số tiền thế chấp phải lớn hơn 0.</p>}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -443,7 +494,7 @@ export default function OwnerVehicleEditPage() {
               </button>
             )}
             {step === 3 && (
-              <button type="button" onClick={handleSavePricing} disabled={saving === "pricing" || !isPricingValid()} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={handleSavePricing} disabled={saving === "pricing" || !isPricingValid() || !isDepositValid()} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed">
                 {saving === "pricing" ? "Đang lưu..." : <><Save className="h-4 w-4" /> Lưu giá & địa chỉ</>}
               </button>
             )}

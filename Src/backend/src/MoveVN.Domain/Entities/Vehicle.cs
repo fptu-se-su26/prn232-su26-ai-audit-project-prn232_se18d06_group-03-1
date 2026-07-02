@@ -25,6 +25,8 @@ public class Vehicle
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public decimal PricePerDay { get; set; }
+    public bool RequiresDeposit { get; set; }
+    public decimal? DepositAmount { get; set; }
     public string Status { get; set; } = VehicleStatus.Pending;
     public long? ApprovedBy { get; set; }
     public DateTime? ApprovedAt { get; set; }

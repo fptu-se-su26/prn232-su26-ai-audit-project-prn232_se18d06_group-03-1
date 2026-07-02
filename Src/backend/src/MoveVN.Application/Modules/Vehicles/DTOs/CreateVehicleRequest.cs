@@ -13,6 +13,8 @@ public class CreateVehicleRequest
     public string Address { get; set; } = string.Empty;
     public int? AreaId { get; set; }
     public decimal PricePerDay { get; set; }
+    public bool RequiresDeposit { get; set; }
+    public decimal? DepositAmount { get; set; }
     public string? PricingMode { get; set; }
     public decimal? FixedPricePerDay { get; set; }
     public decimal? AutoMinPrice { get; set; }

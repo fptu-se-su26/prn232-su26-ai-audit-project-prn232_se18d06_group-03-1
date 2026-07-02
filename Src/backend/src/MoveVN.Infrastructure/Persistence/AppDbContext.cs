@@ -131,6 +131,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .WithMany()
             .HasForeignKey(entity => entity.AreaId)
             .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Vehicle>().Property(entity => entity.DepositAmount).HasPrecision(15, 2);
         builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
         builder.Entity<VehicleDocument>().HasIndex(entity => entity.VehicleId);
         builder.Entity<VehicleDocument>().HasIndex(entity => new { entity.VehicleId, entity.IsCurrent });

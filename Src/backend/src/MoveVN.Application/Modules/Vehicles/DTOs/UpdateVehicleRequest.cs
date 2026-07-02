@@ -9,5 +9,7 @@ public class UpdateVehicleRequest
     public string Address { get; set; } = string.Empty;
     public int? AreaId { get; set; }
     public decimal PricePerDay { get; set; }
+    public bool RequiresDeposit { get; set; }
+    public decimal? DepositAmount { get; set; }
     public List<int> FeatureIds { get; set; } = [];
 }

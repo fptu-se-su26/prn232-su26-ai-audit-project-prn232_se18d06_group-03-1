@@ -206,6 +206,10 @@ export default function VehicleDetailPage() {
             <p className="mt-2 text-2xl font-bold text-brand-700">
               {displayPrice.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span>
             </p>
+            <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+              <span className="font-semibold text-slate-700">Thế chấp: </span>
+              {vehicle.requiresDeposit ? `${(vehicle.depositAmount ?? 0).toLocaleString("vi-VN")}đ` : "Không yêu cầu"}
+            </div>
             <div className="mt-3 flex items-center gap-2">
               {vehicle.vehicleType === "Car" ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"><Car className="h-3 w-3" /> Ô tô</span>

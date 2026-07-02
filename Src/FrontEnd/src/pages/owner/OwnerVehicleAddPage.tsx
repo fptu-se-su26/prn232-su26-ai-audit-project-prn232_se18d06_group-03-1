@@ -42,6 +42,8 @@ export default function OwnerVehicleAddPage() {
   const [pricePerDay, setPricePerDay] = useState("");
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
+  const [requiresDeposit, setRequiresDeposit] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
 
   const [features, setFeatures] = useState<CatalogFeature[]>([]);
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]);
@@ -126,6 +128,10 @@ export default function OwnerVehicleAddPage() {
     return min > 0 && max > 0 && min <= max && isPriceInSuggestion(min) && isPriceInSuggestion(max);
   }
 
+  function isDepositValid() {
+    return !requiresDeposit || Number(depositAmount) > 0;
+  }
+
   function handleProvinceChange(value: string) {
     setSelectedProvince(value);
     setAreaId(null);
@@ -133,6 +139,8 @@ export default function OwnerVehicleAddPage() {
     setPricePerDay("");
     setAutoMinPrice("");
     setAutoMaxPrice("");
+    setRequiresDeposit(false);
+    setDepositAmount("");
   }
 
   function handleAreaChange(value: string) {
@@ -161,7 +169,7 @@ export default function OwnerVehicleAddPage() {
       case 0: return vehicleType !== "";
       case 1: return brandId != null && modelId != null;
       case 2: return year.trim() !== "" && licensePlate.trim() !== "";
-      case 3: return address.trim() !== "" && isPricingValid();
+      case 3: return address.trim() !== "" && isPricingValid() && isDepositValid();
       case 4: return true;
       case 5: return imageUrls.length > 0;
       case 6: return true;
@@ -228,6 +236,8 @@ export default function OwnerVehicleAddPage() {
         address: address.trim(),
         areaId,
         pricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : Number(autoMinPrice),
+        requiresDeposit,
+        depositAmount: requiresDeposit ? Number(depositAmount) : null,
         pricingMode,
         fixedPricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : null,
         autoMinPrice: pricingMode === "Auto" ? Number(autoMinPrice) : null,
@@ -421,6 +431,33 @@ export default function OwnerVehicleAddPage() {
                   {!isPricingValid() && (areaId || pricePerDay || autoMinPrice || autoMaxPrice) && <p className="text-sm text-red-600">Giá phải hợp lệ và nằm trong khung min/max nếu có gợi ý.</p>}
                 </>
               )}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <label className="flex items-center justify-between gap-4">
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">Yêu cầu thế chấp</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Bật nếu khách cần đặt cọc/thế chấp trước khi thuê xe.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={requiresDeposit}
+                    onChange={(e) => {
+                      setRequiresDeposit(e.target.checked);
+                      if (!e.target.checked) setDepositAmount("");
+                    }}
+                    className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+                </label>
+                {requiresDeposit && (
+                  <div className="mt-4 space-y-1">
+                    <label className="block text-sm font-medium text-slate-700">Số tiền thế chấp</label>
+                    <div className="relative">
+                      <input type="number" min={0} value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="VD: 2000000" className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 pr-12 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">VNĐ</span>
+                    </div>
+                    {!isDepositValid() && <p className="text-sm text-red-600">Số tiền thế chấp phải lớn hơn 0.</p>}
+                  </div>
+                )}
+              </div>
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-slate-700">Mô tả thêm</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Mô tả thêm về xe của bạn..." className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
@@ -489,6 +526,7 @@ export default function OwnerVehicleAddPage() {
                   <div className="text-slate-500">Dòng xe:</div><div className="font-medium text-slate-900">{models.find((m) => m.id === modelId)?.name}</div>
                   <div className="text-slate-500">Biển số:</div><div className="font-medium text-slate-900">{licensePlate}</div>
                   <div className="text-slate-500">Giá thuê:</div><div className="font-medium text-slate-900">{pricingMode === "Fixed" ? Number(pricePerDay).toLocaleString("vi-VN") : `${Number(autoMinPrice).toLocaleString("vi-VN")} - ${Number(autoMaxPrice).toLocaleString("vi-VN")}`}đ/ngày</div>
+                  <div className="text-slate-500">Thế chấp:</div><div className="font-medium text-slate-900">{requiresDeposit ? `${Number(depositAmount).toLocaleString("vi-VN")}đ` : "Không yêu cầu"}</div>
                 </div>
               </div>
               <input ref={docInputRef} type="file" accept="image/*" onChange={handleDocUpload} className="hidden" />

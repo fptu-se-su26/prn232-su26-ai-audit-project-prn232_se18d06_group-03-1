@@ -15,6 +15,7 @@ import {
   KeyRound,
   Landmark,
   Layers,
+  ListChecks,
   Map,
   MapPinned,
   Percent,
@@ -53,6 +54,7 @@ const vehicleCatalogItems = [
   { to: "/admin/vehicle-models", label: "Dòng xe", icon: Layers },
   { to: "/admin/car-variants", label: "Phiên bản ô tô", icon: Car },
   { to: "/admin/motorbike-variants", label: "Phiên bản xe máy", icon: Bike },
+  { to: "/admin/vehicle-features", label: "Tính năng xe", icon: ListChecks },
   { to: "/admin/driver-license-classes", label: "Giấy phép lái xe", icon: FileBadge },
 ];
 

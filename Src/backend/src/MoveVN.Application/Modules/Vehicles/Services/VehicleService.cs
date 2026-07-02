@@ -91,6 +91,8 @@ public class VehicleService : IVehicleService
             PricingRegionId = area?.PricingRegionId,
             PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
+            RequiresDeposit = vehicle.RequiresDeposit,
+            DepositAmount = vehicle.DepositAmount,
             PricingMode = pricing?.PricingMode,
             FixedPricePerDay = pricing?.FixedPricePerDay,
             AutoMinPrice = pricing?.AutoMinPrice,
@@ -138,6 +140,7 @@ public class VehicleService : IVehicleService
         }
 
         await ValidateFeaturesAsync(request.FeatureIds, request.VehicleType, cancellationToken);
+        ValidateDeposit(request.RequiresDeposit, request.DepositAmount);
 
         var pricingRequest = BuildPricingRequest(request);
         var vehicleForValidation = new Vehicle
@@ -162,6 +165,8 @@ public class VehicleService : IVehicleService
             Address = request.Address,
             AreaId = request.AreaId,
             PricePerDay = currentPrice,
+            RequiresDeposit = request.RequiresDeposit,
+            DepositAmount = request.RequiresDeposit ? request.DepositAmount : null,
             Status = VehicleStatus.Pending,
             CreatedAt = DateTime.UtcNow,
         };
@@ -293,6 +298,9 @@ public class VehicleService : IVehicleService
         vehicle.Description = request.Description;
         vehicle.Address = request.Address;
         vehicle.AreaId = request.AreaId;
+        ValidateDeposit(request.RequiresDeposit, request.DepositAmount);
+        vehicle.RequiresDeposit = request.RequiresDeposit;
+        vehicle.DepositAmount = request.RequiresDeposit ? request.DepositAmount : null;
 
         if (request.AreaId.HasValue)
         {
@@ -538,6 +546,12 @@ public class VehicleService : IVehicleService
 
         if (count != ids.Count)
             throw new AppException(ErrorCode.VEHICLE_FEATURE_NOT_FOUND);
+    }
+
+    private static void ValidateDeposit(bool requiresDeposit, decimal? depositAmount)
+    {
+        if (requiresDeposit && (!depositAmount.HasValue || depositAmount.Value <= 0))
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Số tiền thế chấp phải lớn hơn 0."]);
     }
 
     private static string NormalizeVehicleType(string value)

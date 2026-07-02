@@ -479,6 +479,10 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                 <p className="mt-1 font-semibold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ/ngày</p>
               </div>
               <div>
+                <span className="text-xs font-medium text-slate-400">Thế chấp</span>
+                <p className="mt-1 font-medium text-slate-800">{vehicle.requiresDeposit ? `${(vehicle.depositAmount ?? 0).toLocaleString("vi-VN")}đ` : "Không yêu cầu"}</p>
+              </div>
+              <div>
                 <span className="text-xs font-medium text-slate-400">Tỉnh/Thành phố</span>
                 <p className="mt-1 font-medium text-slate-800">{vehicleArea.province}</p>
               </div>
@@ -502,6 +506,26 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                   <span className="text-xs font-medium text-slate-400">Mô tả xe</span>
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{vehicle.description}</p>
                 </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                <CheckCircle className="h-3.5 w-3.5 text-slate-500" />
+              </div>
+              <h2 className="text-sm font-semibold text-slate-900">Tính năng xe ({vehicle.features.length})</h2>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {vehicle.features.map((feature) => (
+                <span key={feature.id} className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  {feature.name}
+                </span>
+              ))}
+              {vehicle.features.length === 0 && (
+                <p className="text-sm text-slate-400">Chưa chọn tính năng nào.</p>
               )}
             </div>
           </div>

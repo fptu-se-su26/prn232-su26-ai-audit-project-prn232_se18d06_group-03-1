@@ -88,6 +88,7 @@ public class VehicleModerationService : IVehicleModerationService
             : null;
 
         var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
+        var features = await _repository.GetVehicleFeatureResponsesAsync(vehicle.Id, cancellationToken);
         var documentEntities = await _repository.GetVehicleDocumentsAsync(vehicle.Id, includeDeleted: false, cancellationToken);
         var documents = documentEntities.Select(ToVehicleDocumentResponse).ToList();
 
@@ -115,11 +116,13 @@ public class VehicleModerationService : IVehicleModerationService
             PricingRegionId = area?.PricingRegionId,
             PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
+            RequiresDeposit = vehicle.RequiresDeposit,
+            DepositAmount = vehicle.DepositAmount,
             Status = vehicle.Status,
             RejectionReason = vehicle.RejectionReason,
             FeaturedImage = images.FirstOrDefault(image => image.IsPrimary)?.ImageUrl,
             Images = images,
-            Features = [],
+            Features = features,
             Documents = documents,
             VerificationLogs = logs.Select(log => new VehicleVerificationLogResponse
             {

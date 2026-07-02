@@ -345,6 +345,10 @@ export default function OwnerVehicleDetailPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900 mb-3">Giá thuê</h2>
             <p className="text-2xl font-bold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span></p>
+            <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+              <span className="font-semibold text-slate-700">Thế chấp: </span>
+              {vehicle.requiresDeposit ? `${(vehicle.depositAmount ?? 0).toLocaleString("vi-VN")}đ` : "Không yêu cầu"}
+            </div>
             {vehicle.pricingMode === "Auto" ? (
               <>
               <div className="mt-3 rounded-lg bg-violet-50 p-3 text-xs text-violet-800">
