@@ -1,0 +1,23 @@
+{
+  "version": "hybrid-logreg-risk-v1",
+  "features": [
+    "trust_score",
+    "cancel_count",
+    "duration",
+    "vehicle_value"
+  ],
+  "scales": {
+    "trust_score": 100.0,
+    "cancel_count": 5.0,
+    "duration": 30.0,
+    "vehicle_value": 2000000000.0
+  },
+  "intercept": 2.0198283948296694,
+  "weights": {
+    "trust_score": -8.387305799221636,
+    "cancel_count": 7.334186810896928,
+    "duration": 5.370545713793133,
+    "vehicle_value": 1.1276732025599538
+  },
+  "sample_count": 30
+}
