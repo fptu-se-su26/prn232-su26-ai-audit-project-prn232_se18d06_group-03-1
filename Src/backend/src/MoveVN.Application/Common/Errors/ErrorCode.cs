@@ -96,5 +96,13 @@ public sealed class ErrorCode
     public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_FOUND = new("VEHICLE_9003", "Vehicle document not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_VERIFIED = new("VEHICLE_9004", "Vehicle document must be verified before approving listing.", HttpStatusCode.BadRequest);
 
+    public static readonly ErrorCode BOOKING_NOT_FOUND = new("BOOK_10001", "Booking not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode BOOKING_DATES_INVALID = new("BOOK_10002", "Ngày trả phải sau ngày nhận.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BOOKING_OVERLAP = new("BOOK_10003", "Xe đã được đặt trong khoảng thời gian này.", HttpStatusCode.Conflict);
+    public static readonly ErrorCode BOOKING_VEHICLE_NOT_AVAILABLE = new("BOOK_10004", "Xe không có sẵn để đặt.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BOOKING_NOT_PENDING = new("BOOK_10005", "Booking không ở trạng thái chờ duyệt.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BOOKING_NOT_OWNER = new("BOOK_10006", "Bạn không có quyền xử lý booking này.", HttpStatusCode.Forbidden);
+    public static readonly ErrorCode BOOKING_REJECT_REASON_REQUIRED = new("BOOK_10007", "Vui lòng nhập lý do từ chối.", HttpStatusCode.BadRequest);
+
     public override string ToString() => $"{Code}: {Message}";
 }

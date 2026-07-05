@@ -1,0 +1,265 @@
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Alert from "@/components/common/Alert";
+import Button from "@/components/common/Button";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import Card from "@/components/ui/Card";
+import { createBooking } from "@/features/booking/bookingService";
+import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
+import { showToast } from "@/components/common/toastStore";
+
+function formatCurrency(n: number) {
+  return new Intl.NumberFormat("vi-VN").format(n) + "đ";
+}
+
+const discountTiers: { min: number; max: number; pct: number }[] = [
+  { min: 3, max: 3, pct: 5 },
+  { min: 5, max: 6, pct: 10 },
+  { min: 7, max: 29, pct: 15 },
+  { min: 30, max: Infinity, pct: 25 },
+];
+
+function getDiscountPercent(days: number) {
+  for (const t of discountTiers) {
+    if (days >= t.min && days <= t.max) return t.pct;
+  }
+  return 0;
+}
+
+export default function CustomerCreateBookingPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const vehicleId = Number(searchParams.get("vehicleId"));
+
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; requiresDeposit: boolean; depositAmount: number | null } | null>(null);
+  const [vehicleName, setVehicleName] = useState("");
+  const [loadingVehicle, setLoadingVehicle] = useState(true);
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [returnAddress, setReturnAddress] = useState("");
+  const [customerNote, setCustomerNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!vehicleId) { setLoadingVehicle(false); return; }
+    getPublicVehicleById(vehicleId)
+      .then((v) => {
+        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, requiresDeposit: v.requiresDeposit, depositAmount: v.depositAmount });
+        setVehicleName(`${v.brandName} ${v.modelName}`);
+      })
+      .catch(() => setError("Không thể tải thông tin xe."))
+      .finally(() => setLoadingVehicle(false));
+  }, [vehicleId]);
+
+  const totalDays = useMemo(() => {
+    if (!startDate || !endDate) return 0;
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+    return Math.max(0, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)));
+  }, [startDate, endDate]);
+
+  const pricePreview = useMemo(() => {
+    if (!vehicle || totalDays <= 0) return null;
+    const base = vehicle.pricePerDay * totalDays;
+    const discPct = getDiscountPercent(totalDays);
+    const discAmt = Math.round(base * discPct / 100);
+    const afterDisc = base - discAmt;
+    const fee = Math.round(afterDisc * 10 / 100);
+    const deposit = vehicle.requiresDeposit
+      ? (vehicle.depositAmount ?? Math.round(afterDisc * 30 / 100))
+      : 0;
+    const total = afterDisc + fee;
+    return { base, discPct, discAmt, fee, deposit, total };
+  }, [vehicle, totalDays]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vehicleId || !startDate || !endDate || !pickupAddress.trim()) {
+      setError("Vui lòng điền đầy đủ thông tin.");
+      return;
+    }
+    if (new Date(endDate) <= new Date(startDate)) {
+      setError("Ngày trả phải sau ngày nhận.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const result = await createBooking({
+        vehicleId,
+        startDate,
+        endDate,
+        pickupAddress: pickupAddress.trim(),
+        returnAddress: returnAddress.trim() || undefined,
+        customerNote: customerNote.trim() || undefined,
+      });
+      showToast({ type: "success", title: "Đặt xe thành công", message: `Mã booking: ${result.bookingCode}` });
+      navigate(`/customer/bookings/${result.id}`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Không thể tạo booking.";
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [vehicleId, startDate, endDate, pickupAddress, returnAddress, customerNote, navigate]);
+
+  if (!vehicleId) {
+    return (
+      <div className="mx-auto max-w-lg pt-10">
+        <Alert variant="error" title="Thiếu thông tin">
+          Vui lòng chọn xe trước khi đặt. <Link to="/xe" className="underline">Quay lại danh sách xe</Link>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (loadingVehicle) return <LoadingSpinner />;
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="flex items-center gap-3">
+        <Link to="/customer/bookings">
+          <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Quay lại</Button>
+        </Link>
+      </div>
+
+      <section>
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Customer</p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-950">Đặt xe</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">Điền thông tin để gửi yêu cầu thuê xe.</p>
+      </section>
+
+      {error && (
+        <Alert variant="error" title="Lỗi">{error}</Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Card className="space-y-4 rounded-md p-5">
+          <div className="flex items-center gap-2">
+            <Car className="h-5 w-5 text-brand-700" />
+            <div>
+              <span className="font-medium text-slate-900">{vehicleName || `Xe #${vehicleId}`}</span>
+              {vehicle && (
+                <p className="text-xs text-slate-500">{formatCurrency(vehicle.pricePerDay)}/ngày</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Ngày nhận xe
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Ngày trả xe
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              <MapPin className="mr-1 inline h-3.5 w-3.5" />Địa chỉ nhận xe
+            </label>
+            <input
+              type="text"
+              value={pickupAddress}
+              onChange={(e) => setPickupAddress(e.target.value)}
+              placeholder="VD: 123 Nguyễn Huệ, Quận 1"
+              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              <MapPin className="mr-1 inline h-3.5 w-3.5" />Địa chỉ trả xe <span className="text-slate-400">(tuỳ chọn)</span>
+            </label>
+            <input
+              type="text"
+              value={returnAddress}
+              onChange={(e) => setReturnAddress(e.target.value)}
+              placeholder="Để trống nếu trả cùng địa chỉ nhận"
+              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Ghi chú <span className="text-slate-400">(tuỳ chọn)</span></label>
+            <textarea
+              value={customerNote}
+              onChange={(e) => setCustomerNote(e.target.value)}
+              placeholder="Yêu cầu đặc biệt..."
+              rows={3}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </Card>
+
+        {pricePreview && (
+          <Card className="space-y-3 rounded-md p-5">
+            <h2 className="text-sm font-bold text-slate-950">Dự kiến chi phí</h2>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">{vehicleName && `${vehicleName} · `}{totalDays} ngày</span>
+                <span className="font-medium text-slate-900">{formatCurrency(pricePreview.base)}</span>
+              </div>
+              {pricePreview.discPct > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1 text-slate-600">
+                    <TicketPercent className="h-3.5 w-3.5 text-green-600" />
+                    Giảm giá ({pricePreview.discPct}%)
+                  </span>
+                  <span className="font-medium text-green-600">-{formatCurrency(pricePreview.discAmt)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Phí nền tảng (10%)</span>
+                <span className="font-medium text-slate-900">{formatCurrency(pricePreview.fee)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
+                <span className="flex items-center gap-1 text-slate-600">
+                  <CreditCard className="h-3.5 w-3.5 text-brand-700" />
+                  Tiền cọc
+                </span>
+                <span className="font-medium text-slate-900">{formatCurrency(pricePreview.deposit)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
+                <span className="flex items-center gap-1 font-semibold text-slate-900">
+                  <DollarSign className="h-4 w-4 text-brand-700" />
+                  Tổng cộng
+                </span>
+                <span className="text-lg font-bold text-brand-700">{formatCurrency(pricePreview.total)}</span>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <div className="flex justify-end">
+          <Button type="submit" variant="primary" isLoading={isSubmitting}>
+            Gửi yêu cầu đặt xe
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

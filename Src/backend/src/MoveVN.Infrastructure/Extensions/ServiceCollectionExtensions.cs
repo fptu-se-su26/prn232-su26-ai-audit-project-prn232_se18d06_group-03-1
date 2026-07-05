@@ -1,12 +1,14 @@
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
+using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
 using MoveVN.Infrastructure.Persistence.Mongo;
 using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 using MoveVN.Infrastructure.Persistence.Repositories;
+using MoveVN.Infrastructure.Persistence.Repositories.Bookings;
 using MoveVN.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +68,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
         services.AddScoped<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
         services.AddScoped<IVehicleVerificationLogService, VehicleVerificationLogService>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
 
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))

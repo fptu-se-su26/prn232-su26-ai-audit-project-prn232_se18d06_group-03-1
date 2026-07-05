@@ -4,6 +4,8 @@ using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Application.Modules.Admin.Services;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Auth.Services;
+using MoveVN.Application.Modules.Bookings.Interfaces;
+using MoveVN.Application.Modules.Bookings.Services;
 using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
 using MoveVN.Application.Modules.Owner.Interfaces;
@@ -70,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<IPricingCalculatorService, PricingCalculatorService>();
         services.AddScoped<IPlatformFeeRuleService, PlatformFeeRuleService>();
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
+        services.AddScoped<IBookingService, BookingService>();
 
         return services;
     }

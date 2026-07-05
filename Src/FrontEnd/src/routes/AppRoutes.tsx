@@ -29,9 +29,14 @@ import BankInfoPage from "@/pages/customer/BankInfoPage";
 import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
 import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
 import OwnerPendingPage from "@/pages/customer/OwnerPendingPage";
+import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPage";
+import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
+import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import OwnerBookingDetailPage from "@/pages/owner/OwnerBookingDetailPage";
+import OwnerBookingListPage from "@/pages/owner/OwnerBookingListPage";
 import OwnerHomePage from "@/pages/owner/OwnerHomePage";
 import OwnerVehicleListPage from "@/pages/owner/OwnerVehicleListPage";
 import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
@@ -73,6 +78,9 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Customer"]} />}>
             <Route path="/customer" element={<CustomerHomePage />} />
+            <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
+            <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
+            <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
             <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
             <Route path="/become-owner/bank" element={<BankInfoPage />} />
@@ -81,6 +89,8 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Owner"]} />}>
             <Route path="/owner" element={<OwnerHomePage />} />
+            <Route path="/owner/bookings" element={<OwnerBookingListPage />} />
+            <Route path="/owner/bookings/:id" element={<OwnerBookingDetailPage />} />
             <Route path="/owner/vehicles" element={<OwnerVehicleListPage />} />
             <Route path="/owner/vehicles/car" element={<OwnerVehicleListPage />} />
             <Route path="/owner/vehicles/motorbike" element={<OwnerVehicleListPage />} />

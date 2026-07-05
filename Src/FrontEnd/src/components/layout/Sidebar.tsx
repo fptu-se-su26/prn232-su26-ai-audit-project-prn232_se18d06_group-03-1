@@ -4,6 +4,7 @@ import {
   BadgeDollarSign,
   Bike,
   Building2,
+  CalendarCheck,
   Car,
   ChevronDown,
   ChevronLeft,
@@ -120,10 +121,20 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
   ];
 
+  if (primaryRole === "Customer") {
+    mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
+    mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
+  }
+
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
     mainItems.push({ to: "/admin/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
     mainItems.push({ to: "/admin/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
+  }
+
+  if (primaryRole === "Owner") {
+    mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
+    mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
   }
 
   if (primaryRole === "Staff") {

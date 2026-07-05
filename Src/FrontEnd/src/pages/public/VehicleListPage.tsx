@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Car, Bike, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Car, Bike, MapPin, CalendarCheck } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCatalogBrands, getCatalogModels } from "@/features/vehicles/services/vehicleService";
@@ -7,6 +7,8 @@ import type { VehicleListItemResponse, CatalogBrand, CatalogModel } from "@/feat
 import { fuelTypeOptions, motorbikeTypeOptions } from "@/features/vehicleModelVariants/options";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import useClickOutside from "@/hooks/useClickOutside";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import Button from "@/components/common/Button";
 
 const carBodyTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Pickup", "MPV/Minivan", "Wagon"];
 const seatCounts = ["2", "4", "5", "7", "8", "9", "16", "29", "30"];
@@ -67,6 +69,8 @@ export default function VehicleListPage() {
   const [bodyTypeFilter, setBodyTypeFilter] = useState("");
   const [bikeTypeFilter, setBikeTypeFilter] = useState("");
   const [engineCapacityFilter, setEngineCapacityFilter] = useState("");
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [brands, setBrands] = useState<CatalogBrand[]>([]);
@@ -252,16 +256,18 @@ export default function VehicleListPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((vehicle) => (
-              <button key={vehicle.id} type="button" onClick={() => navigate(`/xe/${vehicle.id}`)} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md text-left">
-                <div className="aspect-[16/9] overflow-hidden bg-slate-100">
-                  {vehicle.featuredImage ? (
-                    <img src={vehicle.featuredImage} alt={vehicle.licensePlate} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      {vehicle.vehicleType === "Car" ? <Car className="h-12 w-12 text-slate-300" /> : <Bike className="h-12 w-12 text-slate-300" />}
-                    </div>
-                  )}
-                </div>
+              <div key={vehicle.id} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
+                <button type="button" onClick={() => navigate(`/xe/${vehicle.id}`)} className="w-full text-left">
+                  <div className="aspect-[16/9] overflow-hidden bg-slate-100">
+                    {vehicle.featuredImage ? (
+                      <img src={vehicle.featuredImage} alt={vehicle.licensePlate} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        {vehicle.vehicleType === "Car" ? <Car className="h-12 w-12 text-slate-300" /> : <Bike className="h-12 w-12 text-slate-300" />}
+                      </div>
+                    )}
+                  </div>
+                </button>
                 <div className="p-4">
                   <div className="mb-1 flex items-center gap-2">
                     <span className="text-xs font-medium text-slate-500">{vehicle.brandName} {vehicle.modelName}</span>
@@ -285,8 +291,24 @@ export default function VehicleListPage() {
                     <span className="text-sm font-semibold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ/ngày</span>
                     <span className="text-xs text-slate-400">{vehicle.year}</span>
                   </div>
+                  {token && user ? (
+                    <div className="mt-3 flex gap-2">
+                      <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={() => navigate(`/xe/${vehicle.id}`)}>
+                        Xem chi tiết
+                      </Button>
+                      <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => navigate(`/customer/bookings/new?vehicleId=${vehicle.id}`)}>
+                        <CalendarCheck className="h-3.5 w-3.5" /> Đặt ngay
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <Button type="button" variant="secondary" size="sm" className="w-full" onClick={() => navigate(`/xe/${vehicle.id}`)}>
+                        Xem chi tiết
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

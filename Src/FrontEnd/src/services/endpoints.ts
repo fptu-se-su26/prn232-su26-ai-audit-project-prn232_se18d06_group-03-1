@@ -51,5 +51,13 @@ export const endpoints = {
     list: "/api/public/vehicles",
     byId: (id: number) => `/api/public/vehicles/${id}`,
   },
+  bookings: {
+    base: "/api/bookings",
+    byId: (id: number) => `/api/bookings/${id}`,
+    my: "/api/bookings/my-bookings",
+    owner: "/api/bookings/owner",
+    approve: (id: number) => `/api/bookings/${id}/approve`,
+    reject: (id: number) => `/api/bookings/${id}/reject`,
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

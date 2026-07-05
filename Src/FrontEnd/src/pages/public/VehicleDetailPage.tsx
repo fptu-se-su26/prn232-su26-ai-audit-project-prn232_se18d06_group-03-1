@@ -1,4 +1,4 @@
-import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone } from "lucide-react";
+import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/common/Skeleton";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import Button from "@/components/common/Button";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
 
 function formatVnd(value: number | null | undefined) {
   return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
@@ -49,6 +50,8 @@ function VehicleDetailSkeleton() {
 export default function VehicleDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -221,13 +224,23 @@ export default function VehicleDetailPage() {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-900">Liên hệ</h2>
-            <p className="mt-2 text-xs text-slate-500">Vui lòng đăng nhập để đặt xe hoặc liên hệ chủ xe.</p>
-            <div className="mt-4 flex flex-col gap-2">
-              <Button type="button" onClick={() => navigate("/login")}>
-                <Phone className="h-4 w-4" /> Đăng nhập để đặt xe
-              </Button>
-            </div>
+            <h2 className="text-sm font-semibold text-slate-900">Đặt xe</h2>
+            {token && user ? (
+              <div className="mt-4 flex flex-col gap-2">
+                <Button type="button" onClick={() => navigate(`/customer/bookings/new?vehicleId=${id}`)}>
+                  <CalendarCheck className="h-4 w-4" /> Đặt ngay
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="mt-2 text-xs text-slate-500">Vui lòng đăng nhập để đặt xe hoặc liên hệ chủ xe.</p>
+                <div className="mt-4 flex flex-col gap-2">
+                  <Button type="button" onClick={() => navigate("/login")}>
+                    <Phone className="h-4 w-4" /> Đăng nhập để đặt xe
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           {vehicle.images.length > 1 && (
