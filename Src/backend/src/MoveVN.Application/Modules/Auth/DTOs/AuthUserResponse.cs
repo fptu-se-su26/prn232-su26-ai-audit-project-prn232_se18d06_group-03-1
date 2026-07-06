@@ -14,5 +14,7 @@ public class AuthUserResponse
 
     public string? Phone { get; set; }
 
+    public string? AvatarUrl { get; set; }
+
     public IList<string> Roles { get; set; } = new List<string>();
 }

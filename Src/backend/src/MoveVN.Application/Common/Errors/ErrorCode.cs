@@ -95,6 +95,9 @@ public sealed class ErrorCode
     public static readonly ErrorCode VEHICLE_TOGGLE_INVALID = new("VEHICLE_9002", "Can only toggle between Approved and Hidden status.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_FOUND = new("VEHICLE_9003", "Vehicle document not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_VERIFIED = new("VEHICLE_9004", "Vehicle document must be verified before approving listing.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BLOCKED_DATE_OVERLAP_BOOKING = new("VEHICLE_9005", "The selected date range overlaps with an existing booking.", HttpStatusCode.Conflict);
+    public static readonly ErrorCode BLOCKED_DATE_INVALID_RANGE = new("VEHICLE_9006", "DateFrom must be before or equal to DateTo.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BLOCKED_DATE_NOT_FOUND = new("VEHICLE_9007", "Blocked date not found.", HttpStatusCode.NotFound);
 
     public override string ToString() => $"{Code}: {Message}";
 }

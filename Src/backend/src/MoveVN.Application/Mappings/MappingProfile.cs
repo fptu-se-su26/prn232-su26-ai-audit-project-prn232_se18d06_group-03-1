@@ -1,6 +1,7 @@
 using AutoMapper;
 using MoveVN.Application.Modules.Auth.DTOs;
 using MoveVN.Application.Modules.Users.DTOs;
+using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Mappings;
@@ -15,5 +16,7 @@ public class MappingProfile : Profile
 
         CreateMap<User, UserResponse>()
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id));
+
+        CreateMap<BlockedDate, BlockedDateResponse>();
     }
 }

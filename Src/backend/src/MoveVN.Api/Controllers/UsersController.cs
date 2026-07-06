@@ -20,6 +20,28 @@ public class UsersController : BaseApiController
         _userService = userService;
     }
 
+    [HttpPost("me/avatar")]
+    public async Task<ActionResult<ApiResponse<object>>> UploadAvatar(
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(ApiResponse<object>.Failed("USER_9001", "Avatar file is required."));
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+            return BadRequest(ApiResponse<object>.Failed("USER_9001", "Only JPG, PNG, or WebP images are allowed."));
+
+        const int maxSize = 5 * 1024 * 1024;
+        if (file.Length > maxSize)
+            return BadRequest(ApiResponse<object>.Failed("USER_9001", "Avatar must be under 5MB."));
+
+        await using var stream = file.OpenReadStream();
+        var url = await _userService.UploadAvatarAsync(stream, file.FileName, cancellationToken);
+        return Success<object>(new { url });
+    }
+
     [HttpGet("me")]
     public async Task<ActionResult<ApiResponse<UserResponse>>> GetCurrentProfile(CancellationToken cancellationToken)
     {

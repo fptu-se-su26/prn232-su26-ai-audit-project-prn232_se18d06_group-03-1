@@ -18,6 +18,8 @@ export type AuthUser = {
   email: string;
   status: UserStatus | string;
   isEmailVerified: boolean;
+  phone?: string | null;
+  avatarUrl?: string | null;
   roles: UserRole[];
 };
 

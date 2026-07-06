@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<IPricingCalculatorService, PricingCalculatorService>();
         services.AddScoped<IPlatformFeeRuleService, PlatformFeeRuleService>();
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
+        services.AddScoped<IBlockedDateService, BlockedDateService>();
 
         return services;
     }

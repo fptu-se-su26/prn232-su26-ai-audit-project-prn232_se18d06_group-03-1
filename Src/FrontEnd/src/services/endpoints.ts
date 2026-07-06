@@ -34,6 +34,8 @@ export const endpoints = {
     pricing: (id: number) => `/api/vehicles/${id}/pricing`,
     pricingSuggestion: "/api/vehicles/pricing/suggestion",
     toggleStatus: (id: number) => `/api/vehicles/${id}/toggle-status`,
+    blockedDates: (id: number) => `/api/vehicles/${id}/blocked-dates`,
+    deleteBlockedDate: (blockedDateId: number) => `/api/vehicles/blocked-dates/${blockedDateId}`,
     base: "/api/vehicles",
   },
   staff: {
@@ -50,6 +52,11 @@ export const endpoints = {
   publicVehicles: {
     list: "/api/public/vehicles",
     byId: (id: number) => `/api/public/vehicles/${id}`,
+  },
+  users: {
+    me: "/api/users/me",
+    updateProfile: "/api/users/me/profile",
+    uploadAvatar: "/api/users/me/avatar",
   },
   swaggerJson: "/swagger/v1/swagger.json",
 };

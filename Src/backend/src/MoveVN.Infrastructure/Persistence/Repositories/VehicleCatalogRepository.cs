@@ -33,6 +33,8 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<VehicleModelPricing> VehicleModelPricings => _context.VehicleModelPricing.AsQueryable();
     public IQueryable<PricingRule> PricingRules => _context.PricingRules.AsQueryable();
     public IQueryable<PlatformFeeRule> PlatformFeeRules => _context.PlatformFeeRules.AsQueryable();
+    public IQueryable<BlockedDate> BlockedDates => _context.BlockedDates.AsQueryable();
+    public IQueryable<Booking> Bookings => _context.Bookings.AsQueryable();
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);

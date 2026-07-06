@@ -13,4 +13,6 @@ public class UserResponse
     public bool IsEmailVerified { get; set; }
 
     public string? Phone { get; set; }
+
+    public string? AvatarUrl { get; set; }
 }
