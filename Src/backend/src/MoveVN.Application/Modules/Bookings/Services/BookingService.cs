@@ -1,4 +1,6 @@
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Interfaces;
+using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Domain.Entities;
@@ -8,6 +10,8 @@ namespace MoveVN.Application.Modules.Bookings.Services;
 public class BookingService : IBookingService
 {
     private readonly IBookingRepository _repo;
+    private readonly IEmailSender _emailSender;
+    private readonly IUserRepository _userRepo;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -17,13 +21,22 @@ public class BookingService : IBookingService
         (30, int.MaxValue, 25m),
     };
 
-    public BookingService(IBookingRepository repo)
+    public BookingService(IBookingRepository repo, IEmailSender emailSender, IUserRepository userRepo)
     {
         _repo = repo;
+        _emailSender = emailSender;
+        _userRepo = userRepo;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
     {
+        // Normalize DateTime.Kind to Utc for Npgsql timestamp with time zone compatibility
+        request.StartDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
+        request.EndDate = DateTime.SpecifyKind(request.EndDate, DateTimeKind.Utc);
+
+        if (request.StartDate.Date < DateTime.UtcNow.Date)
+            throw new ValidationException(new[] { "Ngày nhận xe không được ở quá khứ." });
+
         if (request.EndDate <= request.StartDate)
             throw new ValidationException(new[] { "Ngày trả phải sau ngày nhận." });
 
@@ -37,7 +50,7 @@ public class BookingService : IBookingService
         if (hasOverlap)
             throw new ValidationException(new[] { "Xe đã được đặt trong khoảng thời gian này." });
 
-        var totalDays = request.EndDate.DayNumber - request.StartDate.DayNumber;
+        var totalDays = Math.Max(1, (int)Math.Ceiling((request.EndDate - request.StartDate).TotalDays));
         if (totalDays <= 0)
             throw new ValidationException(new[] { "Thời gian thuê phải ít nhất 1 ngày." });
 
@@ -47,7 +60,7 @@ public class BookingService : IBookingService
         var afterDiscount = basePrice - discountAmount;
         var platformFee = Math.Round(afterDiscount * 10 / 100, 0);
         var depositAmount = vehicle.RequiresDeposit
-            ? (vehicle.DepositAmount ?? Math.Round(afterDiscount * 30 / 100, 0))
+            ? Math.Round(afterDiscount * 20 / 100, 0)
             : 0;
         var totalAmount = afterDiscount + platformFee;
 
@@ -132,6 +145,29 @@ public class BookingService : IBookingService
         }, cancellationToken);
 
         await _repo.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            var customer = await _userRepo.GetByIdAsync(booking.CustomerId, cancellationToken);
+            var vehicle = await _repo.GetVehicleByIdAsync(booking.VehicleId, cancellationToken);
+            if (customer is not null && vehicle is not null)
+            {
+                var vehicleName = $"{vehicle.BrandId} {vehicle.Year}";
+                await _emailSender.SendDepositRequestAsync(
+                    customer.Email,
+                    customer.FullName,
+                    booking.BookingCode,
+                    vehicleName,
+                    booking.DepositAmount,
+                    cancellationToken
+                );
+            }
+        }
+        catch
+        {
+            // Email failure should not block the approval
+        }
+
         return await MapAsync(booking, cancellationToken);
     }
 
@@ -163,6 +199,35 @@ public class BookingService : IBookingService
             ToStatus = "Rejected",
             ChangedBy = ownerId,
             Note = request.Reason,
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+        return await MapAsync(booking, cancellationToken);
+    }
+
+    public async Task<BookingResponse> ConfirmDepositAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.CustomerId != customerId)
+            throw new ValidationException(new[] { "Bạn không có quyền xác nhận cọc cho booking này." });
+
+        if (booking.Status != "Approved")
+            throw new ValidationException(new[] { "Booking chưa được duyệt hoặc đã xác nhận cọc." });
+
+        var oldStatus = booking.Status;
+        booking.Status = "DepositPaid";
+        booking.UpdatedAt = DateTime.UtcNow;
+        _repo.Update(booking);
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = oldStatus,
+            ToStatus = "DepositPaid",
+            ChangedBy = customerId,
+            Note = "Khách hàng xác nhận đã chuyển cọc",
         }, cancellationToken);
 
         await _repo.SaveChangesAsync(cancellationToken);

@@ -1,0 +1,879 @@
+Using launch settings from src\MoveVN.Api\Properties\launchSettings.json...
+Building...
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10401]
+      An 'IServiceProvider' was created for internal use by Entity Framework.
+dbug: Microsoft.EntityFrameworkCore.Model[10601]
+      The index {'UserId'} was not created on entity type 'IdentityUserRole<Guid>' as the properties are already covered by the index {'UserId', 'RoleId'}.
+dbug: Microsoft.EntityFrameworkCore.Model[10601]
+      The index {'UserId'} was not created on entity type 'IdentityUserToken<Guid>' as the properties are already covered by the index {'UserId', 'LoginProvider', 'Name'}.
+dbug: Microsoft.EntityFrameworkCore.Model[10601]
+      The index {'LicenseClassId'} was not created on entity type 'DriverLicenseClassCompatibility' as the properties are already covered by the index {'LicenseClassId', 'AllowedRequiredLicenseClassId'}.
+dbug: Microsoft.EntityFrameworkCore.Model[10601]
+      The index {'UserId'} was not created on entity type 'OwnerApplication' as the properties are already covered by the index {'UserId', 'Status'}.
+dbug: Microsoft.EntityFrameworkCore.Model[10601]
+      The index {'ModelId'} was not created on entity type 'VehicleModelVariant' as the properties are already covered by the index {'ModelId', 'Name'}.
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.8 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.8+55dd99eca42e9c6d6085961c60a0704373919a54' with options: MigrationsAssembly=MoveVN.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null 
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (18ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (4ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteScalar'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteScalar' (5ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteScalar' (9ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND
+          c.relname='__EFMigrationsHistory'
+)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (95ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND
+          c.relname='__EFMigrationsHistory'
+)
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (64ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 4ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Migrations[20400]
+      Migrating using database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteScalar'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteScalar' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteScalar' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND
+          c.relname='__EFMigrationsHistory'
+)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND
+          c.relname='__EFMigrationsHistory'
+)
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteScalar'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteScalar' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteScalar' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND
+          c.relname='__EFMigrationsHistory'
+)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (58ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class c
+    JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND
+          c.relname='__EFMigrationsHistory'
+)
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "MigrationId", "ProductVersion"
+      FROM "__EFMigrationsHistory"
+      ORDER BY "MigrationId";
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<Role>()
+          .Any(x => x.Name == __roleName_0)'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => ShapedQueryCompilingExpressionVisitor.SingleAsync<bool>(
+          asyncEnumerable: new SingleQueryingEnumerable<bool>(
+              (RelationalQueryContext)queryContext, 
+              RelationalCommandCache.QueryExpression(
+                  Projection Mapping:
+                      EmptyProjectionMember -> 0
+                  SELECT EXISTS (
+                      SELECT 1
+                      FROM Roles AS r
+                      WHERE r.name == @__roleName_0)), 
+              null, 
+              Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, bool>, 
+              MoveVN.Infrastructure.Persistence.AppDbContext, 
+              False, 
+              False, 
+              True
+          ), 
+          cancellationToken: queryContext.CancellationToken)'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (2ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (65ms) [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 3ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[@__roleName_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Roles" AS r
+          WHERE r.name = @__roleName_0)
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 0 entities written to the database.
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<DriverLicenseClass>()
+          .Select(entity => entity.Code)'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => new SingleQueryingEnumerable<string>(
+          (RelationalQueryContext)queryContext, 
+          RelationalCommandCache.QueryExpression(
+              Projection Mapping:
+                  EmptyProjectionMember -> 0
+              SELECT d.code
+              FROM DriverLicenseClasses AS d), 
+          null, 
+          Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, string>, 
+          MoveVN.Infrastructure.Persistence.AppDbContext, 
+          False, 
+          False, 
+          True
+      )'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT d.code
+      FROM "DriverLicenseClasses" AS d
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (58ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT d.code
+      FROM "DriverLicenseClasses" AS d
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 1ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 0 entities written to the database.
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<DriverLicenseClass>()'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => new SingleQueryingEnumerable<DriverLicenseClass>(
+          (RelationalQueryContext)queryContext, 
+          RelationalCommandCache.QueryExpression(
+              Projection Mapping:
+                  EmptyProjectionMember -> Dictionary<IProperty, int> { [Property: DriverLicenseClass.Id (int) Required PK AfterSave:Throw ValueGenerated.OnAdd, 0], [Property: DriverLicenseClass.Code (string) Required Index, 1], [Property: DriverLicenseClass.Description (string) Required, 2], [Property: DriverLicenseClass.DisplayName (string) Required, 3], [Property: DriverLicenseClass.IsActive (bool) Required, 4], [Property: DriverLicenseClass.SystemVersion (string) Required, 5] }
+              SELECT d.id, d.code, d.description, d.display_name, d.is_active, d.system_version
+              FROM DriverLicenseClasses AS d), 
+          null, 
+          Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, DriverLicenseClass>, 
+          MoveVN.Infrastructure.Persistence.AppDbContext, 
+          False, 
+          False, 
+          True
+      )'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT d.id, d.code, d.description, d.display_name, d.is_active, d.system_version
+      FROM "DriverLicenseClasses" AS d
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT d.id, d.code, d.description, d.display_name, d.is_active, d.system_version
+      FROM "DriverLicenseClasses" AS d
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'DriverLicenseClass' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 39ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<DriverLicenseClassCompatibility>()
+          .Select(entity => new { 
+              LicenseClassId = entity.LicenseClassId, 
+              AllowedRequiredLicenseClassId = entity.AllowedRequiredLicenseClassId
+           })'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => new SingleQueryingEnumerable<<>f__AnonymousType1<int, int>>(
+          (RelationalQueryContext)queryContext, 
+          RelationalCommandCache.QueryExpression(
+              Projection Mapping:
+                  LicenseClassId -> 0
+                  AllowedRequiredLicenseClassId -> 1
+              SELECT d.license_class_id AS LicenseClassId, d.allowed_required_license_class_id AS AllowedRequiredLicenseClassId
+              FROM DriverLicenseClassCompatibility AS d), 
+          null, 
+          Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, <>f__AnonymousType1<int, int>>, 
+          MoveVN.Infrastructure.Persistence.AppDbContext, 
+          False, 
+          False, 
+          True
+      )'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT d.license_class_id AS "LicenseClassId", d.allowed_required_license_class_id AS "AllowedRequiredLicenseClassId"
+      FROM "DriverLicenseClassCompatibility" AS d
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT d.license_class_id AS "LicenseClassId", d.allowed_required_license_class_id AS "AllowedRequiredLicenseClassId"
+      FROM "DriverLicenseClassCompatibility" AS d
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 0 entities written to the database.
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<User>()
+          .Any(x => x.Email == __normalizedEmail_0)'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => ShapedQueryCompilingExpressionVisitor.SingleAsync<bool>(
+          asyncEnumerable: new SingleQueryingEnumerable<bool>(
+              (RelationalQueryContext)queryContext, 
+              RelationalCommandCache.QueryExpression(
+                  Projection Mapping:
+                      EmptyProjectionMember -> 0
+                  SELECT EXISTS (
+                      SELECT 1
+                      FROM Users AS u
+                      WHERE u.email == @__normalizedEmail_0)), 
+              null, 
+              Func<QueryContext, DbDataReader, ResultContext, SingleQueryResultCoordinator, bool>, 
+              MoveVN.Infrastructure.Persistence.AppDbContext, 
+              False, 
+              False, 
+              True
+          ), 
+          cancellationToken: queryContext.CancellationToken)'
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Users" AS u
+          WHERE u.email = @__normalizedEmail_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Users" AS u
+          WHERE u.email = @__normalizedEmail_0)
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 0ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.Extensions.Hosting.Internal.Host[1]
+      Hosting starting
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5171
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\PRN232\prn232-su26-ai-audit-project-prn232_se18d06_group-03-1\Src\backend\src\MoveVN.Api
+dbug: Microsoft.Extensions.Hosting.Internal.Host[2]
+      Hosting started
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[100]
+      Start processing HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[100]
+      Sending HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[101]
+      Received HTTP response headers after 278.0662ms - 200
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[101]
+      End processing HTTP request after 283.9718ms - 200
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[100]
+      Start processing HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[100]
+      Sending HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[101]
+      Received HTTP response headers after 54.9911ms - 200
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[101]
+      End processing HTTP request after 55.0966ms - 200
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.8 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.8+55dd99eca42e9c6d6085961c60a0704373919a54' with options: MigrationsAssembly=MoveVN.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null 
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10808]
+      'AppDbContext' generated a temporary value for the property 'UserSession.Id'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10806]
+      Context 'AppDbContext' started tracking 'UserSession' entity. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<User>()
+          .Where(user => user.Id == __userId_Value_0)
+          .ExecuteUpdate(setters => setters.SetProperty<bool>(
+              propertyExpression: user => user.IsOnline, 
+              valueExpression: True).SetProperty<DateTime?>(
+              propertyExpression: user => user.LastSeenAt, 
+              valueExpression: __now_1).SetProperty<DateTime>(
+              propertyExpression: user => user.UpdatedAt, 
+              valueExpression: __now_2))'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => RelationalShapedQueryCompilingExpressionVisitor.NonQueryResultAsync(
+          relationalQueryContext: (RelationalQueryContext)queryContext, 
+          relationalCommandCache: RelationalCommandCache.QueryExpression(
+              UPDATE Users AS u
+              SET 
+              u.updated_at = @__now_2,
+                  u.last_seen_at = @__now_1,
+                  u.is_online = TRUE
+              SELECT 1
+              FROM Users AS u
+              WHERE u.id == @__userId_Value_0), 
+          contextType: MoveVN.Infrastructure.Persistence.AppDbContext, 
+          commandSource: BulkUpdate, 
+          threadSafetyChecksEnabled: True)'
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteNonQuery'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteNonQuery' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteNonQuery' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__now_2='?' (DbType = DateTime), @__now_1='?' (DbType = DateTime), @__userId_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      UPDATE "Users" AS u
+      SET updated_at = @__now_2,
+          last_seen_at = @__now_1,
+          is_online = TRUE
+      WHERE u.id = @__userId_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (62ms) [Parameters=[@__now_2='?' (DbType = DateTime), @__now_1='?' (DbType = DateTime), @__userId_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      UPDATE "Users" AS u
+      SET updated_at = @__now_2,
+          last_seen_at = @__now_1,
+          is_online = TRUE
+      WHERE u.id = @__userId_Value_0
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Update[10004]
+      SaveChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10800]
+      DetectChanges starting for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10801]
+      DetectChanges completed for 'AppDbContext'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteReader'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteReader' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@p0='?' (DbType = DateTime), @p1='?', @p2='?', @p3='?' (DbType = DateTime), @p4='?', @p5='?' (DbType = DateTime), @p6='?', @p7='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "UserSessions" (connected_at, connection_id, device_type, disconnected_at, ip_address, last_heartbeat_at, user_agent, user_id)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)
+      RETURNING id;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?', @p2='?', @p3='?' (DbType = DateTime), @p4='?', @p5='?' (DbType = DateTime), @p6='?', @p7='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "UserSessions" (connected_at, connection_id, device_type, disconnected_at, ip_address, last_heartbeat_at, user_agent, user_id)
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)
+      RETURNING id;
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10803]
+      The foreign key property 'UserSession.Id' was detected as changed. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see property values.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20301]
+      Closing data reader to 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20300]
+      A data reader for 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' is being disposed after spending 9ms reading results.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.ChangeTracking[10807]
+      An entity of type 'UserSession' tracked by 'AppDbContext' changed state from 'Added' to 'Unchanged'. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see key values.
+dbug: Microsoft.EntityFrameworkCore.Update[10005]
+      SaveChanges completed for 'AppDbContext' with 1 entities written to the database.
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[100]
+      Start processing HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[100]
+      Sending HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[101]
+      Received HTTP response headers after 56.7918ms - 200
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[101]
+      End processing HTTP request after 56.8928ms - 200
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10403]
+      Entity Framework Core 8.0.8 initialized 'AppDbContext' using provider 'Npgsql.EntityFrameworkCore.PostgreSQL:8.0.8+55dd99eca42e9c6d6085961c60a0704373919a54' with options: MigrationsAssembly=MoveVN.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null 
+dbug: Microsoft.EntityFrameworkCore.Query[10111]
+      Compiling query expression: 
+      'DbSet<UserSession>()
+          .Where(session => session.ConnectionId == __Context_ConnectionId_0 && session.DisconnectedAt == null)
+          .ExecuteUpdate(setters => setters.SetProperty<DateTime>(
+              propertyExpression: session => session.LastHeartbeatAt, 
+              valueExpression: __now_1))'
+dbug: Microsoft.EntityFrameworkCore.Query[10107]
+      Generated query execution expression: 
+      'queryContext => RelationalShapedQueryCompilingExpressionVisitor.NonQueryResultAsync(
+          relationalQueryContext: (RelationalQueryContext)queryContext, 
+          relationalCommandCache: RelationalCommandCache.QueryExpression(
+              UPDATE UserSessions AS u
+              SET 
+              u.last_heartbeat_at = @__now_1
+              SELECT 1
+              FROM UserSessions AS u
+              WHERE (u.connection_id == @__Context_ConnectionId_0) && (u.disconnected_at == NULL)), 
+          contextType: MoveVN.Infrastructure.Persistence.AppDbContext, 
+          commandSource: BulkUpdate, 
+          threadSafetyChecksEnabled: True)'
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteNonQuery'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20005]
+      Creating DbConnection.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20006]
+      Created DbConnection. (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteNonQuery' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteNonQuery' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__now_1='?' (DbType = DateTime), @__Context_ConnectionId_0='?'], CommandType='Text', CommandTimeout='30']
+      UPDATE "UserSessions" AS u
+      SET last_heartbeat_at = @__now_1
+      WHERE u.connection_id = @__Context_ConnectionId_0 AND u.disconnected_at IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (61ms) [Parameters=[@__now_1='?' (DbType = DateTime), @__Context_ConnectionId_0='?'], CommandType='Text', CommandTimeout='30']
+      UPDATE "UserSessions" AS u
+      SET last_heartbeat_at = @__now_1
+      WHERE u.connection_id = @__Context_ConnectionId_0 AND u.disconnected_at IS NULL
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20103]
+      Creating DbCommand for 'ExecuteNonQuery'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20104]
+      Created DbCommand for 'ExecuteNonQuery' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20106]
+      Initialized DbCommand for 'ExecuteNonQuery' (0ms).
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20000]
+      Opening connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20001]
+      Opened connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Command[20100]
+      Executing DbCommand [Parameters=[@__now_2='?' (DbType = DateTime), @__now_1='?' (DbType = DateTime), @__userId_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      UPDATE "Users" AS u
+      SET updated_at = @__now_2,
+          last_seen_at = @__now_1,
+          is_online = TRUE
+      WHERE u.id = @__userId_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (57ms) [Parameters=[@__now_2='?' (DbType = DateTime), @__now_1='?' (DbType = DateTime), @__userId_Value_0='?' (DbType = Int64)], CommandType='Text', CommandTimeout='30']
+      UPDATE "Users" AS u
+      SET updated_at = @__now_2,
+          last_seen_at = @__now_1,
+          is_online = TRUE
+      WHERE u.id = @__userId_Value_0
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20002]
+      Closing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20003]
+      Closed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[100]
+      Start processing HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[100]
+      Sending HTTP request POST https://discrete-sturgeon-79931.upstash.io/
+info: System.Net.Http.HttpClient.UpstashRedis.ClientHandler[101]
+      Received HTTP response headers after 53.3935ms - 200
+info: System.Net.Http.HttpClient.UpstashRedis.LogicalHandler[101]
+      End processing HTTP request after 53.4828ms - 200
+dbug: Microsoft.EntityFrameworkCore.Infrastructure[10407]
+      'AppDbContext' disposed.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20007]
+      Disposing connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432'.
+dbug: Microsoft.EntityFrameworkCore.Database.Connection[20008]
+      Disposed connection to database 'postgres' on server 'tcp://aws-1-ap-southeast-1.pooler.supabase.com:5432' (0ms).

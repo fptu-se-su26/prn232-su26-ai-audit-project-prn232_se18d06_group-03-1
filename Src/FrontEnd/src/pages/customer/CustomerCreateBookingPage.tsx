@@ -43,6 +43,7 @@ export default function CustomerCreateBookingPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!vehicleId) { setLoadingVehicle(false); return; }
@@ -59,7 +60,9 @@ export default function CustomerCreateBookingPage() {
     if (!startDate || !endDate) return 0;
     const s = new Date(startDate);
     const e = new Date(endDate);
-    return Math.max(0, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)));
+    const diffMs = e.getTime() - s.getTime();
+    if (diffMs <= 0) return 0;
+    return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   }, [startDate, endDate]);
 
   const pricePreview = useMemo(() => {
@@ -70,7 +73,7 @@ export default function CustomerCreateBookingPage() {
     const afterDisc = base - discAmt;
     const fee = Math.round(afterDisc * 10 / 100);
     const deposit = vehicle.requiresDeposit
-      ? (vehicle.depositAmount ?? Math.round(afterDisc * 30 / 100))
+      ? Math.round(afterDisc * 20 / 100)
       : 0;
     const total = afterDisc + fee;
     return { base, discPct, discAmt, fee, deposit, total };
@@ -152,11 +155,12 @@ export default function CustomerCreateBookingPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Ngày nhận xe
+                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Nhận xe lúc
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 value={startDate}
+                min={today + "T00:00"}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
                 required
@@ -164,11 +168,12 @@ export default function CustomerCreateBookingPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Ngày trả xe
+                <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Trả xe lúc
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 value={endDate}
+                min={startDate || today + "T00:00"}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
                 required

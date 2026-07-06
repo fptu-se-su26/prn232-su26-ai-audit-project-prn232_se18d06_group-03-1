@@ -3,8 +3,8 @@ namespace MoveVN.Application.Modules.Bookings.DTOs;
 public class CreateBookingRequest
 {
     public long VehicleId { get; set; }
-    public DateOnly StartDate { get; set; }
-    public DateOnly EndDate { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
     public string PickupAddress { get; set; } = string.Empty;
     public string? ReturnAddress { get; set; }
     public string? CustomerNote { get; set; }
@@ -19,8 +19,8 @@ public class BookingResponse
     public string? VehicleName { get; set; }
     public string? VehicleImage { get; set; }
     public long OwnerId { get; set; }
-    public DateOnly StartDate { get; set; }
-    public DateOnly EndDate { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
     public int TotalDays { get; set; }
     public decimal BasePrice { get; set; }
     public decimal DiscountPercent { get; set; }

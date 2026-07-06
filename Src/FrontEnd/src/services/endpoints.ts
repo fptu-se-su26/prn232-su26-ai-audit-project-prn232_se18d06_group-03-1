@@ -58,6 +58,7 @@ export const endpoints = {
     owner: "/api/bookings/owner",
     approve: (id: number) => `/api/bookings/${id}/approve`,
     reject: (id: number) => `/api/bookings/${id}/reject`,
+    confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
   },
   swaggerJson: "/swagger/v1/swagger.json",
 };

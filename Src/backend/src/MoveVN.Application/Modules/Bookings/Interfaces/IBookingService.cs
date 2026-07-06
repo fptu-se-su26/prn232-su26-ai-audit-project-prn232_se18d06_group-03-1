@@ -10,4 +10,5 @@ public interface IBookingService
     Task<(List<BookingResponse> Items, int TotalCount)> GetOwnerBookingsAsync(long ownerId, BookingListRequest request, CancellationToken cancellationToken = default);
     Task<BookingResponse> ApproveAsync(long bookingId, long ownerId, CancellationToken cancellationToken = default);
     Task<BookingResponse> RejectAsync(long bookingId, long ownerId, RejectBookingRequest request, CancellationToken cancellationToken = default);
+    Task<BookingResponse> ConfirmDepositAsync(long bookingId, long customerId, CancellationToken cancellationToken = default);
 }

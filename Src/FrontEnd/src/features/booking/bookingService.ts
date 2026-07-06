@@ -32,3 +32,8 @@ export async function rejectBooking(id: number, data: RejectBookingRequest): Pro
   const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.reject(id), data);
   return res.data.data!;
 }
+
+export async function confirmDeposit(id: number): Promise<BookingResponse> {
+  const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.confirmDeposit(id));
+  return res.data.data!;
+}

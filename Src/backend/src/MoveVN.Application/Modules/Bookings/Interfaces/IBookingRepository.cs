@@ -8,7 +8,7 @@ public interface IBookingRepository
     Task<Booking?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task AddAsync(Booking booking, CancellationToken cancellationToken = default);
     void Update(Booking booking);
-    Task<bool> HasOverlapAsync(long vehicleId, DateOnly startDate, DateOnly endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default);
+    Task<bool> HasOverlapAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default);
     Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default);
     Task AddStatusHistoryAsync(BookingStatusHistory history, CancellationToken cancellationToken = default);
     Task<List<BookingStatusHistoryDto>> GetStatusHistoryAsync(long bookingId, CancellationToken cancellationToken = default);

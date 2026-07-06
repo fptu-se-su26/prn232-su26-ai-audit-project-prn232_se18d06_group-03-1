@@ -23,7 +23,7 @@ public class BookingRepository : IBookingRepository
     public void Update(Booking booking)
         => _context.Bookings.Update(booking);
 
-    public async Task<bool> HasOverlapAsync(long vehicleId, DateOnly startDate, DateOnly endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> HasOverlapAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default)
     {
         var query = _context.Bookings
             .Where(b => b.VehicleId == vehicleId

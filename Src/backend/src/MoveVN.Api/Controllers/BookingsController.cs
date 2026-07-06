@@ -72,6 +72,17 @@ public class BookingsController : BaseApiController
         return Success(result, "Đã duyệt booking.");
     }
 
+    [Authorize(Roles = "Customer")]
+    [HttpPut("{id:long}/confirm-deposit")]
+    public async Task<ActionResult<ApiResponse<BookingResponse>>> ConfirmDeposit(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var customerId = _currentUser.UserId!.Value;
+        var result = await _bookingService.ConfirmDepositAsync(id, customerId, cancellationToken);
+        return Success(result, "Xác nhận cọc thành công.");
+    }
+
     [Authorize(Roles = "Owner")]
     [HttpPut("{id:long}/reject")]
     public async Task<ActionResult<ApiResponse<BookingResponse>>> Reject(

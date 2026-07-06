@@ -1,17 +1,19 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, Banknote } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById } from "@/features/booking/bookingService";
+import { getBookingById, confirmDeposit } from "@/features/booking/bookingService";
 import type { BookingResponse } from "@/features/booking/types";
+import { showToast } from "@/components/common/toastStore";
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
   Approved: "Đã duyệt",
   Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
+  DepositPaid: "Đã đặt cọc",
   Confirmed: "Đã xác nhận",
   Completed: "Hoàn thành",
 };
@@ -21,6 +23,7 @@ const statusColors: Record<string, string> = {
   Approved: "bg-blue-100 text-blue-700",
   Rejected: "bg-red-100 text-red-700",
   Cancelled: "bg-slate-100 text-slate-600",
+  DepositPaid: "bg-violet-100 text-violet-700",
   Confirmed: "bg-green-100 text-green-700",
   Completed: "bg-emerald-100 text-emerald-700",
 };
@@ -79,6 +82,38 @@ export default function CustomerBookingDetailPage() {
           </span>
         </div>
       </section>
+
+      {booking.status === "Approved" && (
+        <Card className="space-y-4 rounded-md p-5">
+          <h2 className="text-lg font-bold text-slate-950">Xác nhận đặt cọc</h2>
+          <p className="text-sm text-slate-600">
+            Chủ xe đã duyệt booking của bạn. Vui lòng chuyển tiền cọc{" "}
+            <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>{" "}
+            vào tài khoản sau và xác nhận để hoàn tất.
+          </p>
+          <div className="rounded-md bg-slate-50 p-3 text-sm">
+            <p className="text-slate-500">Thông tin tài khoản ngân hàng:</p>
+            <p className="mt-1 font-medium text-slate-900">Ngân hàng: Vietcombank</p>
+            <p className="font-medium text-slate-900">Số TK: 1234567890</p>
+            <p className="font-medium text-slate-900">Chủ TK: MoveVN Platform</p>
+            <p className="mt-1 text-xs text-slate-500">Nội dung chuyển khoản: {booking.bookingCode}</p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={async () => {
+              try {
+                const updated = await confirmDeposit(booking.id);
+                setBooking(updated);
+                showToast({ type: "success", title: "Thành công", message: "Đã xác nhận đặt cọc." });
+              } catch {
+                showToast({ type: "error", title: "Lỗi", message: "Không thể xác nhận cọc." });
+              }
+            }}
+          >
+            <Banknote className="h-4 w-4" /> Xác nhận đã chuyển cọc
+          </Button>
+        </Card>
+      )}
 
       <Card className="space-y-4 rounded-md p-5">
         <h2 className="text-lg font-bold text-slate-950">Thông tin thuê xe</h2>
