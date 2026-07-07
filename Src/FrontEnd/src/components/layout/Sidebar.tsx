@@ -1,6 +1,5 @@
 import {
   ArrowLeftFromLine,
-  BadgeCheck,
   BadgeDollarSign,
   Bike,
   Building2,
@@ -14,7 +13,6 @@ import {
   FolderTree,
   Home,
   KeyRound,
-  Landmark,
   Layers,
   ListChecks,
   Map,
@@ -44,11 +42,6 @@ const roleIcons = {
   Owner: Car,
   Customer: Home,
 };
-
-const ownerVerificationItems = [
-  { to: "/become-owner/cccd", label: "Xác thực CCCD", icon: BadgeCheck },
-  { to: "/become-owner/bank", label: "Thông tin ngân hàng", icon: Landmark },
-];
 
 const vehicleCatalogItems = [
   { to: "/admin/vehicle-brands", label: "Hãng xe", icon: Building2 },
@@ -147,14 +140,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     { to: "/change-password", label: "Đổi mật khẩu", icon: KeyRound },
   ];
 
-  const showOwnerVerification = user?.roles.some((r) => r === "Customer" || r === "Owner") ?? false;
   const isBecomeOwnerPage = location.pathname.startsWith("/become-owner");
   const isOwnerVerificationSection = isProfileSection || isBecomeOwnerPage;
 
   let items = isOwnerVerificationSection ? profileItems : mainItems;
-  if (isOwnerVerificationSection && showOwnerVerification) {
-    items = [...items, ...ownerVerificationItems];
-  }
 
   const backItem = isOwnerVerificationSection
     ? { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }

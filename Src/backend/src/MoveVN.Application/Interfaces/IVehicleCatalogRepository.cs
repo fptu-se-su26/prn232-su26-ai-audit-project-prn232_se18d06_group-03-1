@@ -28,6 +28,8 @@ public interface IVehicleCatalogRepository
     IQueryable<VehicleModelPricing> VehicleModelPricings { get; }
     IQueryable<PricingRule> PricingRules { get; }
     IQueryable<PlatformFeeRule> PlatformFeeRules { get; }
+    IQueryable<BlockedDate> BlockedDates { get; }
+    IQueryable<Booking> Bookings { get; }
 
     Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<VehicleModel?> GetVehicleModelByIdAsync(int id, CancellationToken cancellationToken = default);

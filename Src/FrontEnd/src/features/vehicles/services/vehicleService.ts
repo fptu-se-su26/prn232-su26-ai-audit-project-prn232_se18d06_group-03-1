@@ -154,3 +154,31 @@ export async function rejectVehicleListing(role: "staff" | "admin", vehicleId: n
   const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
   await apiClient.post(`${base}/${vehicleId}/reject-listing`, { reason });
 }
+
+export type BlockedDateResponse = {
+  id: number;
+  vehicleId: number;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+};
+
+export type BlockedDateRequest = {
+  dateFrom: string;
+  dateTo: string;
+  reason?: string | null;
+};
+
+export async function getBlockedDates(vehicleId: number) {
+  const res = await apiClient.get<ApiResponse<BlockedDateResponse[]>>(endpoints.vehicles.blockedDates(vehicleId));
+  return res.data.data ?? [];
+}
+
+export async function createBlockedDate(vehicleId: number, data: BlockedDateRequest) {
+  const res = await apiClient.post<ApiResponse<BlockedDateResponse>>(endpoints.vehicles.blockedDates(vehicleId), data);
+  return res.data.data;
+}
+
+export async function deleteBlockedDate(blockedDateId: number) {
+  await apiClient.delete(endpoints.vehicles.deleteBlockedDate(blockedDateId));
+}

@@ -1,11 +1,14 @@
-import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, BadgeInfo, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock } from "lucide-react";
+import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, BadgeInfo, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock, CalendarOff, Plus, Trash2, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getVehicleById, toggleVehicleStatus, uploadVehicleDocument } from "@/features/vehicles/services/vehicleService";
+import { getVehicleById, toggleVehicleStatus, uploadVehicleDocument, getBlockedDates, createBlockedDate, deleteBlockedDate } from "@/features/vehicles/services/vehicleService";
 import type { VehicleResponse } from "@/features/vehicles/types";
+import type { BlockedDateResponse } from "@/features/vehicles/services/vehicleService";
 import ActiveToggle from "@/components/common/ActiveToggle";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
+import Button from "@/components/common/Button";
+import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
 
 function splitAreaName(areaName: string | null) {
@@ -121,7 +124,15 @@ export default function OwnerVehicleDetailPage() {
   const navigate = useNavigate();
   const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blockedDates, setBlockedDates] = useState<BlockedDateResponse[]>([]);
+  const [blockedDatesLoading, setBlockedDatesLoading] = useState(false);
+  const [showAddBlocked, setShowAddBlocked] = useState(false);
+  const [newDateFrom, setNewDateFrom] = useState("");
+  const [newDateTo, setNewDateTo] = useState("");
+  const [newReason, setNewReason] = useState("");
+  const [savingBlocked, setSavingBlocked] = useState(false);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
@@ -133,10 +144,49 @@ export default function OwnerVehicleDetailPage() {
     setIsLoading(true);
     setError(null);
     getVehicleById(Number(id))
-      .then((data) => setVehicle(data))
+      .then((data) => {
+        setVehicle(data);
+        setBlockedDatesLoading(true);
+        getBlockedDates(Number(id))
+          .then(setBlockedDates)
+          .catch(() => {})
+          .finally(() => setBlockedDatesLoading(false));
+      })
       .catch(() => setError("Không thể tải thông tin xe."))
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  async function handleAddBlockedDate() {
+    if (!vehicle || !newDateFrom || !newDateTo) return;
+    setSavingBlocked(true);
+    try {
+      const result = await createBlockedDate(vehicle.id, {
+        dateFrom: newDateFrom,
+        dateTo: newDateTo,
+        reason: newReason.trim() || null,
+      });
+      if (result) setBlockedDates((prev) => [result, ...prev]);
+      setShowAddBlocked(false);
+      setNewDateFrom("");
+      setNewDateTo("");
+      setNewReason("");
+      showToast({ type: "success", title: "Đã chặn", message: "Ngày đã được chặn thành công." });
+    } catch (err: any) {
+      showToast({ type: "error", title: "Lỗi", message: err?.response?.data?.message || "Không thể chặn ngày." });
+    } finally {
+      setSavingBlocked(false);
+    }
+  }
+
+  async function handleDeleteBlockedDate(blockedDateId: number) {
+    try {
+      await deleteBlockedDate(blockedDateId);
+      setBlockedDates((prev) => prev.filter((b) => b.id !== blockedDateId));
+      showToast({ type: "success", title: "Đã xóa", message: "Đã bỏ chặn ngày này." });
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể xóa ngày chặn." });
+    }
+  }
 
   const handleToggleStatus = async () => {
     if (!vehicle) return;
@@ -292,6 +342,73 @@ export default function OwnerVehicleDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Blocked Dates */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                  <CalendarOff className="h-3.5 w-3.5 text-slate-500" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Lịch chặn</h2>
+              </div>
+              {!showAddBlocked && (
+                <button type="button" onClick={() => setShowAddBlocked(true)} className="inline-flex items-center gap-1 rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">
+                  <Plus className="h-3.5 w-3.5" /> Chặn ngày
+                </button>
+              )}
+            </div>
+
+            {showAddBlocked && (
+              <div className="mb-4 rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Từ ngày</label>
+                    <input type="date" value={newDateFrom} onChange={(e) => setNewDateFrom(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Đến ngày</label>
+                    <input type="date" value={newDateTo} onChange={(e) => setNewDateTo(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Lý do (không bắt buộc)</label>
+                  <input type="text" value={newReason} onChange={(e) => setNewReason(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" placeholder="VD: Bảo dưỡng, đi chơi..." />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" size="sm" onClick={() => { setShowAddBlocked(false); setNewDateFrom(""); setNewDateTo(""); setNewReason(""); }}>Hủy</Button>
+                  <Button type="button" size="sm" onClick={handleAddBlockedDate} disabled={savingBlocked || !newDateFrom || !newDateTo}>
+                    {savingBlocked ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang lưu...</> : "Lưu"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {blockedDatesLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : blockedDates.length === 0 ? (
+              <p className="text-sm text-slate-400">Chưa có ngày chặn nào.</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {blockedDates.map((bd) => (
+                  <div key={bd.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800">
+                        {new Date(bd.startDate).toLocaleDateString("vi-VN")} - {new Date(bd.endDate).toLocaleDateString("vi-VN")}
+                      </p>
+                      {bd.reason && <p className="mt-0.5 text-xs text-slate-500">{bd.reason}</p>}
+                    </div>
+                    <button type="button" onClick={() => handleDeleteBlockedDate(bd.id)} className="ml-2 shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-4">

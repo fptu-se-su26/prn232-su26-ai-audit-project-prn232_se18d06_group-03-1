@@ -17,12 +17,14 @@ public class VehiclesController : BaseApiController
     private readonly IVehicleService _vehicleService;
     private readonly IVehiclePricingService _vehiclePricingService;
     private readonly ICurrentUserContext _currentUser;
+    private readonly IBlockedDateService _blockedDateService;
 
-    public VehiclesController(IVehicleService vehicleService, IVehiclePricingService vehiclePricingService, ICurrentUserContext currentUser)
+    public VehiclesController(IVehicleService vehicleService, IVehiclePricingService vehiclePricingService, ICurrentUserContext currentUser, IBlockedDateService blockedDateService)
     {
         _vehicleService = vehicleService;
         _vehiclePricingService = vehiclePricingService;
         _currentUser = currentUser;
+        _blockedDateService = blockedDateService;
     }
 
     [HttpGet("my")]
@@ -153,6 +155,34 @@ public class VehiclesController : BaseApiController
     public async Task<ActionResult<ApiResponse<object>>> ToggleStatus(long id, CancellationToken cancellationToken = default)
     {
         await _vehicleService.ToggleStatusAsync(id, _currentUser.UserId!.Value, cancellationToken);
+        return Success(new object());
+    }
+
+    [HttpPost("{id}/blocked-dates")]
+    public async Task<ActionResult<ApiResponse<BlockedDateResponse>>> CreateBlockedDate(
+        long id,
+        [FromBody] BlockedDateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _blockedDateService.CreateAsync(id, _currentUser.UserId!.Value, request, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpGet("{id}/blocked-dates")]
+    public async Task<ActionResult<ApiResponse<List<BlockedDateResponse>>>> GetBlockedDates(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _blockedDateService.GetByVehicleAsync(id, _currentUser.UserId!.Value, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpDelete("blocked-dates/{blockedDateId}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteBlockedDate(
+        long blockedDateId,
+        CancellationToken cancellationToken = default)
+    {
+        await _blockedDateService.DeleteAsync(blockedDateId, _currentUser.UserId!.Value, cancellationToken);
         return Success(new object());
     }
 }

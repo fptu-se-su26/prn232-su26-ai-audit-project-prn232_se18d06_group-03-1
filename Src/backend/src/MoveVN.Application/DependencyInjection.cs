@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformFeeRuleService, PlatformFeeRuleService>();
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IBlockedDateService, BlockedDateService>();
 
         return services;
     }

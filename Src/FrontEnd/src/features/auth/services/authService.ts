@@ -146,3 +146,22 @@ export async function logout(refreshToken: string) {
   const res = await apiClient.post<ApiResponse<null>>(endpoints.auth.logout, { refreshToken });
   return unwrap(res.data);
 }
+
+export type UpdateProfilePayload = {
+  fullName: string;
+  phone?: string | null;
+};
+
+export async function updateProfile(payload: UpdateProfilePayload) {
+  const res = await apiClient.put<ApiResponse<AuthUser>>(endpoints.users.updateProfile, payload);
+  return unwrap(res.data);
+}
+
+export async function uploadAvatar(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<ApiResponse<{ url: string }>>(endpoints.users.uploadAvatar, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data?.url ?? "";
+}

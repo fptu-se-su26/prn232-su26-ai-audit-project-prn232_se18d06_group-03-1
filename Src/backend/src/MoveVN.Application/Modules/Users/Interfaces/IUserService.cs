@@ -9,4 +9,6 @@ public interface IUserService
     Task<UserResponse> GetCurrentProfileAsync(CancellationToken cancellationToken = default);
 
     Task<UserResponse> UpdateCurrentProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default);
+
+    Task<string> UploadAvatarAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default);
 }

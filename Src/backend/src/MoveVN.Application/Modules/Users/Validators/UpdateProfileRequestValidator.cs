@@ -10,5 +10,9 @@ public class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequ
         RuleFor(x => x.FullName)
             .NotEmpty()
             .MaximumLength(200);
+
+        RuleFor(x => x.Phone)
+            .MaximumLength(20)
+            .When(x => x.Phone is not null);
     }
 }
