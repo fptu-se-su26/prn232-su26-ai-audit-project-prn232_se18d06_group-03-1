@@ -106,6 +106,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode BOOKING_NOT_PENDING = new("BOOK_10005", "Booking không ở trạng thái chờ duyệt.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode BOOKING_NOT_OWNER = new("BOOK_10006", "Bạn không có quyền xử lý booking này.", HttpStatusCode.Forbidden);
     public static readonly ErrorCode BOOKING_REJECT_REASON_REQUIRED = new("BOOK_10007", "Vui lòng nhập lý do từ chối.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode NOTIFICATION_NOT_FOUND = new("NOTIFICATION_10001", "Notification not found.", HttpStatusCode.NotFound);
 
     public override string ToString() => $"{Code}: {Message}";
 }

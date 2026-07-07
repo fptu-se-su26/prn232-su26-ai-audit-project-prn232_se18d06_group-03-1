@@ -67,5 +67,11 @@ export const endpoints = {
     updateProfile: "/api/users/me/profile",
     uploadAvatar: "/api/users/me/avatar",
   },
+  notifications: {
+    base: "/api/notifications",
+    unreadCount: "/api/notifications/unread-count",
+    markRead: (id: number) => `/api/notifications/${id}/read`,
+    markAllRead: "/api/notifications/read-all",
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

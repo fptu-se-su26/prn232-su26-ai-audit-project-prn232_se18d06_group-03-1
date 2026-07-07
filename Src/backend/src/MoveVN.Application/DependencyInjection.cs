@@ -10,6 +10,8 @@ using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Application.Modules.Owner.Services;
+using MoveVN.Application.Modules.Notifications.Interfaces;
+using MoveVN.Application.Modules.Notifications.Services;
 using MoveVN.Application.Modules.Areas.Interfaces;
 using MoveVN.Application.Modules.Areas.Services;
 using MoveVN.Application.Modules.PricingRegions.Interfaces;
@@ -56,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IOwnerApplicationService, OwnerApplicationService>();
         services.AddScoped<IStaffOwnerApplicationService, StaffOwnerApplicationService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IVehicleBrandService, VehicleBrandService>();
         services.AddScoped<IVehicleModelService, VehicleModelService>();
         services.AddScoped<IVehicleModelVariantService, VehicleModelVariantService>();
