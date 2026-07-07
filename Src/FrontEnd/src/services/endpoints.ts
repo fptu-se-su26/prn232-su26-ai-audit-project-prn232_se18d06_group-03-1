@@ -51,5 +51,11 @@ export const endpoints = {
     list: "/api/public/vehicles",
     byId: (id: number) => `/api/public/vehicles/${id}`,
   },
+  notifications: {
+    base: "/api/notifications",
+    unreadCount: "/api/notifications/unread-count",
+    markRead: (id: number) => `/api/notifications/${id}/read`,
+    markAllRead: "/api/notifications/read-all",
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

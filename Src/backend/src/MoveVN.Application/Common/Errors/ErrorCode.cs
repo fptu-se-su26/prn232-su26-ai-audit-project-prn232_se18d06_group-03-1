@@ -95,6 +95,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode VEHICLE_TOGGLE_INVALID = new("VEHICLE_9002", "Can only toggle between Approved and Hidden status.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_FOUND = new("VEHICLE_9003", "Vehicle document not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_DOCUMENT_NOT_VERIFIED = new("VEHICLE_9004", "Vehicle document must be verified before approving listing.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode NOTIFICATION_NOT_FOUND = new("NOTIFICATION_10001", "Notification not found.", HttpStatusCode.NotFound);
 
     public override string ToString() => $"{Code}: {Message}";
 }

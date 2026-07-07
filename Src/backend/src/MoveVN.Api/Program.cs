@@ -2,6 +2,7 @@ using MoveVN.Api.Extensions;
 using MoveVN.Api.Hubs;
 using MoveVN.Api.Services;
 using MoveVN.Application;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Infrastructure.Extensions;
 using DotNetEnv;
@@ -44,6 +45,7 @@ builder.Services.AddFluentValidationAutoValidation(config => config.DisableDataA
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+builder.Services.AddScoped<INotificationRealtimeDispatcher, SignalRNotificationRealtimeDispatcher>();
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
@@ -130,7 +132,8 @@ builder.Services
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
 
-                if (!string.IsNullOrWhiteSpace(accessToken) && path.StartsWithSegments("/hubs/presence"))
+                if (!string.IsNullOrWhiteSpace(accessToken)
+                    && (path.StartsWithSegments("/hubs/presence") || path.StartsWithSegments("/hubs/notifications")))
                 {
                     context.Token = accessToken;
                 }
@@ -170,6 +173,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PresenceHub>("/hubs/presence");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
 
