@@ -60,7 +60,7 @@ public interface IVehicleCatalogRepository
     Task<List<VehicleFeatureMapping>> GetVehicleFeatureMappingsAsync(long vehicleId, CancellationToken cancellationToken = default);
     Task<List<VehicleDocument>> GetReplacedVehicleDocumentsForCleanupAsync(long vehicleId, long currentDocumentId, CancellationToken cancellationToken = default);
     Task<int> CountActiveVehicleFeaturesAsync(IReadOnlyCollection<int> ids, string normalizedVehicleType, CancellationToken cancellationToken = default);
-    Task<PagedResult<VehicleModerationListItem>> GetModerationVehiclesAsync(IReadOnlyCollection<string>? statuses, IReadOnlyCollection<VehicleDocumentVerificationStatus>? documentStatuses, string? keyword, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<PagedResult<VehicleModerationListItem>> GetModerationVehiclesAsync(IReadOnlyCollection<string>? statuses, IReadOnlyCollection<VehicleDocumentVerificationStatus>? documentStatuses, string? keyword, string? vehicleType, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<bool> HasVerifiedCurrentDocumentAsync(long vehicleId, CancellationToken cancellationToken = default);
     Task<VehicleDocument?> GetVehicleDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default);
     Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity, CancellationToken cancellationToken = default);

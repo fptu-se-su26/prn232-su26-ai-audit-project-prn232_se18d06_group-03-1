@@ -1,8 +1,8 @@
-import VehicleModerationPage from "@/features/vehicles/components/VehicleModerationPage";
+import AdminVehicleModerationPage from "@/features/vehicles/components/AdminVehicleModerationPage";
 import { useLocation } from "react-router-dom";
 
 export default function AdminVehiclesPage() {
   const { pathname } = useLocation();
   const mode = pathname.includes("vehicle-listings") ? "listings" : pathname.includes("vehicle-documents") ? "documents" : undefined;
-  return <VehicleModerationPage role="admin" mode={mode} />;
+  return <AdminVehicleModerationPage mode={mode} />;
 }

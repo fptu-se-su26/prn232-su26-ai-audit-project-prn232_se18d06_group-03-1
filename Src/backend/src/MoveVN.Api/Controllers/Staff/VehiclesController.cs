@@ -22,11 +22,17 @@ public class VehiclesController : BaseApiController
         [FromQuery] string? status,
         [FromQuery] string? documentStatus,
         [FromQuery] string? keyword,
+        [FromQuery] string? vehicleType,
+        [FromQuery] int? brandId,
+        [FromQuery] int? modelId,
+        [FromQuery] string? fuelType,
+        [FromQuery] string? seatCount,
+        [FromQuery] string? transmission,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var result = await _vehicleModerationService.GetVehiclesAsync(status, documentStatus, keyword, page, pageSize, cancellationToken);
+        var result = await _vehicleModerationService.GetVehiclesAsync(status, documentStatus, keyword, vehicleType, brandId, modelId, fuelType, seatCount, transmission, page, pageSize, cancellationToken);
         return Success(result);
     }
 
@@ -63,6 +69,13 @@ public class VehiclesController : BaseApiController
     {
         await _vehicleModerationService.ApproveListingAsync(id, allowOverride: false, cancellationToken);
         return Success<object>(null, "Vehicle listing approved.");
+    }
+
+    [HttpGet("moderation-overview")]
+    public async Task<ActionResult<ApiResponse<VehicleModerationOverviewResponse>>> GetModerationOverview(CancellationToken cancellationToken = default)
+    {
+        var result = await _vehicleModerationService.GetOverviewAsync(cancellationToken);
+        return Success(result);
     }
 
     [HttpPost("{id}/reject-listing")]

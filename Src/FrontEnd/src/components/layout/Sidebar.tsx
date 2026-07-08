@@ -60,6 +60,11 @@ const vehiclePricingItems = [
   { to: "/admin/areas", label: "Khu vực", icon: MapPinned },
 ];
 
+const adminModerationItems = [
+  { to: "/admin/vehicle-documents", label: "Giấy tờ xe", icon: FileBadge },
+  { to: "/admin/vehicle-listings", label: "Tin đăng xe", icon: ClipboardList },
+];
+
 const ownerVehicleItems = [
   { to: "/owner/vehicles/car", label: "Ô tô", icon: Car },
   { to: "/owner/vehicles/motorbike", label: "Xe máy", icon: Bike },
@@ -101,14 +106,17 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const [vehicleCatalogOpen, setVehicleCatalogOpen] = useState(isVehicleCatalogPath);
   const isVehiclePricingPath = vehiclePricingItems.some((item) => location.pathname.startsWith(item.to));
   const [vehiclePricingOpen, setVehiclePricingOpen] = useState(isVehiclePricingPath);
+  const isAdminModerationPath = adminModerationItems.some((item) => location.pathname.startsWith(item.to));
+  const [adminModerationOpen, setAdminModerationOpen] = useState(isAdminModerationPath);
   const isOwnerVehiclePath = ownerVehicleItems.some((item) => location.pathname.startsWith(item.to));
   const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
 
   useEffect(() => {
     if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
     if (isVehiclePricingPath) setVehiclePricingOpen(true);
+    if (isAdminModerationPath) setAdminModerationOpen(true);
     if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isOwnerVehiclePath]);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isOwnerVehiclePath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -121,8 +129,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
-    mainItems.push({ to: "/admin/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
-    mainItems.push({ to: "/admin/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
   }
 
   if (primaryRole === "Owner") {
@@ -167,6 +173,58 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           {items.map((item) => (
             <NavItem key={item.to} end={item.to === dashboardPath} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
           ))}
+
+          {primaryRole === "Admin" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminModerationOpen(true);
+                  navigate("/admin/vehicle-documents");
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isAdminModerationPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Giám sát kiểm duyệt"
+              >
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Giám sát kiểm duyệt</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setAdminModerationOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setAdminModerationOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở giám sát kiểm duyệt"
+                    >
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${adminModerationOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && adminModerationOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {adminModerationItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
           {primaryRole === "Owner" && !isOwnerVerificationSection && (
             <>

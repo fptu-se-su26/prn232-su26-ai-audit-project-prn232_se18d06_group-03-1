@@ -35,6 +35,12 @@ public class VehicleModerationService : IVehicleModerationService
         string? status,
         string? documentStatus,
         string? keyword,
+        string? vehicleType,
+        int? brandId,
+        int? modelId,
+        string? fuelType,
+        string? seatCount,
+        string? transmission,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -52,7 +58,7 @@ public class VehicleModerationService : IVehicleModerationService
             .Select(value => value!.Value)
             .ToList();
 
-        var result = await _repository.GetModerationVehiclesAsync(statuses, documentStatuses, keyword, page, pageSize, cancellationToken);
+        var result = await _repository.GetModerationVehiclesAsync(statuses, documentStatuses, keyword, vehicleType, brandId, modelId, fuelType, seatCount, transmission, page, pageSize, cancellationToken);
         var ownerIds = result.Items.Select(vehicle => vehicle.OwnerId).Distinct().ToList();
         var owners = new Dictionary<long, string>();
         foreach (var ownerId in ownerIds)
@@ -67,6 +73,93 @@ public class VehicleModerationService : IVehicleModerationService
         }
 
         return result;
+    }
+
+    public async Task<VehicleModerationOverviewResponse> GetOverviewAsync(CancellationToken cancellationToken = default)
+    {
+        var listingStatusCounts = await _repository.Vehicles
+            .GroupBy(vehicle => vehicle.Status)
+            .Select(group => new VehicleModerationChartPoint
+            {
+                Label = group.Key,
+                Value = group.Count()
+            })
+            .ToListAsync(cancellationToken);
+
+        var currentDocuments = _repository.VehicleDocuments
+            .Where(document => document.IsCurrent && document.DeletedAt == null);
+
+        var documentStatusCounts = await currentDocuments
+            .GroupBy(document => document.VerificationStatus)
+            .Select(group => new VehicleModerationChartPoint
+            {
+                Label = group.Key.ToString(),
+                Value = group.Count()
+            })
+            .ToListAsync(cancellationToken);
+
+        var vehicleTypeCounts = await _repository.Vehicles
+            .GroupBy(vehicle => vehicle.VehicleType)
+            .Select(group => new VehicleModerationChartPoint
+            {
+                Label = group.Key,
+                Value = group.Count()
+            })
+            .ToListAsync(cancellationToken);
+
+        int ListingCount(string status)
+            => listingStatusCounts.FirstOrDefault(item => item.Label == status)?.Value ?? 0;
+
+        int DocumentCount(VehicleDocumentVerificationStatus status)
+            => documentStatusCounts.FirstOrDefault(item => item.Label == status.ToString())?.Value ?? 0;
+
+        var overrideCandidates = await _repository.Vehicles
+            .Where(vehicle => vehicle.Status == VehicleStatus.Pending)
+            .CountAsync(vehicle => !_repository.VehicleDocuments.Any(document =>
+                document.VehicleId == vehicle.Id
+                && document.IsCurrent
+                && document.Verified
+                && document.VerificationStatus == VehicleDocumentVerificationStatus.Verified), cancellationToken);
+
+        var listingStatusChart = new[]
+        {
+            VehicleStatus.Pending,
+            VehicleStatus.Approved,
+            VehicleStatus.Rejected,
+            VehicleStatus.Hidden
+        }
+            .Select(status => new VehicleModerationChartPoint
+            {
+                Label = status,
+                Value = ListingCount(status)
+            })
+            .ToList();
+
+        var documentStatusChart = Enum.GetValues<VehicleDocumentVerificationStatus>()
+            .Select(status => new VehicleModerationChartPoint
+            {
+                Label = status.ToString(),
+                Value = DocumentCount(status)
+            })
+            .ToList();
+
+        return new VehicleModerationOverviewResponse
+        {
+            TotalVehicles = await _repository.Vehicles.CountAsync(cancellationToken),
+            PendingListings = ListingCount(VehicleStatus.Pending),
+            ApprovedListings = ListingCount(VehicleStatus.Approved),
+            RejectedListings = ListingCount(VehicleStatus.Rejected),
+            PendingDocuments = DocumentCount(VehicleDocumentVerificationStatus.Pending),
+            VerifiedDocuments = DocumentCount(VehicleDocumentVerificationStatus.Verified),
+            ManualReviewDocuments = DocumentCount(VehicleDocumentVerificationStatus.ManualReview),
+            NeedMoreInfoDocuments = DocumentCount(VehicleDocumentVerificationStatus.NeedMoreInfo),
+            RejectedDocuments = DocumentCount(VehicleDocumentVerificationStatus.Rejected),
+            FailedDocuments = DocumentCount(VehicleDocumentVerificationStatus.Failed),
+            OverrideCandidates = overrideCandidates,
+            ListingStatusChart = listingStatusChart,
+            DocumentStatusChart = documentStatusChart,
+            VehicleTypeChart = vehicleTypeCounts.OrderByDescending(item => item.Value).ToList()
+        };
     }
 
     public async Task<VehicleModerationDetailResponse> GetByIdAsync(long id, CancellationToken cancellationToken = default)

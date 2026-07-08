@@ -239,10 +239,16 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         return query.CountAsync(cancellationToken);
     }
 
-    public async Task<PagedResult<VehicleModerationListItem>> GetModerationVehiclesAsync(IReadOnlyCollection<string>? statuses, IReadOnlyCollection<VehicleDocumentVerificationStatus>? documentStatuses, string? keyword, int page, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<VehicleModerationListItem>> GetModerationVehiclesAsync(IReadOnlyCollection<string>? statuses, IReadOnlyCollection<VehicleDocumentVerificationStatus>? documentStatuses, string? keyword, string? vehicleType, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var query = _context.Vehicles.AsQueryable();
         if (statuses is { Count: > 0 }) query = query.Where(vehicle => statuses.Contains(vehicle.Status));
+        if (!string.IsNullOrWhiteSpace(vehicleType)) query = query.Where(vehicle => vehicle.VehicleType == vehicleType);
+        if (brandId.HasValue) query = query.Where(vehicle => vehicle.BrandId == brandId.Value);
+        if (modelId.HasValue) query = query.Where(vehicle => vehicle.ModelId == modelId.Value);
+        if (!string.IsNullOrWhiteSpace(fuelType)) query = query.Where(vehicle => vehicle.VariantId != null && _context.VehicleModelVariant.Any(variant => variant.Id == vehicle.VariantId && variant.FuelType == fuelType));
+        if (!string.IsNullOrWhiteSpace(seatCount) && byte.TryParse(seatCount, out var seatValue)) query = query.Where(vehicle => vehicle.VariantId != null && _context.VehicleModelVariant.Any(variant => variant.Id == vehicle.VariantId && variant.SeatCount == seatValue));
+        if (!string.IsNullOrWhiteSpace(transmission)) query = query.Where(vehicle => vehicle.VariantId != null && _context.VehicleModelVariant.Any(variant => variant.Id == vehicle.VariantId && variant.Transmission == transmission));
         if (documentStatuses is { Count: > 0 })
         {
             query = query.Where(vehicle => _context.VehicleDocuments.Any(doc =>

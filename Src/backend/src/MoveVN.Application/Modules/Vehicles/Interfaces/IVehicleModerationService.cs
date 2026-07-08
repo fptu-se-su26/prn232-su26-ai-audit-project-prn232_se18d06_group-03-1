@@ -9,10 +9,17 @@ public interface IVehicleModerationService
         string? status,
         string? documentStatus,
         string? keyword,
+        string? vehicleType,
+        int? brandId,
+        int? modelId,
+        string? fuelType,
+        string? seatCount,
+        string? transmission,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
 
+    Task<VehicleModerationOverviewResponse> GetOverviewAsync(CancellationToken cancellationToken = default);
     Task<VehicleModerationDetailResponse> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task ApproveDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default);
     Task RejectDocumentAsync(long vehicleId, long documentId, string reason, CancellationToken cancellationToken = default);

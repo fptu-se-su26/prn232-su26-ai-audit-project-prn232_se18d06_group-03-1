@@ -213,6 +213,28 @@ export type VehicleModerationListItem = {
   createdAt: string;
 };
 
+export type VehicleModerationChartPoint = {
+  label: string;
+  value: number;
+};
+
+export type VehicleModerationOverviewResponse = {
+  totalVehicles: number;
+  pendingListings: number;
+  approvedListings: number;
+  rejectedListings: number;
+  pendingDocuments: number;
+  verifiedDocuments: number;
+  manualReviewDocuments: number;
+  needMoreInfoDocuments: number;
+  rejectedDocuments: number;
+  failedDocuments: number;
+  overrideCandidates: number;
+  listingStatusChart: VehicleModerationChartPoint[];
+  documentStatusChart: VehicleModerationChartPoint[];
+  vehicleTypeChart: VehicleModerationChartPoint[];
+};
+
 export type VehicleVerificationLogResponse = {
   id: string | null;
   vehicleId: number;

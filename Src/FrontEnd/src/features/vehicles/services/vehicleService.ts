@@ -18,6 +18,7 @@ import type {
   UpdateVehiclePricingRequest,
   VehicleModerationListItem,
   VehicleModerationDetailResponse,
+  VehicleModerationOverviewResponse,
 } from "@/features/vehicles/types";
 
 export async function getMyVehicles(params: Record<string, string | number | boolean | undefined>) {
@@ -122,6 +123,16 @@ export async function getModerationVehicles(
   const path = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
   const res = await apiClient.get<ApiResponse<PagedResult<VehicleModerationListItem>>>(path, { params });
   return res.data.data ?? { items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 };
+}
+
+export async function getStaffVehicleModerationOverview() {
+  const res = await apiClient.get<ApiResponse<VehicleModerationOverviewResponse>>(endpoints.staff.vehicleModerationOverview);
+  return res.data.data;
+}
+
+export async function getAdminVehicleModerationOverview() {
+  const res = await apiClient.get<ApiResponse<VehicleModerationOverviewResponse>>(endpoints.admin.vehicleModerationOverview);
+  return res.data.data;
 }
 
 export async function getModerationVehicleById(role: "staff" | "admin", id: number) {

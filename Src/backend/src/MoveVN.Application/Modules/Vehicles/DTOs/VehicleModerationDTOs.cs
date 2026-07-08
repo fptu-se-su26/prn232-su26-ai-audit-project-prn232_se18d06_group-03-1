@@ -38,6 +38,30 @@ public class VehicleVerificationLogResponse
     public DateTime CreatedAt { get; set; }
 }
 
+public class VehicleModerationOverviewResponse
+{
+    public int TotalVehicles { get; set; }
+    public int PendingListings { get; set; }
+    public int ApprovedListings { get; set; }
+    public int RejectedListings { get; set; }
+    public int PendingDocuments { get; set; }
+    public int VerifiedDocuments { get; set; }
+    public int ManualReviewDocuments { get; set; }
+    public int NeedMoreInfoDocuments { get; set; }
+    public int RejectedDocuments { get; set; }
+    public int FailedDocuments { get; set; }
+    public int OverrideCandidates { get; set; }
+    public List<VehicleModerationChartPoint> ListingStatusChart { get; set; } = [];
+    public List<VehicleModerationChartPoint> DocumentStatusChart { get; set; } = [];
+    public List<VehicleModerationChartPoint> VehicleTypeChart { get; set; } = [];
+}
+
+public class VehicleModerationChartPoint
+{
+    public string Label { get; set; } = string.Empty;
+    public int Value { get; set; }
+}
+
 public class VehicleModerationActionRequest
 {
     public string Reason { get; set; } = string.Empty;

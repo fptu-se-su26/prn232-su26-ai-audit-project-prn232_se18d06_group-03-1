@@ -15,6 +15,7 @@ export const endpoints = {
   admin: {
     users: "/api/admin/users",
     vehicles: "/api/admin/vehicles",
+    vehicleModerationOverview: "/api/admin/vehicles/moderation-overview",
     vehicleBrands: "/api/admin/vehicle-brands",
     vehicleModels: "/api/admin/vehicle-models",
     vehicleModelVariants: "/api/admin/vehicle-model-variants",
@@ -40,6 +41,7 @@ export const endpoints = {
   },
   staff: {
     vehicles: "/api/staff/vehicles",
+    vehicleModerationOverview: "/api/staff/vehicles/moderation-overview",
   },
   catalog: {
     brands: "/api/catalog/brands",
