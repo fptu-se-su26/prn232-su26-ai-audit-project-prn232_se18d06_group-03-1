@@ -6,6 +6,7 @@ import ChangePasswordPage from "@/pages/account/ChangePasswordPage";
 import LogoutPage from "@/pages/account/LogoutPage";
 import AdminHomePage from "@/pages/admin/AdminHomePage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminModerationDashboardPage from "@/pages/admin/AdminModerationDashboardPage";
 import AdminVehicleCatalogPage from "@/pages/admin/AdminVehicleCatalogPage";
 import AdminVehicleBrandsPage from "@/pages/admin/AdminVehicleBrandsPage";
 import AdminVehicleModelsPage from "@/pages/admin/AdminVehicleModelsPage";
@@ -47,6 +48,7 @@ import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
 import StaffVehiclesPage from "@/pages/staff/StaffVehiclesPage";
+import StaffModerationDashboardPage from "@/pages/staff/StaffModerationDashboardPage";
 import GuestRoute from "@/routes/GuestRoute";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RoleRoute from "@/routes/RoleRoute";
@@ -101,6 +103,7 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Staff"]} />}>
             <Route path="/staff" element={<StaffHomePage />} />
+            <Route path="/staff/moderation" element={<StaffModerationDashboardPage />} />
             <Route path="/staff/vehicles" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicles/:id" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-documents" element={<StaffVehiclesPage />} />
@@ -111,6 +114,7 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
             <Route path="/admin" element={<AdminHomePage />} />
+            <Route path="/admin/moderation" element={<AdminModerationDashboardPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/vehicles" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicles/:id" element={<AdminVehiclesPage />} />

@@ -1,5 +1,5 @@
 import { ArrowLeft, BarChart3, Car, Check, ChevronDown, ClipboardList, Eye, FileBadge, FileText, Gauge, Image as ImageIcon, MapPin, Search, ShieldAlert, SlidersHorizontal, X, CheckCircle, AlertCircle, Clock, XCircle } from "lucide-react";
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
@@ -124,6 +124,30 @@ function visibleLogFlags(recommendation?: string | null, flags: string[] = []) {
   return flags;
 }
 
+function vehicleVerificationMessage(message?: string | null) {
+  if (!message) return null;
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("target machine actively refused") ||
+    normalized.includes("connection refused") ||
+    normalized.includes("econnrefused") ||
+    normalized.includes("127.0.0.1:8001")
+  ) {
+    return "Không kết nối được tới dịch vụ AI xác thực giấy tờ xe. Vui lòng kiểm tra AI service và thử lại.";
+  }
+
+  if (normalized.includes("timed out") || normalized.includes("timeout")) {
+    return "Dịch vụ AI xác thực giấy tờ xe phản hồi quá lâu. Vui lòng thử lại sau.";
+  }
+
+  if (normalized.includes("ai vehicle verification returned http")) {
+    return "Dịch vụ AI xác thực giấy tờ xe trả về lỗi. Vui lòng kiểm tra trạng thái AI service.";
+  }
+
+  return message;
+}
+
 function splitAreaName(areaName: string | null) {
   if (!areaName) return { province: "-", ward: "-" };
   const [province, ...wardParts] = areaName.split(" - ");
@@ -136,9 +160,9 @@ function splitAreaName(areaName: string | null) {
 function logText(recommendation?: string | null, flags: string[] = [], message?: string | null, errorMessage?: string | null) {
   const translatedFlags = visibleLogFlags(recommendation, flags).map((flag) => flagLabels[flag] ?? flag);
   if (translatedFlags.length > 0) return translatedFlags.join(", ");
-  if (errorMessage) return errorMessage;
+  if (errorMessage) return vehicleVerificationMessage(errorMessage) ?? errorMessage;
   if (recommendation === "Pass") return "OCR đọc tốt, các thông tin chính đã khớp.";
-  return message ?? "-";
+  return vehicleVerificationMessage(message) ?? "-";
 }
 
 function statusLabel(label: string) {
@@ -304,6 +328,100 @@ function OverviewMetricCard({ label, value, tone, icon: Icon }: { label: string;
         </div>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone}`}>
           <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, mono = false }: { label: string; value: ReactNode; mono?: boolean }) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <p className={`mt-1 text-sm font-semibold text-slate-800 ${mono ? "font-mono" : ""}`}>{value || "-"}</p>
+    </div>
+  );
+}
+
+function CavetReviewModal({
+  vehicle,
+  document,
+  onClose,
+}: {
+  vehicle: VehicleModerationDetailResponse;
+  document: VehicleModerationDetailResponse["documents"][number];
+  onClose: () => void;
+}) {
+  const vehicleTypeLabel = vehicle.vehicleType === "Car" ? "Ô tô" : vehicle.vehicleType === "Motorbike" ? "Xe máy" : vehicle.vehicleType;
+  const documentStatus = docStatusCfg[document.verificationStatus] ?? docStatusCfg.Pending;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-slate-900">Xem cavet</h2>
+            <p className="mt-0.5 text-sm text-slate-500">{vehicle.brandName} {vehicle.modelName} - {vehicle.licensePlate}</p>
+          </div>
+          <button type="button" onClick={onClose} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1.35fr)_380px]">
+          <div className="min-h-[320px] overflow-auto bg-slate-950 p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <img src={document.fileUrl} alt="Cavet xe" className="max-h-[76vh] max-w-full rounded-lg object-contain shadow-xl" />
+            </div>
+          </div>
+
+          <div className="overflow-y-auto border-t border-slate-100 p-5 lg:border-l lg:border-t-0">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${documentStatus.bg} ${documentStatus.text}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${documentStatus.dot}`} />
+                {documentStatus.label}
+              </span>
+              {document.isCurrent && (
+                <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">Cavet hiện tại</span>
+              )}
+            </div>
+
+            <div className="space-y-5">
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <Car className="h-4 w-4 text-slate-400" /> Thông tin xe
+                </h3>
+                <div className="grid gap-3">
+                  <InfoRow label="Loại xe" value={vehicleTypeLabel} />
+                  <InfoRow label="Biển số xe" value={vehicle.licensePlate} mono />
+                  <InfoRow label="Dòng xe" value={`${vehicle.brandName} ${vehicle.modelName}${vehicle.variantName ? ` - ${vehicle.variantName}` : ""}`} />
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <FileText className="h-4 w-4 text-slate-400" /> Thông tin OCR
+                </h3>
+                <div className="grid gap-3">
+                  <InfoRow label="Biển số OCR" value={document.ocrLicensePlate} mono />
+                  <InfoRow label="Hãng OCR" value={document.ocrBrand} />
+                  <InfoRow label="Dòng xe OCR" value={document.ocrModel} />
+                  <InfoRow label="Số máy OCR" value={document.ocrEngineNumber} mono />
+                  <InfoRow label="Số khung OCR" value={document.ocrChassisNumber} mono />
+                  <InfoRow label="Độ tin cậy" value={document.ocrConfidence != null ? document.ocrConfidence : "-"} />
+                  <InfoRow label="Nhà cung cấp" value={document.verificationProvider} />
+                  <InfoRow label="Thời gian xử lý" value={document.processedAt ? new Date(document.processedAt).toLocaleString("vi-VN") : "-"} />
+                </div>
+              </section>
+
+              {document.decisionReason && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                  <p className="font-medium">Lý do xử lý</p>
+                  <p className="mt-1">{vehicleVerificationMessage(document.decisionReason) ?? document.decisionReason}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -940,6 +1058,7 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
   const [vehicle, setVehicle] = useState<VehicleModerationDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showCavetModal, setShowCavetModal] = useState(false);
   const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [reasonModal, setReasonModal] = useState<{ title: string; confirmLabel: string; confirmColor: "red" | "orange"; action: (reason: string) => Promise<void> } | null>(null);
@@ -981,11 +1100,6 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
     url: image.imageUrl,
     label: image.isPrimary ? "Ảnh chính" : `Ảnh xe ${index + 1}`,
   }));
-  const documentImages = vehicle.documents.map((document, index) => ({
-    url: document.fileUrl,
-    label: document.isCurrent ? "Cavet hiện tại" : `Cavet ${index + 1}`,
-  }));
-
   const canApproveListing = currentDocument?.verified === true && currentDocument.verificationStatus === "Verified";
 
   function openPreview(images: ImagePreviewItem[], index = 0) {
@@ -1157,7 +1271,7 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                     <span className={`h-1.5 w-1.5 rounded-full ${(docStatusCfg[currentDocument.verificationStatus] ?? docStatusCfg.Pending).dot}`} />
                     {(docStatusCfg[currentDocument.verificationStatus] ?? docStatusCfg.Pending).label}
                   </span>
-                  <button type="button" onClick={() => openPreview(documentImages, Math.max(0, documentImages.findIndex((image) => image.url === currentDocument.fileUrl)))} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">
+                  <button type="button" onClick={() => setShowCavetModal(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">
                     <Eye className="h-3.5 w-3.5" /> Xem cavet
                   </button>
                 </div>
@@ -1170,7 +1284,7 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                 {currentDocument.verificationStatus !== "Verified" && currentDocument.decisionReason && (
                   <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3">
                     <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <p className="text-sm text-red-700">{currentDocument.decisionReason}</p>
+                    <p className="text-sm text-red-700">{vehicleVerificationMessage(currentDocument.decisionReason) ?? currentDocument.decisionReason}</p>
                   </div>
                 )}
                 {currentDocument.verificationStatus !== "Verified" && latestLog && (
@@ -1217,6 +1331,10 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                 </div>
               </div>
             </div>
+          )}
+
+          {showCavetModal && currentDocument && (
+            <CavetReviewModal vehicle={vehicle} document={currentDocument} onClose={() => setShowCavetModal(false)} />
           )}
 
           <Modal isOpen={!!reasonModal} title={reasonModal?.title ?? ""} onClose={() => { setReasonModal(null); setReasonText(""); }}>

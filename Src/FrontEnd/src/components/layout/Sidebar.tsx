@@ -65,6 +65,11 @@ const adminModerationItems = [
   { to: "/admin/vehicle-listings", label: "Tin đăng xe", icon: ClipboardList },
 ];
 
+const staffModerationItems = [
+  { to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge },
+  { to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList },
+];
+
 const ownerVehicleItems = [
   { to: "/owner/vehicles/car", label: "Ô tô", icon: Car },
   { to: "/owner/vehicles/motorbike", label: "Xe máy", icon: Bike },
@@ -106,8 +111,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const [vehicleCatalogOpen, setVehicleCatalogOpen] = useState(isVehicleCatalogPath);
   const isVehiclePricingPath = vehiclePricingItems.some((item) => location.pathname.startsWith(item.to));
   const [vehiclePricingOpen, setVehiclePricingOpen] = useState(isVehiclePricingPath);
-  const isAdminModerationPath = adminModerationItems.some((item) => location.pathname.startsWith(item.to));
+  const isAdminModerationPath = location.pathname.startsWith("/admin/moderation") || adminModerationItems.some((item) => location.pathname.startsWith(item.to));
   const [adminModerationOpen, setAdminModerationOpen] = useState(isAdminModerationPath);
+  const isStaffModerationPath = location.pathname.startsWith("/staff/moderation") || staffModerationItems.some((item) => location.pathname.startsWith(item.to));
+  const [staffModerationOpen, setStaffModerationOpen] = useState(isStaffModerationPath);
   const isOwnerVehiclePath = ownerVehicleItems.some((item) => location.pathname.startsWith(item.to));
   const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
 
@@ -115,8 +122,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
     if (isVehiclePricingPath) setVehiclePricingOpen(true);
     if (isAdminModerationPath) setAdminModerationOpen(true);
+    if (isStaffModerationPath) setStaffModerationOpen(true);
     if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isOwnerVehiclePath]);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -136,11 +144,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
   }
 
-  if (primaryRole === "Staff") {
-    mainItems.push({ to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
-    mainItems.push({ to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
-  }
-
   const profileItems = [
     { to: "/account", label: "Tài khoản", icon: UserRound },
     { to: "/change-password", label: "Đổi mật khẩu", icon: KeyRound },
@@ -158,7 +161,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <aside
-      className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:h-[calc(100vh-3.5rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-56"}`}
+      className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:h-[calc(100vh-3.5rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
     >
       <nav className="flex min-h-0 flex-1 flex-col p-3">
         <div className="sidebar-scrollbar -mr-2 min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden pr-2 pb-3">
@@ -181,7 +184,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 type="button"
                 onClick={() => {
                   setAdminModerationOpen(true);
-                  navigate("/admin/vehicle-documents");
+                  navigate("/admin/moderation");
                 }}
                 className={[
                   "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
@@ -219,6 +222,58 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               {!collapsed && adminModerationOpen && (
                 <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
                   {adminModerationItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {primaryRole === "Staff" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setStaffModerationOpen(true);
+                  navigate("/staff/moderation");
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isStaffModerationPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Kiểm duyệt"
+              >
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Kiểm duyệt</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setStaffModerationOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setStaffModerationOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở kiểm duyệt"
+                    >
+                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${staffModerationOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && staffModerationOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {staffModerationItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
                 </div>

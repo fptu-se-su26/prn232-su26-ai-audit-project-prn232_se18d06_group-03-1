@@ -24,6 +24,30 @@ function formatVnd(value: number | null | undefined) {
   return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
 }
 
+function vehicleVerificationMessage(message?: string | null) {
+  if (!message) return null;
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("target machine actively refused") ||
+    normalized.includes("connection refused") ||
+    normalized.includes("econnrefused") ||
+    normalized.includes("127.0.0.1:8001")
+  ) {
+    return "Không kết nối được tới dịch vụ AI xác thực giấy tờ xe. Vui lòng thử lại sau.";
+  }
+
+  if (normalized.includes("timed out") || normalized.includes("timeout")) {
+    return "Dịch vụ AI xác thực giấy tờ xe phản hồi quá lâu. Vui lòng thử lại sau.";
+  }
+
+  if (normalized.includes("ai vehicle verification returned http")) {
+    return "Dịch vụ AI xác thực giấy tờ xe trả về lỗi. Vui lòng thử lại sau.";
+  }
+
+  return message;
+}
+
 const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   Pending: { label: "Chờ duyệt", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
   Approved: { label: "Đã duyệt", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
@@ -525,7 +549,7 @@ export default function OwnerVehicleDetailPage() {
               {currentDocument.verificationStatus !== "Verified" && currentDocument.decisionReason && (
                 <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 p-3">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                  <p className="text-xs text-red-700">{currentDocument.decisionReason}</p>
+                  <p className="text-xs text-red-700">{vehicleVerificationMessage(currentDocument.decisionReason) ?? currentDocument.decisionReason}</p>
                 </div>
               )}
             </div>
