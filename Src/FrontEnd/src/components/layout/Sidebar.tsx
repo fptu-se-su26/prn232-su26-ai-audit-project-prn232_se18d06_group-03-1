@@ -16,6 +16,7 @@ import {
   Layers,
   ListChecks,
   Map,
+  MessageSquare,
   MapPinned,
   Percent,
   ReceiptText,
@@ -119,6 +120,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
   }
 
+  if (primaryRole === "Customer") {
+    mainItems.push({ to: "/customer/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
+  }
+
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
     mainItems.push({ to: "/admin/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
@@ -133,6 +138,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   if (primaryRole === "Staff") {
     mainItems.push({ to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge });
     mainItems.push({ to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList });
+  }
+
+  if (primaryRole === "Staff") {
+    mainItems.push({ to: "/staff/support-tickets", label: "Ticket hỗ trợ", icon: MessageSquare });
   }
 
   const profileItems = [

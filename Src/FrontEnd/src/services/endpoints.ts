@@ -62,6 +62,14 @@ export const endpoints = {
     reject: (id: number) => `/api/bookings/${id}/reject`,
     confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
   },
+  supportTickets: {
+    base: "/api/support-tickets",
+    my: "/api/support-tickets/my",
+    staff: "/api/support-tickets/staff",
+    byId: (id: number) => `/api/support-tickets/${id}`,
+    messages: (id: number) => `/api/support-tickets/${id}/messages`,
+    status: (id: number) => `/api/support-tickets/${id}/status`,
+  },
   users: {
     me: "/api/users/me",
     updateProfile: "/api/users/me/profile",

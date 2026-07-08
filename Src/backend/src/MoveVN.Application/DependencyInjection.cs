@@ -20,6 +20,8 @@ using MoveVN.Application.Modules.PricingRules.Interfaces;
 using MoveVN.Application.Modules.PricingRules.Services;
 using MoveVN.Application.Modules.PlatformFeeRules.Interfaces;
 using MoveVN.Application.Modules.PlatformFeeRules.Services;
+using MoveVN.Application.Modules.SupportTickets.Interfaces;
+using MoveVN.Application.Modules.SupportTickets.Services;
 using MoveVN.Application.Modules.Users.Interfaces;
 using MoveVN.Application.Modules.Users.Services;
 using MoveVN.Application.Modules.VehicleBrands.Interfaces;
@@ -77,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();
+        services.AddScoped<ISupportTicketService, SupportTicketService>();
 
         return services;
     }
