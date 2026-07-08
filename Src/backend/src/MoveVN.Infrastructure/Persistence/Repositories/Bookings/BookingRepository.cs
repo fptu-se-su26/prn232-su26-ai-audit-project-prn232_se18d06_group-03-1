@@ -27,6 +27,7 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings
             .Where(b => b.VehicleId == vehicleId
+                && b.Status != "Pending"
                 && b.Status != "Rejected"
                 && b.Status != "Cancelled"
                 && b.StartDate < endDate
