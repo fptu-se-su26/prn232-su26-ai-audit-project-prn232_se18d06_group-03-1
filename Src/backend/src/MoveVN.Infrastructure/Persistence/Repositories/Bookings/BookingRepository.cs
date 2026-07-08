@@ -42,6 +42,37 @@ public class BookingRepository : IBookingRepository
     public async Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default)
         => await _context.Vehicles.FirstOrDefaultAsync(v => v.Id == vehicleId, cancellationToken);
 
+    public async Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+        => await _context.CustomerProfiles.FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+
+    public async Task<TrustScore?> GetTrustScoreByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+        => await _context.TrustScores.FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
+
+    public async Task<int> CountActiveBookingsByCustomerAsync(long customerId, long? excludeBookingId = null, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Bookings
+            .Where(b => b.CustomerId == customerId
+                && b.Status != "Rejected"
+                && b.Status != "Cancelled"
+                && b.Status != "Completed");
+
+        if (excludeBookingId.HasValue)
+            query = query.Where(b => b.Id != excludeBookingId.Value);
+
+        return await query.CountAsync(cancellationToken);
+    }
+
+    public async Task<int> CountRecentBookingsByCustomerAsync(long customerId, DateTime since, long? excludeBookingId = null, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Bookings
+            .Where(b => b.CustomerId == customerId && b.CreatedAt >= since);
+
+        if (excludeBookingId.HasValue)
+            query = query.Where(b => b.Id != excludeBookingId.Value);
+
+        return await query.CountAsync(cancellationToken);
+    }
+
     public async Task AddStatusHistoryAsync(BookingStatusHistory history, CancellationToken cancellationToken = default)
         => await _context.BookingStatusHistory.AddAsync(history, cancellationToken);
 
@@ -122,6 +153,7 @@ public class BookingRepository : IBookingRepository
                 DepositAmount = b.DepositAmount,
                 TotalAmount = b.TotalAmount,
                 PickupAddress = b.PickupAddress,
+                RiskScore = b.RiskScore,
                 Status = b.Status,
                 CustomerNote = b.CustomerNote,
                 CreatedAt = b.CreatedAt,

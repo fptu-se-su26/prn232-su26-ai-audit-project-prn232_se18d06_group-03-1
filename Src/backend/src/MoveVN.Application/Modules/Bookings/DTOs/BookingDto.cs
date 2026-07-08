@@ -33,6 +33,8 @@ public class BookingResponse
     public string? CustomerNote { get; set; }
     public string Status { get; set; } = string.Empty;
     public decimal? RiskScore { get; set; }
+    public string? RiskLevel { get; set; }
+    public List<string> RiskFactors { get; set; } = new();
     public string? CancelReason { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -8,6 +8,7 @@ import Card from "@/components/ui/Card";
 import { getBookingById, approveBooking, rejectBooking } from "@/features/booking/bookingService";
 import type { BookingResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
+import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
@@ -105,13 +106,47 @@ export default function OwnerBookingDetailPage() {
 
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Owner</p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Booking {booking.bookingCode}</h1>
           <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${statusColors[booking.status] ?? "bg-slate-100 text-slate-700"}`}>
             {statusLabels[booking.status] ?? booking.status}
           </span>
+          <span className="mt-2">
+            <RiskScoreBadge score={booking.riskScore} />
+          </span>
         </div>
       </section>
+
+      <Card className="rounded-md p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-950">Đánh giá rủi ro</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Điểm rule-based hỗ trợ chủ xe cân nhắc trước khi duyệt booking.
+            </p>
+          </div>
+          <RiskScoreBadge score={booking.riskScore} />
+        </div>
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Tín hiệu ghi nhận</p>
+          {booking.riskFactors && booking.riskFactors.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {booking.riskFactors.map((factor) => (
+                <span
+                  key={factor}
+                  className="rounded-md bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200"
+                >
+                  {factor}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-slate-500">
+              API chưa trả chi tiết rule cho booking này. Hãy restart backend để dùng response riskFactors mới.
+            </p>
+          )}
+        </div>
+      </Card>
 
       {booking.status === "Pending" && (
         <Card className="space-y-4 rounded-md p-5">

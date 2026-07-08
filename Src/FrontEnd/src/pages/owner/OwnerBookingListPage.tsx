@@ -6,6 +6,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import { getOwnerBookings } from "@/features/booking/bookingService";
 import type { BookingResponse, BookingListRequest } from "@/features/booking/types";
+import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
 
 const PAGE_SIZE = 10;
 
@@ -115,6 +116,7 @@ export default function OwnerBookingListPage() {
                 <th className="px-4 py-3">Ngày thuê</th>
                 <th className="px-4 py-3">Ngày trả</th>
                 <th className="px-4 py-3">Tổng tiền</th>
+                <th className="px-4 py-3">Rủi ro</th>
                 <th className="px-4 py-3">Trạng thái</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -127,6 +129,9 @@ export default function OwnerBookingListPage() {
                   <td className="px-4 py-3 text-slate-700">{formatDate(item.startDate)}</td>
                   <td className="px-4 py-3 text-slate-700">{formatDate(item.endDate)}</td>
                   <td className="px-4 py-3 font-medium text-slate-900">{formatCurrency(item.totalAmount)}</td>
+                  <td className="px-4 py-3">
+                    <RiskScoreBadge score={item.riskScore} />
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[item.status] ?? "bg-slate-100 text-slate-700"}`}>
                       {statusLabels[item.status] ?? item.status}

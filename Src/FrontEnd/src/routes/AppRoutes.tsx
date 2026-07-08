@@ -58,8 +58,8 @@ export default function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/xe" element={<VehicleListPage />} />
-        <Route path="/xe/:id" element={<VehicleDetailPage />} />
+        <Route path="/vehicle" element={<VehicleListPage />} />
+        <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
       </Route>
 
       <Route element={<GuestRoute />}>
