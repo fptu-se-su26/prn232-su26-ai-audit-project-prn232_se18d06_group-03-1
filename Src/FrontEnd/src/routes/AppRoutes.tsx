@@ -37,6 +37,8 @@ import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPag
 import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
 import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
+import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
+import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import OwnerBookingDetailPage from "@/pages/owner/OwnerBookingDetailPage";
@@ -50,6 +52,8 @@ import HomePage from "@/pages/public/HomePage";
 import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
+import StaffSupportTicketDetailPage from "@/pages/staff/StaffSupportTicketDetailPage";
+import StaffSupportTicketListPage from "@/pages/staff/StaffSupportTicketListPage";
 import StaffVehiclesPage from "@/pages/staff/StaffVehiclesPage";
 import StaffModerationDashboardPage from "@/pages/staff/StaffModerationDashboardPage";
 import GuestRoute from "@/routes/GuestRoute";
@@ -94,6 +98,8 @@ export default function AppRoutes() {
             <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
             <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
             <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
+            <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
+            <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
             <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
             <Route path="/become-owner/bank" element={<BankInfoPage />} />
@@ -121,6 +127,8 @@ export default function AppRoutes() {
             <Route path="/staff/vehicle-documents/:id" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-listings" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-listings/:id" element={<StaffVehiclesPage />} />
+            <Route path="/staff/support-tickets" element={<StaffSupportTicketListPage />} />
+            <Route path="/staff/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Admin"]} />}>

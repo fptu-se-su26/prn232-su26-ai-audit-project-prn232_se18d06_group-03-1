@@ -20,6 +20,7 @@ import {
   ListChecks,
   LogOut,
   Map,
+  MessageSquare,
   MapPinned,
   Monitor,
   Percent,
@@ -138,6 +139,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   if (primaryRole === "Customer") {
     mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
+  }
+
+  if (primaryRole === "Customer") {
+    mainItems.push({ to: "/customer/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
   }
 
   if (primaryRole === "Admin") {
