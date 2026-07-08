@@ -12,11 +12,16 @@ import {
   FileBadge,
   FolderTree,
   Home,
+  IdCard,
   KeyRound,
+  Landmark,
   Layers,
+  LayoutDashboard,
   ListChecks,
+  LogOut,
   Map,
   MapPinned,
+  Monitor,
   Percent,
   ReceiptText,
   ShieldCheck,
@@ -106,7 +111,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const navigate = useNavigate();
   const primaryRole = activeRole ?? user?.roles[0] ?? "Customer";
   const RoleIcon = roleIcons[primaryRole] ?? Home;
-  const isProfileSection = location.pathname === "/account" || location.pathname === "/change-password";
+  const isAccountSection = location.pathname.startsWith("/account") || location.pathname === "/change-password";
   const isVehicleCatalogPath = location.pathname === "/admin/vehicle-catalog" || vehicleCatalogItems.some((item) => location.pathname.startsWith(item.to));
   const [vehicleCatalogOpen, setVehicleCatalogOpen] = useState(isVehicleCatalogPath);
   const isVehiclePricingPath = vehiclePricingItems.some((item) => location.pathname.startsWith(item.to));
@@ -144,15 +149,47 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
   }
 
-  const profileItems = [
-    { to: "/account", label: "Tài khoản", icon: UserRound },
-    { to: "/change-password", label: "Đổi mật khẩu", icon: KeyRound },
+  const profileGroups = [
+    {
+      heading: "Tài khoản",
+      items: [
+        { to: "/account", label: "Tổng quan", icon: LayoutDashboard },
+        { to: "/account/profile", label: "Hồ sơ cá nhân", icon: UserRound },
+      ],
+    },
+    {
+      heading: "Ví tiền",
+      items: [
+        { to: "/account/bank", label: "Ngân hàng", icon: Landmark },
+      ],
+    },
+    {
+      heading: "Xác minh",
+      items: [
+        { to: "/account/verification", label: "Tổng quan xác minh", icon: ShieldCheck },
+        { to: "/account/verification/cccd", label: "CCCD / CMND", icon: IdCard },
+        { to: "/account/verification/drivers-license", label: "Giấy phép lái xe", icon: FileBadge },
+      ],
+    },
+    {
+      heading: "Bảo mật",
+      items: [
+        { to: "/account/security/password", label: "Mật khẩu", icon: KeyRound },
+        { to: "/account/security/sessions", label: "Phiên đăng nhập", icon: Monitor },
+      ],
+    },
+    {
+      heading: "Hệ thống",
+      items: [
+        { to: "/logout", label: "Đăng xuất", icon: LogOut },
+      ],
+    },
   ];
 
   const isBecomeOwnerPage = location.pathname.startsWith("/become-owner");
-  const isOwnerVerificationSection = isProfileSection || isBecomeOwnerPage;
+  const isOwnerVerificationSection = isAccountSection || isBecomeOwnerPage;
 
-  let items = isOwnerVerificationSection ? profileItems : mainItems;
+  let items = isOwnerVerificationSection ? [] : mainItems;
 
   const backItem = isOwnerVerificationSection
     ? { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
@@ -168,12 +205,33 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           {isOwnerVerificationSection && (
             <>
               <NavItem end collapsed={collapsed} to={backItem!.to} label={backItem!.label} icon={backItem!.icon} />
-              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
-              {!collapsed && <SectionHeading collapsed={collapsed}>Hồ sơ</SectionHeading>}
+
+              {!collapsed && (
+                <div className="mt-2 space-y-4">
+                  {profileGroups.map((group) => (
+                    <div key={group.heading}>
+                      <SectionHeading collapsed={false}>{group.heading}</SectionHeading>
+                      <div className="mt-1 space-y-0.5">
+                        {group.items.map((item) => (
+                          <NavItem key={item.to} end collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {collapsed && (
+                <div className="mt-2 space-y-0.5">
+                  {profileGroups.flatMap((g) => g.items).map((item) => (
+                    <NavItem key={item.to} end collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
             </>
           )}
 
-          {items.map((item) => (
+          {!isOwnerVerificationSection && items.map((item) => (
             <NavItem key={item.to} end={item.to === dashboardPath} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
           ))}
 

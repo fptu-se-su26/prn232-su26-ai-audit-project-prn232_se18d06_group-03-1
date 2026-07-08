@@ -1,9 +1,12 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AccountPage from "@/pages/account/AccountPage";
+import ProfilePage from "@/pages/account/ProfilePage";
+import VerificationOverviewPage from "@/pages/account/VerificationOverviewPage";
 import ChangePasswordPage from "@/pages/account/ChangePasswordPage";
 import LogoutPage from "@/pages/account/LogoutPage";
+import UnderDevelopment from "@/components/common/UnderDevelopment";
 import AdminHomePage from "@/pages/admin/AdminHomePage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminModerationDashboardPage from "@/pages/admin/AdminModerationDashboardPage";
@@ -73,8 +76,16 @@ export default function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
+          {/* Account - all roles */}
           <Route path="/account" element={<AccountPage />} />
-          <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/account/profile" element={<ProfilePage />} />
+          <Route path="/account/bank" element={<BankInfoPage />} />
+          <Route path="/account/verification" element={<VerificationOverviewPage />} />
+          <Route path="/account/verification/cccd" element={<CccdVerificationPage />} />
+          <Route path="/account/verification/drivers-license" element={<UnderDevelopment />} />
+          <Route path="/account/security/password" element={<ChangePasswordPage />} />
+          <Route path="/account/security/sessions" element={<UnderDevelopment />} />
+          <Route path="/change-password" element={<Navigate to="/account/security/password" replace />} />
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
 
