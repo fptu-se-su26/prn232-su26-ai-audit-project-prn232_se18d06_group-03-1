@@ -103,7 +103,8 @@ export default function CustomerCreateBookingPage() {
       showToast({ type: "success", title: "Đặt xe thành công", message: `Mã booking: ${result.bookingCode}` });
       navigate(`/customer/bookings/${result.id}`);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Không thể tạo booking.";
+      const data = err?.response?.data;
+      const msg = data?.errors?.length ? data.errors.join(", ") : data?.message || err?.message || "Không thể tạo booking.";
       setError(msg);
     } finally {
       setIsSubmitting(false);

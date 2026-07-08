@@ -131,6 +131,10 @@ public class BookingService : IBookingService
         if (booking.Status != "Pending")
             throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
 
+        var hasOverlap = await _repo.HasOverlapAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
+        if (hasOverlap)
+            throw new ValidationException(new[] { "Xe đã có người đặt trong khoảng thời gian này, không thể duyệt." });
+
         var oldStatus = booking.Status;
         booking.Status = "Approved";
         booking.UpdatedAt = DateTime.UtcNow;
