@@ -1,106 +1,20 @@
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  CalendarDays,
   CarFront,
   CheckCircle2,
-  ChevronDown,
-  LogOut,
   MapPin,
-  Menu,
-  Moon,
-  Search,
   ShieldCheck,
-  Sparkles,
-  Sun,
-  UserRound,
-  X,
-  Globe,
   Car,
   Bike,
   Compass,
   ArrowUpRight
 } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
-import { useAuthStore } from "@/features/auth/hooks/useAuth";
-import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
-import useClickOutside from "@/hooks/useClickOutside";
+import { useState, useEffect } from "react";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
 import type { VehicleListItemResponse } from "@/features/vehicles/types";
-import logoLight from "../../../Logo/movevn_horizontal_light.png";
-import logoDark from "../../../Logo/movevn_horizontal_dark.png";
 import heroBg from "@/assets/hero-bg.jpg";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
-
-const navItems = [
-  { href: "/", label: "TRANG CHỦ" },
-  { href: "/vehicle", label: "THUÊ XE" },
-  { href: "/#process", label: "QUY TRÌNH" },
-  { href: "/#contact", label: "LIÊN HỆ" },
-];
-
-const vehicleDemos = [
-  {
-    name: "VinFast VF8 Ultra",
-    type: "SUV Điện Cao Cấp",
-    category: "car",
-    price: "1.200.000đ",
-    tag: "Đắt khách",
-    color: "from-indigo-600 to-blue-500",
-    image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=600&q=80",
-    videoLink: "/vehicle"
-  },
-  {
-    name: "VinFast VF5 Plus",
-    type: "CUV Điện Đô Thị",
-    category: "car",
-    price: "650.000đ",
-    tag: "Tiết kiệm",
-    color: "from-emerald-500 to-teal-500",
-    image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80",
-    videoLink: "/vehicle"
-  },
-  {
-    name: "VinFast VF3",
-    type: "Mini SUV Điện",
-    category: "car",
-    price: "450.000đ",
-    tag: "Mới nhất",
-    color: "from-amber-500 to-orange-500",
-    image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80",
-    videoLink: "/vehicle"
-  },
-  {
-    name: "Toyota Veloz",
-    type: "MPV Gia Đình 7 Chỗ",
-    category: "car",
-    price: "900.000đ",
-    tag: "Rộng rãi",
-    color: "from-purple-600 to-indigo-500",
-    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80",
-    videoLink: "/vehicle"
-  },
-  {
-    name: "Honda Air Blade 160",
-    type: "Xe Máy Tay Ga",
-    category: "motorbike",
-    price: "180.000đ",
-    tag: "Linh hoạt",
-    color: "from-pink-500 to-rose-500",
-    image: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=600&q=80",
-    videoLink: "/vehicle"
-  },
-  {
-    name: "Honda Vision 2023",
-    type: "Xe Máy Phổ Thông",
-    category: "motorbike",
-    price: "130.000đ",
-    tag: "Phổ biến",
-    color: "from-cyan-500 to-blue-500",
-    image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=600&q=80",
-    videoLink: "/vehicle"
-  }
-];
 
 const steps = [
   { 
@@ -179,33 +93,9 @@ const guides = [
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const token = useAuthStore((state) => state.token);
-  const user = useAuthStore((state) => state.user);
-  const [darkMode, setDarkMode] = useState(true); // Default to dark mode for ultra premium dealership aesthetic
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [searchTab, setSearchTab] = useState<"car" | "motorbike">("car");
   const [searchLoc, setSearchLoc] = useState("TP. Hồ Chí Minh");
-  const accountRef = useRef<HTMLDivElement>(null);
   const [vehicleFilter, setVehicleFilter] = useState<"all" | "car" | "motorbike">("all");
-  const dashboardPath = getDashboardPath(user?.roles ?? []);
-  
-  const initials = user?.fullName
-    ?.split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase() ?? "U";
-
-  const accountLinks = [
-    { to: dashboardPath, label: "Khu vực của tôi", icon: UserRound },
-    ...(user?.roles.includes("Customer") ? [{ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarDays }] : []),
-    ...(user?.roles.includes("Owner") ? [{ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarDays }] : []),
-    { to: "/account", label: "Hồ sơ tài khoản", icon: UserRound },
-  ];
-
-  useClickOutside(accountRef, () => setAccountOpen(false));
 
   const [vehicles, setVehicles] = useState<VehicleListItemResponse[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
@@ -246,8 +136,10 @@ export default function HomePage() {
           <div className="max-w-2xl">
             <h1 className="text-[38px] font-black uppercase leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[62px] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
               CHỌN CHIẾC XE.<br />
-              BẮT ĐẦU<br />
-              <span className="text-brand-400">HÀNH TRÌNH.</span>
+              <span className="italic lowercase text-brand-400 normal-case">
+                bắt đầu hành trình
+              </span><br />
+              CỦA RIÊNG BẠN.
             </h1>
             
             <p className="mt-6 max-w-lg text-xs leading-relaxed tracking-wider text-slate-200 uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -290,7 +182,7 @@ export default function HomePage() {
                   value={searchLoc}
                   onChange={(e) => setSearchLoc(e.target.value)}
                   placeholder="Nhập địa điểm, thành phố..."
-                  className="h-11 w-full border border-violet-850/50 bg-[#07020d]/50 pl-10 pr-4 text-xs font-semibold text-white placeholder-violet-400/60 outline-none focus:border-brand-500 rounded"
+                  className="h-11 w-full border border-violet-900/50 bg-[#07020d]/50 pl-10 pr-4 text-xs font-semibold text-white placeholder-violet-400/60 outline-none focus:border-brand-500 rounded"
                 />
               </div>
 
@@ -464,7 +356,7 @@ export default function HomePage() {
               return (
                 <div
                   key={vehicle.id}
-                  className="group overflow-hidden rounded border border-slate-250 bg-white shadow-sm transition-all duration-350 hover:shadow-lg dark:border-neutral-800/90 dark:bg-[#0f0f0f]"
+                  className="group overflow-hidden rounded border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-lg dark:border-neutral-800/90 dark:bg-[#0f0f0f]"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-neutral-900">
                     {vehicle.featuredImage ? (
@@ -491,7 +383,7 @@ export default function HomePage() {
                       {vehicle.brandName} {vehicle.modelName}
                     </h3>
                     
-                    <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4.5 dark:border-neutral-900">
+                    <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-neutral-900">
                       <div>
                         <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-gray-500">Giá thuê</span>
                         <span className="text-base font-black text-brand-600 dark:text-brand-400">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ/ngày</span>
@@ -598,13 +490,13 @@ export default function HomePage() {
             {guides.map((guide) => (
               <article
                 key={guide.title}
-                className="flex flex-col overflow-hidden rounded bg-white border border-slate-250 shadow-sm transition-all hover:shadow-md dark:border-neutral-800/90 dark:bg-[#0f0f0f]"
+                className="flex flex-col overflow-hidden rounded border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-neutral-800/90 dark:bg-[#0f0f0f]"
               >
                 <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                   <img
                     src={guide.image}
                     alt={guide.title}
-                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-103"
+                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                   />
                 </div>
                 <div className="flex flex-1 flex-col p-6">

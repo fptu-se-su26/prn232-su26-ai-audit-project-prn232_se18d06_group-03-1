@@ -18,10 +18,11 @@ import logoDark from "../../../Logo/movevn_horizontal_dark.png";
 import logoLight from "../../../Logo/movevn_horizontal_light.png";
 
 const navItems = [
-  { href: "/", label: "TRANG CHỦ" },
-  { href: "/vehicle", label: "THUÊ XE" },
-  { href: "/#process", label: "QUY TRÌNH" },
-  { href: "/#contact", label: "LIÊN HỆ" },
+  { href: "/", label: "Trang chủ" },
+  { href: "/vehicle", label: "Thuê xe" },
+  { href: "/how-it-works", label: "Cách hoạt động" },
+  { href: "/for-owners", label: "Chủ xe" },
+  { href: "/support", label: "Hỗ trợ" },
 ];
 
 export default function PublicLayout() {
@@ -69,29 +70,15 @@ export default function PublicLayout() {
             </Link>
 
             <div className="hidden items-center gap-8 text-sm font-semibold text-slate-700 dark:text-gray-300 lg:flex">
-              {navItems.map((item) => {
-                const isHash = item.href.includes("#");
-                if (isHash) {
-                  return (
-                    <a
-                      key={item.href}
-                      href={item.href}
-                      className="transition hover:text-brand-600 dark:hover:text-brand-350"
-                    >
-                      {item.label}
-                    </a>
-                  );
-                }
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className="transition hover:text-brand-600 dark:hover:text-brand-350"
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="transition hover:text-brand-600 dark:hover:text-brand-300"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
 
             <div className="hidden items-center gap-3 lg:flex">
@@ -194,31 +181,16 @@ export default function PublicLayout() {
           {menuOpen ? (
             <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg dark:border-neutral-900 dark:bg-black lg:hidden">
               <div className="flex flex-col gap-2">
-                {navItems.map((item) => {
-                  const isHash = item.href.includes("#");
-                  if (isHash) {
-                    return (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMenuOpen(false)}
-                        className="rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
-                      >
-                        {item.label}
-                      </a>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      onClick={() => setMenuOpen(false)}
-                      className="rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
               </div>
 
               <div className="mt-4 flex items-center gap-3">
@@ -294,23 +266,32 @@ export default function PublicLayout() {
                 MoveVN
               </h3>
               <div className="mt-4 flex flex-col gap-3 text-sm">
-                <Link to="/#process" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Quy trình
+                <Link to="/about" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Giới thiệu
                 </Link>
-                <Link to="/#vehicles" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Xe nổi bật
+                <Link to="/how-it-works" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Cách hoạt động
                 </Link>
-                <Link to="/#contact" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Liên hệ
+                <Link to="/for-owners" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Dành cho chủ xe
                 </Link>
               </div>
             </div>
 
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                Hỗ trợ
+                Ho tro
               </h3>
               <div className="mt-4 flex flex-col gap-3 text-sm">
+                <Link to="/support" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Trung tâm hỗ trợ
+                </Link>
+                <Link to="/terms" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Điều khoản sử dụng
+                </Link>
+                <Link to="/privacy" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Chính sách bảo mật
+                </Link>
                 <a href="mailto:support@movevn.com" className="hover:text-brand-600 dark:hover:text-brand-300">
                   support@movevn.com
                 </a>

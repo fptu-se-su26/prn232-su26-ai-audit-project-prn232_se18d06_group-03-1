@@ -43,7 +43,13 @@ import OwnerVehicleListPage from "@/pages/owner/OwnerVehicleListPage";
 import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
 import OwnerVehicleAddPage from "@/pages/owner/OwnerVehicleAddPage";
 import OwnerVehicleEditPage from "@/pages/owner/OwnerVehicleEditPage";
+import AboutPage from "@/pages/public/AboutPage";
+import ForOwnersPage from "@/pages/public/ForOwnersPage";
 import HomePage from "@/pages/public/HomePage";
+import HowItWorksPage from "@/pages/public/HowItWorksPage";
+import PrivacyPage from "@/pages/public/PrivacyPage";
+import SupportPage from "@/pages/public/SupportPage";
+import TermsPage from "@/pages/public/TermsPage";
 import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
@@ -60,6 +66,12 @@ export default function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/vehicle" element={<VehicleListPage />} />
         <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
+        <Route path="/for-owners" element={<ForOwnersPage />} />
+        <Route path="/support" element={<SupportPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
       </Route>
 
       <Route element={<GuestRoute />}>

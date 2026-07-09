@@ -9,10 +9,6 @@ import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import Button from "@/components/common/Button";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 
-function formatVnd(value: number | null | undefined) {
-  return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
-}
-
 function VehicleDetailSkeleton() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -78,7 +74,7 @@ export default function VehicleDetailPage() {
             <AlertCircle className="h-8 w-8 text-red-400" />
           </div>
           <p className="mt-4 text-sm text-red-600">{error ?? "Không tìm thấy xe."}</p>
-          <button type="button" onClick={() => navigate("/xe")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800">
+          <button type="button" onClick={() => navigate("/vehicle")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800">
             <ArrowLeft className="h-4 w-4" /> Quay lại
           </button>
         </div>
@@ -100,7 +96,7 @@ export default function VehicleDetailPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate("/xe")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
+        <button type="button" onClick={() => navigate("/vehicle")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div>

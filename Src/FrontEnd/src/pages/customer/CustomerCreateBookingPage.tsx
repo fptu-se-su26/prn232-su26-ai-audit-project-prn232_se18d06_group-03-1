@@ -115,7 +115,7 @@ export default function CustomerCreateBookingPage() {
     return (
       <div className="mx-auto max-w-lg pt-10">
         <Alert variant="error" title="Thiếu thông tin">
-          Vui lòng chọn xe trước khi đặt. <Link to="/xe" className="underline">Quay lại danh sách xe</Link>
+          Vui lòng chọn xe trước khi đặt. <Link to="/vehicle" className="underline">Quay lại danh sách xe</Link>
         </Alert>
       </div>
     );
