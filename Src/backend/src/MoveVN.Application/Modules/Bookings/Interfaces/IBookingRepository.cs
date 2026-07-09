@@ -10,6 +10,8 @@ public interface IBookingRepository
     void Update(Booking booking);
     Task<bool> HasOverlapAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default);
     Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default);
+    Task<string?> GetVehicleRequiredLicenseClassAsync(long vehicleId, CancellationToken cancellationToken = default);
+    Task<bool> IsLicenseClassCompatibleAsync(string userLicenseClass, string requiredLicenseClass, CancellationToken cancellationToken = default);
     Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<TrustScore?> GetTrustScoreByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<int> CountActiveBookingsByCustomerAsync(long customerId, long? excludeBookingId = null, CancellationToken cancellationToken = default);

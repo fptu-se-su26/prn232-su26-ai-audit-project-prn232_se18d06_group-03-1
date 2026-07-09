@@ -140,7 +140,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Customer") {
     mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
-    mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
+    mainItems.push({ to: "/booking/my-bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
   }
 
   if (primaryRole === "Customer") {
@@ -153,7 +153,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Owner") {
     mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
-    mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
+    mainItems.push({ to: "/booking/manage", label: "Yêu cầu thuê", icon: CalendarCheck });
   }
 
   const profileGroups = [

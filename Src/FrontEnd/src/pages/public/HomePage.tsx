@@ -200,8 +200,8 @@ export default function HomePage() {
 
   const accountLinks = [
     { to: dashboardPath, label: "Khu vực của tôi", icon: UserRound },
-    ...(user?.roles.includes("Customer") ? [{ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarDays }] : []),
-    ...(user?.roles.includes("Owner") ? [{ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarDays }] : []),
+    ...(user?.roles.includes("Customer") ? [{ to: "/booking/my-bookings", label: "Lịch sử thuê xe", icon: CalendarDays }] : []),
+    ...(user?.roles.includes("Owner") ? [{ to: "/booking/manage", label: "Yêu cầu thuê", icon: CalendarDays }] : []),
     { to: "/account", label: "Hồ sơ tài khoản", icon: UserRound },
   ];
 

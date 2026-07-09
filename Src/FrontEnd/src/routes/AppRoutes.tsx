@@ -35,16 +35,15 @@ import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
 import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
 import DriverLicenseVerificationPage from "@/pages/customer/DriverLicenseVerificationPage";
 import OwnerPendingPage from "@/pages/customer/OwnerPendingPage";
-import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPage";
-import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
-import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
-import OwnerBookingDetailPage from "@/pages/owner/OwnerBookingDetailPage";
-import OwnerBookingListPage from "@/pages/owner/OwnerBookingListPage";
+import BookingNewPage from "@/pages/booking/BookingNewPage";
+import BookingDetailPage from "@/pages/booking/BookingDetailPage";
+import BookingListPage from "@/pages/booking/BookingListPage";
+import BookingManagePage from "@/pages/booking/BookingManagePage";
 import OwnerHomePage from "@/pages/owner/OwnerHomePage";
 import OwnerVehicleListPage from "@/pages/owner/OwnerVehicleListPage";
 import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
@@ -82,6 +81,13 @@ export default function AppRoutes() {
       </Route>
 
       <Route element={<ProtectedRoute />}>
+        <Route element={<PublicLayout />}>
+          <Route path="/booking/new" element={<BookingNewPage />} />
+          <Route path="/booking/my-bookings" element={<BookingListPage />} />
+          <Route path="/booking/manage" element={<BookingManagePage />} />
+          <Route path="/booking/:id" element={<BookingDetailPage />} />
+        </Route>
+
         <Route element={<MainLayout />}>
           {/* Account - all roles */}
           <Route path="/account" element={<AccountPage />} />
@@ -98,9 +104,6 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Customer"]} />}>
             <Route path="/customer" element={<CustomerHomePage />} />
-            <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
-            <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
-            <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
             <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
             <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
@@ -111,8 +114,6 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Owner"]} />}>
             <Route path="/owner" element={<OwnerHomePage />} />
-            <Route path="/owner/bookings" element={<OwnerBookingListPage />} />
-            <Route path="/owner/bookings/:id" element={<OwnerBookingDetailPage />} />
             <Route path="/owner/vehicles" element={<OwnerVehicleListPage />} />
             <Route path="/owner/vehicles/car" element={<OwnerVehicleListPage />} />
             <Route path="/owner/vehicles/motorbike" element={<OwnerVehicleListPage />} />

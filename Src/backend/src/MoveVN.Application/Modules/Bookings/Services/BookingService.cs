@@ -52,6 +52,20 @@ public class BookingService : IBookingService
         if (vehicle.Status != "Approved")
             throw new ValidationException(new[] { "Xe không có sẵn để đặt." });
 
+        var profile = await _repo.GetCustomerProfileByUserIdAsync(customerId, cancellationToken);
+        if (profile is null || !profile.NationalIdVerified)
+            throw new ValidationException(new[] { "Bạn cần xác thực CCCD trước khi đặt xe." });
+        if (!profile.DriverLicenseVerified || string.IsNullOrWhiteSpace(profile.DriverLicenseClass))
+            throw new ValidationException(new[] { "Bạn cần xác thực giấy phép lái xe trước khi đặt xe." });
+
+        var requiredLicenseClass = await _repo.GetVehicleRequiredLicenseClassAsync(request.VehicleId, cancellationToken);
+        if (requiredLicenseClass is not null)
+        {
+            var compatible = await _repo.IsLicenseClassCompatibleAsync(profile.DriverLicenseClass, requiredLicenseClass, cancellationToken);
+            if (!compatible)
+                throw new ValidationException(new[] { "Hạng bằng lái của bạn không phù hợp với loại xe này." });
+        }
+
         var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, null, cancellationToken);
         if (hasOverlap)
             throw new ValidationException(new[] { "Xe đã được đặt trong khoảng thời gian này." });

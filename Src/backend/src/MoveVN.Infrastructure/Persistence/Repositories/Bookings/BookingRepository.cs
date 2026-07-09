@@ -42,6 +42,42 @@ public class BookingRepository : IBookingRepository
     public async Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default)
         => await _context.Vehicles.FirstOrDefaultAsync(v => v.Id == vehicleId, cancellationToken);
 
+    public async Task<string?> GetVehicleRequiredLicenseClassAsync(long vehicleId, CancellationToken cancellationToken = default)
+    {
+        var variantId = await _context.Vehicles
+            .Where(v => v.Id == vehicleId)
+            .Select(v => v.VariantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (variantId is null) return null;
+
+        var requiredClassId = await _context.VehicleModelVariant
+            .Where(vm => vm.Id == variantId)
+            .Select(vm => vm.RequiredLicenseClassId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (requiredClassId is null) return null;
+
+        return await _context.DriverLicenseClasses
+            .Where(d => d.Id == requiredClassId)
+            .Select(d => d.Code)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<bool> IsLicenseClassCompatibleAsync(string userLicenseClass, string requiredLicenseClass, CancellationToken cancellationToken = default)
+    {
+        var userClass = await _context.DriverLicenseClasses
+            .FirstOrDefaultAsync(d => d.Code == userLicenseClass, cancellationToken);
+        if (userClass is null) return false;
+
+        var requiredClass = await _context.DriverLicenseClasses
+            .FirstOrDefaultAsync(d => d.Code == requiredLicenseClass, cancellationToken);
+        if (requiredClass is null) return false;
+
+        return await _context.DriverLicenseClassCompatibility
+            .AnyAsync(c => c.LicenseClassId == userClass.Id && c.AllowedRequiredLicenseClassId == requiredClass.Id, cancellationToken);
+    }
+
     public async Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         => await _context.CustomerProfiles.FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
 
