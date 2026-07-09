@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoveVN.Application.Common.Models;
+using MoveVN.Application.Modules.DriverLicenseClasses.DTOs;
+using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 
@@ -11,10 +13,14 @@ namespace MoveVN.Api.Controllers.Vehicles;
 public class VehicleCatalogController : BaseApiController
 {
     private readonly IVehicleCatalogService _vehicleCatalogService;
+    private readonly IDriverLicenseClassService _driverLicenseClassService;
 
-    public VehicleCatalogController(IVehicleCatalogService vehicleCatalogService)
+    public VehicleCatalogController(
+        IVehicleCatalogService vehicleCatalogService,
+        IDriverLicenseClassService driverLicenseClassService)
     {
         _vehicleCatalogService = vehicleCatalogService;
+        _driverLicenseClassService = driverLicenseClassService;
     }
 
     [HttpGet("brands")]
@@ -59,6 +65,20 @@ public class VehicleCatalogController : BaseApiController
     public async Task<ActionResult<ApiResponse<List<CatalogPricingRegionResponse>>>> GetPricingRegions(CancellationToken cancellationToken = default)
     {
         var result = await _vehicleCatalogService.GetPricingRegionsAsync(cancellationToken);
+        return Success(result);
+    }
+
+    [HttpGet("driver-license-classes")]
+    public async Task<ActionResult<ApiResponse<List<DriverLicenseClassResponse>>>> GetDriverLicenseClasses(CancellationToken cancellationToken = default)
+    {
+        var result = await _driverLicenseClassService.GetAllAsync(null, "code_asc", null, 1, 100, cancellationToken);
+        return Success(result.Items);
+    }
+
+    [HttpGet("driver-license-classes/{id}/compatible-required-classes")]
+    public async Task<ActionResult<ApiResponse<List<DriverLicenseClassResponse>>>> GetCompatibleDriverLicenseClasses(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _driverLicenseClassService.GetCompatibleRequiredClassesAsync(id, cancellationToken);
         return Success(result);
     }
 }

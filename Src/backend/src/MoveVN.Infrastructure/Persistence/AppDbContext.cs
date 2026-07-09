@@ -158,6 +158,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .HasForeignKey(entity => entity.ModelVariantId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CustomerProfile>().HasIndex(entity => entity.NationalIdHash);
+        builder.Entity<CustomerProfile>().HasIndex(entity => entity.DriverLicenseVerificationRequestId);
+        builder.Entity<CustomerProfile>()
+            .HasOne<VerificationRequest>()
+            .WithMany()
+            .HasForeignKey(entity => entity.DriverLicenseVerificationRequestId)
+            .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<OwnerApplication>().HasIndex(entity => new { entity.UserId, entity.Status });
         builder.Entity<OwnerApplication>().HasIndex(entity => entity.NationalIdVerificationRequestId);
         builder.Entity<OwnerApplication>()
@@ -172,6 +178,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<VerificationRequest>().Property(entity => entity.ExternalResultJson).HasColumnType("jsonb");
         builder.Entity<VerificationRequest>().Property(entity => entity.Confidence).HasPrecision(15, 2);
+        builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.Status });
+        builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.CreatedAt });
 
         ApplySnakeCaseColumnNames(builder);
 

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, IdCard, FileBadge, Landmark, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, FileBadge, IdCard, Landmark, Mail } from "lucide-react";
 import PageLoader from "@/components/common/PageLoader";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getCurrentUser } from "@/features/auth/services/authService";
+import { getMyDriverLicense } from "@/features/driverLicenses/services/driverLicenseService";
+import type { DriverLicenseStatusResponse } from "@/features/driverLicenses/types";
 import { getMyApplication } from "@/features/owner/services/ownerService";
 import type { OwnerApplicationDto } from "@/features/owner/types";
 
@@ -20,6 +22,7 @@ export default function VerificationOverviewPage() {
   const updateUser = useAuthStore((state) => state.updateUser);
   const [isLoading, setIsLoading] = useState(!user);
   const [ownerApp, setOwnerApp] = useState<OwnerApplicationDto | null>(null);
+  const [driverLicense, setDriverLicense] = useState<DriverLicenseStatusResponse | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -37,8 +40,15 @@ export default function VerificationOverviewPage() {
         if (!ignore && app?.id > 0) setOwnerApp(app);
       } catch { /* ignore */ }
     }
+    async function loadDriverLicense() {
+      try {
+        const data = await getMyDriverLicense();
+        if (!ignore) setDriverLicense(data);
+      } catch { /* ignore */ }
+    }
     void load();
     void loadOwnerApp();
+    void loadDriverLicense();
     return () => { ignore = true; };
   }, [updateUser]);
 
@@ -47,7 +57,7 @@ export default function VerificationOverviewPage() {
   const items: VerificationItem[] = [
     { icon: Mail, label: "Email", description: user?.email || "-", verified: user?.isEmailVerified ?? false, to: "#" },
     { icon: IdCard, label: "CCCD / CMND", description: "Căn cước công dân", verified: ownerApp?.nationalIdVerified ?? false, to: "/account/verification/cccd" },
-    { icon: FileBadge, label: "Giấy phép lái xe", description: "Bằng lái xe các hạng", verified: false, to: "/account/verification/drivers-license" },
+    { icon: FileBadge, label: "Giấy phép lái xe", description: driverLicense?.licenseClass ? `Hạng ${driverLicense.licenseClass}` : "Bằng lái xe các hạng", verified: driverLicense?.verified ?? false, to: "/account/verification/drivers-license" },
     { icon: Landmark, label: "Ngân hàng", description: "Tài khoản thụ hưởng", verified: ownerApp?.bankInfoCompleted ?? false, to: "/account/bank" },
   ];
 
@@ -74,11 +84,11 @@ export default function VerificationOverviewPage() {
             }`}>
               <item.icon className={`h-5 w-5 ${item.verified ? "text-emerald-600" : "text-slate-500"}`} />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-              <p className="text-xs text-slate-500 truncate">{item.description}</p>
+              <p className="truncate text-xs text-slate-500">{item.description}</p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex shrink-0 items-center gap-2">
               {item.verified ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
                   <CheckCircle2 className="h-3 w-3" />
@@ -90,7 +100,7 @@ export default function VerificationOverviewPage() {
                   Chưa xác minh
                 </span>
               )}
-              <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:text-brand-500 group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
             </div>
           </Link>
         ))}

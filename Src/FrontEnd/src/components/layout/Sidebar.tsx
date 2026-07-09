@@ -69,11 +69,13 @@ const vehiclePricingItems = [
 const adminModerationItems = [
   { to: "/admin/vehicle-documents", label: "Giấy tờ xe", icon: FileBadge },
   { to: "/admin/vehicle-listings", label: "Tin đăng xe", icon: ClipboardList },
+  { to: "/admin/driver-license-verifications", label: "Xác minh GPLX", icon: FileBadge },
 ];
 
 const staffModerationItems = [
   { to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge },
   { to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList },
+  { to: "/staff/driver-license-verifications", label: "Duyệt GPLX", icon: FileBadge },
 ];
 
 const ownerVehicleItems = [

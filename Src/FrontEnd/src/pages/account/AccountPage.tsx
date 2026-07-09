@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, AlertCircle, Mail, KeyRound, Monitor, CreditCard, IdCard, FileBadge, Landmark } from "lucide-react";
-import PageLoader from "@/components/common/PageLoader";
+import { AlertCircle, CheckCircle2, CreditCard, FileBadge, IdCard, KeyRound, Landmark, Mail, Monitor } from "lucide-react";
 import Alert from "@/components/common/Alert";
+import PageLoader from "@/components/common/PageLoader";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getCurrentUser } from "@/features/auth/services/authService";
 import { getFriendlyAuthError } from "@/features/auth/utils/authErrors";
+import { getMyDriverLicense } from "@/features/driverLicenses/services/driverLicenseService";
+import type { DriverLicenseStatusResponse } from "@/features/driverLicenses/types";
 import { getMyApplication } from "@/features/owner/services/ownerService";
 import type { OwnerApplicationDto } from "@/features/owner/types";
 
@@ -39,6 +41,7 @@ export default function AccountPage() {
   const [apiError, setApiError] = useState("");
   const [isLoading, setIsLoading] = useState(!user);
   const [ownerApp, setOwnerApp] = useState<OwnerApplicationDto | null>(null);
+  const [driverLicense, setDriverLicense] = useState<DriverLicenseStatusResponse | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -56,11 +59,17 @@ export default function AccountPage() {
       try {
         const app = await getMyApplication();
         if (!ignore && app?.id > 0) setOwnerApp(app);
-      } catch {
-      }
+      } catch { /* ignore */ }
+    }
+    async function loadDriverLicense() {
+      try {
+        const data = await getMyDriverLicense();
+        if (!ignore) setDriverLicense(data);
+      } catch { /* ignore */ }
     }
     void load();
     void loadOwnerApp();
+    void loadDriverLicense();
     return () => { ignore = true; };
   }, [updateUser]);
 
@@ -72,7 +81,6 @@ export default function AccountPage() {
     <div className="space-y-6">
       {apiError ? <Alert variant="error">{apiError}</Alert> : null}
 
-      {/* Profile card */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
           <div className="shrink-0">
@@ -114,7 +122,6 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Verification summary */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">Xác minh danh tính</h2>
@@ -126,7 +133,7 @@ export default function AccountPage() {
           {[
             { icon: Mail, label: "Email", verified: user?.isEmailVerified ?? false },
             { icon: IdCard, label: "CCCD", verified: ownerApp?.nationalIdVerified ?? false },
-            { icon: FileBadge, label: "GPLX", verified: false },
+            { icon: FileBadge, label: "GPLX", verified: driverLicense?.verified ?? false },
             { icon: Landmark, label: "Ngân hàng", verified: ownerApp?.bankInfoCompleted ?? false },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
@@ -142,57 +149,44 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Quick links grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Link
-          to="/account/security/password"
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-100">
-            <KeyRound className="h-6 w-6 text-orange-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 group-hover:text-brand-700">Đổi mật khẩu</p>
-            <p className="text-sm text-slate-500">Cập nhật mật khẩu tài khoản</p>
-          </div>
-        </Link>
-        <Link
-          to="/account/security/sessions"
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-            <Monitor className="h-6 w-6 text-blue-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 group-hover:text-brand-700">Phiên đăng nhập</p>
-            <p className="text-sm text-slate-500">Quản lý thiết bị đã đăng nhập</p>
-          </div>
-        </Link>
-        <Link
-          to="/account/verification/cccd"
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-100">
-            <CreditCard className="h-6 w-6 text-purple-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 group-hover:text-brand-700">Xác thực CCCD</p>
-            <p className="text-sm text-slate-500">Căn cước công dân</p>
-          </div>
-        </Link>
-        <Link
-          to="/account/bank"
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
-            <Landmark className="h-6 w-6 text-emerald-600" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 group-hover:text-brand-700">Thông tin ngân hàng</p>
-            <p className="text-sm text-slate-500">Quản lý tài khoản thụ hưởng</p>
-          </div>
-        </Link>
+        <QuickLink to="/account/security/password" icon={KeyRound} title="Đổi mật khẩu" description="Cập nhật mật khẩu tài khoản" color="orange" />
+        <QuickLink to="/account/security/sessions" icon={Monitor} title="Phiên đăng nhập" description="Quản lý thiết bị đã đăng nhập" color="blue" />
+        <QuickLink to="/account/verification/cccd" icon={CreditCard} title="Xác thực CCCD" description="Căn cước công dân" color="purple" />
+        <QuickLink to="/account/bank" icon={Landmark} title="Thông tin ngân hàng" description="Quản lý tài khoản thụ hưởng" color="emerald" />
       </div>
     </div>
+  );
+}
+
+function QuickLink({
+  color,
+  description,
+  icon: Icon,
+  title,
+  to,
+}: {
+  color: "orange" | "blue" | "purple" | "emerald";
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  to: string;
+}) {
+  const colors = {
+    orange: "bg-orange-100 text-orange-600",
+    blue: "bg-blue-100 text-blue-600",
+    purple: "bg-purple-100 text-purple-600",
+    emerald: "bg-emerald-100 text-emerald-600",
+  };
+  return (
+    <Link to={to} className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${colors[color]}`}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <div>
+        <p className="font-semibold text-slate-900 group-hover:text-brand-700">{title}</p>
+        <p className="text-sm text-slate-500">{description}</p>
+      </div>
+    </Link>
   );
 }

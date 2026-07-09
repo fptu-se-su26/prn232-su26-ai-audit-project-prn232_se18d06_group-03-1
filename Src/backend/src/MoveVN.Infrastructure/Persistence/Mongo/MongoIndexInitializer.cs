@@ -53,6 +53,13 @@ public class MongoIndexInitializer
                 Builders<VehicleVerificationLogDocument>.IndexKeys.Ascending(x => x.VehicleDocumentId).Descending(x => x.CreatedAt))
         ], cancellationToken);
 
+        await _context.DriverLicenseVerificationLogs.Indexes.CreateManyAsync([
+            new CreateIndexModel<DriverLicenseVerificationLogDocument>(
+                Builders<DriverLicenseVerificationLogDocument>.IndexKeys.Ascending(x => x.UserId).Descending(x => x.CreatedAt)),
+            new CreateIndexModel<DriverLicenseVerificationLogDocument>(
+                Builders<DriverLicenseVerificationLogDocument>.IndexKeys.Ascending(x => x.VerificationRequestId).Descending(x => x.CreatedAt))
+        ], cancellationToken);
+
         await _context.PricingRules.Indexes.CreateOneAsync(
             new CreateIndexModel<PricingRuleDocument>(Builders<PricingRuleDocument>.IndexKeys.Ascending(x => x.RuleCode).Ascending(x => x.IsActive)),
             cancellationToken: cancellationToken);

@@ -3,6 +3,7 @@ using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Admin.Interfaces;
+using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
@@ -46,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped(typeof(IGenericRepository<>), typeof(Persistence.Repositories.GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IDriverLicenseVerificationRepository, DriverLicenseVerificationRepository>();
         services.AddScoped<IVehicleCatalogRepository, VehicleCatalogRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
@@ -69,8 +71,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFptAiService, FptAiService>();
         services.AddScoped<IPresenceService, RedisPresenceService>();
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
+        services.AddScoped<IDriverLicenseVerificationClient, DriverLicenseVerificationClient>();
         services.AddScoped<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
         services.AddScoped<IVehicleVerificationLogService, VehicleVerificationLogService>();
+        services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 

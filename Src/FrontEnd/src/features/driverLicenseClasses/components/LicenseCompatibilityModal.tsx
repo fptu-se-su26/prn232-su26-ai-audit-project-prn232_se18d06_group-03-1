@@ -32,7 +32,7 @@ export default function LicenseCompatibilityModal({
         )}
 
         <div>
-          <div className="mb-2 text-sm font-medium text-slate-700">Bằng này được lái xe yêu cầu các hạng:</div>
+          <div className="mb-2 text-sm font-medium text-slate-700">GPLX này được lái xe yêu cầu các hạng:</div>
           {isLoading ? (
             <div className="flex items-center gap-2 py-4 text-sm text-slate-500">
               <LoadingSpinner className="h-4 w-4" /> Đang tải...

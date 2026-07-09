@@ -11,7 +11,10 @@ public class CustomerProfile
     public string? NationalIdMasked { get; set; }
     public bool NationalIdVerified { get; set; }
     public string? DriverLicenseNumber { get; set; }
+    public string? DriverLicenseClass { get; set; }
     public bool DriverLicenseVerified { get; set; }
+    public DateTime? DriverLicenseVerifiedAt { get; set; }
+    public long? DriverLicenseVerificationRequestId { get; set; }
     public string? PreferredVehicleType { get; set; }
 }
 

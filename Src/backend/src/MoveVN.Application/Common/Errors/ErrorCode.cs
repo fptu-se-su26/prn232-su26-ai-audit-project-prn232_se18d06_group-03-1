@@ -79,6 +79,12 @@ public sealed class ErrorCode
     public static readonly ErrorCode VEHICLE_MODEL_INACTIVE = new("MODEL_8102", "Cannot activate variant because its model is inactive.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_MODEL_VARIANT_NOT_FOUND = new("VARIANT_8201", "Vehicle model variant not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode DRIVER_LICENSE_CLASS_NOT_FOUND = new("LICENSE_8301", "Driver license class not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode DRIVER_LICENSE_FILE_INVALID = new("LICENSE_8302", "Invalid driver license image. Only JPG/PNG/WebP images under 5MB are allowed.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode DRIVER_LICENSE_VERIFICATION_FAILED = new("LICENSE_8303", "Failed to process driver license verification.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode DRIVER_LICENSE_VERIFICATION_PENDING = new("LICENSE_8304", "A driver license verification request is already pending review.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode DRIVER_LICENSE_UPDATE_TOO_SOON = new("LICENSE_8305", "Driver license can only be updated after the cooldown period.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode DRIVER_LICENSE_VERIFICATION_NOT_FOUND = new("LICENSE_8306", "Driver license verification request not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode DRIVER_LICENSE_REVIEW_INVALID_STATE = new("LICENSE_8307", "Driver license verification request is not pending review.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_FEATURE_NOT_FOUND = new("FEATURE_8401", "Vehicle feature not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode PRICING_REGION_NOT_FOUND = new("PRICE_8501", "Pricing region not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode AREA_NOT_FOUND = new("PRICE_8502", "Area not found.", HttpStatusCode.NotFound);
