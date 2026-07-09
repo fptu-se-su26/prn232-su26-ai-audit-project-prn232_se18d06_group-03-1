@@ -10,6 +10,10 @@ public interface IBookingRepository
     void Update(Booking booking);
     Task<bool> HasOverlapAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default);
     Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default);
+    Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<TrustScore?> GetTrustScoreByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<int> CountActiveBookingsByCustomerAsync(long customerId, long? excludeBookingId = null, CancellationToken cancellationToken = default);
+    Task<int> CountRecentBookingsByCustomerAsync(long customerId, DateTime since, long? excludeBookingId = null, CancellationToken cancellationToken = default);
     Task AddStatusHistoryAsync(BookingStatusHistory history, CancellationToken cancellationToken = default);
     Task<List<BookingStatusHistoryDto>> GetStatusHistoryAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<(List<BookingResponse> Items, int TotalCount)> GetByCustomerPagedAsync(long customerId, BookingListRequest request, CancellationToken cancellationToken = default);

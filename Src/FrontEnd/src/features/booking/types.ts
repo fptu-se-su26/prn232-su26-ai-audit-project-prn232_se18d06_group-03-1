@@ -20,6 +20,8 @@ export interface BookingResponse {
   customerNote?: string;
   status: string;
   riskScore?: number;
+  riskLevel?: string;
+  riskFactors?: string[];
   cancelReason?: string;
   createdAt: string;
   updatedAt: string;

@@ -12,6 +12,7 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _repo;
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepo;
+    private readonly IBookingRiskScorer _bookingRiskScorer;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -21,11 +22,16 @@ public class BookingService : IBookingService
         (30, int.MaxValue, 25m),
     };
 
-    public BookingService(IBookingRepository repo, IEmailSender emailSender, IUserRepository userRepo)
+    public BookingService(
+        IBookingRepository repo,
+        IEmailSender emailSender,
+        IUserRepository userRepo,
+        IBookingRiskScorer bookingRiskScorer)
     {
         _repo = repo;
         _emailSender = emailSender;
         _userRepo = userRepo;
+        _bookingRiskScorer = bookingRiskScorer;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -63,6 +69,17 @@ public class BookingService : IBookingService
             ? Math.Round(afterDiscount * 20 / 100, 0)
             : 0;
         var totalAmount = afterDiscount + platformFee;
+        var createdAt = DateTime.UtcNow;
+        var risk = await CalculateBookingRiskAsync(
+            customerId,
+            request.StartDate,
+            totalDays,
+            totalAmount,
+            depositAmount,
+            vehicle.RequiresDeposit,
+            createdAt,
+            null,
+            cancellationToken);
 
         var booking = new Booking
         {
@@ -81,8 +98,9 @@ public class BookingService : IBookingService
             ReturnAddress = request.ReturnAddress ?? request.PickupAddress,
             CustomerNote = request.CustomerNote,
             Status = "Pending",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            RiskScore = risk.Score,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt,
             PlatformFeeType = "Percentage",
             PlatformFeeValue = 10m,
         };
@@ -254,10 +272,65 @@ public class BookingService : IBookingService
         return $"BK{now:yyyyMMdd}{Random.Shared.Next(1000, 9999)}";
     }
 
+    private async Task<BookingRiskResult> CalculateBookingRiskAsync(
+        long customerId,
+        DateTime startDate,
+        int totalDays,
+        decimal totalAmount,
+        decimal depositAmount,
+        bool vehicleRequiresDeposit,
+        DateTime bookingCreatedAt,
+        long? currentBookingId,
+        CancellationToken cancellationToken)
+    {
+        var customer = await _userRepo.GetByIdAsync(customerId, cancellationToken)
+            ?? throw new NotFoundException("KhÃ¡ch hÃ ng khÃ´ng tá»“n táº¡i.");
+        var profile = await _repo.GetCustomerProfileByUserIdAsync(customerId, cancellationToken);
+        var trustScore = await _repo.GetTrustScoreByUserIdAsync(customerId, cancellationToken);
+        var activeBookingCount = await _repo.CountActiveBookingsByCustomerAsync(customerId, currentBookingId, cancellationToken);
+        var recentBookingCount = await _repo.CountRecentBookingsByCustomerAsync(
+            customerId,
+            bookingCreatedAt.AddDays(-7),
+            currentBookingId,
+            cancellationToken);
+
+        return _bookingRiskScorer.Calculate(new BookingRiskContext
+        {
+            CustomerId = customerId,
+            CustomerCreatedAt = customer.CreatedAt,
+            IsEmailVerified = customer.IsEmailVerified,
+            IsNationalIdVerified = profile?.NationalIdVerified == true,
+            IsDriverLicenseVerified = profile?.DriverLicenseVerified == true,
+            TrustScore = trustScore?.Score,
+            CompletedTrips = trustScore?.CompletedTrips ?? 0,
+            CancellationCount = trustScore?.CancellationCount ?? 0,
+            ReportCount = trustScore?.ReportCount ?? 0,
+            AverageRating = trustScore?.AverageRating,
+            ActiveBookingCount = activeBookingCount,
+            RecentBookingCount7Days = recentBookingCount,
+            BookingCreatedAt = bookingCreatedAt,
+            StartDate = startDate,
+            TotalDays = totalDays,
+            TotalAmount = totalAmount,
+            DepositAmount = depositAmount,
+            VehicleRequiresDeposit = vehicleRequiresDeposit,
+        });
+    }
+
     private async Task<BookingResponse> MapAsync(Booking b, CancellationToken cancellationToken)
     {
         var history = await _repo.GetStatusHistoryAsync(b.Id, cancellationToken);
         var vehicle = await _repo.GetVehicleByIdAsync(b.VehicleId, cancellationToken);
+        var risk = await CalculateBookingRiskAsync(
+            b.CustomerId,
+            b.StartDate,
+            b.TotalDays,
+            b.TotalAmount,
+            b.DepositAmount,
+            vehicle?.RequiresDeposit == true,
+            b.CreatedAt,
+            b.Id,
+            cancellationToken);
 
         var basePrice = b.BasePrice;
         var discountPercent = GetDiscountPercent(b.TotalDays);
@@ -285,6 +358,8 @@ public class BookingService : IBookingService
             CustomerNote = b.CustomerNote,
             Status = b.Status,
             RiskScore = b.RiskScore,
+            RiskLevel = risk.Level,
+            RiskFactors = risk.Factors,
             CancelReason = b.CancelReason,
             CreatedAt = b.CreatedAt,
             UpdatedAt = b.UpdatedAt,

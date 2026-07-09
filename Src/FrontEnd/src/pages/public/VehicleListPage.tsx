@@ -10,7 +10,16 @@ import useClickOutside from "@/hooks/useClickOutside";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import Button from "@/components/common/Button";
 
-const carBodyTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Pickup", "MPV/Minivan", "Wagon"];
+const carBodyTypes = [
+  { value: "Sedan", label: "Sedan" },
+  { value: "SUV", label: "SUV" },
+  { value: "Hatchback", label: "Hatchback" },
+  { value: "Coupe", label: "Coupe" },
+  { value: "Convertible", label: "Mui trần" },
+  { value: "Pickup", label: "Bán tải" },
+  { value: "MPV/Minivan", label: "MPV / Minivan" },
+  { value: "Wagon", label: "Wagon" },
+];
 const seatCounts = ["2", "4", "5", "7", "8", "9", "16", "29", "30"];
 const transmissionOptions = [
   { value: "Automatic", label: "Tự động" },
@@ -224,7 +233,7 @@ export default function VehicleListPage() {
               <FilterDropdown label="Truyền động" value={transmissionFilter} onChange={(v) => { setTransmissionFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, v, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
                 options={[{ value: "", label: "Truyền động" }, ...transmissionOptions]} />
               <FilterDropdown label="Kiểu thân" value={bodyTypeFilter} onChange={(v) => { setBodyTypeFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, v, bikeTypeFilter, engineCapacityFilter); }}
-                options={[{ value: "", label: "Kiểu thân" }, ...carBodyTypes.map((item) => ({ value: item, label: item }))]} />
+                options={[{ value: "", label: "Kiểu thân" }, ...carBodyTypes]} />
             </>
           )}
           {(!typeFilter || typeFilter === "Motorbike") && (

@@ -80,6 +80,7 @@ public static class DependencyInjection
         services.AddScoped<IPricingCalculatorService, PricingCalculatorService>();
         services.AddScoped<IPlatformFeeRuleService, PlatformFeeRuleService>();
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
+        services.AddScoped<IBookingRiskScorer, RuleBasedBookingRiskScorer>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();
         services.AddScoped<ISupportTicketService, SupportTicketService>();
