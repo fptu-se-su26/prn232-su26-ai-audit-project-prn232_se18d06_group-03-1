@@ -27,6 +27,9 @@ public static class RedisKeys
     public static string VerificationSubmitLock(long userId, string type) => $"verification:submit_lock:{userId}:{type}";
     public static string VerificationProcessing(long requestId) => $"verification:processing:{requestId}";
     public static string FaceEnrollLock(long userId) => $"face:enroll_lock:{userId}";
+    public static string DriverLicenseUploadConsecutiveFailures(long userId) => $"driver_license:upload:fail:consecutive:{userId}";
+    public static string DriverLicenseUploadDailyFailures(long userId, string dateKey) => $"driver_license:upload:fail:daily:{userId}:{dateKey}";
+    public static string DriverLicenseUploadLock(long userId) => $"driver_license:upload:lock:{userId}";
 
     public const string PresenceList = "presence:list";
     public const string PricingRules = "pricing_rules";

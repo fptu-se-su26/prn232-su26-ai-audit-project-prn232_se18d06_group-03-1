@@ -53,6 +53,7 @@ public class DriverLicenseVerificationListItem
     public string Status { get; set; } = string.Empty;
     public decimal? Confidence { get; set; }
     public string? DecisionReason { get; set; }
+    public string? LicenseClass { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

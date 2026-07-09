@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.DriverLicenses.DTOs;
@@ -102,22 +103,54 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
             .OrderByDescending(x => x.request.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new DriverLicenseVerificationListItem
+            .Select(x => new
             {
-                Id = x.request.Id,
-                UserId = x.request.UserId,
-                UserFullName = x.user.FullName,
-                UserEmail = x.user.Email,
-                Status = x.request.Status,
-                Confidence = x.request.Confidence,
-                DecisionReason = x.request.DecisionReason,
-                CreatedAt = x.request.CreatedAt
+                x.request.Id,
+                x.request.UserId,
+                x.user.FullName,
+                x.user.Email,
+                x.request.Status,
+                x.request.Confidence,
+                x.request.DecisionReason,
+                x.request.ExternalResultJson,
+                x.request.CreatedAt
             })
             .ToListAsync(cancellationToken);
 
+        var mapped = items.Select(x =>
+        {
+            string? licenseClass = null;
+            if (!string.IsNullOrWhiteSpace(x.ExternalResultJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(x.ExternalResultJson);
+                    if (doc.RootElement.TryGetProperty("extracted", out var extracted)
+                        && extracted.TryGetProperty("licenseClass", out var lc))
+                    {
+                        licenseClass = lc.GetString();
+                    }
+                }
+                catch { }
+            }
+
+            return new DriverLicenseVerificationListItem
+            {
+                Id = x.Id,
+                UserId = x.UserId,
+                UserFullName = x.FullName,
+                UserEmail = x.Email,
+                Status = x.Status,
+                Confidence = x.Confidence,
+                DecisionReason = x.DecisionReason,
+                LicenseClass = licenseClass,
+                CreatedAt = x.CreatedAt
+            };
+        }).ToList();
+
         return new PagedResult<DriverLicenseVerificationListItem>
         {
-            Items = items,
+            Items = mapped,
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize

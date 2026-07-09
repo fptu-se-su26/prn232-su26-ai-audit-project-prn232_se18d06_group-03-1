@@ -22,6 +22,7 @@ public class DriverLicenseService : IDriverLicenseService
     private readonly IDriverLicenseVerificationRepository _verificationRepository;
     private readonly IDriverLicenseVerificationClient _verificationClient;
     private readonly IDriverLicenseVerificationLogService _logService;
+    private readonly IDriverLicenseUploadAttemptLimiter _attemptLimiter;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<DriverLicenseService> _logger;
@@ -32,6 +33,7 @@ public class DriverLicenseService : IDriverLicenseService
         IDriverLicenseVerificationRepository verificationRepository,
         IDriverLicenseVerificationClient verificationClient,
         IDriverLicenseVerificationLogService logService,
+        IDriverLicenseUploadAttemptLimiter attemptLimiter,
         ICloudinaryService cloudinaryService,
         IUnitOfWork unitOfWork,
         ILogger<DriverLicenseService> logger)
@@ -41,6 +43,7 @@ public class DriverLicenseService : IDriverLicenseService
         _verificationRepository = verificationRepository;
         _verificationClient = verificationClient;
         _logService = logService;
+        _attemptLimiter = attemptLimiter;
         _cloudinaryService = cloudinaryService;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -78,6 +81,14 @@ public class DriverLicenseService : IDriverLicenseService
             throw new AppException(ErrorCode.DRIVER_LICENSE_VERIFICATION_PENDING);
         }
 
+        var attemptState = await _attemptLimiter.GetStateAsync(userId, cancellationToken);
+        if (attemptState.IsLocked)
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_UPLOAD_LOCKED, [
+                $"Bạn đã gửi ảnh GPLX không đạt quá nhiều lần. Vui lòng thử lại sau {attemptState.LockedUntil:yyyy-MM-dd HH:mm:ss} UTC."
+            ]);
+        }
+
         if (profile.DriverLicenseVerifiedAt.HasValue
             && profile.DriverLicenseVerifiedAt.Value.Add(VerifiedUpdateCooldown) > DateTime.UtcNow)
         {
@@ -113,6 +124,7 @@ public class DriverLicenseService : IDriverLicenseService
 
         if (aiResult.Recommendation is "Reject" or "NeedMoreInfo")
         {
+            await _attemptLimiter.RegisterFailureAsync(userId, cancellationToken);
             await LogAsync(userId, null, fileName, aiResult, aiResult.Recommendation, null, null, cancellationToken);
             return new DriverLicenseSubmitResponse
             {
@@ -141,6 +153,7 @@ public class DriverLicenseService : IDriverLicenseService
 
         await _verificationRepository.AddAsync(request, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _attemptLimiter.RegisterAcceptedAsync(userId, cancellationToken);
 
         try
         {
