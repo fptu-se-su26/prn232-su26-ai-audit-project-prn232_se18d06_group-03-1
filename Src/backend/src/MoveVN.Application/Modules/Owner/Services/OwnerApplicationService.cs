@@ -1,11 +1,14 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
+using MoveVN.Application.Modules.Notifications.DTOs;
+using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Domain.Entities;
@@ -24,6 +27,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly IAuthActivityLogger _activityLogger;
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly IOtpService _otpService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<OwnerApplicationService> _logger;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -37,6 +41,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         IAuthActivityLogger activityLogger,
         IPasswordHasherService passwordHasherService,
         IOtpService otpService,
+        INotificationService notificationService,
         ILogger<OwnerApplicationService> logger,
         IUnitOfWork unitOfWork)
     {
@@ -49,6 +54,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _activityLogger = activityLogger;
         _passwordHasherService = passwordHasherService;
         _otpService = otpService;
+        _notificationService = notificationService;
         _logger = logger;
         _unitOfWork = unitOfWork;
     }
@@ -282,6 +288,14 @@ public class OwnerApplicationService : IOwnerApplicationService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _activityLogger.LogAsync(userId, user.Email, AuthEventType.OwnerApplicationSubmitted, null, null, cancellationToken: cancellationToken);
             await _activityLogger.LogAsync(userId, user.Email, AuthEventType.OwnerRoleAssigned, null, null, cancellationToken: cancellationToken);
+            await NotifyOwnerApplicationAsync(
+                userId,
+                application,
+                "Ho so chu xe da duoc duyet",
+                "Ban da tro thanh chu xe tren MoveVN. Vui long lam moi dang nhap neu chua thay vai tro moi.",
+                "/become-owner",
+                "OwnerApplicationApproved",
+                cancellationToken);
         }
         finally
         {
@@ -463,6 +477,17 @@ public class OwnerApplicationService : IOwnerApplicationService
 
                 var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
                 await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
+                await NotifyNationalIdAsync(
+                    userId,
+                    application,
+                    verificationRequest,
+                    "CCCD da duoc xac minh",
+                    bankInfoCompleted
+                        ? "CCCD cua ban da duoc xac minh. Ban co the gui ho so chu xe de hoan tat."
+                        : "CCCD cua ban da duoc xac minh. Vui long cap nhat thong tin ngan hang.",
+                    bankInfoCompleted ? "/become-owner" : "/become-owner/bank",
+                    "NationalIdVerified",
+                    cancellationToken);
 
                 return new NationalIdUploadResponse
                 {
@@ -485,6 +510,15 @@ public class OwnerApplicationService : IOwnerApplicationService
 
                 var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
                 await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdNeedMoreInfo, null, null, cancellationToken: cancellationToken);
+                await NotifyNationalIdAsync(
+                    userId,
+                    application,
+                    verificationRequest,
+                    "CCCD can bo sung",
+                    verificationRequest.DecisionReason,
+                    "/become-owner/cccd",
+                    "NationalIdNeedMoreInfo",
+                    cancellationToken);
 
                 return new NationalIdUploadResponse
                 {
@@ -506,6 +540,15 @@ public class OwnerApplicationService : IOwnerApplicationService
 
                 var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
                 await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdRejected, null, null, cancellationToken: cancellationToken);
+                await NotifyNationalIdAsync(
+                    userId,
+                    application,
+                    verificationRequest,
+                    "CCCD bi tu choi",
+                    verificationRequest.DecisionReason,
+                    "/become-owner/cccd",
+                    "NationalIdRejected",
+                    cancellationToken);
 
                 return new NationalIdUploadResponse
                 {
@@ -534,6 +577,62 @@ public class OwnerApplicationService : IOwnerApplicationService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw new AppException(ErrorCode.OWNER_VERIFICATION_REQUEST_FAILED, [ex.Message]);
         }
+    }
+
+    private async Task NotifyNationalIdAsync(
+        long userId,
+        OwnerApplication application,
+        VerificationRequest verificationRequest,
+        string title,
+        string? body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
+    {
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = userId,
+            Type = "NationalIdVerification",
+            Title = title,
+            Body = string.IsNullOrWhiteSpace(body) ? "Trang thai xac minh CCCD cua ban da duoc cap nhat." : body.Trim(),
+            DataJson = JsonSerializer.Serialize(new
+            {
+                ownerApplicationId = application.Id,
+                verificationRequestId = verificationRequest.Id,
+                documentType = verificationRequest.Type,
+                status = verificationRequest.Status,
+                ownerApplicationStatus = application.Status,
+                targetPath,
+                action
+            }),
+            Channel = "InApp"
+        }, cancellationToken);
+    }
+
+    private async Task NotifyOwnerApplicationAsync(
+        long userId,
+        OwnerApplication application,
+        string title,
+        string body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
+    {
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = userId,
+            Type = "OwnerApplication",
+            Title = title,
+            Body = body,
+            DataJson = JsonSerializer.Serialize(new
+            {
+                ownerApplicationId = application.Id,
+                status = application.Status,
+                targetPath,
+                action
+            }),
+            Channel = "InApp"
+        }, cancellationToken);
     }
 
     private static string HashNationalId(string? nationalId)

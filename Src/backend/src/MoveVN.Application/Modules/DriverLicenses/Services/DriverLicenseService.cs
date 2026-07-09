@@ -8,6 +8,8 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.DTOs;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
+using MoveVN.Application.Modules.Notifications.DTOs;
+using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Modules.DriverLicenses.Services;
@@ -26,6 +28,7 @@ public class DriverLicenseService : IDriverLicenseService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<DriverLicenseService> _logger;
+    private readonly INotificationService _notificationService;
 
     public DriverLicenseService(
         ICurrentUserContext currentUserContext,
@@ -36,7 +39,8 @@ public class DriverLicenseService : IDriverLicenseService
         IDriverLicenseUploadAttemptLimiter attemptLimiter,
         ICloudinaryService cloudinaryService,
         IUnitOfWork unitOfWork,
-        ILogger<DriverLicenseService> logger)
+        ILogger<DriverLicenseService> logger,
+        INotificationService notificationService)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
@@ -47,6 +51,7 @@ public class DriverLicenseService : IDriverLicenseService
         _cloudinaryService = cloudinaryService;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<DriverLicenseStatusResponse> GetCurrentAsync(CancellationToken cancellationToken = default)
@@ -126,11 +131,13 @@ public class DriverLicenseService : IDriverLicenseService
         {
             await _attemptLimiter.RegisterFailureAsync(userId, cancellationToken);
             await LogAsync(userId, null, fileName, aiResult, aiResult.Recommendation, null, null, cancellationToken);
+            var message = ToVietnameseMessage(aiResult.Message, aiResult);
+            await NotifyDriverLicenseAsync(userId, null, aiResult.Recommendation, message, cancellationToken);
             return new DriverLicenseSubmitResponse
             {
                 Status = aiResult.Recommendation,
                 Verified = false,
-                Message = ToVietnameseMessage(aiResult.Message, aiResult),
+                Message = message,
                 DriverLicenseNumber = aiResult.Extracted.DriverLicenseNumber,
                 LicenseClass = aiResult.Extracted.LicenseClass,
                 OcrConfidence = aiResult.OcrConfidence,
@@ -182,6 +189,7 @@ public class DriverLicenseService : IDriverLicenseService
             }
 
             await LogAsync(userId, request.Id, fileName, aiResult, aiResult.Recommendation, upload.PublicId, null, cancellationToken);
+            await NotifyDriverLicenseAsync(userId, request.Id, request.Status, request.DecisionReason, cancellationToken);
 
             return new DriverLicenseSubmitResponse
             {
@@ -270,6 +278,7 @@ public class DriverLicenseService : IDriverLicenseService
         _verificationRepository.Update(request);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await DeletePreviousVerifiedFileAsync(request.UserId, request.Id, cancellationToken);
+        await NotifyDriverLicenseAsync(request.UserId, request.Id, request.Status, request.DecisionReason, cancellationToken);
     }
 
     public async Task RejectAsync(long id, string? reason, CancellationToken cancellationToken = default)
@@ -304,6 +313,42 @@ public class DriverLicenseService : IDriverLicenseService
         request.DecisionReason = reason.Trim();
         _verificationRepository.Update(request);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await NotifyDriverLicenseAsync(request.UserId, request.Id, request.Status, request.DecisionReason, cancellationToken);
+    }
+
+    private async Task NotifyDriverLicenseAsync(
+        long userId,
+        long? requestId,
+        string status,
+        string? message,
+        CancellationToken cancellationToken)
+    {
+        var (title, fallbackBody, action) = status switch
+        {
+            "Verified" => ("GPLX da duoc xac minh", "Giay phep lai xe cua ban da duoc xac minh thanh cong.", "DriverLicenseVerified"),
+            "Pending" => ("GPLX dang cho kiem tra", "Anh GPLX cua ban can nhan vien kiem tra them.", "DriverLicensePendingReview"),
+            "NeedMoreInfo" => ("GPLX can bo sung", "Vui long chup lai anh GPLX ro hon de tiep tuc xac minh.", "DriverLicenseNeedMoreInfo"),
+            "Rejected" or "Reject" => ("GPLX bi tu choi", "Giay phep lai xe cua ban chua dat yeu cau xac minh.", "DriverLicenseRejected"),
+            "Failed" => ("Xac minh GPLX that bai", "He thong chua the xac minh GPLX. Vui long thu lai sau.", "DriverLicenseFailed"),
+            _ => ("Cap nhat xac minh GPLX", "Trang thai xac minh GPLX cua ban da duoc cap nhat.", "DriverLicenseUpdated")
+        };
+
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = userId,
+            Type = "DriverLicenseVerification",
+            Title = title,
+            Body = string.IsNullOrWhiteSpace(message) ? fallbackBody : message.Trim(),
+            DataJson = JsonSerializer.Serialize(new
+            {
+                verificationRequestId = requestId,
+                documentType = VerificationType,
+                status,
+                targetPath = "/account/verification/drivers-license",
+                action
+            }),
+            Channel = "InApp"
+        }, cancellationToken);
     }
 
     private async Task DeletePreviousVerifiedFileAsync(long userId, long currentRequestId, CancellationToken cancellationToken)
