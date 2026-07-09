@@ -37,6 +37,7 @@ builder.Configuration["Jwt:Key"] = GetRequiredEnvironmentVariable("JWT_KEY");
 builder.Configuration["Jwt:Issuer"] = GetRequiredEnvironmentVariable("JWT_ISSUER");
 builder.Configuration["Jwt:Audience"] = GetRequiredEnvironmentVariable("JWT_AUDIENCE");
 builder.Configuration["Jwt:ExpireMinutes"] = GetRequiredEnvironmentVariable("JWT_EXPIRE_MINUTES");
+builder.Configuration["AI_VERIFICATION_API_KEY"] = GetRequiredEnvironmentVariable("AI_VERIFICATION_API_KEY");
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

@@ -45,6 +45,7 @@ export type DriverLicenseVerificationListItem = {
   status: string;
   confidence?: number | null;
   decisionReason?: string | null;
+  licenseClass?: string | null;
   createdAt: string;
 };
 

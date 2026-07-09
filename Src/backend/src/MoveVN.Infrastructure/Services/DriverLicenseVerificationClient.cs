@@ -27,7 +27,8 @@ public class DriverLicenseVerificationClient : IDriverLicenseVerificationClient
         CancellationToken cancellationToken = default)
     {
         var baseUrl = _configuration["AI_VERIFICATION_BASE_URL"] ?? "http://127.0.0.1:8001";
-        var apiKey = _configuration["AI_VERIFICATION_API_KEY"] ?? "dev-ai-verification-key";
+        var apiKey = _configuration["AI_VERIFICATION_API_KEY"]
+            ?? throw new InvalidOperationException("AI_VERIFICATION_API_KEY is not configured.");
         var timeoutSeconds = int.TryParse(_configuration["AI_VERIFICATION_TIMEOUT_SECONDS"], out var timeout) ? timeout : 60;
 
         using var httpClient = _httpClientFactory.CreateClient();
