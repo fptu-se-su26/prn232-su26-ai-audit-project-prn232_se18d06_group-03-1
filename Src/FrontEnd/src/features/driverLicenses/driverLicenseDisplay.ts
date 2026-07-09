@@ -49,6 +49,12 @@ export function translateDriverLicenseMessage(message?: string | null, fallback 
   if (normalized.includes("ocr.space api key")) {
     return "Dịch vụ OCR chưa được cấu hình. Vui lòng thử lại sau.";
   }
+  if (normalized.includes("manual driver license fields can only be used")) {
+    return "Chỉ được nhập tay thông tin GPLX khi OCR không đọc được ảnh.";
+  }
+  if (normalized.includes("driver license number and class are required")) {
+    return "Vui lòng nhập số GPLX và hạng bằng trước khi duyệt.";
+  }
   if (normalized.includes("driver license verification passed")) {
     return "AI đã xác minh GPLX thành công.";
   }

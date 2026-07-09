@@ -18,7 +18,7 @@ import {
   rejectDriverLicenseVerification,
   requestMoreDriverLicenseInfo,
 } from "@/features/driverLicenses/services/driverLicenseService";
-import type { DriverLicenseAiResult, DriverLicenseVerificationListItem, DriverLicenseVerificationRequestDto } from "@/features/driverLicenses/types";
+import type { DriverLicenseAiResult, DriverLicenseApproveRequest, DriverLicenseVerificationListItem, DriverLicenseVerificationRequestDto } from "@/features/driverLicenses/types";
 
 type Scope = "staff" | "admin";
 
@@ -32,6 +32,15 @@ const statusOptions = [
 ];
 
 const STATUS_LIST = ["Pending", "Verified", "NeedMoreInfo", "Rejected", "Failed"];
+
+const emptyManualForm: DriverLicenseApproveRequest = {
+  driverLicenseNumber: "",
+  licenseClass: "",
+  fullName: "",
+  issueDate: "",
+  expiryDate: "",
+  reason: "",
+};
 
 const statusBadge: Record<string, { bg: string; text: string; dot: string }> = {
   Pending: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
@@ -59,6 +68,11 @@ function parseAiResult(raw?: string | null): DriverLicenseAiResult | null {
   } catch {
     return null;
   }
+}
+
+function canManualOverrideOcr(ai: DriverLicenseAiResult | null) {
+  const flags = ai?.flags ?? [];
+  return flags.some((flag) => ["OCR_ENGINE_UNAVAILABLE", "OCR_PROCESSING_FAILED", "NO_TEXT_DETECTED"].includes(flag)) || (ai?.extracted?.rawText?.length ?? 0) === 0;
 }
 
 function FilterDropdown({ value, label, options, onChange }: { value: string; label: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
@@ -196,6 +210,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
   const [detail, setDetail] = useState<DriverLicenseVerificationRequestDto | null>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [actionReason, setActionReason] = useState("");
+  const [manualForm, setManualForm] = useState<DriverLicenseApproveRequest>(emptyManualForm);
   const [isActing, setIsActing] = useState(false);
   const [overview, setOverview] = useState<{ pending: number; verified: number; needMoreInfo: number; rejected: number; failed: number } | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
@@ -260,6 +275,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
       const data = await getDriverLicenseVerificationById(scope, id);
       setDetail(data);
       setActionReason("");
+      setManualForm(emptyManualForm);
     } catch (error) {
       showToast({ type: "error", title: "Không tải được chi tiết", message: error instanceof Error ? translateDriverLicenseMessage(error.message) : "Vui lòng thử lại." });
     }
@@ -272,9 +288,27 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
       return;
     }
 
+    const currentAi = parseAiResult(detail.externalResultJson);
+    const allowManualOverride = canManualOverrideOcr(currentAi);
+    if (kind === "approve" && allowManualOverride && (!manualForm.driverLicenseNumber?.trim() || !manualForm.licenseClass?.trim())) {
+      showToast({ type: "error", title: "Thiếu thông tin GPLX", message: "Vui lòng nhập số GPLX và hạng bằng trước khi duyệt." });
+      return;
+    }
+
     setIsActing(true);
     try {
-      if (kind === "approve") await approveDriverLicenseVerification(scope, detail.id);
+      if (kind === "approve") {
+        await approveDriverLicenseVerification(
+          scope,
+          detail.id,
+          allowManualOverride
+            ? {
+                ...manualForm,
+                reason: manualForm.reason?.trim() || "Nhân viên nhập thay do OCR không đọc được GPLX.",
+              }
+            : {},
+        );
+      }
       if (kind === "reject") await rejectDriverLicenseVerification(scope, detail.id, actionReason);
       if (kind === "more") await requestMoreDriverLicenseInfo(scope, detail.id, actionReason);
       showToast({ type: "success", title: "Đã xử lý GPLX", message: "Trạng thái hồ sơ đã được cập nhật." });
@@ -289,6 +323,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
 
   const ai = useMemo(() => parseAiResult(detail?.externalResultJson), [detail]);
   const aiFlags = formatDriverLicenseFlags(ai?.flags);
+  const allowManualOverride = detail?.status === "Pending" && canManualOverrideOcr(ai);
 
   const workload = (overview?.pending ?? 0) + (overview?.needMoreInfo ?? 0) + (overview?.failed ?? 0);
 
@@ -564,6 +599,21 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
                 {aiFlags.length > 0 && <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Lý do cần kiểm tra: {aiFlags.join(", ")}</div>}
                 {detail.decisionReason && <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">{translateDriverLicenseMessage(detail.decisionReason)}</div>}
                 <textarea value={actionReason} onChange={(event) => setActionReason(event.target.value)} rows={3} placeholder="Lý do nếu từ chối hoặc yêu cầu bổ sung" className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+                {allowManualOverride && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                    <div className="mb-3">
+                      <p className="text-sm font-semibold text-amber-900">Nhập thông tin thay thế OCR</p>
+                      <p className="mt-0.5 text-xs text-amber-800">Chỉ dùng khi hệ thống OCR không đọc được GPLX. Hồ sơ bị reject sẽ không vào bước này.</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <input value={manualForm.driverLicenseNumber ?? ""} onChange={(event) => setManualForm((prev) => ({ ...prev, driverLicenseNumber: event.target.value }))} placeholder="Số GPLX *" className="rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+                      <input value={manualForm.licenseClass ?? ""} onChange={(event) => setManualForm((prev) => ({ ...prev, licenseClass: event.target.value.toUpperCase() }))} placeholder="Hạng bằng *" className="rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+                      <input value={manualForm.fullName ?? ""} onChange={(event) => setManualForm((prev) => ({ ...prev, fullName: event.target.value }))} placeholder="Họ tên trên GPLX" className="rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+                      <input value={manualForm.expiryDate ?? ""} onChange={(event) => setManualForm((prev) => ({ ...prev, expiryDate: event.target.value }))} placeholder="Ngày hết hạn" className="rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+                    </div>
+                    <textarea value={manualForm.reason ?? ""} onChange={(event) => setManualForm((prev) => ({ ...prev, reason: event.target.value }))} rows={2} placeholder="Ghi chú duyệt thủ công" className="mt-3 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" />
+                  </div>
+                )}
                 {detail.status === "Pending" && (
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button type="button" variant="secondary" isLoading={isActing} onClick={() => void runAction("more")}>Yêu cầu bổ sung</Button>

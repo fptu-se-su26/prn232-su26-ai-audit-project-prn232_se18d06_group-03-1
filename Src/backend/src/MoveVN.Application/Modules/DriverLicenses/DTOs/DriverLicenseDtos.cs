@@ -62,6 +62,16 @@ public class DriverLicenseReviewActionRequest
     public string? Reason { get; set; }
 }
 
+public class DriverLicenseApproveRequest
+{
+    public string? DriverLicenseNumber { get; set; }
+    public string? LicenseClass { get; set; }
+    public string? FullName { get; set; }
+    public string? IssueDate { get; set; }
+    public string? ExpiryDate { get; set; }
+    public string? Reason { get; set; }
+}
+
 public class DriverLicenseVerificationQuery
 {
     public string? Status { get; set; }

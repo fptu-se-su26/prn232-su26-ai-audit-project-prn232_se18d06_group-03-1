@@ -2,6 +2,7 @@ import { apiClient } from "@/services/apiClient";
 import { endpoints } from "@/services/endpoints";
 import type { ApiResponse } from "@/features/auth/types";
 import type {
+  DriverLicenseApproveRequest,
   DriverLicenseStatusResponse,
   DriverLicenseSubmitResponse,
   DriverLicenseVerificationListItem,
@@ -46,9 +47,9 @@ export async function getDriverLicenseVerificationById(
   return unwrap(data);
 }
 
-export async function approveDriverLicenseVerification(scope: "staff" | "admin", id: number): Promise<void> {
+export async function approveDriverLicenseVerification(scope: "staff" | "admin", id: number, request?: DriverLicenseApproveRequest): Promise<void> {
   const base = scope === "admin" ? endpoints.admin.driverLicenseVerifications : endpoints.staff.driverLicenseVerifications;
-  const { data } = await apiClient.post<ApiResponse<object>>(`${base}/${id}/approve`);
+  const { data } = await apiClient.post<ApiResponse<object>>(`${base}/${id}/approve`, request ?? {});
   unwrap(data);
 }
 

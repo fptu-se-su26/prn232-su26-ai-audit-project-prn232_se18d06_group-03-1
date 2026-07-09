@@ -49,6 +49,15 @@ export type DriverLicenseVerificationListItem = {
   createdAt: string;
 };
 
+export type DriverLicenseApproveRequest = {
+  driverLicenseNumber?: string;
+  licenseClass?: string;
+  fullName?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  reason?: string;
+};
+
 export type PagedResult<T> = {
   items: T[];
   totalCount: number;

@@ -14,7 +14,7 @@ public interface IDriverLicenseService
         int pageSize,
         CancellationToken cancellationToken = default);
     Task<DriverLicenseVerificationRequestDto> GetVerificationByIdAsync(long id, CancellationToken cancellationToken = default);
-    Task ApproveAsync(long id, CancellationToken cancellationToken = default);
+    Task ApproveAsync(long id, DriverLicenseApproveRequest request, CancellationToken cancellationToken = default);
     Task RejectAsync(long id, string? reason, CancellationToken cancellationToken = default);
     Task RequestMoreInfoAsync(long id, string? reason, CancellationToken cancellationToken = default);
 }

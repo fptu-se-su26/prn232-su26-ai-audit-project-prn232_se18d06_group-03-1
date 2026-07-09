@@ -221,8 +221,9 @@ public class DriverLicenseService : IDriverLicenseService
             ?? throw new AppException(ErrorCode.DRIVER_LICENSE_VERIFICATION_NOT_FOUND);
     }
 
-    public async Task ApproveAsync(long id, CancellationToken cancellationToken = default)
+    public async Task ApproveAsync(long id, DriverLicenseApproveRequest approveRequest, CancellationToken cancellationToken = default)
     {
+        approveRequest ??= new DriverLicenseApproveRequest();
         var reviewerId = GetCurrentUserId();
         var request = await _verificationRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.DRIVER_LICENSE_VERIFICATION_NOT_FOUND);
@@ -234,11 +235,36 @@ public class DriverLicenseService : IDriverLicenseService
         var profile = await _userRepository.GetCustomerProfileByUserIdAsync(request.UserId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
         var result = ParseResult(request.ExternalResultJson);
+        var hasManualOverride = HasManualOverride(approveRequest);
+        var canManualOverride = CanManualOverrideOcr(result);
+
+        if (hasManualOverride && !canManualOverride)
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_MANUAL_OVERRIDE_NOT_ALLOWED);
+        }
+
+        if (canManualOverride)
+        {
+            ApplyManualOverride(result, approveRequest);
+            if (string.IsNullOrWhiteSpace(result.Extracted.DriverLicenseNumber) ||
+                string.IsNullOrWhiteSpace(result.Extracted.LicenseClass))
+            {
+                throw new AppException(ErrorCode.DRIVER_LICENSE_MANUAL_FIELDS_REQUIRED);
+            }
+        }
 
         request.Status = "Verified";
         request.ReviewedBy = reviewerId;
         request.ReviewedAt = DateTime.UtcNow;
         request.DecisionReason = "Nhân viên đã duyệt xác minh GPLX.";
+        request.DecisionReason = hasManualOverride
+            ? approveRequest.Reason?.Trim() ?? "Nhan vien da duyet thu cong vi OCR khong doc duoc GPLX."
+            : "Nhan vien da duyet xac minh GPLX.";
+        if (hasManualOverride)
+        {
+            request.ExternalResultJson = JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        }
+
         ApplyVerifiedProfile(profile, request.Id, result);
         _userRepository.UpdateCustomerProfile(profile);
         _verificationRepository.Update(request);
@@ -342,6 +368,53 @@ public class DriverLicenseService : IDriverLicenseService
         profile.DriverLicenseVerified = true;
         profile.DriverLicenseVerifiedAt = DateTime.UtcNow;
         profile.DriverLicenseVerificationRequestId = requestId;
+    }
+
+    private static bool CanManualOverrideOcr(DriverLicenseVerificationResult result)
+    {
+        var hasOcrFailureFlag = result.Flags.Any(flag =>
+            string.Equals(flag, "OCR_ENGINE_UNAVAILABLE", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(flag, "OCR_PROCESSING_FAILED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(flag, "NO_TEXT_DETECTED", StringComparison.OrdinalIgnoreCase));
+
+        return hasOcrFailureFlag || result.Extracted.RawText.Count == 0;
+    }
+
+    private static bool HasManualOverride(DriverLicenseApproveRequest request)
+    {
+        return !string.IsNullOrWhiteSpace(request.DriverLicenseNumber) ||
+               !string.IsNullOrWhiteSpace(request.LicenseClass) ||
+               !string.IsNullOrWhiteSpace(request.FullName) ||
+               !string.IsNullOrWhiteSpace(request.IssueDate) ||
+               !string.IsNullOrWhiteSpace(request.ExpiryDate);
+    }
+
+    private static void ApplyManualOverride(DriverLicenseVerificationResult result, DriverLicenseApproveRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.DriverLicenseNumber))
+        {
+            result.Extracted.DriverLicenseNumber = request.DriverLicenseNumber.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.LicenseClass))
+        {
+            result.Extracted.LicenseClass = request.LicenseClass.Trim().ToUpperInvariant();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            result.Extracted.FullName = request.FullName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.IssueDate))
+        {
+            result.Extracted.IssueDate = request.IssueDate.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ExpiryDate))
+        {
+            result.Extracted.ExpiryDate = request.ExpiryDate.Trim();
+        }
     }
 
     private static DriverLicenseVerificationRequestDto ToDto(VerificationRequest request)

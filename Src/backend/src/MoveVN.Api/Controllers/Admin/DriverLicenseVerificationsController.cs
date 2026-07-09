@@ -37,9 +37,9 @@ public class DriverLicenseVerificationsController : BaseApiController
     }
 
     [HttpPost("{id:long}/approve")]
-    public async Task<ActionResult<ApiResponse<object>>> Approve(long id, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ApiResponse<object>>> Approve(long id, [FromBody] DriverLicenseApproveRequest? request, CancellationToken cancellationToken = default)
     {
-        await _driverLicenseService.ApproveAsync(id, cancellationToken);
+        await _driverLicenseService.ApproveAsync(id, request ?? new DriverLicenseApproveRequest(), cancellationToken);
         return Success<object>(null, "Driver license approved.");
     }
 

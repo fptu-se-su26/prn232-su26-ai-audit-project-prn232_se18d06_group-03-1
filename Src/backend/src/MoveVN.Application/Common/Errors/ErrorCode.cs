@@ -86,6 +86,8 @@ public sealed class ErrorCode
     public static readonly ErrorCode DRIVER_LICENSE_VERIFICATION_NOT_FOUND = new("LICENSE_8306", "Driver license verification request not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode DRIVER_LICENSE_REVIEW_INVALID_STATE = new("LICENSE_8307", "Driver license verification request is not pending review.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode DRIVER_LICENSE_UPLOAD_LOCKED = new("LICENSE_8308", "Driver license upload is temporarily locked.", HttpStatusCode.TooManyRequests);
+    public static readonly ErrorCode DRIVER_LICENSE_MANUAL_OVERRIDE_NOT_ALLOWED = new("LICENSE_8309", "Manual driver license fields can only be used when OCR did not read the license.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode DRIVER_LICENSE_MANUAL_FIELDS_REQUIRED = new("LICENSE_8310", "Driver license number and class are required when approving an unreadable OCR result.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_FEATURE_NOT_FOUND = new("FEATURE_8401", "Vehicle feature not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode PRICING_REGION_NOT_FOUND = new("PRICE_8501", "Pricing region not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode AREA_NOT_FOUND = new("PRICE_8502", "Area not found.", HttpStatusCode.NotFound);
