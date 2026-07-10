@@ -28,7 +28,7 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
         _logger = logger;
     }
 
-    public async Task<DriverLicenseUploadAttemptState> GetStateAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task<DriverLicenseUploadAttemptState> GetStateAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured())
         {
@@ -37,9 +37,10 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
 
         try
         {
-            var lockKey = RedisKeys.DriverLicenseUploadLock(userId);
-            var consecutiveKey = RedisKeys.DriverLicenseUploadConsecutiveFailures(userId);
-            var dailyKey = RedisKeys.DriverLicenseUploadDailyFailures(userId, DateKey());
+            var normalizedVehicleType = NormalizeVehicleType(vehicleType);
+            var lockKey = RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType);
+            var consecutiveKey = RedisKeys.DriverLicenseUploadConsecutiveFailures(userId, normalizedVehicleType);
+            var dailyKey = RedisKeys.DriverLicenseUploadDailyFailures(userId, normalizedVehicleType, DateKey());
 
             var lockTtl = await GetTtlAsync(lockKey, cancellationToken);
             return new DriverLicenseUploadAttemptState
@@ -56,7 +57,7 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
         }
     }
 
-    public async Task RegisterFailureAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task RegisterFailureAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured())
         {
@@ -65,8 +66,9 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
 
         try
         {
-            var consecutiveKey = RedisKeys.DriverLicenseUploadConsecutiveFailures(userId);
-            var dailyKey = RedisKeys.DriverLicenseUploadDailyFailures(userId, DateKey());
+            var normalizedVehicleType = NormalizeVehicleType(vehicleType);
+            var consecutiveKey = RedisKeys.DriverLicenseUploadConsecutiveFailures(userId, normalizedVehicleType);
+            var dailyKey = RedisKeys.DriverLicenseUploadDailyFailures(userId, normalizedVehicleType, DateKey());
 
             var consecutive = await IncrementAsync(consecutiveKey, cancellationToken);
             var daily = await IncrementAsync(dailyKey, cancellationToken);
@@ -76,13 +78,13 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
             if (daily >= MaxDailyFailures)
             {
                 await SendCommandAsync(
-                    ["SET", RedisKeys.DriverLicenseUploadLock(userId), "daily-limit", "EX", SecondsUntilTomorrowUtc()],
+                    ["SET", RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType), "daily-limit", "EX", SecondsUntilTomorrowUtc()],
                     cancellationToken);
             }
             else if (consecutive >= MaxConsecutiveFailures)
             {
                 await SendCommandAsync(
-                    ["SET", RedisKeys.DriverLicenseUploadLock(userId), "consecutive-limit", "EX", ConsecutiveLockSeconds],
+                    ["SET", RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType), "consecutive-limit", "EX", ConsecutiveLockSeconds],
                     cancellationToken);
             }
         }
@@ -92,7 +94,7 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
         }
     }
 
-    public async Task RegisterAcceptedAsync(long userId, CancellationToken cancellationToken = default)
+    public async Task RegisterAcceptedAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured())
         {
@@ -101,11 +103,12 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
 
         try
         {
+            var normalizedVehicleType = NormalizeVehicleType(vehicleType);
             await SendCommandAsync(
                 [
                     "DEL",
-                    RedisKeys.DriverLicenseUploadConsecutiveFailures(userId),
-                    RedisKeys.DriverLicenseUploadLock(userId)
+                    RedisKeys.DriverLicenseUploadConsecutiveFailures(userId, normalizedVehicleType),
+                    RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType)
                 ],
                 cancellationToken);
         }
@@ -181,6 +184,11 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
     private static string DateKey()
     {
         return DateTime.UtcNow.ToString("yyyyMMdd");
+    }
+
+    private static string NormalizeVehicleType(string vehicleType)
+    {
+        return vehicleType.Equals("Car", StringComparison.OrdinalIgnoreCase) ? "Car" : "Motorbike";
     }
 
     private static int SecondsUntilTomorrowUtc()

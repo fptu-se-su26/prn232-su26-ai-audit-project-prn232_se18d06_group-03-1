@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IDriverLicenseVerificationRepository, DriverLicenseVerificationRepository>();
+        services.AddScoped<ICustomerDriverLicenseRepository, CustomerDriverLicenseRepository>();
         services.AddScoped<IVehicleCatalogRepository, VehicleCatalogRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();

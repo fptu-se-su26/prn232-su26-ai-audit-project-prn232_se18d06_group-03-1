@@ -32,23 +32,25 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, CancellationToken cancellationToken = default)
+    public Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, string vehicleType, CancellationToken cancellationToken = default)
     {
         return _context.VerificationRequests
             .Where(x => x.UserId == userId
                 && x.Type == "DriverLicense"
                 && x.Status == "Verified"
+                && x.RequestedVehicleType == vehicleType
                 && x.Id != currentRequestId
                 && x.DeletedAt == null)
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    public Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
     {
         return _context.VerificationRequests
             .Where(x => x.UserId == userId
                 && x.Type == "DriverLicense"
+                && x.RequestedVehicleType == vehicleType
                 && (x.Status == "Pending" || x.Status == "Processing"))
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);

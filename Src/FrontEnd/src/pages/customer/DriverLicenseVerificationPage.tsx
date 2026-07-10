@@ -22,10 +22,9 @@ function formatDate(value?: string | null) {
   });
 }
 
-function canUpdate(status?: DriverLicenseStatusResponse | null) {
-  if (!status?.verified) return true;
-  if (!status.canUpdateAfter) return true;
-  return new Date(status.canUpdateAfter).getTime() <= Date.now();
+function canUpdateAfter(value?: string | null) {
+  if (!value) return true;
+  return new Date(value).getTime() <= Date.now();
 }
 
 function vehicleTypeLabel(value?: string | null) {
@@ -77,20 +76,17 @@ export default function DriverLicenseVerificationPage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const hasPendingRequest = status?.status === "Pending" || status?.status === "Processing";
-
-  const disabledReason = useMemo(() => {
-    if (status?.status === "Pending" || status?.status === "Processing") return "Hồ sơ GPLX đang chờ xử lý.";
-    if (!canUpdate(status)) return `Có thể cập nhật lại sau ${formatDate(status?.canUpdateAfter)}.`;
-    return null;
-  }, [status]);
+  const hasPendingRequest = status?.latestRequest?.requestedVehicleType === requestedVehicleType
+    && (status.latestRequest.status === "Pending" || status.latestRequest.status === "Processing");
 
   const uploadDisabledReason = useMemo(() => {
-    if (status?.status === "Pending" || status?.status === "Processing") return "Hồ sơ GPLX đang chờ xử lý.";
-    const verifiedForRequestedType = status?.verifiedVehicleTypes?.some((type) => type === requestedVehicleType);
-    if (verifiedForRequestedType && !canUpdate(status)) return `Có thể cập nhật lại sau ${formatDate(status?.canUpdateAfter)}.`;
+    const hasPendingForSelectedType = status?.latestRequest?.requestedVehicleType === requestedVehicleType
+      && (status.latestRequest.status === "Pending" || status.latestRequest.status === "Processing");
+    if (hasPendingForSelectedType) return "Hồ sơ GPLX đang chờ xử lý.";
+    const selectedLicense = status?.licenses?.find((license) => license.vehicleType === requestedVehicleType);
+    if (selectedLicense && !canUpdateAfter(selectedLicense.canUpdateAfter)) return `Có thể cập nhật lại sau ${formatDate(selectedLicense.canUpdateAfter)}.`;
     return null;
-  }, [disabledReason, requestedVehicleType, status]);
+  }, [requestedVehicleType, status]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -140,7 +136,8 @@ export default function DriverLicenseVerificationPage() {
   }
 
   const resultFlags = formatDriverLicenseFlags(result?.flags);
-  const selectedTypeVerified = status?.verifiedVehicleTypes?.some((type) => type === requestedVehicleType) ?? false;
+  const selectedLicense = status?.licenses?.find((license) => license.vehicleType === requestedVehicleType) ?? null;
+  const selectedTypeVerified = !!selectedLicense || (status?.verifiedVehicleTypes?.some((type) => type === requestedVehicleType) ?? false);
   const selectedTypeHasLatestRequest = status?.latestRequest?.requestedVehicleType === requestedVehicleType;
   const selectedStatus = selectedTypeHasLatestRequest
     ? status?.latestRequest?.status ?? "None"
@@ -148,13 +145,13 @@ export default function DriverLicenseVerificationPage() {
       ? "Verified"
       : "None";
   const selectedVerified = selectedTypeVerified;
-  const selectedConfidence = selectedTypeHasLatestRequest ? status?.latestRequest?.confidence : null;
+  const selectedConfidence = selectedLicense?.ocrConfidence ?? (selectedTypeHasLatestRequest ? status?.latestRequest?.confidence : null);
   const selectedDecisionReason = selectedTypeHasLatestRequest ? status?.latestRequest?.decisionReason : null;
-  const selectedDriverLicenseNumber = selectedTypeVerified ? status?.driverLicenseNumber : null;
-  const selectedLicenseClass = selectedTypeVerified ? status?.licenseClass : null;
-  const selectedVerifiedAt = selectedTypeVerified ? status?.verifiedAt : null;
-  const selectedCanUpdateAfter = selectedTypeVerified ? status?.canUpdateAfter : null;
-  const savedImageUrl = selectedTypeVerified || selectedTypeHasLatestRequest ? status?.latestRequest?.frontImageUrl ?? null : null;
+  const selectedDriverLicenseNumber = selectedLicense?.driverLicenseNumber ?? (selectedTypeVerified ? status?.driverLicenseNumber : null);
+  const selectedLicenseClass = selectedLicense?.licenseClass ?? (selectedTypeVerified ? status?.licenseClass : null);
+  const selectedVerifiedAt = selectedLicense?.verifiedAt ?? (selectedTypeVerified ? status?.verifiedAt : null);
+  const selectedCanUpdateAfter = selectedLicense?.canUpdateAfter ?? (selectedTypeVerified ? status?.canUpdateAfter : null);
+  const savedImageUrl = selectedLicense?.frontImageUrl ?? (selectedTypeHasLatestRequest ? status?.latestRequest?.frontImageUrl ?? null : null);
   const displayImageUrl = previewUrl ?? savedImageUrl;
   const displayImageName = file?.name ?? (savedImageUrl ? "GPLX đã upload" : null);
 

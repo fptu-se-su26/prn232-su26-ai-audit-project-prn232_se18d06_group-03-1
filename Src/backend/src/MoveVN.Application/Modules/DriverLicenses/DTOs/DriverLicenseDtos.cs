@@ -9,9 +9,22 @@ public class DriverLicenseStatusResponse
     public string? DriverLicenseNumber { get; set; }
     public string? LicenseClass { get; set; }
     public List<string> VerifiedVehicleTypes { get; set; } = [];
+    public List<CustomerDriverLicenseDto> Licenses { get; set; } = [];
     public DateTime? VerifiedAt { get; set; }
     public DateTime? CanUpdateAfter { get; set; }
     public DriverLicenseVerificationRequestDto? LatestRequest { get; set; }
+}
+
+public class CustomerDriverLicenseDto
+{
+    public string VehicleType { get; set; } = string.Empty;
+    public string? DriverLicenseNumber { get; set; }
+    public string? LicenseClass { get; set; }
+    public string? FrontImageUrl { get; set; }
+    public long VerificationRequestId { get; set; }
+    public decimal? OcrConfidence { get; set; }
+    public DateTime VerifiedAt { get; set; }
+    public DateTime CanUpdateAfter { get; set; }
 }
 
 public class DriverLicenseSubmitResponse

@@ -24,9 +24,21 @@ export type DriverLicenseStatusResponse = {
   driverLicenseNumber?: string | null;
   licenseClass?: string | null;
   verifiedVehicleTypes: string[];
+  licenses: CustomerDriverLicense[];
   verifiedAt?: string | null;
   canUpdateAfter?: string | null;
   latestRequest?: DriverLicenseVerificationRequestDto | null;
+};
+
+export type CustomerDriverLicense = {
+  vehicleType: string;
+  driverLicenseNumber?: string | null;
+  licenseClass?: string | null;
+  frontImageUrl?: string | null;
+  verificationRequestId: number;
+  ocrConfidence?: number | null;
+  verifiedAt: string;
+  canUpdateAfter: string;
 };
 
 export type DriverLicenseSubmitResponse = {
