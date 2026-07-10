@@ -38,6 +38,8 @@ public class VehicleVerificationLogService : IVehicleVerificationLogService
             OcrConfidence = entry.OcrConfidence,
             Message = entry.Message,
             ErrorMessage = entry.ErrorMessage,
+            Action = entry.Action,
+            ActorUserId = entry.ActorUserId,
             FilePublicId = entry.FilePublicId,
             FileDeletedAt = entry.FileDeletedAt,
             DeletionReason = entry.DeletionReason,

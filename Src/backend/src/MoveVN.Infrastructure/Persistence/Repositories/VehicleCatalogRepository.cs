@@ -48,6 +48,58 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public Task<DriverLicenseClass?> GetDriverLicenseClassByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.DriverLicenseClasses.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyCollection<string>> GetAllowedVehicleTypesForDriverLicenseClassesAsync(
+        IReadOnlyCollection<string> licenseClassCodes,
+        CancellationToken cancellationToken = default)
+    {
+        if (licenseClassCodes.Count == 0)
+        {
+            return [];
+        }
+
+        var candidateCodes = ExpandLicenseClassCodes(licenseClassCodes);
+        var licenseClassIds = await _context.DriverLicenseClasses
+            .Where(x => x.IsActive && candidateCodes.Contains(x.Code))
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        var vehicleTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var code in candidateCodes)
+        {
+            foreach (var vehicleType in InferVehicleTypesFromLicenseCode(code))
+            {
+                vehicleTypes.Add(vehicleType);
+            }
+        }
+
+        if (licenseClassIds.Count == 0)
+        {
+            return vehicleTypes.Select(NormalizeVehicleType).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        var allowedRequiredLicenseIds = await _context.DriverLicenseClassCompatibility
+            .Where(x => licenseClassIds.Contains(x.LicenseClassId))
+            .Select(x => x.AllowedRequiredLicenseClassId)
+            .Concat(licenseClassIds)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var dbVehicleTypes = await _context.VehicleModelVariant
+            .Where(x => x.IsActive
+                && x.RequiredLicenseClassId.HasValue
+                && allowedRequiredLicenseIds.Contains(x.RequiredLicenseClassId.Value))
+            .Select(x => x.VehicleType)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        foreach (var vehicleType in dbVehicleTypes)
+        {
+            vehicleTypes.Add(NormalizeVehicleType(vehicleType));
+        }
+
+        return vehicleTypes.Select(NormalizeVehicleType).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     public Task<VehicleFeature?> GetVehicleFeatureByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleFeature.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
@@ -444,4 +496,89 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
+
+    private static HashSet<string> ExpandLicenseClassCodes(IEnumerable<string> licenseClassCodes)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var code in licenseClassCodes.Select(NormalizeLicenseClassCode).Where(code => !string.IsNullOrWhiteSpace(code)))
+        {
+            result.Add(code);
+
+            switch (code)
+            {
+                case "A1":
+                    result.Add("A1_LEGACY");
+                    break;
+                case "A2":
+                    result.Add("A2_LEGACY");
+                    break;
+                case "A3":
+                    result.Add("A3_LEGACY");
+                    break;
+                case "A4":
+                    result.Add("A4_LEGACY");
+                    break;
+                case "B1":
+                    result.Add("B1_LEGACY");
+                    result.Add("B1_AUTO_LEGACY");
+                    break;
+                case "B2":
+                    result.Add("B2_LEGACY");
+                    break;
+                case "C":
+                    result.Add("C_LEGACY");
+                    break;
+                case "D":
+                    result.Add("D_LEGACY");
+                    break;
+                case "E":
+                    result.Add("E_LEGACY");
+                    break;
+                case "FB2":
+                    result.Add("FB2_LEGACY");
+                    break;
+                case "FC":
+                    result.Add("FC_LEGACY");
+                    break;
+                case "FD":
+                    result.Add("FD_LEGACY");
+                    break;
+                case "FE":
+                    result.Add("FE_LEGACY");
+                    break;
+            }
+        }
+
+        return result;
+    }
+
+    private static IEnumerable<string> InferVehicleTypesFromLicenseCode(string code)
+    {
+        var normalized = NormalizeLicenseClassCode(code);
+        if (normalized is "A" or "A1" or "A1_LEGACY" or "A2" or "A2_LEGACY" or "A3" or "A3_LEGACY")
+        {
+            yield return "Motorbike";
+        }
+
+        if (normalized is "B1")
+        {
+            yield return "Motorbike";
+            yield return "Car";
+        }
+
+        if (normalized.StartsWith("B", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("C", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("D", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("E", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("F", StringComparison.OrdinalIgnoreCase))
+        {
+            yield return "Car";
+        }
+    }
+
+    private static string NormalizeLicenseClassCode(string value)
+        => value.Trim().ToUpperInvariant().Replace("-", string.Empty).Replace(" ", string.Empty);
+
+    private static string NormalizeVehicleType(string value)
+        => value.Trim().Equals("Motorcycle", StringComparison.OrdinalIgnoreCase) ? "Motorbike" : value.Trim();
 }

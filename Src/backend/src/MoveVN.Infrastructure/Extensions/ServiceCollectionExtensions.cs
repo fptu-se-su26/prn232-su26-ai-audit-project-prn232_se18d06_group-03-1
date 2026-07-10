@@ -69,6 +69,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICloudinaryService, CloudinaryService>();
         services.AddSingleton<IRedisLockService, RedisLockService>();
         services.AddSingleton<IDriverLicenseUploadAttemptLimiter, RedisDriverLicenseUploadAttemptLimiter>();
+        services.AddSingleton<IVehicleDocumentUploadAttemptLimiter, RedisVehicleDocumentUploadAttemptLimiter>();
         services.AddScoped<IFptAiService, FptAiService>();
         services.AddScoped<IPresenceService, RedisPresenceService>();
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();

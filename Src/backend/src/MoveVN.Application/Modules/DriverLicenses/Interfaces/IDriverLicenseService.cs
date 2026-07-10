@@ -6,7 +6,7 @@ namespace MoveVN.Application.Modules.DriverLicenses.Interfaces;
 public interface IDriverLicenseService
 {
     Task<DriverLicenseStatusResponse> GetCurrentAsync(CancellationToken cancellationToken = default);
-    Task<DriverLicenseSubmitResponse> SubmitAsync(Stream image, string fileName, CancellationToken cancellationToken = default);
+    Task<DriverLicenseSubmitResponse> SubmitAsync(Stream image, string fileName, string requestedVehicleType, CancellationToken cancellationToken = default);
     Task<PagedResult<DriverLicenseVerificationListItem>> GetVerificationsAsync(
         string? status,
         string? keyword,

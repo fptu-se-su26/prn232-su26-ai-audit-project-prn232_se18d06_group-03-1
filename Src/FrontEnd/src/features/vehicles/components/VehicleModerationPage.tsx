@@ -165,6 +165,13 @@ function logText(recommendation?: string | null, flags: string[] = [], message?:
   return vehicleVerificationMessage(message) ?? "-";
 }
 
+function manualLogTitle(action?: string | null) {
+  if (action === "Approve") return "Nhân viên chấp nhận cà vẹt";
+  if (action === "Reject") return "Nhân viên từ chối cà vẹt";
+  if (action === "RequestMoreInfo") return "Nhân viên yêu cầu bổ sung";
+  return "Nhân viên xử lý cà vẹt";
+}
+
 function statusLabel(label: string) {
   return vehicleStatusCfg[label]?.label ?? docStatusCfg[label]?.label ?? (label === "Car" ? "Ô tô" : label === "Motorbike" ? "Xe máy" : label);
 }
@@ -1321,10 +1328,21 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                   {[...vehicle.verificationLogs].reverse().map((log) => (
                     <div key={log.id ?? log.createdAt} className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-slate-800">{recommendationLabels[log.recommendation ?? ""] ?? log.recommendation ?? "Log"}</p>
+                        <p className="font-semibold text-slate-800">
+                          {log.provider === "MANUAL_REVIEW"
+                            ? manualLogTitle(log.action)
+                            : recommendationLabels[log.recommendation ?? ""] ?? log.recommendation ?? "Log AI"}
+                        </p>
                         <span className="shrink-0 text-slate-400">{new Date(log.createdAt).toLocaleString("vi-VN")}</span>
                       </div>
-                      <p className="mt-1">{logText(log.recommendation, log.flags, log.message, log.errorMessage)}</p>
+                      <p className="mt-1">
+                        {log.provider === "MANUAL_REVIEW"
+                          ? log.message ?? "Nhân viên đã cập nhật kết quả kiểm duyệt."
+                          : logText(log.recommendation, log.flags, log.message, log.errorMessage)}
+                      </p>
+                      {log.provider === "MANUAL_REVIEW" && log.actorUserId && (
+                        <p className="mt-1 text-slate-400">Người xử lý: #{log.actorUserId}</p>
+                      )}
                     </div>
                   ))}
                   {vehicle.verificationLogs.length === 0 && <p className="text-sm text-slate-400">Chưa có lịch sử.</p>}

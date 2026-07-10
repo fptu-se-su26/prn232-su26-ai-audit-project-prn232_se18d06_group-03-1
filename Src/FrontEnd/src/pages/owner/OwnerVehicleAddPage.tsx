@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import FormDropdown from "@/components/common/FormDropdown";
 import { createVehicle, getCatalogAreas, getCatalogBrands, getCatalogFeatures, getCatalogModels, getCatalogVariants, getPricingSuggestion, uploadVehicleDocument, uploadVehicleImage } from "@/features/vehicles/services/vehicleService";
 import type { CatalogArea, CatalogBrand, CatalogFeature, CatalogModel, CatalogVariant, PricingSuggestionResponse } from "@/features/vehicles/types";
+import { getVehicleErrorMessage } from "@/features/vehicles/vehicleDisplay";
 
 const steps = ["Loại xe", "Hãng & dòng xe", "Thông tin", "Giá & địa chỉ", "Tính năng", "Hình ảnh", "Xác nhận"];
 
@@ -251,8 +252,8 @@ export default function OwnerVehicleAddPage() {
         await uploadVehicleDocument(created.id, documentFile);
       }
       navigate("/owner/vehicles");
-    } catch {
-      setSubmitError("Đăng ký thất bại. Vui lòng thử lại.");
+    } catch (error) {
+      setSubmitError(getVehicleErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

@@ -86,6 +86,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode DRIVER_LICENSE_VERIFICATION_NOT_FOUND = new("LICENSE_8306", "Driver license verification request not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode DRIVER_LICENSE_REVIEW_INVALID_STATE = new("LICENSE_8307", "Driver license verification request is not pending review.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode DRIVER_LICENSE_UPLOAD_LOCKED = new("LICENSE_8308", "Driver license upload is temporarily locked.", HttpStatusCode.TooManyRequests);
+    public static readonly ErrorCode DRIVER_LICENSE_VEHICLE_TYPE_INVALID = new("LICENSE_8309", "Driver license requested vehicle type is invalid.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_FEATURE_NOT_FOUND = new("FEATURE_8401", "Vehicle feature not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode PRICING_REGION_NOT_FOUND = new("PRICE_8501", "Pricing region not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode AREA_NOT_FOUND = new("PRICE_8502", "Area not found.", HttpStatusCode.NotFound);
@@ -105,6 +106,8 @@ public sealed class ErrorCode
     public static readonly ErrorCode BLOCKED_DATE_OVERLAP_BOOKING = new("VEHICLE_9005", "The selected date range overlaps with an existing booking.", HttpStatusCode.Conflict);
     public static readonly ErrorCode BLOCKED_DATE_INVALID_RANGE = new("VEHICLE_9006", "DateFrom must be before or equal to DateTo.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode BLOCKED_DATE_NOT_FOUND = new("VEHICLE_9007", "Blocked date not found.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode VEHICLE_DOCUMENT_VERIFICATION_PENDING = new("VEHICLE_9008", "A vehicle registration verification is already pending review.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode VEHICLE_DOCUMENT_UPLOAD_LOCKED = new("VEHICLE_9009", "Vehicle registration upload is temporarily locked.", HttpStatusCode.TooManyRequests);
 
     public static readonly ErrorCode BOOKING_NOT_FOUND = new("BOOK_10001", "Booking not found.", HttpStatusCode.NotFound);
     public static readonly ErrorCode BOOKING_DATES_INVALID = new("BOOK_10002", "Ngày trả phải sau ngày nhận.", HttpStatusCode.BadRequest);

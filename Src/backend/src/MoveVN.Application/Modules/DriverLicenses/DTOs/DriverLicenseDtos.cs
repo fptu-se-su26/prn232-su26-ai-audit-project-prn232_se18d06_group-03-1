@@ -8,6 +8,7 @@ public class DriverLicenseStatusResponse
     public string Status { get; set; } = "None";
     public string? DriverLicenseNumber { get; set; }
     public string? LicenseClass { get; set; }
+    public List<string> VerifiedVehicleTypes { get; set; } = [];
     public DateTime? VerifiedAt { get; set; }
     public DateTime? CanUpdateAfter { get; set; }
     public DriverLicenseVerificationRequestDto? LatestRequest { get; set; }
@@ -20,6 +21,8 @@ public class DriverLicenseSubmitResponse
     public string? Message { get; set; }
     public string? DriverLicenseNumber { get; set; }
     public string? LicenseClass { get; set; }
+    public string? RequestedVehicleType { get; set; }
+    public List<string> VerifiedVehicleTypes { get; set; } = [];
     public decimal? OcrConfidence { get; set; }
     public List<string> Flags { get; set; } = [];
 }
@@ -33,6 +36,7 @@ public class DriverLicenseVerificationRequestDto
     public string Type { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? FrontImageUrl { get; set; }
+    public string? RequestedVehicleType { get; set; }
     public string? ExternalProvider { get; set; }
     public string? ExternalResultJson { get; set; }
     public decimal? Confidence { get; set; }
@@ -54,6 +58,7 @@ public class DriverLicenseVerificationListItem
     public decimal? Confidence { get; set; }
     public string? DecisionReason { get; set; }
     public string? LicenseClass { get; set; }
+    public string? RequestedVehicleType { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

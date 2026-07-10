@@ -38,6 +38,9 @@ public class VehicleVerificationLogQueryService : IVehicleVerificationLogQuerySe
             OcrConfidence = log.OcrConfidence,
             Message = log.Message,
             ErrorMessage = log.ErrorMessage,
+            Provider = log.Provider,
+            Action = log.Action,
+            ActorUserId = log.ActorUserId,
             CreatedAt = log.CreatedAt
         }).ToList();
     }

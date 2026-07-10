@@ -35,6 +35,9 @@ public class VehicleVerificationLogResponse
     public decimal? OcrConfidence { get; set; }
     public string? Message { get; set; }
     public string? ErrorMessage { get; set; }
+    public string Provider { get; set; } = "AI_VERIFICATION";
+    public string? Action { get; set; }
+    public long? ActorUserId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

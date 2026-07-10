@@ -30,6 +30,9 @@ public static class RedisKeys
     public static string DriverLicenseUploadConsecutiveFailures(long userId) => $"driver_license:upload:fail:consecutive:{userId}";
     public static string DriverLicenseUploadDailyFailures(long userId, string dateKey) => $"driver_license:upload:fail:daily:{userId}:{dateKey}";
     public static string DriverLicenseUploadLock(long userId) => $"driver_license:upload:lock:{userId}";
+    public static string VehicleDocumentUploadConsecutiveFailures(long ownerId) => $"vehicle_document:upload:fail:consecutive:{ownerId}";
+    public static string VehicleDocumentUploadDailyFailures(long ownerId, string dateKey) => $"vehicle_document:upload:fail:daily:{ownerId}:{dateKey}";
+    public static string VehicleDocumentUploadLock(long ownerId) => $"vehicle_document:upload:lock:{ownerId}";
 
     public const string PresenceList = "presence:list";
     public const string PricingRules = "pricing_rules";

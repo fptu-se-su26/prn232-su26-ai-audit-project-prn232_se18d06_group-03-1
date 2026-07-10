@@ -15,6 +15,7 @@ public class CustomerProfile
     public bool DriverLicenseVerified { get; set; }
     public DateTime? DriverLicenseVerifiedAt { get; set; }
     public long? DriverLicenseVerificationRequestId { get; set; }
+    public string? DriverLicenseVerifiedVehicleTypes { get; set; }
     public string? PreferredVehicleType { get; set; }
 }
 

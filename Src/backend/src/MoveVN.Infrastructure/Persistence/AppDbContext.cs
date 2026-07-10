@@ -159,6 +159,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CustomerProfile>().HasIndex(entity => entity.NationalIdHash);
         builder.Entity<CustomerProfile>().HasIndex(entity => entity.DriverLicenseVerificationRequestId);
+        builder.Entity<CustomerProfile>().HasIndex(entity => entity.DriverLicenseVerifiedVehicleTypes);
         builder.Entity<CustomerProfile>()
             .HasOne<VerificationRequest>()
             .WithMany()
@@ -180,6 +181,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<VerificationRequest>().Property(entity => entity.Confidence).HasPrecision(15, 2);
         builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.Status });
         builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.CreatedAt });
+        builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.RequestedVehicleType });
 
         ApplySnakeCaseColumnNames(builder);
 

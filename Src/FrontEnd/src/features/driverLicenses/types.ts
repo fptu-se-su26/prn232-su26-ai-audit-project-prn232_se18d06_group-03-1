@@ -6,6 +6,7 @@ export type DriverLicenseVerificationRequestDto = {
   type: string;
   status: string;
   frontImageUrl?: string | null;
+  requestedVehicleType?: string | null;
   externalProvider?: string | null;
   externalResultJson?: string | null;
   confidence?: number | null;
@@ -22,6 +23,7 @@ export type DriverLicenseStatusResponse = {
   status: string;
   driverLicenseNumber?: string | null;
   licenseClass?: string | null;
+  verifiedVehicleTypes: string[];
   verifiedAt?: string | null;
   canUpdateAfter?: string | null;
   latestRequest?: DriverLicenseVerificationRequestDto | null;
@@ -33,6 +35,8 @@ export type DriverLicenseSubmitResponse = {
   message?: string | null;
   driverLicenseNumber?: string | null;
   licenseClass?: string | null;
+  requestedVehicleType?: string | null;
+  verifiedVehicleTypes: string[];
   ocrConfidence?: number | null;
   flags: string[];
 };
@@ -46,6 +50,7 @@ export type DriverLicenseVerificationListItem = {
   confidence?: number | null;
   decisionReason?: string | null;
   licenseClass?: string | null;
+  requestedVehicleType?: string | null;
   createdAt: string;
 };
 
