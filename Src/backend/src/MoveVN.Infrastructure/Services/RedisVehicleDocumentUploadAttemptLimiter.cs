@@ -8,7 +8,7 @@ using MoveVN.Infrastructure.Caching;
 
 namespace MoveVN.Infrastructure.Services;
 
-public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemptLimiter
+public class RedisVehicleDocumentUploadAttemptLimiter : IVehicleDocumentUploadAttemptLimiter
 {
     private const string HttpClientName = "UpstashRedis";
     private const int MaxConsecutiveFailures = 3;
@@ -16,48 +16,43 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
     private const int ConsecutiveLockSeconds = 30 * 60;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<RedisDriverLicenseUploadAttemptLimiter> _logger;
+    private readonly ILogger<RedisVehicleDocumentUploadAttemptLimiter> _logger;
 
-    public RedisDriverLicenseUploadAttemptLimiter(
+    public RedisVehicleDocumentUploadAttemptLimiter(
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
-        ILogger<RedisDriverLicenseUploadAttemptLimiter> logger)
+        ILogger<RedisVehicleDocumentUploadAttemptLimiter> logger)
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
-    public async Task<DriverLicenseUploadAttemptState> GetStateAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
+    public async Task<VehicleDocumentUploadAttemptState> GetStateAsync(long ownerId, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured())
         {
-            return new DriverLicenseUploadAttemptState();
+            return new VehicleDocumentUploadAttemptState();
         }
 
         try
         {
-            var normalizedVehicleType = NormalizeVehicleType(vehicleType);
-            var lockKey = RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType);
-            var consecutiveKey = RedisKeys.DriverLicenseUploadConsecutiveFailures(userId, normalizedVehicleType);
-            var dailyKey = RedisKeys.DriverLicenseUploadDailyFailures(userId, normalizedVehicleType, DateKey());
-
-            var lockTtl = await GetTtlAsync(lockKey, cancellationToken);
-            return new DriverLicenseUploadAttemptState
+            var lockTtl = await GetTtlAsync(RedisKeys.VehicleDocumentUploadLock(ownerId), cancellationToken);
+            return new VehicleDocumentUploadAttemptState
             {
                 LockedUntil = lockTtl > 0 ? DateTime.UtcNow.AddSeconds(lockTtl) : null,
-                ConsecutiveFailures = await GetIntAsync(consecutiveKey, cancellationToken),
-                DailyFailures = await GetIntAsync(dailyKey, cancellationToken)
+                ConsecutiveFailures = await GetIntAsync(RedisKeys.VehicleDocumentUploadConsecutiveFailures(ownerId), cancellationToken),
+                DailyFailures = await GetIntAsync(RedisKeys.VehicleDocumentUploadDailyFailures(ownerId, DateKey()), cancellationToken)
             };
         }
-        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
+        catch (Exception exception) when (IsRedisFailure(exception, cancellationToken))
         {
-            _logger.LogWarning(exception, "Upstash Redis is unavailable. Driver license upload limiter is open.");
-            return new DriverLicenseUploadAttemptState();
+            _logger.LogWarning(exception, "Upstash Redis is unavailable. Vehicle document upload limiter is open.");
+            return new VehicleDocumentUploadAttemptState();
         }
     }
 
-    public async Task RegisterFailureAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
+    public async Task RegisterFailureAsync(long ownerId, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured())
         {
@@ -66,35 +61,35 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
 
         try
         {
-            var normalizedVehicleType = NormalizeVehicleType(vehicleType);
-            var consecutiveKey = RedisKeys.DriverLicenseUploadConsecutiveFailures(userId, normalizedVehicleType);
-            var dailyKey = RedisKeys.DriverLicenseUploadDailyFailures(userId, normalizedVehicleType, DateKey());
-
+            var consecutiveKey = RedisKeys.VehicleDocumentUploadConsecutiveFailures(ownerId);
+            var dailyKey = RedisKeys.VehicleDocumentUploadDailyFailures(ownerId, DateKey());
+            var expiresIn = SecondsUntilTomorrowUtc();
             var consecutive = await IncrementAsync(consecutiveKey, cancellationToken);
             var daily = await IncrementAsync(dailyKey, cancellationToken);
-            await SendCommandAsync(["EXPIRE", consecutiveKey, SecondsUntilTomorrowUtc()], cancellationToken);
-            await SendCommandAsync(["EXPIRE", dailyKey, SecondsUntilTomorrowUtc()], cancellationToken);
+
+            await SendCommandAsync(["EXPIRE", consecutiveKey, expiresIn], cancellationToken);
+            await SendCommandAsync(["EXPIRE", dailyKey, expiresIn], cancellationToken);
 
             if (daily >= MaxDailyFailures)
             {
                 await SendCommandAsync(
-                    ["SET", RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType), "daily-limit", "EX", SecondsUntilTomorrowUtc()],
+                    ["SET", RedisKeys.VehicleDocumentUploadLock(ownerId), "daily-limit", "EX", expiresIn],
                     cancellationToken);
             }
             else if (consecutive >= MaxConsecutiveFailures)
             {
                 await SendCommandAsync(
-                    ["SET", RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType), "consecutive-limit", "EX", ConsecutiveLockSeconds],
+                    ["SET", RedisKeys.VehicleDocumentUploadLock(ownerId), "consecutive-limit", "EX", ConsecutiveLockSeconds],
                     cancellationToken);
             }
         }
-        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
+        catch (Exception exception) when (IsRedisFailure(exception, cancellationToken))
         {
-            _logger.LogWarning(exception, "Upstash Redis is unavailable. Driver license upload failure was not counted.");
+            _logger.LogWarning(exception, "Upstash Redis is unavailable. Vehicle document upload failure was not counted.");
         }
     }
 
-    public async Task RegisterAcceptedAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
+    public async Task RegisterAcceptedAsync(long ownerId, CancellationToken cancellationToken = default)
     {
         if (!IsConfigured())
         {
@@ -103,18 +98,17 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
 
         try
         {
-            var normalizedVehicleType = NormalizeVehicleType(vehicleType);
             await SendCommandAsync(
                 [
                     "DEL",
-                    RedisKeys.DriverLicenseUploadConsecutiveFailures(userId, normalizedVehicleType),
-                    RedisKeys.DriverLicenseUploadLock(userId, normalizedVehicleType)
+                    RedisKeys.VehicleDocumentUploadConsecutiveFailures(ownerId),
+                    RedisKeys.VehicleDocumentUploadLock(ownerId)
                 ],
                 cancellationToken);
         }
-        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
+        catch (Exception exception) when (IsRedisFailure(exception, cancellationToken))
         {
-            _logger.LogWarning(exception, "Upstash Redis is unavailable. Driver license upload accepted state was not stored.");
+            _logger.LogWarning(exception, "Upstash Redis is unavailable. Vehicle document accepted state was not stored.");
         }
     }
 
@@ -126,12 +120,7 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
             return value;
         }
 
-        if (result.ValueKind == JsonValueKind.Number && result.TryGetInt32(out var number))
-        {
-            return number;
-        }
-
-        return 0;
+        return result.ValueKind == JsonValueKind.Number && result.TryGetInt32(out var number) ? number : 0;
     }
 
     private async Task<int> GetTtlAsync(string key, CancellationToken cancellationToken)
@@ -181,22 +170,14 @@ public class RedisDriverLicenseUploadAttemptLimiter : IDriverLicenseUploadAttemp
         return result.Clone();
     }
 
-    private static string DateKey()
-    {
-        return DateTime.UtcNow.ToString("yyyyMMdd");
-    }
-
-    private static string NormalizeVehicleType(string vehicleType)
-    {
-        return vehicleType.Equals("Car", StringComparison.OrdinalIgnoreCase) ? "Car" : "Motorbike";
-    }
+    private static string DateKey() => DateTime.UtcNow.ToString("yyyyMMdd");
 
     private static int SecondsUntilTomorrowUtc()
     {
         return Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow.Date.AddDays(1) - DateTime.UtcNow).TotalSeconds));
     }
 
-    private static bool IsUpstashFailure(Exception exception, CancellationToken cancellationToken)
+    private static bool IsRedisFailure(Exception exception, CancellationToken cancellationToken)
     {
         return exception is HttpRequestException
             or JsonException

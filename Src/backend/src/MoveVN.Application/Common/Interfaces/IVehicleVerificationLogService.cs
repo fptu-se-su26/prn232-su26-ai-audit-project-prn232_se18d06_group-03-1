@@ -19,6 +19,8 @@ public class VehicleVerificationLogEntry
     public decimal? OcrConfidence { get; set; }
     public string? Message { get; set; }
     public string? ErrorMessage { get; set; }
+    public string? Action { get; set; }
+    public long? ActorUserId { get; set; }
     public string? FilePublicId { get; set; }
     public DateTime? FileDeletedAt { get; set; }
     public string? DeletionReason { get; set; }

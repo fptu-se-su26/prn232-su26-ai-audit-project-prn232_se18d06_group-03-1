@@ -1,4 +1,5 @@
-using System.Text.Json;
+﻿using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
@@ -19,7 +20,9 @@ public class DriverLicenseService : IDriverLicenseService
 
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IUserRepository _userRepository;
+    private readonly IVehicleCatalogRepository _vehicleCatalogRepository;
     private readonly IDriverLicenseVerificationRepository _verificationRepository;
+    private readonly ICustomerDriverLicenseRepository _customerDriverLicenseRepository;
     private readonly IDriverLicenseVerificationClient _verificationClient;
     private readonly IDriverLicenseVerificationLogService _logService;
     private readonly IDriverLicenseUploadAttemptLimiter _attemptLimiter;
@@ -30,7 +33,9 @@ public class DriverLicenseService : IDriverLicenseService
     public DriverLicenseService(
         ICurrentUserContext currentUserContext,
         IUserRepository userRepository,
+        IVehicleCatalogRepository vehicleCatalogRepository,
         IDriverLicenseVerificationRepository verificationRepository,
+        ICustomerDriverLicenseRepository customerDriverLicenseRepository,
         IDriverLicenseVerificationClient verificationClient,
         IDriverLicenseVerificationLogService logService,
         IDriverLicenseUploadAttemptLimiter attemptLimiter,
@@ -40,7 +45,9 @@ public class DriverLicenseService : IDriverLicenseService
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
+        _vehicleCatalogRepository = vehicleCatalogRepository;
         _verificationRepository = verificationRepository;
+        _customerDriverLicenseRepository = customerDriverLicenseRepository;
         _verificationClient = verificationClient;
         _logService = logService;
         _attemptLimiter = attemptLimiter;
@@ -54,34 +61,44 @@ public class DriverLicenseService : IDriverLicenseService
         var userId = GetCurrentUserId();
         var profile = await _userRepository.GetCustomerProfileByUserIdAsync(userId, cancellationToken);
         var latest = await _verificationRepository.GetLatestByUserIdAsync(userId, cancellationToken);
+        var licenses = await _customerDriverLicenseRepository.GetByUserIdAsync(userId, cancellationToken);
+        var licenseDtos = licenses.Select(ToDto).ToList();
+        var verifiedVehicleTypes = licenseDtos
+            .Select(x => x.VehicleType)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
+        var latestLicense = licenses.OrderByDescending(x => x.VerifiedAt).FirstOrDefault();
         return new DriverLicenseStatusResponse
         {
-            Verified = profile?.DriverLicenseVerified ?? false,
-            Status = latest?.Status ?? (profile?.DriverLicenseVerified == true ? "Verified" : "None"),
-            DriverLicenseNumber = profile?.DriverLicenseNumber,
-            LicenseClass = profile?.DriverLicenseClass,
-            VerifiedAt = profile?.DriverLicenseVerifiedAt,
-            CanUpdateAfter = profile?.DriverLicenseVerifiedAt?.Add(VerifiedUpdateCooldown),
+            Verified = verifiedVehicleTypes.Count > 0 || profile?.DriverLicenseVerified == true,
+            Status = latest?.Status ?? (verifiedVehicleTypes.Count > 0 || profile?.DriverLicenseVerified == true ? "Verified" : "None"),
+            DriverLicenseNumber = latestLicense?.LicenseNumber,
+            LicenseClass = latestLicense?.LicenseClass,
+            VerifiedVehicleTypes = verifiedVehicleTypes,
+            Licenses = licenseDtos,
+            VerifiedAt = latestLicense?.VerifiedAt,
+            CanUpdateAfter = latestLicense?.VerifiedAt.Add(VerifiedUpdateCooldown),
             LatestRequest = latest is null ? null : ToDto(latest)
         };
     }
 
-    public async Task<DriverLicenseSubmitResponse> SubmitAsync(Stream image, string fileName, CancellationToken cancellationToken = default)
+    public async Task<DriverLicenseSubmitResponse> SubmitAsync(Stream image, string fileName, string requestedVehicleType, CancellationToken cancellationToken = default)
     {
+        requestedVehicleType = NormalizeRequestedVehicleType(requestedVehicleType);
         var userId = GetCurrentUserId();
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
         var profile = await _userRepository.GetCustomerProfileByUserIdAsync(userId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
-        var pending = await _verificationRepository.GetPendingByUserIdAsync(userId, cancellationToken);
+        var pending = await _verificationRepository.GetPendingByUserIdAsync(userId, requestedVehicleType, cancellationToken);
         if (pending is not null)
         {
             throw new AppException(ErrorCode.DRIVER_LICENSE_VERIFICATION_PENDING);
         }
 
-        var attemptState = await _attemptLimiter.GetStateAsync(userId, cancellationToken);
+        var attemptState = await _attemptLimiter.GetStateAsync(userId, requestedVehicleType, cancellationToken);
         if (attemptState.IsLocked)
         {
             throw new AppException(ErrorCode.DRIVER_LICENSE_UPLOAD_LOCKED, [
@@ -89,11 +106,17 @@ public class DriverLicenseService : IDriverLicenseService
             ]);
         }
 
-        if (profile.DriverLicenseVerifiedAt.HasValue
-            && profile.DriverLicenseVerifiedAt.Value.Add(VerifiedUpdateCooldown) > DateTime.UtcNow)
+        var currentLicenses = await _customerDriverLicenseRepository.GetByUserIdAsync(userId, cancellationToken);
+        var profileVerifiedVehicleTypes = currentLicenses
+            .Select(x => x.VehicleType)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var currentLicense = await _customerDriverLicenseRepository.GetByUserIdAndVehicleTypeAsync(userId, requestedVehicleType, cancellationToken);
+        if (currentLicense is not null
+            && currentLicense.VerifiedAt.Add(VerifiedUpdateCooldown) > DateTime.UtcNow)
         {
             throw new AppException(ErrorCode.DRIVER_LICENSE_UPDATE_TOO_SOON, [
-                $"GPLX chỉ có thể cập nhật lại sau ngày {profile.DriverLicenseVerifiedAt.Value.Add(VerifiedUpdateCooldown):yyyy-MM-dd HH:mm:ss} UTC."
+                $"GPLX chỉ có thể cập nhật lại sau ngày {currentLicense.VerifiedAt.Add(VerifiedUpdateCooldown):yyyy-MM-dd HH:mm:ss} UTC."
             ]);
         }
 
@@ -124,7 +147,7 @@ public class DriverLicenseService : IDriverLicenseService
 
         if (aiResult.Recommendation is "Reject" or "NeedMoreInfo")
         {
-            await _attemptLimiter.RegisterFailureAsync(userId, cancellationToken);
+            await _attemptLimiter.RegisterFailureAsync(userId, requestedVehicleType, cancellationToken);
             await LogAsync(userId, null, fileName, aiResult, aiResult.Recommendation, null, null, cancellationToken);
             return new DriverLicenseSubmitResponse
             {
@@ -133,6 +156,39 @@ public class DriverLicenseService : IDriverLicenseService
                 Message = ToVietnameseMessage(aiResult.Message, aiResult),
                 DriverLicenseNumber = aiResult.Extracted.DriverLicenseNumber,
                 LicenseClass = aiResult.Extracted.LicenseClass,
+                RequestedVehicleType = requestedVehicleType,
+                VerifiedVehicleTypes = profileVerifiedVehicleTypes,
+                OcrConfidence = aiResult.OcrConfidence,
+                Flags = aiResult.Flags
+            };
+        }
+
+        var allowedVehicleTypes = await GetAllowedVehicleTypesAsync(aiResult.Extracted.LicenseClass, cancellationToken);
+        if (aiResult.Recommendation == "Pass"
+            && aiResult.Valid
+            && !allowedVehicleTypes.Contains(requestedVehicleType, StringComparer.OrdinalIgnoreCase))
+        {
+            aiResult.Valid = false;
+            aiResult.Recommendation = "Reject";
+            aiResult.LicenseVehicleType = string.Join(",", allowedVehicleTypes);
+            aiResult.LicenseClassValidForExpectedVehicle = false;
+            if (!aiResult.Flags.Contains("LICENSE_CLASS_NOT_VALID_FOR_REQUESTED_VEHICLE", StringComparer.OrdinalIgnoreCase))
+            {
+                aiResult.Flags.Add("LICENSE_CLASS_NOT_VALID_FOR_REQUESTED_VEHICLE");
+            }
+
+            aiResult.Message = BuildVehicleTypeMismatchMessage(aiResult.Extracted.LicenseClass, requestedVehicleType);
+            await _attemptLimiter.RegisterFailureAsync(userId, requestedVehicleType, cancellationToken);
+            await LogAsync(userId, null, fileName, aiResult, aiResult.Recommendation, null, null, cancellationToken);
+            return new DriverLicenseSubmitResponse
+            {
+                Status = "Reject",
+                Verified = false,
+                Message = aiResult.Message,
+                DriverLicenseNumber = aiResult.Extracted.DriverLicenseNumber,
+                LicenseClass = aiResult.Extracted.LicenseClass,
+                RequestedVehicleType = requestedVehicleType,
+                VerifiedVehicleTypes = profileVerifiedVehicleTypes,
                 OcrConfidence = aiResult.OcrConfidence,
                 Flags = aiResult.Flags
             };
@@ -142,6 +198,7 @@ public class DriverLicenseService : IDriverLicenseService
         {
             UserId = userId,
             Type = VerificationType,
+            RequestedVehicleType = requestedVehicleType,
             Status = "Processing",
             ExternalProvider = "AI_VERIFICATION",
             ExternalResultJson = aiResult.RawResponse,
@@ -153,7 +210,7 @@ public class DriverLicenseService : IDriverLicenseService
 
         await _verificationRepository.AddAsync(request, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await _attemptLimiter.RegisterAcceptedAsync(userId, cancellationToken);
+        await _attemptLimiter.RegisterAcceptedAsync(userId, requestedVehicleType, cancellationToken);
 
         try
         {
@@ -167,11 +224,9 @@ public class DriverLicenseService : IDriverLicenseService
             {
                 request.Status = "Verified";
                 request.DecisionReason = "AI đã xác minh GPLX thành công.";
-                ApplyVerifiedProfile(profile, request.Id, aiResult);
-                _userRepository.UpdateCustomerProfile(profile);
                 _verificationRepository.Update(request);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await DeletePreviousVerifiedFileAsync(userId, request.Id, cancellationToken);
+                await UpsertVerifiedDriverLicenseAsync(profile, request, aiResult, requestedVehicleType, cancellationToken);
             }
             else
             {
@@ -190,6 +245,8 @@ public class DriverLicenseService : IDriverLicenseService
                 Message = request.DecisionReason,
                 DriverLicenseNumber = aiResult.Extracted.DriverLicenseNumber,
                 LicenseClass = aiResult.Extracted.LicenseClass,
+                RequestedVehicleType = requestedVehicleType,
+                VerifiedVehicleTypes = await GetVerifiedVehicleTypesAsync(userId, cancellationToken),
                 OcrConfidence = aiResult.OcrConfidence,
                 Flags = aiResult.Flags
             };
@@ -256,20 +313,19 @@ public class DriverLicenseService : IDriverLicenseService
         request.Status = "Verified";
         request.ReviewedBy = reviewerId;
         request.ReviewedAt = DateTime.UtcNow;
-        request.DecisionReason = "Nhân viên đã duyệt xác minh GPLX.";
         request.DecisionReason = hasManualOverride
-            ? approveRequest.Reason?.Trim() ?? "Nhan vien da duyet thu cong vi OCR khong doc duoc GPLX."
-            : "Nhan vien da duyet xac minh GPLX.";
+            ? approveRequest.Reason?.Trim() ?? "Nhân viên đã duyệt thủ công vì OCR không đọc được GPLX."
+            : "Nhân viên đã duyệt xác minh GPLX.";
         if (hasManualOverride)
         {
             request.ExternalResultJson = JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         }
 
-        ApplyVerifiedProfile(profile, request.Id, result);
-        _userRepository.UpdateCustomerProfile(profile);
         _verificationRepository.Update(request);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await DeletePreviousVerifiedFileAsync(request.UserId, request.Id, cancellationToken);
+        var requestedVehicleType = NormalizeRequestedVehicleType(request.RequestedVehicleType ?? string.Empty);
+        await UpsertVerifiedDriverLicenseAsync(profile, request, result, requestedVehicleType, cancellationToken);
+        await _attemptLimiter.RegisterAcceptedAsync(request.UserId, requestedVehicleType, cancellationToken);
     }
 
     public async Task RejectAsync(long id, string? reason, CancellationToken cancellationToken = default)
@@ -306,17 +362,75 @@ public class DriverLicenseService : IDriverLicenseService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task DeletePreviousVerifiedFileAsync(long userId, long currentRequestId, CancellationToken cancellationToken)
+    private async Task UpsertVerifiedDriverLicenseAsync(
+        CustomerProfile profile,
+        VerificationRequest request,
+        DriverLicenseVerificationResult result,
+        string requestedVehicleType,
+        CancellationToken cancellationToken)
     {
-        var previous = await _verificationRepository.GetPreviousVerifiedByUserIdAsync(userId, currentRequestId, cancellationToken);
-        if (previous is null || string.IsNullOrWhiteSpace(previous.FrontImagePublicId))
+        var existing = await _customerDriverLicenseRepository.GetByUserIdAndVehicleTypeAsync(
+            request.UserId,
+            requestedVehicleType,
+            cancellationToken);
+
+        var previousPublicId = existing?.FrontImagePublicId;
+        var previousRequestId = existing?.VerificationRequestId;
+
+        if (existing is null)
         {
-            return;
+            await _customerDriverLicenseRepository.AddAsync(new CustomerDriverLicense
+            {
+                UserId = request.UserId,
+                VehicleType = requestedVehicleType,
+                LicenseNumber = result.Extracted.DriverLicenseNumber,
+                LicenseClass = result.Extracted.LicenseClass,
+                FrontImageUrl = request.FrontImageUrl,
+                FrontImagePublicId = request.FrontImagePublicId,
+                VerificationRequestId = request.Id,
+                OcrConfidence = result.OcrConfidence,
+                VerifiedAt = DateTime.UtcNow
+            }, cancellationToken);
+        }
+        else
+        {
+            existing.LicenseNumber = result.Extracted.DriverLicenseNumber;
+            existing.LicenseClass = result.Extracted.LicenseClass;
+            existing.FrontImageUrl = request.FrontImageUrl;
+            existing.FrontImagePublicId = request.FrontImagePublicId;
+            existing.VerificationRequestId = request.Id;
+            existing.OcrConfidence = result.OcrConfidence;
+            existing.VerifiedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _customerDriverLicenseRepository.Update(existing);
         }
 
+        ApplyVerifiedProfile(profile);
+        _userRepository.UpdateCustomerProfile(profile);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(previousPublicId) && previousRequestId.HasValue && previousRequestId.Value != request.Id)
+        {
+            await DeletePreviousVerifiedFileAsync(request.UserId, request.Id, previousRequestId.Value, previousPublicId, cancellationToken);
+        }
+    }
+
+    private async Task DeletePreviousVerifiedFileAsync(
+        long userId,
+        long currentRequestId,
+        long previousRequestId,
+        string previousPublicId,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            await _cloudinaryService.DeleteAsync(previous.FrontImagePublicId, cancellationToken);
+            await _cloudinaryService.DeleteAsync(previousPublicId, cancellationToken);
+            var previous = await _verificationRepository.GetByIdAsync(previousRequestId, cancellationToken);
+            if (previous is null)
+            {
+                return;
+            }
+
             previous.DeletedAt = DateTime.UtcNow;
             previous.DecisionReason = $"Đã được thay thế bởi hồ sơ xác minh GPLX #{currentRequestId}.";
             _verificationRepository.Update(previous);
@@ -325,7 +439,7 @@ public class DriverLicenseService : IDriverLicenseService
             {
                 UserId = userId,
                 VerificationRequestId = previous.Id,
-                FilePublicId = previous.FrontImagePublicId,
+                FilePublicId = previousPublicId,
                 FileDeletedAt = previous.DeletedAt,
                 DeletionReason = previous.DecisionReason
             }, cancellationToken);
@@ -361,13 +475,9 @@ public class DriverLicenseService : IDriverLicenseService
         }, cancellationToken);
     }
 
-    private static void ApplyVerifiedProfile(CustomerProfile profile, long requestId, DriverLicenseVerificationResult result)
+    private static void ApplyVerifiedProfile(CustomerProfile profile)
     {
-        profile.DriverLicenseNumber = result.Extracted.DriverLicenseNumber;
-        profile.DriverLicenseClass = result.Extracted.LicenseClass;
         profile.DriverLicenseVerified = true;
-        profile.DriverLicenseVerifiedAt = DateTime.UtcNow;
-        profile.DriverLicenseVerificationRequestId = requestId;
     }
 
     private static bool CanManualOverrideOcr(DriverLicenseVerificationResult result)
@@ -426,6 +536,7 @@ public class DriverLicenseService : IDriverLicenseService
             Type = request.Type,
             Status = request.Status,
             FrontImageUrl = request.FrontImageUrl,
+            RequestedVehicleType = request.RequestedVehicleType,
             ExternalProvider = request.ExternalProvider,
             ExternalResultJson = request.ExternalResultJson,
             Confidence = request.Confidence,
@@ -436,6 +547,33 @@ public class DriverLicenseService : IDriverLicenseService
             RejectionReason = request.RejectionReason,
             CreatedAt = request.CreatedAt
         };
+    }
+
+    private static CustomerDriverLicenseDto ToDto(CustomerDriverLicense license)
+    {
+        return new CustomerDriverLicenseDto
+        {
+            VehicleType = license.VehicleType,
+            DriverLicenseNumber = license.LicenseNumber,
+            LicenseClass = license.LicenseClass,
+            FrontImageUrl = license.FrontImageUrl,
+            VerificationRequestId = license.VerificationRequestId,
+            OcrConfidence = license.OcrConfidence,
+            VerifiedAt = license.VerifiedAt,
+            CanUpdateAfter = license.VerifiedAt.Add(VerifiedUpdateCooldown)
+        };
+    }
+
+    private async Task<List<string>> GetVerifiedVehicleTypesAsync(
+        long userId,
+        CancellationToken cancellationToken)
+    {
+        var vehicleTypes = (await _customerDriverLicenseRepository.GetByUserIdAsync(userId, cancellationToken))
+            .Select(x => x.VehicleType)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return vehicleTypes;
     }
 
     private static DriverLicenseVerificationResult ParseResult(string? rawJson)
@@ -509,6 +647,57 @@ public class DriverLicenseService : IDriverLicenseService
         };
     }
 
+    private async Task<IReadOnlyCollection<string>> GetAllowedVehicleTypesAsync(string? licenseClass, CancellationToken cancellationToken)
+    {
+        var codes = ExtractLicenseClassCodes(licenseClass);
+        if (codes.Count == 0)
+        {
+            return [];
+        }
+
+        return await _vehicleCatalogRepository.GetAllowedVehicleTypesForDriverLicenseClassesAsync(codes, cancellationToken);
+    }
+
+    private static List<string> ExtractLicenseClassCodes(string? licenseClass)
+    {
+        if (string.IsNullOrWhiteSpace(licenseClass))
+        {
+            return [];
+        }
+
+        return Regex.Matches(licenseClass.ToUpperInvariant(), @"[A-Z]{1,3}[0-9]?(?:E)?")
+            .Select(match => match.Value.Trim())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string NormalizeRequestedVehicleType(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_VEHICLE_TYPE_INVALID, ["Vui lòng chọn loại xe cần xác minh GPLX."]);
+        }
+
+        var normalized = value.Trim().Equals("Motorcycle", StringComparison.OrdinalIgnoreCase)
+            ? "Motorbike"
+            : value.Trim();
+
+        if (!normalized.Equals("Car", StringComparison.OrdinalIgnoreCase)
+            && !normalized.Equals("Motorbike", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_VEHICLE_TYPE_INVALID, ["Loại xe cần xác minh chỉ hỗ trợ Ô tô hoặc Xe máy."]);
+        }
+
+        return normalized.Equals("Car", StringComparison.OrdinalIgnoreCase) ? "Car" : "Motorbike";
+    }
+    private static string BuildVehicleTypeMismatchMessage(string? licenseClass, string requestedVehicleType)
+    {
+        var requestedLabel = requestedVehicleType == "Car" ? "ô tô" : "xe máy";
+        return string.IsNullOrWhiteSpace(licenseClass)
+            ? $"Không đọc được hạng GPLX phù hợp để xác minh {requestedLabel}."
+            : $"Hạng GPLX {licenseClass} không phù hợp để xác minh {requestedLabel}.";
+    }
     private long GetCurrentUserId()
     {
         return _currentUserContext.UserId

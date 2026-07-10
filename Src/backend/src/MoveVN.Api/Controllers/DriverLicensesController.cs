@@ -28,6 +28,7 @@ public class DriverLicensesController : BaseApiController
     [HttpPost("me/verification")]
     public async Task<ActionResult<ApiResponse<DriverLicenseSubmitResponse>>> Submit(
         IFormFile frontImage,
+        [FromForm] string requestedVehicleType,
         CancellationToken cancellationToken)
     {
         var validationError = ValidateImage(frontImage);
@@ -37,7 +38,7 @@ public class DriverLicensesController : BaseApiController
         }
 
         await using var stream = frontImage.OpenReadStream();
-        var result = await _driverLicenseService.SubmitAsync(stream, frontImage.FileName, cancellationToken);
+        var result = await _driverLicenseService.SubmitAsync(stream, frontImage.FileName, requestedVehicleType, cancellationToken);
         return Success(result, result.Message ?? "Driver license verification processed.");
     }
 

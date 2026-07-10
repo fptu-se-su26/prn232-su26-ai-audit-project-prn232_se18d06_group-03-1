@@ -10,6 +10,7 @@ public class VerificationRequest
     public string? FrontImageUrl { get; set; }
     public string? BackImageUrl { get; set; }
     public string? SelfieUrl { get; set; }
+    public string? RequestedVehicleType { get; set; }
     public string Status { get; set; } = "Pending";
     public string? ExternalProvider { get; set; }
     public string? ExternalResultJson { get; set; }

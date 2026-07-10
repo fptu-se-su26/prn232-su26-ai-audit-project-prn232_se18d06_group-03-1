@@ -244,6 +244,9 @@ export type VehicleVerificationLogResponse = {
   ocrConfidence: number | null;
   message: string | null;
   errorMessage: string | null;
+  provider: string;
+  action: string | null;
+  actorUserId: number | null;
   createdAt: string;
 };
 

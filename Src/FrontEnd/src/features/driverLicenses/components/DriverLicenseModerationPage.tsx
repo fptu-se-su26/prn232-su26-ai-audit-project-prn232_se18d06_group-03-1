@@ -58,7 +58,15 @@ function compactNumber(value: number) {
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
-  return new Date(value).toLocaleString("vi-VN");
+  return new Date(value).toLocaleString("vi-VN", {
+    timeZone: "Asia/Bangkok",
+  });
+}
+
+function vehicleTypeLabel(value?: string | null) {
+  if (value === "Car") return "Ô tô";
+  if (value === "Motorbike" || value === "Motorcycle") return "Xe máy";
+  return value ?? "-";
 }
 
 function parseAiResult(raw?: string | null): DriverLicenseAiResult | null {
@@ -473,6 +481,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
                 <tr className="border-b border-slate-100 bg-slate-50">
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Người dùng</th>
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Hạng</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Loại xe</th>
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Trạng thái</th>
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">OCR</th>
                   <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Ngày gửi</th>
@@ -495,6 +504,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
                           <span className="text-xs text-slate-400">-</span>
                         )}
                       </td>
+                      <td className="px-4 py-3.5 text-slate-700">{vehicleTypeLabel(item.requestedVehicleType)}</td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${badge.bg} ${badge.text}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
@@ -592,6 +602,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
                   <Info label="Tên OCR" value={ai?.extracted?.fullName} />
                   <Info label="Số GPLX" value={ai?.extracted?.driverLicenseNumber} />
                   <Info label="Hạng bằng" value={ai?.extracted?.licenseClass} />
+                  <Info label="Xác minh cho" value={vehicleTypeLabel(detail.requestedVehicleType)} />
                   <Info label="Hết hạn" value={ai?.extracted?.expiryDate} />
                   <Info label="Khớp tên" value={ai?.nameMatch?.matched == null ? "-" : ai.nameMatch.matched ? "Khớp" : "Không khớp"} />
                   <Info label="Điểm tên" value={ai?.nameMatch?.score?.toString()} />

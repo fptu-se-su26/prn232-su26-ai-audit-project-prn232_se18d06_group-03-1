@@ -1,6 +1,7 @@
 import { apiClient } from "@/services/apiClient";
 import { endpoints } from "@/services/endpoints";
-import type { ApiResponse } from "@/features/auth/types";
+import { AxiosError } from "axios";
+import type { ApiErrorPayload, ApiResponse } from "@/features/auth/types";
 import type {
   DriverLicenseApproveRequest,
   DriverLicenseStatusResponse,
@@ -17,16 +18,32 @@ function unwrap<T>(response: ApiResponse<T>): T {
   return response.data as T;
 }
 
+function normalizeApiError(error: unknown): Error {
+  if (error instanceof AxiosError) {
+    const payload = error.response?.data as ApiErrorPayload | undefined;
+    const detail = payload?.errors?.find((item) => item?.trim()) ?? payload?.message;
+    if (detail) {
+      return new Error(detail);
+    }
+  }
+
+  return error instanceof Error ? error : new Error("Request failed.");
+}
+
 export async function getMyDriverLicense(): Promise<DriverLicenseStatusResponse> {
   const { data } = await apiClient.get<ApiResponse<DriverLicenseStatusResponse>>(endpoints.driverLicenses.me);
   return unwrap(data);
 }
 
 export async function submitDriverLicense(formData: FormData): Promise<DriverLicenseSubmitResponse> {
-  const { data } = await apiClient.post<ApiResponse<DriverLicenseSubmitResponse>>(endpoints.driverLicenses.submit, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return unwrap(data);
+  try {
+    const { data } = await apiClient.post<ApiResponse<DriverLicenseSubmitResponse>>(endpoints.driverLicenses.submit, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return unwrap(data);
+  } catch (error) {
+    throw normalizeApiError(error);
+  }
 }
 
 export async function getDriverLicenseVerifications(
