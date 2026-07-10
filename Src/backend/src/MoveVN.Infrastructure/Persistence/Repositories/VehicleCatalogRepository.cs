@@ -291,7 +291,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public Task<VehicleDocument?> GetVehicleDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default)
         => _context.VehicleDocuments.FirstOrDefaultAsync(doc => doc.Id == documentId && doc.VehicleId == vehicleId, cancellationToken);
 
-    public async Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity, decimal? priceFrom, decimal? priceTo, string? featureIds, DateTime? searchStartDate = null, DateTime? searchEndDate = null, CancellationToken cancellationToken = default)
     {
         var query = _context.Vehicles.Where(v => v.Status == VehicleStatus.Approved);
         if (!string.IsNullOrWhiteSpace(type)) query = query.Where(v => v.VehicleType == type);
@@ -303,6 +303,33 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         if (!string.IsNullOrWhiteSpace(bodyType)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.BodyType == bodyType));
         if (!string.IsNullOrWhiteSpace(bikeType)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.BikeType == bikeType));
         if (!string.IsNullOrWhiteSpace(engineCapacity)) query = query.Where(v => v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.EngineCapacity == engineCapacity));
+        if (priceFrom.HasValue) query = query.Where(v => v.PricePerDay >= priceFrom.Value);
+        if (priceTo.HasValue) query = query.Where(v => v.PricePerDay <= priceTo.Value);
+        if (!string.IsNullOrWhiteSpace(featureIds))
+        {
+            var ids = featureIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(id => int.TryParse(id, out var parsed) ? parsed : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToList();
+            if (ids.Count > 0)
+            {
+                query = query.Where(v => _context.VehicleFeatureMapping
+                    .Where(fm => fm.VehicleId == v.Id && ids.Contains(fm.FeatureId))
+                    .Select(fm => fm.FeatureId)
+                    .Distinct()
+                    .Count() == ids.Count);
+            }
+        }
+        if (searchStartDate.HasValue && searchEndDate.HasValue)
+        {
+            var searchStartOnly = DateOnly.FromDateTime(searchStartDate.Value);
+            var searchEndOnly = DateOnly.FromDateTime(searchEndDate.Value);
+            query = query.Where(v => !_context.BlockedDates
+                .Any(bd => bd.VehicleId == v.Id
+                    && bd.StartDate <= searchEndOnly
+                    && bd.EndDate >= searchStartOnly));
+        }
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             var kw = keyword.Trim().ToLower();
@@ -315,6 +342,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         {
             "price_asc" => query.OrderBy(v => v.PricePerDay),
             "price_desc" => query.OrderByDescending(v => v.PricePerDay),
+            "rating_desc" => query.OrderByDescending(v => _context.Reviews.Where(r => r.VehicleId == v.Id).Average(r => (double?)r.Rating) ?? 0),
             _ => query.OrderByDescending(v => v.CreatedAt)
         };
 
@@ -333,6 +361,8 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
                 PricingMode = _context.VehiclePricing.Where(p => p.VehicleId == v.Id).Select(p => p.PricingMode).FirstOrDefault(),
                 Status = v.Status,
                 FeaturedImage = _context.VehicleImages.Where(img => img.VehicleId == v.Id && img.IsPrimary).Select(img => img.ImageUrl).FirstOrDefault(),
+                AverageRating = _context.Reviews.Where(r => r.VehicleId == v.Id && r.IsPublic).Select(r => (double?)r.Rating).Average() ?? 0,
+                ReviewCount = _context.Reviews.Count(r => r.VehicleId == v.Id && r.IsPublic),
                 CreatedAt = v.CreatedAt
             })
             .ToListAsync(cancellationToken);

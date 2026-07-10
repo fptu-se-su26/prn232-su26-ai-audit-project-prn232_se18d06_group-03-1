@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import driver_license, face, health, image_quality, vehicle_registration
+from app.api import cccd, driver_license, face, health, image_quality, vehicle_registration
 from app.core.logging import configure_logging
 
 
@@ -17,4 +17,5 @@ app.include_router(image_quality.router)
 app.include_router(driver_license.router)
 app.include_router(vehicle_registration.router)
 app.include_router(face.router)
+app.include_router(cccd.router)
 

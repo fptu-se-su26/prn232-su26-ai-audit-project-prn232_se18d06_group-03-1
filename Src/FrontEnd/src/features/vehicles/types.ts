@@ -11,6 +11,8 @@ export type VehicleListItemResponse = {
   pricingMode: "Fixed" | "Auto" | null;
   status: string;
   featuredImage: string | null;
+  averageRating: number;
+  reviewCount: number;
   createdAt: string;
 };
 

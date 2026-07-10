@@ -3,6 +3,7 @@ using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Modules.Bookings.Interfaces;
 
+
 public interface IBookingRepository
 {
     Task<Booking?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
@@ -19,5 +20,9 @@ public interface IBookingRepository
     Task<(List<BookingResponse> Items, int TotalCount)> GetByCustomerPagedAsync(long customerId, BookingListRequest request, CancellationToken cancellationToken = default);
     Task<(List<BookingResponse> Items, int TotalCount)> GetByOwnerPagedAsync(long ownerId, BookingListRequest request, CancellationToken cancellationToken = default);
     Task<List<Booking>> GetExpiredPendingAsync(DateTime threshold, CancellationToken cancellationToken = default);
+    Task AddReviewAsync(Review review, CancellationToken cancellationToken = default);
+    Task<List<Review>> GetReviewsByBookingIdAsync(long bookingId, CancellationToken cancellationToken = default);
+    Task<List<Review>> GetReviewsByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default);
+    Task<bool> HasReviewAsync(long bookingId, long reviewerId, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

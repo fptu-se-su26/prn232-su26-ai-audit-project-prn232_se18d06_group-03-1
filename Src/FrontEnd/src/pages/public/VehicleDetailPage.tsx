@@ -1,4 +1,4 @@
-import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck } from "lucide-react";
+import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
@@ -8,6 +8,9 @@ import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import Button from "@/components/common/Button";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import { getVehicleReviews } from "@/features/review/reviewService";
+import type { ReviewResponse } from "@/features/review/reviewService";
+import ReviewCard from "@/features/review/components/ReviewCard";
 
 function formatVnd(value: number | null | undefined) {
   return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
@@ -57,6 +60,7 @@ export default function VehicleDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [reviews, setReviews] = useState<ReviewResponse[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -66,6 +70,7 @@ export default function VehicleDetailPage() {
       .then((data) => setVehicle(data))
       .catch(() => setError("Không thể tải thông tin xe."))
       .finally(() => setIsLoading(false));
+    getVehicleReviews(Number(id)).then(setReviews).catch(() => {});
   }, [id]);
 
   if (isLoading) return <VehicleDetailSkeleton />;
@@ -201,6 +206,22 @@ export default function VehicleDetailPage() {
             <p className="text-sm text-slate-800">{vehicle.address}</p>
             {vehicle.areaName && <p className="mt-1 text-xs text-slate-500">{vehicle.areaName}</p>}
           </div>
+
+          {reviews.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                  <Star className="h-3.5 w-3.5 text-yellow-500" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Đánh giá ({reviews.length})</h2>
+              </div>
+              <div className="space-y-3">
+                {reviews.map((r) => (
+                  <ReviewCard key={r.id} review={r} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">

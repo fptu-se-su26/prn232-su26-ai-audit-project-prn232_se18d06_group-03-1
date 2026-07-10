@@ -32,12 +32,18 @@ public class PublicVehiclesController : BaseApiController
         [FromQuery] string? bodyType = null,
         [FromQuery] string? bikeType = null,
         [FromQuery] string? engineCapacity = null,
+        [FromQuery] decimal? priceFrom = null,
+        [FromQuery] decimal? priceTo = null,
+        [FromQuery] string? featureIds = null,
+        [FromQuery] DateTime? searchStartDate = null,
+        [FromQuery] DateTime? searchEndDate = null,
         CancellationToken cancellationToken = default)
     {
         var result = await _publicVehicleService.GetAvailableVehiclesAsync(
             type, keyword, sortBy, page, pageSize,
             brandId, modelId, fuelType, seatCount,
-            transmission, bodyType, bikeType, engineCapacity, cancellationToken);
+            transmission, bodyType, bikeType, engineCapacity,
+            priceFrom, priceTo, featureIds, searchStartDate, searchEndDate, cancellationToken);
         return Success(result);
     }
 

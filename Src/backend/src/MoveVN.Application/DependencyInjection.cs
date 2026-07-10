@@ -10,6 +10,8 @@ using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Services;
+using MoveVN.Application.Modules.Reviews.Interfaces;
+using MoveVN.Application.Modules.Reviews.Services;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Application.Modules.Owner.Services;
 using MoveVN.Application.Modules.Notifications.Interfaces;
@@ -84,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();
         services.AddScoped<ISupportTicketService, SupportTicketService>();
+        services.AddScoped<IReviewService, ReviewService>();
 
         return services;
     }

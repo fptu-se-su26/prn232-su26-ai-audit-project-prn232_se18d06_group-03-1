@@ -227,6 +227,35 @@ public class BookingService : IBookingService
         return await MapAsync(booking, cancellationToken);
     }
 
+    public async Task<BookingResponse> CompleteAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.CustomerId != customerId)
+            throw new ValidationException(new[] { "Bạn không có quyền xác nhận hoàn tất booking này." });
+
+        if (booking.Status != "DepositPaid" && booking.Status != "Confirmed")
+            throw new ValidationException(new[] { "Booking chưa thể hoàn tất." });
+
+        var oldStatus = booking.Status;
+        booking.Status = "Completed";
+        booking.UpdatedAt = DateTime.UtcNow;
+        _repo.Update(booking);
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = oldStatus,
+            ToStatus = "Completed",
+            ChangedBy = customerId,
+            Note = "Khách hàng xác nhận đã hoàn tất chuyến đi",
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+        return await MapAsync(booking, cancellationToken);
+    }
+
     public async Task<BookingResponse> ConfirmDepositAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
     {
         var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)

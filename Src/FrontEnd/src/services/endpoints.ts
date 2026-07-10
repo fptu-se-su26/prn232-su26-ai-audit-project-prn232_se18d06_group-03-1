@@ -70,6 +70,14 @@ export const endpoints = {
     approve: (id: number) => `/api/bookings/${id}/approve`,
     reject: (id: number) => `/api/bookings/${id}/reject`,
     confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
+    complete: (id: number) => `/api/bookings/${id}/complete`,
+  },
+  reviews: {
+    customer: "/api/reviews/customer",
+    owner: "/api/reviews/owner",
+    byBooking: (id: number) => `/api/reviews/booking/${id}`,
+    byVehicle: (id: number) => `/api/reviews/vehicle/${id}`,
+    hasReviewed: (id: number) => `/api/reviews/booking/${id}/has-reviewed`,
   },
   supportTickets: {
     base: "/api/support-tickets",
