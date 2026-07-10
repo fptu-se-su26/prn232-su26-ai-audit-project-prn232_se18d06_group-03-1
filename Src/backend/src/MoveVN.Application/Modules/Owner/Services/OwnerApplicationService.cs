@@ -9,6 +9,8 @@ using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
+using MoveVN.Application.Modules.Notifications.DTOs;
+using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Domain.Entities;
@@ -26,6 +28,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly IAuthActivityLogger _activityLogger;
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly IOtpService _otpService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<OwnerApplicationService> _logger;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -38,6 +41,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         IAuthActivityLogger activityLogger,
         IPasswordHasherService passwordHasherService,
         IOtpService otpService,
+        INotificationService notificationService,
         ILogger<OwnerApplicationService> logger,
         IUnitOfWork unitOfWork)
     {
@@ -49,6 +53,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _activityLogger = activityLogger;
         _passwordHasherService = passwordHasherService;
         _otpService = otpService;
+        _notificationService = notificationService;
         _logger = logger;
         _unitOfWork = unitOfWork;
     }
@@ -288,6 +293,14 @@ public class OwnerApplicationService : IOwnerApplicationService
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _activityLogger.LogAsync(userId, user.Email, AuthEventType.OwnerApplicationSubmitted, null, null, cancellationToken: cancellationToken);
             await _activityLogger.LogAsync(userId, user.Email, AuthEventType.OwnerRoleAssigned, null, null, cancellationToken: cancellationToken);
+            await NotifyOwnerApplicationAsync(
+                userId,
+                application,
+                "Ho so chu xe da duoc duyet",
+                "Ban da tro thanh chu xe tren MoveVN. Vui long lam moi dang nhap neu chua thay vai tro moi.",
+                "/become-owner",
+                "OwnerApplicationApproved",
+                cancellationToken);
         }
         finally
         {
@@ -485,16 +498,61 @@ public class OwnerApplicationService : IOwnerApplicationService
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-            await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
+                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
 
-            return new NationalIdUploadResponse
+                return new NationalIdUploadResponse
+                {
+                    Status = "Verified",
+                    NationalIdVerified = true,
+                    OwnerApplicationStatus = application.Status,
+                    NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo"
+                };
+            }
+            else if (fptResult.IsBlurry || fptResult.IsLowConfidence)
             {
-                Status = "Verified",
-                NationalIdVerified = true,
-                OwnerApplicationStatus = application.Status,
-                NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo"
-            };
+                verificationRequest.Status = "NeedMoreInfo";
+                verificationRequest.DecisionReason = fptResult.IsBlurry
+                    ? "Ảnh CCCD bị mờ. Vui lòng upload ảnh rõ nét hơn."
+                    : "Chất lượng ảnh CCCD không đủ tốt. Vui lòng upload ảnh chất lượng cao hơn.";
+
+                application.UpdatedAt = DateTime.UtcNow;
+                _userRepository.UpdateOwnerApplication(application);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdNeedMoreInfo, null, null, cancellationToken: cancellationToken);
+
+                return new NationalIdUploadResponse
+                {
+                    Status = "NeedMoreInfo",
+                    NationalIdVerified = false,
+                    OwnerApplicationStatus = application.Status,
+                    NextStep = "UploadNationalId",
+                    Message = verificationRequest.DecisionReason
+                };
+            }
+            else
+            {
+                verificationRequest.Status = "Rejected";
+                verificationRequest.DecisionReason = fptResult.ErrorMessage ?? "FPT.AI could not verify the provided images.";
+
+                application.UpdatedAt = DateTime.UtcNow;
+                _userRepository.UpdateOwnerApplication(application);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdRejected, null, null, cancellationToken: cancellationToken);
+
+                return new NationalIdUploadResponse
+                {
+                    Status = "Rejected",
+                    NationalIdVerified = false,
+                    OwnerApplicationStatus = application.Status,
+                    NextStep = "UploadNationalId",
+                    Message = verificationRequest.DecisionReason
+                };
+            }
         }
         catch (AppException)
         {
@@ -512,172 +570,6 @@ public class OwnerApplicationService : IOwnerApplicationService
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             throw new AppException(ErrorCode.OWNER_VERIFICATION_REQUEST_FAILED, [ex.Message]);
-        }
-    }
-
-    private class PreVerifyResult
-    {
-        public string NationalId { get; set; } = string.Empty;
-        public decimal Confidence { get; set; }
-        public DateOnly? DateOfBirth { get; set; }
-        public string? Address { get; set; }
-        public string RawResponse { get; set; } = string.Empty;
-    }
-
-    private async Task<PreVerifyResult?> PreVerifyNationalIdAsync(byte[] frontBytes, string frontFileName, CancellationToken cancellationToken)
-    {
-        try
-        {
-            const string baseUrl = "http://127.0.0.1:8001";
-            const string apiKey = "dev-ai-verification-key";
-
-            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-
-            using var formData = new MultipartFormDataContent();
-            using var imageContent = new ByteArrayContent(frontBytes);
-            imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-            formData.Add(imageContent, "frontImage", frontFileName);
-
-            var response = await httpClient.PostAsync($"{baseUrl.TrimEnd('/')}/verify/national-id/upload", formData, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Python pre-verify returned {StatusCode}.", response.StatusCode);
-                return null;
-            }
-
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(body);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("success", out var successEl) || !successEl.GetBoolean())
-            {
-                _logger.LogWarning("Python pre-verify failed. Body: {Body}", body);
-                return null;
-            }
-
-            if (!root.TryGetProperty("extracted", out var extracted))
-                return null;
-
-            var nationalId = extracted.TryGetProperty("nationalId", out var idEl) ? idEl.GetString() : null;
-            if (string.IsNullOrWhiteSpace(nationalId))
-                return null;
-
-            var confidence = root.TryGetProperty("confidence", out var confEl) ? confEl.GetDecimal() : 0;
-
-            DateOnly? dateOfBirth = null;
-            if (extracted.TryGetProperty("dateOfBirth", out var dobEl))
-            {
-                var dobStr = dobEl.GetString();
-                if (DateOnly.TryParse(dobStr, out var dob))
-                    dateOfBirth = dob;
-            }
-
-            var address = extracted.TryGetProperty("address", out var addrEl) ? addrEl.GetString() : null;
-
-            return new PreVerifyResult
-            {
-                NationalId = nationalId,
-                Confidence = confidence,
-                DateOfBirth = dateOfBirth,
-                Address = address,
-                RawResponse = body
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Python pre-verify failed with exception.");
-            return null;
-        }
-    }
-
-    private async Task<bool> TryFallbackAiVerification(
-        VerificationRequest verificationRequest,
-        CustomerProfile customerProfile,
-        OwnerApplication application,
-        long userId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            const string baseUrl = "http://127.0.0.1:8001";
-            const string apiKey = "dev-ai-verification-key";
-
-            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            httpClient.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-
-            var payload = JsonSerializer.Serialize(new
-            {
-                frontImageUrl = verificationRequest.FrontImageUrl,
-                backImageUrl = verificationRequest.BackImageUrl
-            });
-
-            using var httpContent = new StringContent(payload, Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync($"{baseUrl.TrimEnd('/')}/verify/national-id", httpContent, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Fallback AI verification returned {StatusCode}.", response.StatusCode);
-                return false;
-            }
-
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(body);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("success", out var successEl) || !successEl.GetBoolean())
-            {
-                _logger.LogWarning("Fallback AI verification failed. Body: {Body}", body);
-                return false;
-            }
-
-            if (!root.TryGetProperty("extracted", out var extracted))
-            {
-                return false;
-            }
-
-            var nationalId = extracted.TryGetProperty("nationalId", out var idEl) ? idEl.GetString() : null;
-            if (string.IsNullOrWhiteSpace(nationalId))
-            {
-                return false;
-            }
-
-            verificationRequest.ExternalProvider = "AI_VERIFICATION";
-            verificationRequest.ExternalResultJson = body;
-            verificationRequest.Confidence = root.TryGetProperty("confidence", out var confEl) ? confEl.GetDecimal() : 0;
-            verificationRequest.ProcessedAt = DateTime.UtcNow;
-            verificationRequest.Status = "Verified";
-            verificationRequest.DecisionReason = "AI verification (fallback) passed.";
-
-            customerProfile.NationalId = nationalId;
-            customerProfile.NationalIdHash = HashNationalId(nationalId);
-            customerProfile.NationalIdMasked = MaskNationalId(nationalId);
-
-            if (extracted.TryGetProperty("dateOfBirth", out var dobEl))
-            {
-                var dobStr = dobEl.GetString();
-                if (DateOnly.TryParse(dobStr, out var dob))
-                    customerProfile.DateOfBirth = dob;
-            }
-
-            if (extracted.TryGetProperty("address", out var addrEl))
-                customerProfile.Address = addrEl.GetString();
-
-            customerProfile.NationalIdVerified = true;
-            _userRepository.UpdateCustomerProfile(customerProfile);
-
-            bool bankInfoCompleted = !string.IsNullOrWhiteSpace(application.BankName)
-                && !string.IsNullOrWhiteSpace(application.BankAccountNumber);
-            application.Status = bankInfoCompleted ? "ReadyToSubmit" : "WaitingBankInfo";
-            application.NationalIdVerificationRequestId = verificationRequest.Id;
-            _userRepository.UpdateOwnerApplication(application);
-
-            _logger.LogInformation("Fallback AI verification succeeded for user {UserId}.", userId);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fallback AI verification failed for user {UserId}.", userId);
-            return false;
         }
     }
 

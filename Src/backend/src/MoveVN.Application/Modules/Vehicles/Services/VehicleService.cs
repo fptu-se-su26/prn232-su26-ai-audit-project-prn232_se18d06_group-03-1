@@ -20,19 +20,22 @@ public class VehicleService : IVehicleService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IVehicleRegistrationVerificationService _vehicleRegistrationVerificationService;
     private readonly IVehicleVerificationLogService _vehicleVerificationLogService;
+    private readonly IVehicleDocumentUploadAttemptLimiter _uploadAttemptLimiter;
 
     public VehicleService(
         IVehicleCatalogRepository repository,
         IPricingCalculatorService pricingCalculator,
         ICloudinaryService cloudinaryService,
         IVehicleRegistrationVerificationService vehicleRegistrationVerificationService,
-        IVehicleVerificationLogService vehicleVerificationLogService)
+        IVehicleVerificationLogService vehicleVerificationLogService,
+        IVehicleDocumentUploadAttemptLimiter uploadAttemptLimiter)
     {
         _repository = repository;
         _pricingCalculator = pricingCalculator;
         _cloudinaryService = cloudinaryService;
         _vehicleRegistrationVerificationService = vehicleRegistrationVerificationService;
         _vehicleVerificationLogService = vehicleVerificationLogService;
+        _uploadAttemptLimiter = uploadAttemptLimiter;
     }
 
     public async Task<PagedResult<VehicleListItemResponse>> GetMyVehiclesAsync(
@@ -113,6 +116,11 @@ public class VehicleService : IVehicleService
 
     public async Task<VehicleResponse> CreateAsync(long ownerId, CreateVehicleRequest request, CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrWhiteSpace(request.DocumentFileUrl))
+        {
+            await EnsureDocumentUploadAllowedAsync(ownerId, cancellationToken);
+        }
+
         var brand = await _repository.GetVehicleBrandByIdAsync(request.BrandId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
         var model = await _repository.GetVehicleModelByIdAsync(request.ModelId, cancellationToken)
@@ -244,12 +252,20 @@ public class VehicleService : IVehicleService
         var vehicle = await _repository.GetVehicleByIdAndOwnerIdAsync(id, ownerId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
+        await EnsureDocumentUploadAllowedAsync(ownerId, cancellationToken);
+
+        var existingCurrentDocuments = await _repository.GetCurrentVehicleDocumentsAsync(vehicle.Id, cancellationToken);
+        if (existingCurrentDocuments.Any(document =>
+                document.VerificationStatus is VehicleDocumentVerificationStatus.Pending
+                    or VehicleDocumentVerificationStatus.ManualReview))
+        {
+            throw new AppException(ErrorCode.VEHICLE_DOCUMENT_VERIFICATION_PENDING);
+        }
+
         var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
         var model = await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
-
-        var existingCurrentDocuments = await _repository.GetCurrentVehicleDocumentsAsync(vehicle.Id, cancellationToken);
 
         foreach (var existing in existingCurrentDocuments)
         {
@@ -376,25 +392,10 @@ public class VehicleService : IVehicleService
             FileUrl = document.FileUrl
         };
 
+        VehicleRegistrationVerificationResult result;
         try
         {
-            var result = await _vehicleRegistrationVerificationService.VerifyAsync(request, cancellationToken);
-            ApplyVerificationResult(vehicle, document, result);
-            await _repository.SaveChangesAsync(cancellationToken);
-
-            await _vehicleVerificationLogService.LogAsync(new VehicleVerificationLogEntry
-            {
-                VehicleId = vehicle.Id,
-                VehicleDocumentId = document.Id,
-                OwnerId = vehicle.OwnerId,
-                Request = request,
-                Response = result,
-                Recommendation = result.Recommendation,
-                Flags = result.Flags,
-                OcrConfidence = result.OcrConfidence,
-                Message = result.Message,
-                FilePublicId = document.FilePublicId
-            }, cancellationToken);
+            result = await _vehicleRegistrationVerificationService.VerifyAsync(request, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -414,7 +415,35 @@ public class VehicleService : IVehicleService
                 ErrorMessage = ex.Message,
                 FilePublicId = document.FilePublicId
             }, cancellationToken);
+
+            return;
         }
+
+        ApplyVerificationResult(vehicle, document, result);
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        if (result.Recommendation is "Reject" or "NeedMoreInfo")
+        {
+            await _uploadAttemptLimiter.RegisterFailureAsync(vehicle.OwnerId, cancellationToken);
+        }
+        else if (result.Recommendation is "Pass" or "ManualReview")
+        {
+            await _uploadAttemptLimiter.RegisterAcceptedAsync(vehicle.OwnerId, cancellationToken);
+        }
+
+        await _vehicleVerificationLogService.LogAsync(new VehicleVerificationLogEntry
+        {
+            VehicleId = vehicle.Id,
+            VehicleDocumentId = document.Id,
+            OwnerId = vehicle.OwnerId,
+            Request = request,
+            Response = result,
+            Recommendation = result.Recommendation,
+            Flags = result.Flags,
+            OcrConfidence = result.OcrConfidence,
+            Message = result.Message,
+            FilePublicId = document.FilePublicId
+        }, cancellationToken);
     }
 
     private static void ApplyVerificationResult(
@@ -465,6 +494,17 @@ public class VehicleService : IVehicleService
         return result.Flags.Count == 0
             ? null
             : string.Join(", ", result.Flags);
+    }
+
+    private async Task EnsureDocumentUploadAllowedAsync(long ownerId, CancellationToken cancellationToken)
+    {
+        var state = await _uploadAttemptLimiter.GetStateAsync(ownerId, cancellationToken);
+        if (state.IsLocked)
+        {
+            throw new AppException(
+                ErrorCode.VEHICLE_DOCUMENT_UPLOAD_LOCKED,
+                state.LockedUntil.HasValue ? [state.LockedUntil.Value.ToString("O")] : null);
+        }
     }
 
     private static VehicleDocumentResponse ToVehicleDocumentResponse(VehicleDocument doc)

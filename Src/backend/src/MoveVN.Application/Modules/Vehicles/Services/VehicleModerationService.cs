@@ -17,17 +17,23 @@ public class VehicleModerationService : IVehicleModerationService
     private readonly IVehicleCatalogRepository _repository;
     private readonly IUserRepository _userRepository;
     private readonly IVehicleVerificationLogQueryService _logQueryService;
+    private readonly IVehicleVerificationLogService _logService;
+    private readonly IVehicleDocumentUploadAttemptLimiter _uploadAttemptLimiter;
     private readonly ICurrentUserContext _currentUserContext;
 
     public VehicleModerationService(
         IVehicleCatalogRepository repository,
         IUserRepository userRepository,
         IVehicleVerificationLogQueryService logQueryService,
+        IVehicleVerificationLogService logService,
+        IVehicleDocumentUploadAttemptLimiter uploadAttemptLimiter,
         ICurrentUserContext currentUserContext)
     {
         _repository = repository;
         _userRepository = userRepository;
         _logQueryService = logQueryService;
+        _logService = logService;
+        _uploadAttemptLimiter = uploadAttemptLimiter;
         _currentUserContext = currentUserContext;
     }
 
@@ -227,6 +233,9 @@ public class VehicleModerationService : IVehicleModerationService
                 OcrConfidence = log.OcrConfidence,
                 Message = log.Message,
                 ErrorMessage = log.ErrorMessage,
+                Provider = log.Provider,
+                Action = log.Action,
+                ActorUserId = log.ActorUserId,
                 CreatedAt = log.CreatedAt
             }).ToList(),
             CreatedAt = vehicle.CreatedAt
@@ -235,12 +244,16 @@ public class VehicleModerationService : IVehicleModerationService
 
     public async Task ApproveDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default)
     {
+        var vehicle = await GetVehicleAsync(vehicleId, cancellationToken);
         var document = await GetDocumentAsync(vehicleId, documentId, cancellationToken);
         document.Verified = true;
         document.VerificationStatus = VehicleDocumentVerificationStatus.Verified;
+        document.VerificationProvider = "MANUAL_REVIEW";
         document.ProcessedAt = DateTime.UtcNow;
         document.DecisionReason = null;
         await _repository.SaveChangesAsync(cancellationToken);
+        await _uploadAttemptLimiter.RegisterAcceptedAsync(vehicle.OwnerId, cancellationToken);
+        await LogManualDecisionAsync(vehicle, document, "Approve", "Pass", "Nhân viên đã duyệt cà vẹt xe.", cancellationToken);
     }
 
     public async Task RejectDocumentAsync(long vehicleId, long documentId, string reason, CancellationToken cancellationToken = default)
@@ -253,11 +266,14 @@ public class VehicleModerationService : IVehicleModerationService
 
         document.Verified = false;
         document.VerificationStatus = VehicleDocumentVerificationStatus.Rejected;
+        document.VerificationProvider = "MANUAL_REVIEW";
         document.ProcessedAt = DateTime.UtcNow;
         document.DecisionReason = reason;
         vehicle.Status = VehicleStatus.Rejected;
         vehicle.RejectionReason = reason;
         await _repository.SaveChangesAsync(cancellationToken);
+        await _uploadAttemptLimiter.RegisterFailureAsync(vehicle.OwnerId, cancellationToken);
+        await LogManualDecisionAsync(vehicle, document, "Reject", "Reject", reason.Trim(), cancellationToken);
     }
 
     public async Task RequestMoreInfoAsync(long vehicleId, long documentId, string reason, CancellationToken cancellationToken = default)
@@ -265,12 +281,16 @@ public class VehicleModerationService : IVehicleModerationService
         if (string.IsNullOrWhiteSpace(reason))
             throw new AppException(ErrorCode.STAFF_REASON_REQUIRED);
 
+        var vehicle = await GetVehicleAsync(vehicleId, cancellationToken);
         var document = await GetDocumentAsync(vehicleId, documentId, cancellationToken);
         document.Verified = false;
         document.VerificationStatus = VehicleDocumentVerificationStatus.NeedMoreInfo;
+        document.VerificationProvider = "MANUAL_REVIEW";
         document.ProcessedAt = DateTime.UtcNow;
         document.DecisionReason = reason;
         await _repository.SaveChangesAsync(cancellationToken);
+        await _uploadAttemptLimiter.RegisterFailureAsync(vehicle.OwnerId, cancellationToken);
+        await LogManualDecisionAsync(vehicle, document, "RequestMoreInfo", "NeedMoreInfo", reason.Trim(), cancellationToken);
     }
 
     public async Task ApproveListingAsync(long vehicleId, bool allowOverride, CancellationToken cancellationToken = default)
@@ -311,6 +331,34 @@ public class VehicleModerationService : IVehicleModerationService
     {
         return await _repository.GetVehicleDocumentAsync(vehicleId, documentId, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_DOCUMENT_NOT_FOUND);
+    }
+
+    private Task LogManualDecisionAsync(
+        Vehicle vehicle,
+        VehicleDocument document,
+        string action,
+        string recommendation,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        return _logService.LogAsync(new VehicleVerificationLogEntry
+        {
+            VehicleId = vehicle.Id,
+            VehicleDocumentId = document.Id,
+            OwnerId = vehicle.OwnerId,
+            Provider = "MANUAL_REVIEW",
+            Action = action,
+            ActorUserId = _currentUserContext.UserId,
+            Recommendation = recommendation,
+            Message = message,
+            FilePublicId = document.FilePublicId,
+            Response = new
+            {
+                Status = document.VerificationStatus.ToString(),
+                document.Verified,
+                Reason = document.DecisionReason
+            }
+        }, cancellationToken);
     }
 
     private static VehicleDocumentResponse ToVehicleDocumentResponse(VehicleDocument doc)

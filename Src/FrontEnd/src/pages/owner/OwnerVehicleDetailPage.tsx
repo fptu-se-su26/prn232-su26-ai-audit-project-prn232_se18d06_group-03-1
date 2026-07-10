@@ -10,6 +10,7 @@ import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import Button from "@/components/common/Button";
 import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
+import { getVehicleErrorMessage } from "@/features/vehicles/vehicleDisplay";
 
 function splitAreaName(areaName: string | null) {
   if (!areaName) return { province: "-", ward: "-" };
@@ -231,8 +232,8 @@ export default function OwnerVehicleDetailPage() {
       const updated = await uploadVehicleDocument(vehicle.id, documentFile);
       setVehicle(updated ?? await getVehicleById(vehicle.id));
       setDocumentFile(null);
-    } catch {
-      setDocumentError("Không thể gửi lại giấy tờ xe. Vui lòng thử lại.");
+    } catch (error) {
+      setDocumentError(getVehicleErrorMessage(error));
     } finally {
       setIsUploadingDocument(false);
     }

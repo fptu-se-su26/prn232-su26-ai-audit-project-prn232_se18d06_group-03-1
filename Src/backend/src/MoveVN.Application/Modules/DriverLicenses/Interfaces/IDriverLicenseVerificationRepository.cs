@@ -8,8 +8,8 @@ public interface IDriverLicenseVerificationRepository
 {
     Task<VerificationRequest?> GetLatestByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetLatestVerifiedByUserIdAsync(long userId, CancellationToken cancellationToken = default);
-    Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, CancellationToken cancellationToken = default);
-    Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, string vehicleType, CancellationToken cancellationToken = default);
+    Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, string vehicleType, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task AddAsync(VerificationRequest request, CancellationToken cancellationToken = default);
     void Update(VerificationRequest request);

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoveVN.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MoveVN.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710114621_AddCustomerDriverLicenses")]
+    partial class AddCustomerDriverLicenses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -638,9 +641,29 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("date_of_birth");
 
+                    b.Property<string>("DriverLicenseClass")
+                        .HasColumnType("text")
+                        .HasColumnName("driver_license_class");
+
+                    b.Property<string>("DriverLicenseNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("driver_license_number");
+
+                    b.Property<long?>("DriverLicenseVerificationRequestId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("driver_license_verification_request_id");
+
                     b.Property<bool>("DriverLicenseVerified")
                         .HasColumnType("boolean")
                         .HasColumnName("driver_license_verified");
+
+                    b.Property<DateTime?>("DriverLicenseVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("driver_license_verified_at");
+
+                    b.Property<string>("DriverLicenseVerifiedVehicleTypes")
+                        .HasColumnType("text")
+                        .HasColumnName("driver_license_verified_vehicle_types");
 
                     b.Property<string>("NationalId")
                         .HasColumnType("text")
@@ -667,6 +690,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DriverLicenseVerificationRequestId");
+
+                    b.HasIndex("DriverLicenseVerifiedVehicleTypes");
 
                     b.HasIndex("NationalIdHash");
 
@@ -2969,6 +2996,14 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasForeignKey("VerificationRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("MoveVN.Domain.Entities.CustomerProfile", b =>
+                {
+                    b.HasOne("MoveVN.Domain.Entities.VerificationRequest", null)
+                        .WithMany()
+                        .HasForeignKey("DriverLicenseVerificationRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.DriverLicenseClassCompatibility", b =>

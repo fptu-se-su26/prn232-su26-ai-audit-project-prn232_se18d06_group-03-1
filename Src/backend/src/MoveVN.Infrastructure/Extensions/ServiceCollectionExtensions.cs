@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IDriverLicenseVerificationRepository, DriverLicenseVerificationRepository>();
+        services.AddScoped<ICustomerDriverLicenseRepository, CustomerDriverLicenseRepository>();
         services.AddScoped<IVehicleCatalogRepository, VehicleCatalogRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
@@ -69,6 +70,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICloudinaryService, CloudinaryService>();
         services.AddSingleton<IRedisLockService, RedisLockService>();
         services.AddSingleton<IDriverLicenseUploadAttemptLimiter, RedisDriverLicenseUploadAttemptLimiter>();
+        services.AddSingleton<IVehicleDocumentUploadAttemptLimiter, RedisVehicleDocumentUploadAttemptLimiter>();
         services.AddScoped<IFptAiService, FptAiService>();
         services.AddScoped<IPresenceService, RedisPresenceService>();
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();

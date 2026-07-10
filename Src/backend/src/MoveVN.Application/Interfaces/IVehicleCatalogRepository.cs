@@ -35,6 +35,7 @@ public interface IVehicleCatalogRepository
     Task<VehicleModel?> GetVehicleModelByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<VehicleModelVariant?> GetVehicleModelVariantByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<DriverLicenseClass?> GetDriverLicenseClassByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<string>> GetAllowedVehicleTypesForDriverLicenseClassesAsync(IReadOnlyCollection<string> licenseClassCodes, CancellationToken cancellationToken = default);
     Task<VehicleFeature?> GetVehicleFeatureByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<Area?> GetAreaByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<PricingRegion?> GetPricingRegionByIdAsync(int id, CancellationToken cancellationToken = default);

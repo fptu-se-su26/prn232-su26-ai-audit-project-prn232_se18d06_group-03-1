@@ -32,23 +32,25 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, CancellationToken cancellationToken = default)
+    public Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, string vehicleType, CancellationToken cancellationToken = default)
     {
         return _context.VerificationRequests
             .Where(x => x.UserId == userId
                 && x.Type == "DriverLicense"
                 && x.Status == "Verified"
+                && x.RequestedVehicleType == vehicleType
                 && x.Id != currentRequestId
                 && x.DeletedAt == null)
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    public Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
     {
         return _context.VerificationRequests
             .Where(x => x.UserId == userId
                 && x.Type == "DriverLicense"
+                && x.RequestedVehicleType == vehicleType
                 && (x.Status == "Pending" || x.Status == "Processing"))
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -110,6 +112,7 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
                 x.user.FullName,
                 x.user.Email,
                 x.request.Status,
+                x.request.RequestedVehicleType,
                 x.request.Confidence,
                 x.request.DecisionReason,
                 x.request.ExternalResultJson,
@@ -141,6 +144,7 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
                 UserFullName = x.FullName,
                 UserEmail = x.Email,
                 Status = x.Status,
+                RequestedVehicleType = x.RequestedVehicleType,
                 Confidence = x.Confidence,
                 DecisionReason = x.DecisionReason,
                 LicenseClass = licenseClass,
@@ -171,6 +175,7 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
                     Type = request.Type,
                     Status = request.Status,
                     FrontImageUrl = request.FrontImageUrl,
+                    RequestedVehicleType = request.RequestedVehicleType,
                     ExternalProvider = request.ExternalProvider,
                     ExternalResultJson = request.ExternalResultJson,
                     Confidence = request.Confidence,

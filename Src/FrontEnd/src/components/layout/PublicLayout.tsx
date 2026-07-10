@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Link, Outlet } from "react-router-dom";
 import {
   CalendarDays,
@@ -10,7 +11,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import NotificationMenu from "@/components/layout/NotificationMenu";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import useClickOutside from "@/hooks/useClickOutside";
@@ -32,6 +33,7 @@ export default function PublicLayout() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const dashboardPath = getDashboardPath(user?.roles ?? []);
+  const isSignedIn = Boolean(token && user);
 
   const initials =
     user?.fullName
@@ -113,64 +115,68 @@ export default function PublicLayout() {
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
 
-              {token && user ? (
-                <div ref={accountRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setAccountOpen((value) => !value)}
-                    className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-100 dark:hover:border-brand-600"
-                  >
-                    {user.avatarUrl ? (
-                      <img
-                        src={user.avatarUrl}
-                        alt={user.fullName}
-                        className="h-9 w-9 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
-                        {initials}
-                      </span>
-                    )}
-                    <span className="max-w-32 truncate">{user.fullName}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
+              {isSignedIn ? (
+                <>
+                  <NotificationMenu variant="public" />
 
-                  {accountOpen ? (
-                    <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950">
-                      <div className="px-3 py-3">
-                        <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                          {user.fullName}
-                        </p>
-                        <p className="truncate text-xs text-slate-500 dark:text-gray-400">
-                          {user.email}
-                        </p>
+                  <div ref={accountRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setAccountOpen((value) => !value)}
+                      className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-100 dark:hover:border-brand-600"
+                    >
+                      {user?.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.fullName}
+                          className="h-9 w-9 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                          {initials}
+                        </span>
+                      )}
+                      <span className="max-w-32 truncate">{user?.fullName}</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+
+                    {accountOpen ? (
+                      <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-neutral-800 dark:bg-neutral-950">
+                        <div className="px-3 py-3">
+                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                            {user?.fullName}
+                          </p>
+                          <p className="truncate text-xs text-slate-500 dark:text-gray-400">
+                            {user?.email}
+                          </p>
+                        </div>
+                        <div className="h-px bg-slate-100 dark:bg-neutral-800" />
+                        {accountLinks.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.to}
+                              to={item.to}
+                              onClick={() => setAccountOpen(false)}
+                              className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
+                            >
+                              <Icon className="h-4 w-4" />
+                              {item.label}
+                            </Link>
+                          );
+                        })}
+                        <Link
+                          to="/logout"
+                          onClick={() => setAccountOpen(false)}
+                          className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Đăng xuất
+                        </Link>
                       </div>
-                      <div className="h-px bg-slate-100 dark:bg-neutral-800" />
-                      {accountLinks.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.to}
-                            to={item.to}
-                            onClick={() => setAccountOpen(false)}
-                            className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
-                          >
-                            <Icon className="h-4 w-4" />
-                            {item.label}
-                          </Link>
-                        );
-                      })}
-                      <Link
-                        to="/logout"
-                        onClick={() => setAccountOpen(false)}
-                        className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Đăng xuất
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
+                    ) : null}
+                  </div>
+                </>
               ) : (
                 <Link
                   to="/login"
@@ -181,14 +187,17 @@ export default function PublicLayout() {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setMenuOpen((value) => !value)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-800 lg:hidden dark:border-neutral-800 dark:text-gray-100"
-              aria-label="Mở menu"
-            >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            <div className="flex items-center gap-2 lg:hidden">
+              {isSignedIn ? <NotificationMenu variant="public" /> : null}
+              <button
+                type="button"
+                onClick={() => setMenuOpen((value) => !value)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-800 dark:border-neutral-800 dark:text-gray-100"
+                aria-label="Mở menu"
+              >
+                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
 
           {menuOpen ? (
@@ -230,7 +239,7 @@ export default function PublicLayout() {
                   {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                   {darkMode ? "Sáng" : "Tối"}
                 </button>
-                {token && user ? (
+                {isSignedIn ? (
                   <Link
                     to={dashboardPath}
                     onClick={() => setMenuOpen(false)}
