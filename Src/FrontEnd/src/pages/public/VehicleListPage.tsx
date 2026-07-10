@@ -305,7 +305,7 @@ export default function VehicleListPage() {
                       <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={() => navigate(`/xe/${vehicle.id}`)}>
                         Xem chi tiết
                       </Button>
-                      <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => navigate(`/customer/bookings/new?vehicleId=${vehicle.id}`)}>
+                      <Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => navigate(`/booking/new?vehicleId=${vehicle.id}`)}>
                         <CalendarCheck className="h-3.5 w-3.5" /> Đặt ngay
                       </Button>
                     </div>

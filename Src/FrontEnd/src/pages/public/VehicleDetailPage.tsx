@@ -227,7 +227,7 @@ export default function VehicleDetailPage() {
             <h2 className="text-sm font-semibold text-slate-900">Đặt xe</h2>
             {token && user ? (
               <div className="mt-4 flex flex-col gap-2">
-                <Button type="button" onClick={() => navigate(`/customer/bookings/new?vehicleId=${id}`)}>
+                <Button type="button" onClick={() => navigate(`/booking/new?vehicleId=${id}`)}>
                   <CalendarCheck className="h-4 w-4" /> Đặt ngay
                 </Button>
               </div>
