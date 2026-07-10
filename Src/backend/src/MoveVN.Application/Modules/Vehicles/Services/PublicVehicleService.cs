@@ -31,10 +31,13 @@ public class PublicVehicleService : IPublicVehicleService
         string? transmission, string? bodyType, string? bikeType, string? engineCapacity,
         decimal? priceFrom = null, decimal? priceTo = null, string? featureIds = null,
         DateTime? searchStartDate = null, DateTime? searchEndDate = null,
+        string? brandIds = null, string? transmissions = null, string? fuelTypes = null,
+        string? bodyTypes = null, string? bikeTypes = null,
         CancellationToken cancellationToken = default)
         => await _repository.GetAvailableVehiclesAsync(type, keyword, sortBy, page, pageSize,
             brandId, modelId, fuelType, seatCount, transmission, bodyType, bikeType, engineCapacity,
-            priceFrom, priceTo, featureIds, searchStartDate, searchEndDate, cancellationToken);
+            priceFrom, priceTo, featureIds, searchStartDate, searchEndDate,
+            brandIds, transmissions, fuelTypes, bodyTypes, bikeTypes, cancellationToken);
 
     public async Task<VehicleResponse> GetVehicleDetailAsync(long id, CancellationToken cancellationToken = default)
     {

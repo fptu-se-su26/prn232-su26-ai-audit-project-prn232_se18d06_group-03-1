@@ -61,6 +61,7 @@ export const endpoints = {
   publicVehicles: {
     list: "/api/public/vehicles",
     byId: (id: number) => `/api/public/vehicles/${id}`,
+    availability: (id: number) => `/api/public/vehicles/${id}/availability`,
   },
   bookings: {
     base: "/api/bookings",

@@ -140,7 +140,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   ];
 
   if (primaryRole === "Customer") {
-    mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
+    mainItems.push({ to: "/vehicle", label: "Thuê xe", icon: Car });
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
     if (!user?.roles?.includes("Owner")) {
       mainItems.push({ to: "/become-owner", label: "Đăng ký làm chủ xe", icon: UserPlus });
@@ -156,7 +156,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   }
 
   if (primaryRole === "Owner") {
-    mainItems.push({ to: "/xe", label: "Thuê xe", icon: Car });
+    mainItems.push({ to: "/vehicle", label: "Thuê xe", icon: Car });
     mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
   }
 

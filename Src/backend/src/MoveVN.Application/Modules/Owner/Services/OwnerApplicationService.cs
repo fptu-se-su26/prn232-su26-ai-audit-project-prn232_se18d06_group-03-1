@@ -29,6 +29,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly IPasswordHasherService _passwordHasherService;
     private readonly IOtpService _otpService;
     private readonly INotificationService _notificationService;
+    private readonly INationalIdVerificationClient _nationalIdVerificationClient;
     private readonly ILogger<OwnerApplicationService> _logger;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -42,6 +43,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         IPasswordHasherService passwordHasherService,
         IOtpService otpService,
         INotificationService notificationService,
+        INationalIdVerificationClient nationalIdVerificationClient,
         ILogger<OwnerApplicationService> logger,
         IUnitOfWork unitOfWork)
     {
@@ -54,6 +56,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _passwordHasherService = passwordHasherService;
         _otpService = otpService;
         _notificationService = notificationService;
+        _nationalIdVerificationClient = nationalIdVerificationClient;
         _logger = logger;
         _unitOfWork = unitOfWork;
     }
@@ -436,9 +439,9 @@ public class OwnerApplicationService : IOwnerApplicationService
             var backBytes = backMem.ToArray();
 
             // Pre-verify with Python AI service before uploading to Cloudinary
-            var preVerifyResult = await PreVerifyNationalIdAsync(frontBytes, frontFileName, cancellationToken);
+            var preVerifyResult = await _nationalIdVerificationClient.PreVerifyAsync(frontBytes, frontFileName, cancellationToken);
 
-            if (preVerifyResult is null)
+            if (preVerifyResult is null || !preVerifyResult.Success)
             {
                 verificationRequest.Status = "Rejected";
                 verificationRequest.DecisionReason = "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn.";
@@ -475,7 +478,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             verificationRequest.Status = "Verified";
             verificationRequest.ExternalProvider = "AI_VERIFICATION";
             verificationRequest.ExternalResultJson = preVerifyResult.RawResponse;
-            verificationRequest.Confidence = preVerifyResult.Confidence;
+            verificationRequest.Confidence = (decimal)preVerifyResult.Confidence;
             verificationRequest.ProcessedAt = DateTime.UtcNow;
             verificationRequest.DecisionReason = "AI pre-verification passed.";
 
@@ -483,7 +486,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             customerProfile.NationalIdHash = HashNationalId(preVerifyResult.NationalId);
             customerProfile.NationalIdMasked = MaskNationalId(preVerifyResult.NationalId);
             if (preVerifyResult.DateOfBirth.HasValue)
-                customerProfile.DateOfBirth = preVerifyResult.DateOfBirth.Value;
+                customerProfile.DateOfBirth = DateOnly.FromDateTime(preVerifyResult.DateOfBirth.Value);
             customerProfile.Address = preVerifyResult.Address;
             customerProfile.NationalIdVerified = true;
             _userRepository.UpdateCustomerProfile(customerProfile);
@@ -498,61 +501,16 @@ public class OwnerApplicationService : IOwnerApplicationService
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
 
-                return new NationalIdUploadResponse
-                {
-                    Status = "Verified",
-                    NationalIdVerified = true,
-                    OwnerApplicationStatus = application.Status,
-                    NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo"
-                };
-            }
-            else if (fptResult.IsBlurry || fptResult.IsLowConfidence)
+            return new NationalIdUploadResponse
             {
-                verificationRequest.Status = "NeedMoreInfo";
-                verificationRequest.DecisionReason = fptResult.IsBlurry
-                    ? "Ảnh CCCD bị mờ. Vui lòng upload ảnh rõ nét hơn."
-                    : "Chất lượng ảnh CCCD không đủ tốt. Vui lòng upload ảnh chất lượng cao hơn.";
-
-                application.UpdatedAt = DateTime.UtcNow;
-                _userRepository.UpdateOwnerApplication(application);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdNeedMoreInfo, null, null, cancellationToken: cancellationToken);
-
-                return new NationalIdUploadResponse
-                {
-                    Status = "NeedMoreInfo",
-                    NationalIdVerified = false,
-                    OwnerApplicationStatus = application.Status,
-                    NextStep = "UploadNationalId",
-                    Message = verificationRequest.DecisionReason
-                };
-            }
-            else
-            {
-                verificationRequest.Status = "Rejected";
-                verificationRequest.DecisionReason = fptResult.ErrorMessage ?? "FPT.AI could not verify the provided images.";
-
-                application.UpdatedAt = DateTime.UtcNow;
-                _userRepository.UpdateOwnerApplication(application);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdRejected, null, null, cancellationToken: cancellationToken);
-
-                return new NationalIdUploadResponse
-                {
-                    Status = "Rejected",
-                    NationalIdVerified = false,
-                    OwnerApplicationStatus = application.Status,
-                    NextStep = "UploadNationalId",
-                    Message = verificationRequest.DecisionReason
-                };
-            }
+                Status = "Verified",
+                NationalIdVerified = true,
+                OwnerApplicationStatus = application.Status,
+                NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo"
+            };
         }
         catch (AppException)
         {
@@ -652,5 +610,31 @@ public class OwnerApplicationService : IOwnerApplicationService
             "Rejected" => "Rejected",
             _ => "BecomeOwner"
         };
+    }
+
+    private async Task NotifyOwnerApplicationAsync(
+        long userId,
+        OwnerApplication application,
+        string title,
+        string body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
+    {
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = userId,
+            Type = "OwnerApplication",
+            Title = title,
+            Body = body,
+            DataJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                ownerApplicationId = application.Id,
+                status = application.Status,
+                targetPath,
+                action
+            }),
+            Channel = "InApp"
+        }, cancellationToken);
     }
 }

@@ -27,7 +27,6 @@ public class BookingRepository : IBookingRepository
     {
         var bookingOverlap = await _context.Bookings
             .AnyAsync(b => b.VehicleId == vehicleId
-                && b.Status != "Pending"
                 && b.Status != "Rejected"
                 && b.Status != "Cancelled"
                 && b.StartDate < endDate
@@ -192,6 +191,32 @@ public class BookingRepository : IBookingRepository
 
     public async Task<bool> HasReviewAsync(long bookingId, long reviewerId, CancellationToken cancellationToken = default)
         => await _context.Reviews.AnyAsync(r => r.BookingId == bookingId && r.ReviewerId == reviewerId, cancellationToken);
+
+    public async Task<DateOnly?> GetNextAvailableDateAsync(long vehicleId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    {
+        var startOnly = DateOnly.FromDateTime(startDate);
+        var endOnly = DateOnly.FromDateTime(endDate);
+
+        var blockedEnd = await _context.BlockedDates
+            .Where(bd => bd.VehicleId == vehicleId && bd.StartDate <= endOnly && bd.EndDate >= startOnly)
+            .OrderByDescending(bd => bd.EndDate)
+            .Select(bd => (DateOnly?)bd.EndDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var bookingEnd = await _context.Bookings
+            .Where(b => b.VehicleId == vehicleId
+                && b.StartDate < endDate && b.EndDate > startDate
+                && b.Status != "Cancelled" && b.Status != "Rejected")
+            .OrderByDescending(b => b.EndDate)
+            .Select(b => (DateOnly?)DateOnly.FromDateTime(b.EndDate))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var latestEnd = blockedEnd.HasValue && bookingEnd.HasValue
+            ? (blockedEnd.Value > bookingEnd.Value ? blockedEnd.Value : bookingEnd.Value)
+            : blockedEnd ?? bookingEnd;
+
+        return latestEnd?.AddDays(1);
+    }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);

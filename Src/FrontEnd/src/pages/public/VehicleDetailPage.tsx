@@ -1,8 +1,9 @@
-import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star } from "lucide-react";
+import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
-import type { VehicleResponse } from "@/features/vehicles/types";
+import { getPublicVehicleById, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
+import type { VehicleResponse, BusyPeriod } from "@/features/vehicles/types";
+import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
@@ -11,6 +12,63 @@ import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getVehicleReviews } from "@/features/review/reviewService";
 import type { ReviewResponse } from "@/features/review/reviewService";
 import ReviewCard from "@/features/review/components/ReviewCard";
+
+const MONTHS = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
+const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+function AvailabilityCalendar({ busyPeriods, month, year, onPrev, onNext }: {
+  busyPeriods: BusyPeriod[]; month: number; year: number;
+  onPrev: () => void; onNext: () => void;
+}) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const days: React.ReactNode[] = [];
+  
+  for (let i = 0; i < firstDay; i++) days.push(<div key={`e-${i}`} />);
+  
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const date = new Date(year, month, d);
+    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = date.getTime() < todayNorm.getTime();
+    const isToday = date.getTime() === todayNorm.getTime();
+    
+    const isBusy = busyPeriods.some((bp) => dateStr >= bp.startDate && dateStr <= bp.endDate);
+    
+    let cls = "flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors ";
+    if (isToday) cls += "ring-2 ring-brand-500 font-bold ";
+    if (isPast) cls += "text-slate-200 ";
+    else if (isBusy) cls += "bg-red-100 text-red-700 font-medium ";
+    else cls += "bg-emerald-100 text-emerald-700 ";
+    
+    days.push(<div key={d} className={cls + "mx-auto"}>{d}</div>);
+  }
+  
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">
+          <CalendarDays className="mr-1.5 inline h-4 w-4 text-brand-700" />
+          Lịch khả dụng
+        </h2>
+      </div>
+      <div className="flex items-center justify-between mb-3">
+        <button type="button" onClick={onPrev} className="rounded p-1 text-slate-400 hover:bg-slate-100"><ChevronLeft className="h-4 w-4" /></button>
+        <span className="text-sm font-medium text-slate-700">{MONTHS[month]} {year}</span>
+        <button type="button" onClick={onNext} className="rounded p-1 text-slate-400 hover:bg-slate-100"><ChevronRight className="h-4 w-4" /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {DAYS.map((d) => <div key={d} className="text-xs font-medium text-slate-400 py-1">{d}</div>)}
+        {days}
+      </div>
+      <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-emerald-100" /> Có thể thuê</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full bg-red-100" /> Đã đặt/Chặn</span>
+      </div>
+    </div>
+  );
+}
 
 function formatVnd(value: number | null | undefined) {
   return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
@@ -61,6 +119,12 @@ export default function VehicleDetailPage() {
   const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
+  const [bookingStartDate, setBookingStartDate] = useState("");
+  const [bookingEndDate, setBookingEndDate] = useState("");
+  const [busyPeriods, setBusyPeriods] = useState<BusyPeriod[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!id) return;
@@ -71,6 +135,7 @@ export default function VehicleDetailPage() {
       .catch(() => setError("Không thể tải thông tin xe."))
       .finally(() => setIsLoading(false));
     getVehicleReviews(Number(id)).then(setReviews).catch(() => {});
+    getVehicleAvailability(Number(id)).then((d) => d && setBusyPeriods(d.busyPeriods)).catch(() => {});
   }, [id]);
 
   if (isLoading) return <VehicleDetailSkeleton />;
@@ -83,7 +148,7 @@ export default function VehicleDetailPage() {
             <AlertCircle className="h-8 w-8 text-red-400" />
           </div>
           <p className="mt-4 text-sm text-red-600">{error ?? "Không tìm thấy xe."}</p>
-          <button type="button" onClick={() => navigate("/xe")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800">
+          <button type="button" onClick={() => navigate("/vehicle")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800">
             <ArrowLeft className="h-4 w-4" /> Quay lại
           </button>
         </div>
@@ -105,7 +170,7 @@ export default function VehicleDetailPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate("/xe")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
+        <button type="button" onClick={() => navigate("/vehicle")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div>
@@ -178,6 +243,14 @@ export default function VehicleDetailPage() {
             </div>
           </div>
 
+          <AvailabilityCalendar
+            busyPeriods={busyPeriods}
+            month={calendarMonth}
+            year={calendarYear}
+            onPrev={() => { if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear((y) => y - 1); } else setCalendarMonth((m) => m - 1); }}
+            onNext={() => { if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear((y) => y + 1); } else setCalendarMonth((m) => m + 1); }}
+          />
+
           {vehicle.features.length > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
@@ -247,8 +320,36 @@ export default function VehicleDetailPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">Đặt xe</h2>
             {token && user ? (
-              <div className="mt-4 flex flex-col gap-2">
-                <Button type="button" onClick={() => navigate(`/customer/bookings/new?vehicleId=${id}`)}>
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Nhận xe
+                  </label>
+                  <input type="date" value={bookingStartDate} min={todayStr}
+                    onChange={(e) => setBookingStartDate(e.target.value)}
+                    className="h-8 w-full rounded-md border border-slate-300 px-2 text-sm outline-none focus:border-brand-500" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                    <CalendarDays className="mr-1 inline h-3.5 w-3.5" />Trả xe
+                  </label>
+                  <input type="date" value={bookingEndDate} min={bookingStartDate || todayStr}
+                    onChange={(e) => setBookingEndDate(e.target.value)}
+                    className="h-8 w-full rounded-md border border-slate-300 px-2 text-sm outline-none focus:border-brand-500" />
+                </div>
+                <Button type="button" onClick={() => {
+                  if (bookingStartDate && bookingEndDate && busyPeriods.length > 0) {
+                    const overlap = busyPeriods.some((bp) => bookingStartDate <= bp.endDate && bookingEndDate >= bp.startDate);
+                    if (overlap) {
+                      showToast({ type: "error", title: "Xe không khả dụng", message: "Khoảng thời gian này xe đã có người đặt hoặc bị chặn." });
+                      return;
+                    }
+                  }
+                  const params = new URLSearchParams({ vehicleId: String(id) });
+                  if (bookingStartDate) params.set("startDate", bookingStartDate);
+                  if (bookingEndDate) params.set("endDate", bookingEndDate);
+                  navigate(`/customer/bookings/new?${params.toString()}`);
+                }}>
                   <CalendarCheck className="h-4 w-4" /> Đặt ngay
                 </Button>
               </div>

@@ -17,4 +17,5 @@ public class VehicleListItemResponse
     public double AverageRating { get; set; }
     public int ReviewCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateOnly? NextAvailableDate { get; set; }
 }

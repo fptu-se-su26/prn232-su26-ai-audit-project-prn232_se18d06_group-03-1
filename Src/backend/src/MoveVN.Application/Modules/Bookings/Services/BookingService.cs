@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
@@ -17,6 +18,7 @@ public class BookingService : IBookingService
     private readonly IUserRepository _userRepo;
     private readonly IBookingRiskScorer _bookingRiskScorer;
     private readonly INotificationService _notificationService;
+    private readonly IRedisLockService _redisLockService;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -31,13 +33,15 @@ public class BookingService : IBookingService
         IEmailSender emailSender,
         IUserRepository userRepo,
         IBookingRiskScorer bookingRiskScorer,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IRedisLockService redisLockService)
     {
         _repo = repo;
         _emailSender = emailSender;
         _userRepo = userRepo;
         _bookingRiskScorer = bookingRiskScorer;
         _notificationService = notificationService;
+        _redisLockService = redisLockService;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -58,9 +62,25 @@ public class BookingService : IBookingService
         if (vehicle.Status != "Approved")
             throw new ValidationException(new[] { "Xe không có sẵn để đặt." });
 
-        var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, null, cancellationToken);
-        if (hasOverlap)
-            throw new ValidationException(new[] { "Xe đã được đặt trong khoảng thời gian này." });
+        // Redis lock to prevent double booking race condition
+        var @lock = await _redisLockService.AcquireLockAsync(
+            $"booking:create:{request.VehicleId}",
+            TimeSpan.FromSeconds(30),
+            cancellationToken);
+
+        if (@lock is null)
+            throw new AppException(ErrorCode.REDIS_LOCK_FAILED);
+
+        try
+        {
+            var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, null, cancellationToken);
+            if (hasOverlap)
+            {
+                var nextAvailable = await GetNextAvailableDateAsync(request.VehicleId, request.StartDate, request.EndDate, cancellationToken);
+                throw new AppException(ErrorCode.BOOKING_OVERLAP, data: nextAvailable.HasValue
+                    ? new { nextAvailable = nextAvailable.Value.ToString("yyyy-MM-dd") }
+                    : null);
+            }
 
         var totalDays = Math.Max(1, (int)Math.Ceiling((request.EndDate - request.StartDate).TotalDays));
         if (totalDays <= 0)
@@ -124,17 +144,22 @@ public class BookingService : IBookingService
         }, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
-        await NotifyUserAsync(
-            booking.OwnerId,
-            booking,
-            "Booking moi can xu ly",
-            $"{booking.BookingCode}: Khach hang vua gui yeu cau dat xe.",
-            "owner",
-            $"/owner/bookings/{booking.Id}",
-            "BookingCreated",
-            cancellationToken);
+            await NotifyUserAsync(
+                booking.OwnerId,
+                booking,
+                "Booking moi can xu ly",
+                $"{booking.BookingCode}: Khach hang vua gui yeu cau dat xe.",
+                "owner",
+                $"/owner/bookings/{booking.Id}",
+                "BookingCreated",
+                cancellationToken);
 
-        return await MapAsync(booking, cancellationToken);
+            return await MapAsync(booking, cancellationToken);
+        }
+        finally
+        {
+            await _redisLockService.ReleaseLockAsync(@lock, cancellationToken);
+        }
     }
 
     public async Task<BookingResponse> GetByIdAsync(long bookingId, CancellationToken cancellationToken = default)
@@ -425,6 +450,11 @@ public class BookingService : IBookingService
             DepositAmount = depositAmount,
             VehicleRequiresDeposit = vehicleRequiresDeposit,
         });
+    }
+
+    private async Task<DateOnly?> GetNextAvailableDateAsync(long vehicleId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        return await _repo.GetNextAvailableDateAsync(vehicleId, startDate, endDate, cancellationToken);
     }
 
     private async Task<BookingResponse> MapAsync(Booking b, CancellationToken cancellationToken)
