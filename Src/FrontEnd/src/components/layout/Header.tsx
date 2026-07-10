@@ -33,6 +33,17 @@ function formatNotificationTime(value: string) {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+function getNotificationTargetPath(notification: NotificationItem) {
+  if (!notification.dataJson) return null;
+
+  try {
+    const data = JSON.parse(notification.dataJson) as { targetPath?: unknown };
+    return typeof data.targetPath === "string" && data.targetPath.startsWith("/") ? data.targetPath : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Header() {
   const user = useAuthStore((state) => state.user);
   const activeRole = useAuthStore((state) => state.activeRole);
@@ -108,15 +119,23 @@ export default function Header() {
     });
   }
 
-  async function handleMarkRead(notification: NotificationItem) {
-    if (notification.isRead) return;
-    markNotificationReadLocal(notification.id);
-    try {
-      await markNotificationAsRead(notification.id);
-      const result = await getNotificationUnreadCount();
-      setNotificationUnreadCount(result.unreadCount);
-    } catch {
-      void loadNotificationSummary();
+  async function handleNotificationClick(notification: NotificationItem) {
+    const targetPath = getNotificationTargetPath(notification);
+
+    if (!notification.isRead) {
+      markNotificationReadLocal(notification.id);
+      try {
+        await markNotificationAsRead(notification.id);
+        const result = await getNotificationUnreadCount();
+        setNotificationUnreadCount(result.unreadCount);
+      } catch {
+        void loadNotificationSummary();
+      }
+    }
+
+    if (targetPath) {
+      setNotificationsOpen(false);
+      navigate(targetPath);
     }
   }
 
@@ -245,7 +264,7 @@ export default function Header() {
                     <button
                       key={notification.id}
                       type="button"
-                      onClick={() => void handleMarkRead(notification)}
+                      onClick={() => void handleNotificationClick(notification)}
                       className={`flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50 ${notification.isRead ? "bg-white" : "bg-brand-50/60"}`}
                     >
                       <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${notification.isRead ? "bg-slate-200" : "bg-brand-600"}`} />
