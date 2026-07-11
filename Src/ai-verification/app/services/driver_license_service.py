@@ -100,6 +100,64 @@ class DriverLicenseService:
 
         return self.build_response_from_lines(request, lines, flags)
 
+    def verify_image(
+        self,
+        image,
+        full_name: str | None = None,
+    ) -> DriverLicenseVerificationResponse:
+        request = DriverLicenseVerificationRequest(
+            fullName=full_name,
+            frontImageUrl="uploaded-file",
+        )
+        flags: list[str] = []
+        quality = self.quality.check_image(image, DocumentType.DRIVER_LICENSE)
+        flags.extend(quality.flags)
+
+        try:
+            lines = self.ocr.read_text(image)
+        except OcrUnavailableError as exc:
+            return self._response(
+                valid=False,
+                license_vehicle_type=VehicleType.UNKNOWN,
+                license_class_valid=False,
+                confidence=0.0,
+                extracted=DriverLicenseExtracted(rawText=[]),
+                document_checks=self._empty_checks(),
+                name_match=self._name_match(None, None),
+                flags=["OCR_ENGINE_UNAVAILABLE"],
+                recommendation=Recommendation.MANUAL_REVIEW,
+                message=str(exc),
+            )
+        except OcrProcessingError as exc:
+            return self._response(
+                valid=False,
+                license_vehicle_type=VehicleType.UNKNOWN,
+                license_class_valid=False,
+                confidence=0.0,
+                extracted=DriverLicenseExtracted(rawText=[]),
+                document_checks=self._empty_checks(),
+                name_match=self._name_match(None, None),
+                flags=["OCR_PROCESSING_FAILED"],
+                recommendation=Recommendation.MANUAL_REVIEW,
+                message=str(exc),
+            )
+
+        if not lines:
+            return self._response(
+                valid=False,
+                license_vehicle_type=VehicleType.UNKNOWN,
+                license_class_valid=False,
+                confidence=0.0,
+                extracted=DriverLicenseExtracted(rawText=[]),
+                document_checks=self._empty_checks(),
+                name_match=self._name_match(full_name, None),
+                flags=["NO_TEXT_DETECTED"],
+                recommendation=Recommendation.NEED_MORE_INFO,
+                message="No readable text was detected in driver license image.",
+            )
+
+        return self.build_response_from_lines(request, lines, flags)
+
     def build_response_from_lines(
         self,
         request: DriverLicenseVerificationRequest,
@@ -167,6 +225,12 @@ class DriverLicenseService:
         valid = self._is_document_valid(checks)
         if name_match.provided:
             valid = valid and bool(name_match.matched)
+        response_flags = sorted(set(flags))
+        if recommendation == Recommendation.PASS:
+            response_flags = [
+                flag for flag in response_flags
+                if flag not in {"IMAGE_TOO_BLURRY", "IMAGE_TOO_DARK", "IMAGE_TOO_BRIGHT"}
+            ]
         return self._response(
             valid=valid,
             license_vehicle_type=license_vehicle_type,
@@ -175,7 +239,7 @@ class DriverLicenseService:
             extracted=extracted,
             document_checks=checks,
             name_match=name_match,
-            flags=sorted(set(flags)),
+            flags=response_flags,
             recommendation=recommendation,
             message=None if valid else "Driver license OCR completed, but document markers or license class need review.",
         )

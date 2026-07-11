@@ -10,7 +10,6 @@ public class CustomerProfile
     public string? NationalIdHash { get; set; }
     public string? NationalIdMasked { get; set; }
     public bool NationalIdVerified { get; set; }
-    public string? DriverLicenseNumber { get; set; }
     public bool DriverLicenseVerified { get; set; }
     public string? PreferredVehicleType { get; set; }
 }

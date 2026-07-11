@@ -26,6 +26,7 @@ export const endpoints = {
     vehicleModelPricings: "/api/admin/vehicle-model-pricings",
     pricingRules: "/api/admin/pricing-rules",
     platformFeeRules: "/api/admin/platform-fee-rules",
+    driverLicenseVerifications: "/api/admin/driver-license-verifications",
   },
   vehicles: {
     my: "/api/vehicles/my",
@@ -42,6 +43,11 @@ export const endpoints = {
   staff: {
     vehicles: "/api/staff/vehicles",
     vehicleModerationOverview: "/api/staff/vehicles/moderation-overview",
+    driverLicenseVerifications: "/api/staff/driver-license-verifications",
+  },
+  driverLicenses: {
+    me: "/api/driver-licenses/me",
+    submit: "/api/driver-licenses/me/verification",
   },
   catalog: {
     brands: "/api/catalog/brands",
@@ -50,6 +56,7 @@ export const endpoints = {
     features: "/api/catalog/features",
     areas: "/api/catalog/areas",
     pricingRegions: "/api/catalog/pricing-regions",
+    driverLicenseClasses: "/api/catalog/driver-license-classes",
   },
   publicVehicles: {
     list: "/api/public/vehicles",
@@ -63,6 +70,14 @@ export const endpoints = {
     approve: (id: number) => `/api/bookings/${id}/approve`,
     reject: (id: number) => `/api/bookings/${id}/reject`,
     confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
+  },
+  supportTickets: {
+    base: "/api/support-tickets",
+    my: "/api/support-tickets/my",
+    staff: "/api/support-tickets/staff",
+    byId: (id: number) => `/api/support-tickets/${id}`,
+    messages: (id: number) => `/api/support-tickets/${id}/messages`,
+    status: (id: number) => `/api/support-tickets/${id}/status`,
   },
   users: {
     me: "/api/users/me",

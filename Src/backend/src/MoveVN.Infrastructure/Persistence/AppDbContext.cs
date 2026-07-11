@@ -26,6 +26,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<CheckInOutImage> CheckInOutImages => Set<CheckInOutImage>();
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<CustomerProfile> CustomerProfiles => Set<CustomerProfile>();
+    public DbSet<CustomerDriverLicense> CustomerDriverLicenses => Set<CustomerDriverLicense>();
     public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<DriverLicenseClass> DriverLicenseClasses => Set<DriverLicenseClass>();
@@ -158,6 +159,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .HasForeignKey(entity => entity.ModelVariantId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CustomerProfile>().HasIndex(entity => entity.NationalIdHash);
+        builder.Entity<CustomerDriverLicense>().HasIndex(entity => new { entity.UserId, entity.VehicleType }).IsUnique();
+        builder.Entity<CustomerDriverLicense>().HasIndex(entity => entity.VerificationRequestId);
+        builder.Entity<CustomerDriverLicense>().Property(entity => entity.OcrConfidence).HasPrecision(15, 2);
+        builder.Entity<CustomerDriverLicense>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<CustomerDriverLicense>()
+            .HasOne<VerificationRequest>()
+            .WithMany()
+            .HasForeignKey(entity => entity.VerificationRequestId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<OwnerApplication>().HasIndex(entity => new { entity.UserId, entity.Status });
         builder.Entity<OwnerApplication>().HasIndex(entity => entity.NationalIdVerificationRequestId);
         builder.Entity<OwnerApplication>()
@@ -172,6 +186,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<VerificationRequest>().Property(entity => entity.ExternalResultJson).HasColumnType("jsonb");
         builder.Entity<VerificationRequest>().Property(entity => entity.Confidence).HasPrecision(15, 2);
+        builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.Status });
+        builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.CreatedAt });
+        builder.Entity<VerificationRequest>().HasIndex(entity => new { entity.UserId, entity.Type, entity.RequestedVehicleType });
 
         ApplySnakeCaseColumnNames(builder);
 

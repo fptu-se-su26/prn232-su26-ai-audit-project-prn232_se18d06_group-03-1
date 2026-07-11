@@ -1,8 +1,11 @@
+using System.Text.Json;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
+using MoveVN.Application.Modules.Notifications.DTOs;
+using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Modules.Bookings.Services;
@@ -13,6 +16,7 @@ public class BookingService : IBookingService
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepo;
     private readonly IBookingRiskScorer _bookingRiskScorer;
+    private readonly INotificationService _notificationService;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -26,12 +30,14 @@ public class BookingService : IBookingService
         IBookingRepository repo,
         IEmailSender emailSender,
         IUserRepository userRepo,
-        IBookingRiskScorer bookingRiskScorer)
+        IBookingRiskScorer bookingRiskScorer,
+        INotificationService notificationService)
     {
         _repo = repo;
         _emailSender = emailSender;
         _userRepo = userRepo;
         _bookingRiskScorer = bookingRiskScorer;
+        _notificationService = notificationService;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -118,6 +124,16 @@ public class BookingService : IBookingService
         }, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
+        await NotifyUserAsync(
+            booking.OwnerId,
+            booking,
+            "Booking moi can xu ly",
+            $"{booking.BookingCode}: Khach hang vua gui yeu cau dat xe.",
+            "owner",
+            $"/owner/bookings/{booking.Id}",
+            "BookingCreated",
+            cancellationToken);
+
         return await MapAsync(booking, cancellationToken);
     }
 
@@ -190,6 +206,18 @@ public class BookingService : IBookingService
             // Email failure should not block the approval
         }
 
+        await NotifyUserAsync(
+            booking.CustomerId,
+            booking,
+            "Booking da duoc duyet",
+            booking.DepositAmount > 0
+                ? $"{booking.BookingCode} da duoc chu xe duyet. Vui long xac nhan tien coc."
+                : $"{booking.BookingCode} da duoc chu xe duyet.",
+            "customer",
+            $"/customer/bookings/{booking.Id}",
+            "BookingApproved",
+            cancellationToken);
+
         return await MapAsync(booking, cancellationToken);
     }
 
@@ -224,6 +252,17 @@ public class BookingService : IBookingService
         }, cancellationToken);
 
         await _repo.SaveChangesAsync(cancellationToken);
+
+        await NotifyUserAsync(
+            booking.CustomerId,
+            booking,
+            "Booking da bi tu choi",
+            $"{booking.BookingCode} da bi chu xe tu choi. Ly do: {request.Reason.Trim()}",
+            "customer",
+            $"/customer/bookings/{booking.Id}",
+            "BookingRejected",
+            cancellationToken);
+
         return await MapAsync(booking, cancellationToken);
     }
 
@@ -253,7 +292,49 @@ public class BookingService : IBookingService
         }, cancellationToken);
 
         await _repo.SaveChangesAsync(cancellationToken);
+
+        await NotifyUserAsync(
+            booking.OwnerId,
+            booking,
+            "Khach hang da xac nhan coc",
+            $"{booking.BookingCode}: Khach hang da xac nhan da chuyen coc.",
+            "owner",
+            $"/owner/bookings/{booking.Id}",
+            "BookingDepositConfirmed",
+            cancellationToken);
+
         return await MapAsync(booking, cancellationToken);
+    }
+
+    private async Task NotifyUserAsync(
+        long userId,
+        Booking booking,
+        string title,
+        string body,
+        string roleTarget,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
+    {
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = userId,
+            Type = "Booking",
+            Title = title,
+            Body = body,
+            DataJson = JsonSerializer.Serialize(new
+            {
+                bookingId = booking.Id,
+                bookingCode = booking.BookingCode,
+                vehicleId = booking.VehicleId,
+                status = booking.Status,
+                riskScore = booking.RiskScore,
+                roleTarget,
+                targetPath,
+                action
+            }),
+            Channel = "InApp"
+        }, cancellationToken);
     }
 
     private static decimal GetDiscountPercent(int totalDays)

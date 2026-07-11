@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Shield, Camera, CheckCircle, X, ArrowLeft, Info, Lock, CloudUpload } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Shield, Camera, CheckCircle, X, ArrowLeft, Info, Lock, CloudUpload, IdCard, Calendar, User, Hash, BadgeCheck } from "lucide-react";
 import Button from "@/components/common/Button";
 import { Skeleton } from "@/components/common/Skeleton";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { useOwnerApplication } from "@/features/owner/hooks/useOwnerApplication";
 
 export default function CccdVerificationPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const { application, isLoading, error, handleOcrVerification } = useOwnerApplication("upload");
   const [verified, setVerified] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -71,21 +73,84 @@ export default function CccdVerificationPage() {
 
   if (verified) {
     return (
-      <div className="mx-auto max-w-lg py-6 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-          <CheckCircle className="h-8 w-8 text-green-600" />
+      <div className="mx-auto max-w-lg py-6">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 shadow-sm">
+            <BadgeCheck className="h-8 w-8 text-emerald-600" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900">CCCD đã được xác thực</h1>
+          <p className="mt-1 text-sm text-slate-500">Thông tin căn cước công dân của bạn đã được xác minh thành công</p>
         </div>
-        <h1 className="mb-2 text-xl font-bold text-zinc-900">Bạn đã xác thực CCCD</h1>
-        <p className="mb-6 text-zinc-600">
-          Căn cước công dân của bạn đã được xác thực thành công.
-          {application?.nationalIdNumber && (
-            <> Số CCCD: <span className="font-semibold text-zinc-800">{application.nationalIdNumber}</span></>
-          )}
-        </p>
-        <div className="flex justify-center">
-          <Button variant="secondary" onClick={() => navigate("/account")}>
-            Quay lại
-          </Button>
+
+        {/* Simulated ID card */}
+        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          {/* Card header */}
+          <div className="bg-gradient-to-r from-brand-700 to-brand-800 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
+                <IdCard className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-white/70">Căn cước công dân</p>
+                <p className="text-sm font-bold text-white">CCCD đã xác thực</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card body */}
+          <div className="px-5 py-5">
+            <div className="grid grid-cols-[1fr_auto] gap-4">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-medium text-slate-400">Họ và tên</p>
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <p className="text-sm font-semibold text-slate-900">{application?.fullName || user?.fullName || "-"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-400">Số CCCD</p>
+                  <div className="flex items-center gap-1.5">
+                    <Hash className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <p className="text-sm font-semibold text-slate-900">{application?.nationalIdNumber || "-"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-400">Ngày xác thực</p>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <p className="text-sm font-semibold text-slate-900">
+                      {application?.createdAt
+                        ? new Date(application.createdAt).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" })
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ảnh CCCD nếu có */}
+              {application?.frontImageUrl && (
+                <div className="shrink-0">
+                  <div className="h-24 w-36 overflow-hidden rounded-lg border border-slate-200">
+                    <img src={application.frontImageUrl} alt="CCCD mặt trước" className="h-full w-full object-cover" />
+                  </div>
+                  <p className="mt-1 text-center text-[10px] text-slate-400">Mặt trước</p>
+                </div>
+              )}
+            </div>
+
+            {/* Verified stamp */}
+            <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2">
+              <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+              <p className="text-xs font-medium text-emerald-700">Thông tin CCCD đã được xác thực và lưu trữ an toàn</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <Link to="/account">
+            <Button variant="secondary">Quay lại tổng quan</Button>
+          </Link>
         </div>
       </div>
     );

@@ -1,8 +1,11 @@
+using System.Text.Json;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
+using MoveVN.Application.Modules.Notifications.DTOs;
+using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Domain.Entities;
@@ -17,6 +20,7 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
     private readonly IRoleRepository _roleRepository;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IAuthActivityLogger _activityLogger;
+    private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public StaffOwnerApplicationService(
@@ -25,6 +29,7 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         IRoleRepository roleRepository,
         ICloudinaryService cloudinaryService,
         IAuthActivityLogger activityLogger,
+        INotificationService notificationService,
         IUnitOfWork unitOfWork)
     {
         _currentUserContext = currentUserContext;
@@ -32,6 +37,7 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         _roleRepository = roleRepository;
         _cloudinaryService = cloudinaryService;
         _activityLogger = activityLogger;
+        _notificationService = notificationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -213,6 +219,13 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _activityLogger.LogAsync(application.UserId, user.Email, AuthEventType.OwnerApplicationApproved, null, null, cancellationToken: cancellationToken);
         await _activityLogger.LogAsync(application.UserId, user.Email, AuthEventType.OwnerRoleAssigned, null, null, cancellationToken: cancellationToken);
+        await NotifyOwnerApplicationAsync(
+            application,
+            "Ho so chu xe da duoc duyet",
+            "Ho so chu xe cua ban da duoc nhan vien duyet. Vui long lam moi dang nhap neu chua thay vai tro moi.",
+            "/become-owner",
+            "OwnerApplicationApproved",
+            cancellationToken);
     }
 
     public async Task RejectApplicationAsync(long id, string reason, CancellationToken cancellationToken = default)
@@ -242,6 +255,13 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         var user = await _userRepository.GetByIdAsync(application.UserId, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _activityLogger.LogAsync(application.UserId, user?.Email, AuthEventType.OwnerApplicationRejected, null, null, cancellationToken: cancellationToken);
+        await NotifyOwnerApplicationAsync(
+            application,
+            "Ho so chu xe bi tu choi",
+            $"Ho so chu xe cua ban bi tu choi. Ly do: {reason.Trim()}",
+            "/become-owner",
+            "OwnerApplicationRejected",
+            cancellationToken);
     }
 
     public async Task RequestMoreInfoAsync(long id, string reason, CancellationToken cancellationToken = default)
@@ -269,6 +289,38 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         var user = await _userRepository.GetByIdAsync(application.UserId, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _activityLogger.LogAsync(application.UserId, user?.Email, AuthEventType.OwnerApplicationMoreInfoRequested, null, null, cancellationToken: cancellationToken);
+        await NotifyOwnerApplicationAsync(
+            application,
+            "Ho so chu xe can bo sung",
+            $"Ho so chu xe cua ban can bo sung thong tin. Ly do: {reason.Trim()}",
+            "/become-owner",
+            "OwnerApplicationNeedMoreInfo",
+            cancellationToken);
+    }
+
+    private async Task NotifyOwnerApplicationAsync(
+        OwnerApplication application,
+        string title,
+        string body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
+    {
+        await _notificationService.CreateAsync(new CreateNotificationRequest
+        {
+            UserId = application.UserId,
+            Type = "OwnerApplication",
+            Title = title,
+            Body = body,
+            DataJson = JsonSerializer.Serialize(new
+            {
+                ownerApplicationId = application.Id,
+                status = application.Status,
+                targetPath,
+                action
+            }),
+            Channel = "InApp"
+        }, cancellationToken);
     }
 
     private long GetCurrentUserId()

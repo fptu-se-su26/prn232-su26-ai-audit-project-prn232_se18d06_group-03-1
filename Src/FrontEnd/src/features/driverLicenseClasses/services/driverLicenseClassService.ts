@@ -39,3 +39,13 @@ export async function getAllDriverLicenseClasses() {
   });
   return res.data.data?.items ?? [];
 }
+
+export async function getCatalogDriverLicenseClasses() {
+  const res = await apiClient.get<ApiResponse<DriverLicenseClassResponse[]>>(endpoints.catalog.driverLicenseClasses);
+  return res.data.data ?? [];
+}
+
+export async function getCatalogDriverLicenseClassCompatibleRequiredClasses(id: number) {
+  const res = await apiClient.get<ApiResponse<DriverLicenseClassResponse[]>>(`${endpoints.catalog.driverLicenseClasses}/${id}/compatible-required-classes`);
+  return res.data.data ?? [];
+}

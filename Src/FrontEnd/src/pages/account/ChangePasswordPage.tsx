@@ -1,9 +1,10 @@
 import { FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Lock } from "lucide-react";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import PasswordField from "@/components/common/PasswordField";
 import { showToast } from "@/components/common/toastStore";
-import Card from "@/components/ui/Card";
 import { changePassword } from "@/features/auth/services/authService";
 import { getFriendlyAuthError } from "@/features/auth/utils/authErrors";
 import { validateConfirmPassword, validatePassword } from "@/utils/validation";
@@ -61,13 +62,24 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-xl gap-6">
-      <section>
-        <h1 className="text-3xl font-bold text-slate-950">Đổi mật khẩu</h1>
-        <p className="mt-2 text-sm text-slate-600">Cập nhật mật khẩu cho phiên đăng nhập hiện tại.</p>
-      </section>
-      <Card className="rounded-md">
-        <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
+    <div className="mx-auto max-w-xl">
+      <Link to="/account" className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900">
+        <ArrowLeft className="h-4 w-4" />
+        Quay lại tổng quan
+      </Link>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
+            <Lock className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">Đổi mật khẩu</h1>
+            <p className="text-sm text-slate-500">Cập nhật mật khẩu cho phiên đăng nhập hiện tại.</p>
+          </div>
+        </div>
+
+        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           {apiError ? <Alert variant="error">{apiError}</Alert> : null}
           <PasswordField
             autoComplete="current-password"
@@ -93,11 +105,13 @@ export default function ChangePasswordPage() {
             onChange={(event) => setConfirmPassword(event.target.value)}
             value={confirmPassword}
           />
-          <Button className="w-full sm:w-auto" isLoading={isSubmitting} type="submit">
-            Cập nhật mật khẩu
-          </Button>
+          <div className="border-t border-slate-100 pt-5">
+            <Button className="w-full sm:w-auto" isLoading={isSubmitting} type="submit">
+              Cập nhật mật khẩu
+            </Button>
+          </div>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }

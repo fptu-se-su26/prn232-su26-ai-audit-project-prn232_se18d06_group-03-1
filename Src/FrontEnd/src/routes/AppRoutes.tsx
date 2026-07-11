@@ -1,9 +1,12 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AccountPage from "@/pages/account/AccountPage";
+import ProfilePage from "@/pages/account/ProfilePage";
+import VerificationOverviewPage from "@/pages/account/VerificationOverviewPage";
 import ChangePasswordPage from "@/pages/account/ChangePasswordPage";
 import LogoutPage from "@/pages/account/LogoutPage";
+import UnderDevelopment from "@/components/common/UnderDevelopment";
 import AdminHomePage from "@/pages/admin/AdminHomePage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminModerationDashboardPage from "@/pages/admin/AdminModerationDashboardPage";
@@ -13,6 +16,7 @@ import AdminVehicleModelsPage from "@/pages/admin/AdminVehicleModelsPage";
 import AdminCarVariantsPage from "@/pages/admin/AdminCarVariantsPage";
 import AdminMotorbikeVariantsPage from "@/pages/admin/AdminMotorbikeVariantsPage";
 import AdminDriverLicenseClassesPage from "@/pages/admin/AdminDriverLicenseClassesPage";
+import AdminDriverLicenseVerificationsPage from "@/pages/admin/AdminDriverLicenseVerificationsPage";
 import AdminVehicleFeaturesPage from "@/pages/admin/AdminVehicleFeaturesPage";
 import AdminPricingRegionsPage from "@/pages/admin/AdminPricingRegionsPage";
 import AdminAreasPage from "@/pages/admin/AdminAreasPage";
@@ -29,11 +33,14 @@ import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
 import BankInfoPage from "@/pages/customer/BankInfoPage";
 import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
 import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
+import DriverLicenseVerificationPage from "@/pages/customer/DriverLicenseVerificationPage";
 import OwnerPendingPage from "@/pages/customer/OwnerPendingPage";
 import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPage";
 import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
 import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
+import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
+import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import OwnerBookingDetailPage from "@/pages/owner/OwnerBookingDetailPage";
@@ -53,6 +60,9 @@ import TermsPage from "@/pages/public/TermsPage";
 import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
+import StaffDriverLicenseVerificationsPage from "@/pages/staff/StaffDriverLicenseVerificationsPage";
+import StaffSupportTicketDetailPage from "@/pages/staff/StaffSupportTicketDetailPage";
+import StaffSupportTicketListPage from "@/pages/staff/StaffSupportTicketListPage";
 import StaffVehiclesPage from "@/pages/staff/StaffVehiclesPage";
 import StaffModerationDashboardPage from "@/pages/staff/StaffModerationDashboardPage";
 import GuestRoute from "@/routes/GuestRoute";
@@ -85,8 +95,16 @@ export default function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
+          {/* Account - all roles */}
           <Route path="/account" element={<AccountPage />} />
-          <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/account/profile" element={<ProfilePage />} />
+          <Route path="/account/bank" element={<BankInfoPage />} />
+          <Route path="/account/verification" element={<VerificationOverviewPage />} />
+          <Route path="/account/verification/cccd" element={<CccdVerificationPage />} />
+          <Route path="/account/verification/drivers-license" element={<DriverLicenseVerificationPage />} />
+          <Route path="/account/security/password" element={<ChangePasswordPage />} />
+          <Route path="/account/security/sessions" element={<UnderDevelopment />} />
+          <Route path="/change-password" element={<Navigate to="/account/security/password" replace />} />
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
 
@@ -95,6 +113,8 @@ export default function AppRoutes() {
             <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
             <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
             <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
+            <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
+            <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
             <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
             <Route path="/become-owner/bank" element={<BankInfoPage />} />
@@ -122,6 +142,9 @@ export default function AppRoutes() {
             <Route path="/staff/vehicle-documents/:id" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-listings" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-listings/:id" element={<StaffVehiclesPage />} />
+            <Route path="/staff/driver-license-verifications" element={<StaffDriverLicenseVerificationsPage />} />
+            <Route path="/staff/support-tickets" element={<StaffSupportTicketListPage />} />
+            <Route path="/staff/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
@@ -134,6 +157,7 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-documents/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
+            <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
             <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
             <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
             <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />

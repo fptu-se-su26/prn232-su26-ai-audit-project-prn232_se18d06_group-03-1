@@ -3,12 +3,15 @@ using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Admin.Interfaces;
+using MoveVN.Application.Modules.DriverLicenses.Interfaces;
+using MoveVN.Application.Modules.SupportTickets.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
 using MoveVN.Infrastructure.Persistence.Mongo;
 using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 using MoveVN.Infrastructure.Persistence.Repositories;
 using MoveVN.Infrastructure.Persistence.Repositories.Bookings;
+using MoveVN.Infrastructure.Persistence.Repositories.SupportTickets;
 using MoveVN.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +47,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped(typeof(IGenericRepository<>), typeof(Persistence.Repositories.GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IDriverLicenseVerificationRepository, DriverLicenseVerificationRepository>();
+        services.AddScoped<ICustomerDriverLicenseRepository, CustomerDriverLicenseRepository>();
         services.AddScoped<IVehicleCatalogRepository, VehicleCatalogRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
@@ -64,12 +69,17 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<ICloudinaryService, CloudinaryService>();
         services.AddSingleton<IRedisLockService, RedisLockService>();
+        services.AddSingleton<IDriverLicenseUploadAttemptLimiter, RedisDriverLicenseUploadAttemptLimiter>();
+        services.AddSingleton<IVehicleDocumentUploadAttemptLimiter, RedisVehicleDocumentUploadAttemptLimiter>();
         services.AddScoped<IFptAiService, FptAiService>();
         services.AddScoped<IPresenceService, RedisPresenceService>();
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
+        services.AddScoped<IDriverLicenseVerificationClient, DriverLicenseVerificationClient>();
         services.AddScoped<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
         services.AddScoped<IVehicleVerificationLogService, VehicleVerificationLogService>();
+        services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))

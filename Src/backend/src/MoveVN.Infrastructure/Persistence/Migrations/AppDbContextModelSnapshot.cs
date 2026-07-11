@@ -556,6 +556,71 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.ToTable("Contracts");
                 });
 
+            modelBuilder.Entity("MoveVN.Domain.Entities.CustomerDriverLicense", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FrontImagePublicId")
+                        .HasColumnType("text")
+                        .HasColumnName("front_image_public_id");
+
+                    b.Property<string>("FrontImageUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("front_image_url");
+
+                    b.Property<string>("LicenseClass")
+                        .HasColumnType("text")
+                        .HasColumnName("license_class");
+
+                    b.Property<string>("LicenseNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("license_number");
+
+                    b.Property<decimal?>("OcrConfidence")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)")
+                        .HasColumnName("ocr_confidence");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("VehicleType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vehicle_type");
+
+                    b.Property<long>("VerificationRequestId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("verification_request_id");
+
+                    b.Property<DateTime>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VerificationRequestId");
+
+                    b.HasIndex("UserId", "VehicleType")
+                        .IsUnique();
+
+                    b.ToTable("CustomerDriverLicenses");
+                });
+
             modelBuilder.Entity("MoveVN.Domain.Entities.CustomerProfile", b =>
                 {
                     b.Property<long>("Id")
@@ -572,10 +637,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date")
                         .HasColumnName("date_of_birth");
-
-                    b.Property<string>("DriverLicenseNumber")
-                        .HasColumnType("text")
-                        .HasColumnName("driver_license_number");
 
                     b.Property<bool>("DriverLicenseVerified")
                         .HasColumnType("boolean")
@@ -2593,6 +2654,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("rejection_reason");
 
+                    b.Property<string>("RequestedVehicleType")
+                        .HasColumnType("text")
+                        .HasColumnName("requested_vehicle_type");
+
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("reviewed_at");
@@ -2620,6 +2685,12 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Type", "CreatedAt");
+
+                    b.HasIndex("UserId", "Type", "RequestedVehicleType");
+
+                    b.HasIndex("UserId", "Type", "Status");
 
                     b.ToTable("VerificationRequests");
                 });
@@ -2883,6 +2954,21 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ModelVariantId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("MoveVN.Domain.Entities.CustomerDriverLicense", b =>
+                {
+                    b.HasOne("MoveVN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MoveVN.Domain.Entities.VerificationRequest", null)
+                        .WithMany()
+                        .HasForeignKey("VerificationRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.DriverLicenseClassCompatibility", b =>

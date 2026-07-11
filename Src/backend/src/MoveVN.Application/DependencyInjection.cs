@@ -8,6 +8,8 @@ using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Bookings.Services;
 using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
+using MoveVN.Application.Modules.DriverLicenses.Interfaces;
+using MoveVN.Application.Modules.DriverLicenses.Services;
 using MoveVN.Application.Modules.Owner.Interfaces;
 using MoveVN.Application.Modules.Owner.Services;
 using MoveVN.Application.Modules.Notifications.Interfaces;
@@ -20,6 +22,8 @@ using MoveVN.Application.Modules.PricingRules.Interfaces;
 using MoveVN.Application.Modules.PricingRules.Services;
 using MoveVN.Application.Modules.PlatformFeeRules.Interfaces;
 using MoveVN.Application.Modules.PlatformFeeRules.Services;
+using MoveVN.Application.Modules.SupportTickets.Interfaces;
+using MoveVN.Application.Modules.SupportTickets.Services;
 using MoveVN.Application.Modules.Users.Interfaces;
 using MoveVN.Application.Modules.Users.Services;
 using MoveVN.Application.Modules.VehicleBrands.Interfaces;
@@ -63,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IVehicleModelService, VehicleModelService>();
         services.AddScoped<IVehicleModelVariantService, VehicleModelVariantService>();
         services.AddScoped<IDriverLicenseClassService, DriverLicenseClassService>();
+        services.AddScoped<IDriverLicenseService, DriverLicenseService>();
         services.AddScoped<IVehicleFeatureService, VehicleFeatureService>();
         services.AddScoped<IVehicleService, VehicleService>();
         services.AddScoped<IPublicVehicleService, PublicVehicleService>();
@@ -78,6 +83,7 @@ public static class DependencyInjection
         services.AddScoped<IBookingRiskScorer, RuleBasedBookingRiskScorer>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();
+        services.AddScoped<ISupportTicketService, SupportTicketService>();
 
         return services;
     }
