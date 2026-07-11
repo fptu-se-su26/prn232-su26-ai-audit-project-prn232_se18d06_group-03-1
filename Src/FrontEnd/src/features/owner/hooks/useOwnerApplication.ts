@@ -85,13 +85,12 @@ export function useOwnerApplication(stepParam?: string | null) {
   }, [ensureApplication]);
 
   const handleOcrVerification = useCallback(
-    async (frontImage: File, backImage: File) => {
+    async (frontImage: File) => {
       setIsLoading(true);
       setError(null);
       try {
         const formData = new FormData();
-        formData.append("FrontImage", frontImage);
-        formData.append("BackImage", backImage);
+        formData.append("frontImage", frontImage);
         const result = await uploadNationalId(formData);
         setOcrResult(result);
         setWizardStep("success");

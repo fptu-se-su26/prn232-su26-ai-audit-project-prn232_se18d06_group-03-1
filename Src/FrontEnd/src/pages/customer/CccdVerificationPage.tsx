@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Shield, Camera, CheckCircle, X, ArrowLeft, Info, Lock, CloudUpload, IdCard, Calendar, User, Hash, BadgeCheck } from "lucide-react";
 import Button from "@/components/common/Button";
@@ -13,12 +13,8 @@ export default function CccdVerificationPage() {
   const [verified, setVerified] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
-  const [backPreview, setBackPreview] = useState<string | null>(null);
   const [frontFile, setFrontFile] = useState<File | null>(null);
-  const [backFile, setBackFile] = useState<File | null>(null);
   const [rejected, setRejected] = useState(false);
-  const frontRef = useRef<HTMLInputElement>(null);
-  const backRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (application) {
@@ -32,10 +28,10 @@ export default function CccdVerificationPage() {
   }, [error]);
 
   async function handleSubmit() {
-    if (!frontFile || !backFile) return;
+    if (!frontFile) return;
     setRejected(false);
     try {
-      await handleOcrVerification(frontFile, backFile);
+      await handleOcrVerification(frontFile);
       navigate("/become-owner");
     } catch {
       setRejected(true);
@@ -44,9 +40,7 @@ export default function CccdVerificationPage() {
 
   function resetUploads() {
     setFrontPreview(null);
-    setBackPreview(null);
     setFrontFile(null);
-    setBackFile(null);
     setRejected(false);
   }
 
@@ -173,7 +167,7 @@ export default function CccdVerificationPage() {
             <p className="text-sm font-semibold text-red-800">Không thể xác thực căn cước công dân</p>
             <p className="mt-1 text-sm text-red-700">
               {error.includes("FPT.AI") || error.includes("BadRequest")
-                ? "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn."
+                ? "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn. Khuyến khích sử dụng ảnh từ ứng dụng VNeID."
                 : error}
             </p>
           </div>
@@ -206,7 +200,7 @@ export default function CccdVerificationPage() {
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-zinc-900">Tải lên CCCD của bạn</h1>
-        <p className="mt-1 text-zinc-500">Vui lòng tải lên ảnh chụp căn cước công dân chất lượng cao.</p>
+        <p className="mt-1 text-zinc-500">Vui lòng tải lên ảnh chụp mặt trước căn cước công dân chất lượng cao.</p>
       </div>
 
       {/* Main Content */}
@@ -229,7 +223,7 @@ export default function CccdVerificationPage() {
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={() => frontRef.current?.click()} className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 transition hover:border-purple-400 hover:bg-purple-50">
+              <button type="button" onClick={() => document.getElementById("frontImageInput")?.click()} className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 transition hover:border-purple-400 hover:bg-purple-50">
                 <div className="scan-line" />
                 <CloudUpload className="h-10 w-10 text-zinc-300 group-hover:text-purple-500" />
                 <div className="text-center">
@@ -238,43 +232,10 @@ export default function CccdVerificationPage() {
                 </div>
               </button>
             )}
-            <input ref={frontRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFrontPreview(URL.createObjectURL(f)); setFrontFile(f); setRejected(false); }}} />
+            <input type="file" accept="image/*" className="hidden" id="frontImageInput" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFrontPreview(URL.createObjectURL(f)); setFrontFile(f); setRejected(false); }}} />
             {rejected && (
               <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-red-600">
                 <Info className="h-3 w-3" /> Ảnh không hợp lệ hoặc bị mờ
-              </p>
-            )}
-          </div>
-
-          {/* Back Side */}
-          <div className={`group relative overflow-hidden rounded-xl border-2 border-dashed p-5 transition ${
-            rejected ? "border-red-300 bg-red-50/50" : "border-zinc-300 bg-white hover:border-purple-400"
-          }`}>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-zinc-800">Mặt sau CCCD</h3>
-              <Camera className="h-5 w-5 text-purple-700" />
-            </div>
-            {backPreview ? (
-              <div className="relative">
-                <img src={backPreview} alt="Mặt sau" className="h-48 w-full rounded-lg object-cover" />
-                <button onClick={() => { setBackPreview(null); setBackFile(null); }} className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => backRef.current?.click()} className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 transition hover:border-purple-400 hover:bg-purple-50">
-                <div className="scan-line" />
-                <CloudUpload className="h-10 w-10 text-zinc-300 group-hover:text-purple-500" />
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-zinc-600">Nhấn để chọn ảnh</p>
-                  <p className="text-xs text-zinc-400">Hỗ trợ JPG, PNG (tối đa 5MB)</p>
-                </div>
-              </button>
-            )}
-            <input ref={backRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setBackPreview(URL.createObjectURL(f)); setBackFile(f); setRejected(false); }}} />
-            {rejected && (
-              <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-red-600">
-                <Info className="h-3 w-3" /> Không nhận diện được thẻ
               </p>
             )}
           </div>
@@ -292,6 +253,7 @@ export default function CccdVerificationPage() {
                 "Đảm bảo thẻ nằm gọn trong khung hình và chữ rõ ràng.",
                 "Tránh ánh sáng chói hoặc bóng đổ lên thẻ.",
                 "Đặt thẻ trên mặt phẳng tối màu để có độ tương phản tốt.",
+                "Khuyến khích sử dụng ảnh chụp từ ứng dụng VNeID để có chất lượng tốt nhất.",
               ].map((text) => (
                 <div key={text} className="flex items-start gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-200">
@@ -324,7 +286,7 @@ export default function CccdVerificationPage() {
             Thử lại
           </Button>
         ) : (
-          <Button className="min-w-[200px]" size="lg" disabled={!frontFile || !backFile} isLoading={isLoading} onClick={handleSubmit}>
+          <Button className="min-w-[200px]" size="lg" disabled={!frontFile} isLoading={isLoading} onClick={handleSubmit}>
             <Shield className="h-5 w-5" />
             Xác thực CCCD
           </Button>

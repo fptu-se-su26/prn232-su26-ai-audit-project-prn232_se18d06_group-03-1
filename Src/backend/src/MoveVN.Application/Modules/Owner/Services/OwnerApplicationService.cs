@@ -388,7 +388,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     }
 
     public async Task<NationalIdUploadResponse> UploadNationalIdAsync(
-        Stream frontImage, string frontFileName, Stream backImage, string backFileName,
+        Stream frontImage, string frontFileName,
         CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
@@ -432,19 +432,15 @@ public class OwnerApplicationService : IOwnerApplicationService
         {
             using var frontMem = new MemoryStream();
             await frontImage.CopyToAsync(frontMem, cancellationToken);
-            using var backMem = new MemoryStream();
-            await backImage.CopyToAsync(backMem, cancellationToken);
 
             var frontBytes = frontMem.ToArray();
-            var backBytes = backMem.ToArray();
 
-            // Pre-verify with Python AI service before uploading to Cloudinary
             var preVerifyResult = await _nationalIdVerificationClient.PreVerifyAsync(frontBytes, frontFileName, cancellationToken);
 
             if (preVerifyResult is null || !preVerifyResult.Success)
             {
                 verificationRequest.Status = "Rejected";
-                verificationRequest.DecisionReason = "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn.";
+                verificationRequest.DecisionReason = "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn.\nKhuyến khích sử dụng ảnh chụp từ ứng dụng VNeID để có chất lượng tốt nhất.";
                 verificationRequest.ProcessedAt = DateTime.UtcNow;
                 _userRepository.UpdateVerificationRequest(verificationRequest);
 
@@ -462,19 +458,13 @@ public class OwnerApplicationService : IOwnerApplicationService
                 };
             }
 
-            // Upload to Cloudinary only after pre-verification passes
             var folder = $"movevn/private/identity/{userId}/{verificationRequest.Id}";
 
             using var frontForCloud = new MemoryStream(frontBytes);
             var frontUpload = await _cloudinaryService.UploadAsync(frontForCloud, frontFileName, $"{folder}/front", cancellationToken);
 
-            using var backForCloud = new MemoryStream(backBytes);
-            var backUpload = await _cloudinaryService.UploadAsync(backForCloud, backFileName, $"{folder}/back", cancellationToken);
-
             verificationRequest.FrontImagePublicId = frontUpload.PublicId;
-            verificationRequest.BackImagePublicId = backUpload.PublicId;
             verificationRequest.FrontImageUrl = frontUpload.Url;
-            verificationRequest.BackImageUrl = backUpload.Url;
             verificationRequest.Status = "Verified";
             verificationRequest.ExternalProvider = "AI_VERIFICATION";
             verificationRequest.ExternalResultJson = preVerifyResult.RawResponse;

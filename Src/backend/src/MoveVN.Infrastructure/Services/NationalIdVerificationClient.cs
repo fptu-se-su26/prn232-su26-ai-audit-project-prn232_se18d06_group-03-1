@@ -38,10 +38,10 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
         using var content = new MultipartFormDataContent();
         using var fileContent = new ByteArrayContent(imageBytes);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(GetContentType(fileName));
-        content.Add(fileContent, "frontImage", fileName);
+        content.Add(fileContent, "front_image", fileName);
 
         using var response = await httpClient.PostAsync(
-            $"{baseUrl.TrimEnd('/')}/verify/national-id/upload", content, cancellationToken);
+            $"{baseUrl.TrimEnd('/')}/verify/national-id-file", content, cancellationToken);
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -52,15 +52,15 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
         }
 
         var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
-        var success = raw.TryGetProperty("success", out var s) && s.GetBoolean();
+        var valid = raw.TryGetProperty("valid", out var v) && v.GetBoolean();
 
-        if (!success)
+        if (!valid)
         {
             _logger.LogWarning("AI national ID verification failed: {Body}", responseBody);
             return null;
         }
 
-        var confidence = raw.TryGetProperty("confidence", out var c) ? c.GetDouble() : 0.0;
+        var confidence = raw.TryGetProperty("ocrConfidence", out var c) ? c.GetDouble() : 0.0;
 
         string? nationalId = null;
         string? fullName = null;
@@ -70,9 +70,9 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
 
         if (raw.TryGetProperty("extracted", out var extracted))
         {
-            nationalId = extracted.TryGetProperty("nationalId", out var nid) ? nid.GetString() : null;
+            nationalId = extracted.TryGetProperty("nationalIdNumber", out var nid) ? nid.GetString() : null;
             fullName = extracted.TryGetProperty("fullName", out var fn) ? fn.GetString() : null;
-            address = extracted.TryGetProperty("address", out var addr) ? addr.GetString() : null;
+            address = extracted.TryGetProperty("placeOfResidence", out var addr) ? addr.GetString() : null;
 
             if (extracted.TryGetProperty("dateOfBirth", out var dob) && dob.ValueKind == JsonValueKind.String)
             {
@@ -98,7 +98,7 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
 
         return new NationalIdPreVerifyResult
         {
-            Success = success,
+            Success = valid,
             Confidence = confidence,
             NationalId = nationalId,
             FullName = fullName,
