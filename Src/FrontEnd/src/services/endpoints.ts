@@ -87,6 +87,7 @@ export const endpoints = {
     byId: (id: number) => `/api/support-tickets/${id}`,
     messages: (id: number) => `/api/support-tickets/${id}/messages`,
     status: (id: number) => `/api/support-tickets/${id}/status`,
+    uploadAttachment: "/api/support-tickets/attachments",
   },
   users: {
     me: "/api/users/me",

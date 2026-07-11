@@ -13,6 +13,9 @@ import {
   supportTicketStatusColors,
   supportTicketStatusLabels,
 } from "@/features/supportTickets/supportTicketConstants";
+import SupportTicketAttachmentGallery from "@/features/supportTickets/components/SupportTicketAttachmentGallery";
+import SupportTicketAttachmentInput from "@/features/supportTickets/components/SupportTicketAttachmentInput";
+import { serializeSupportTicketAttachmentUrls } from "@/features/supportTickets/supportTicketAttachments";
 import { addSupportTicketMessage, getSupportTicketById, updateSupportTicketStatus } from "@/features/supportTickets/supportTicketService";
 import type { SupportTicketDetailResponse, TicketMessageResponse } from "@/features/supportTickets/types";
 
@@ -25,9 +28,11 @@ export default function StaffSupportTicketDetailPage() {
   const [ticket, setTicket] = useState<SupportTicketDetailResponse | null>(null);
   const [selectedStatus, setSelectedStatus] = useState("Open");
   const [message, setMessage] = useState("");
+  const [replyAttachmentUrls, setReplyAttachmentUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -69,10 +74,14 @@ export default function StaffSupportTicketDetailPage() {
 
     setIsSending(true);
     try {
-      const updated = await addSupportTicketMessage(ticket.id, { message: message.trim() });
+      const updated = await addSupportTicketMessage(ticket.id, {
+        message: message.trim(),
+        attachmentUrls: serializeSupportTicketAttachmentUrls(replyAttachmentUrls),
+      });
       setTicket(updated);
       setSelectedStatus(updated.status);
       setMessage("");
+      setReplyAttachmentUrls([]);
       showToast({ type: "success", title: "Đã gửi", message: "Phản hồi đã được gửi đến customer." });
     } catch {
       showToast({ type: "error", title: "Lỗi", message: "Không thể gửi phản hồi." });
@@ -128,6 +137,7 @@ export default function StaffSupportTicketDetailPage() {
                         <span className={fromStaff ? "text-brand-100" : "text-slate-500"}>{formatSupportTicketDateTime(item.createdAt)}</span>
                       </div>
                       <p className="whitespace-pre-wrap text-sm leading-6">{item.message}</p>
+                      <SupportTicketAttachmentGallery attachmentUrls={item.attachmentUrls} contrast={fromStaff ? "dark" : "light"} />
                     </div>
                   </div>
                 );
@@ -149,8 +159,14 @@ export default function StaffSupportTicketDetailPage() {
                   rows={5}
                   className="w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                 />
+                <SupportTicketAttachmentInput
+                  value={replyAttachmentUrls}
+                  onChange={setReplyAttachmentUrls}
+                  disabled={isSending}
+                  onUploadingChange={setIsUploadingAttachment}
+                />
                 <div className="flex justify-end">
-                  <Button type="submit" isLoading={isSending}>
+                  <Button type="submit" isLoading={isSending} disabled={isUploadingAttachment}>
                     <Send className="h-4 w-4" /> Gửi phản hồi
                   </Button>
                 </div>

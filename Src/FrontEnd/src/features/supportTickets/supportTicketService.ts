@@ -40,3 +40,12 @@ export async function updateSupportTicketStatus(id: number, data: UpdateSupportT
   const res = await apiClient.put<ApiResponse<SupportTicketDetailResponse>>(endpoints.supportTickets.status(id), data);
   return res.data.data!;
 }
+
+export async function uploadSupportTicketAttachment(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<ApiResponse<{ url: string }>>(endpoints.supportTickets.uploadAttachment, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.data!.url;
+}
