@@ -41,3 +41,25 @@ def test_cccd_front_basic_fields_are_extracted() -> None:
     assert response.extracted.expiry_date == "16/08/2029"
     assert response.match_checks.full_name_matched is True
     assert response.flags == []
+
+
+def test_non_cccd_document_is_rejected_when_identity_markers_are_missing() -> None:
+    service = NationalIdService()
+    request = NationalIdVerificationRequest(
+        fullname="Nguyen Nam Thang",
+        frontImageUrl="sample_images/driver_license/gplx.jpg",
+    )
+    lines = [
+        OcrLine("GIẤY PHÉP LÁI XE", 0.9),
+        OcrLine("DRIVER LICENSE", 0.9),
+        OcrLine("Số/No: 480225012691", 0.9),
+        OcrLine("Họ tên/Full name: NGUYỄN NAM THẮNG", 0.9),
+        OcrLine("Hạng/Class: A1", 0.9),
+    ]
+
+    response = service.build_response_from_lines(request, lines)
+
+    assert response.valid is False
+    assert response.recommendation == Recommendation.REJECT
+    assert "NATIONAL_ID_TITLE_NOT_FOUND" in response.flags
+    assert "NATIONAL_MOTTO_NOT_FOUND" in response.flags

@@ -127,7 +127,7 @@ class NationalIdService:
             matches,
             response_flags,
             recommendation,
-            None if valid else "National ID OCR completed, but extracted fields or document markers need review.",
+            None if valid else self._message_for(response_flags, recommendation),
         )
 
     def _extract_fields(self, lines: list[OcrLine]) -> NationalIdExtracted:
@@ -253,7 +253,11 @@ class NationalIdService:
         confidence: float,
         checks: NationalIdDocumentChecks,
     ) -> Recommendation:
-        reject_flags = {"FULL_NAME_MISMATCH"}
+        reject_flags = {
+            "FULL_NAME_MISMATCH",
+            "NATIONAL_ID_TITLE_NOT_FOUND",
+            "NATIONAL_MOTTO_NOT_FOUND",
+        }
         need_more_flags = {"NO_TEXT_DETECTED", "IMAGE_TOO_SMALL", "DOCUMENT_NOT_READABLE"}
         if any(flag in reject_flags for flag in flags):
             return Recommendation.REJECT
@@ -267,6 +271,19 @@ class NationalIdService:
         if flags or confidence < get_settings().good_ocr_confidence_threshold:
             return Recommendation.MANUAL_REVIEW
         return Recommendation.PASS
+
+    def _message_for(self, flags: list[str], recommendation: Recommendation) -> str:
+        if recommendation == Recommendation.REJECT:
+            if "NATIONAL_ID_TITLE_NOT_FOUND" in flags:
+                return "Uploaded image does not appear to be a CCCD front image."
+            if "NATIONAL_MOTTO_NOT_FOUND" in flags:
+                return "Uploaded image is missing required Vietnamese national ID markers."
+            if "FULL_NAME_MISMATCH" in flags:
+                return "Full name on the national ID does not match the provided full name."
+            return "National ID verification was rejected."
+        if recommendation == Recommendation.NEED_MORE_INFO:
+            return "National ID image is not readable enough. Please upload a clearer front image."
+        return "National ID OCR completed, but extracted fields or document markers need review."
 
     def _is_document_valid(self, checks: NationalIdDocumentChecks) -> bool:
         return (
