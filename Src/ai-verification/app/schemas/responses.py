@@ -60,6 +60,45 @@ class DriverLicenseVerificationResponse(BaseModel):
     message: str | None = None
 
 
+class NationalIdExtracted(BaseModel):
+    national_id_number: str | None = Field(default=None, alias="nationalIdNumber")
+    full_name: str | None = Field(default=None, alias="fullName")
+    date_of_birth: str | None = Field(default=None, alias="dateOfBirth")
+    sex: str | None = None
+    nationality: str | None = None
+    place_of_origin: str | None = Field(default=None, alias="placeOfOrigin")
+    place_of_residence: str | None = Field(default=None, alias="placeOfResidence")
+    expiry_date: str | None = Field(default=None, alias="expiryDate")
+    raw_text: list[str] = Field(default_factory=list, alias="rawText")
+
+
+class NationalIdDocumentChecks(BaseModel):
+    national_motto_found: bool = Field(alias="nationalMottoFound")
+    national_id_title_found: bool = Field(alias="nationalIdTitleFound")
+    chip_card_marker_found: bool = Field(alias="chipCardMarkerFound")
+    national_id_number_found: bool = Field(alias="nationalIdNumberFound")
+    full_name_found: bool = Field(alias="fullNameFound")
+    date_of_birth_found: bool = Field(alias="dateOfBirthFound")
+
+
+class NationalIdMatchChecks(BaseModel):
+    full_name_provided: bool = Field(alias="fullNameProvided")
+    full_name_matched: bool | None = Field(default=None, alias="fullNameMatched")
+    full_name_score: float | None = Field(default=None, alias="fullNameScore")
+
+
+class NationalIdVerificationResponse(BaseModel):
+    valid: bool
+    document_type: DocumentType = Field(alias="documentType")
+    ocr_confidence: float = Field(alias="ocrConfidence")
+    extracted: NationalIdExtracted
+    document_checks: NationalIdDocumentChecks = Field(alias="documentChecks")
+    match_checks: NationalIdMatchChecks = Field(alias="matchChecks")
+    flags: list[str]
+    recommendation: Recommendation
+    message: str | None = None
+
+
 class VehicleRegistrationExtracted(BaseModel):
     license_plate: str | None = Field(default=None, alias="licensePlate")
     owner_name: str | None = Field(default=None, alias="ownerName")
