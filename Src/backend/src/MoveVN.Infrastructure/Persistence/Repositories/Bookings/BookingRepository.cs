@@ -25,18 +25,23 @@ public class BookingRepository : IBookingRepository
 
     public async Task<bool> HasOverlapAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.Bookings
-            .Where(b => b.VehicleId == vehicleId
-                && b.Status != "Pending"
+        var bookingOverlap = await _context.Bookings
+            .AnyAsync(b => b.VehicleId == vehicleId
                 && b.Status != "Rejected"
                 && b.Status != "Cancelled"
                 && b.StartDate < endDate
-                && b.EndDate > startDate);
+                && b.EndDate > startDate
+                && (!excludeBookingId.HasValue || b.Id != excludeBookingId.Value), cancellationToken);
 
-        if (excludeBookingId.HasValue)
-            query = query.Where(b => b.Id != excludeBookingId.Value);
+        if (bookingOverlap) return true;
 
-        return await query.AnyAsync(cancellationToken);
+        var bookingStartDateOnly = DateOnly.FromDateTime(startDate);
+        var bookingEndDateOnly = DateOnly.FromDateTime(endDate);
+
+        return await _context.BlockedDates
+            .AnyAsync(bd => bd.VehicleId == vehicleId
+                && bd.StartDate <= bookingEndDateOnly
+                && bd.EndDate >= bookingStartDateOnly, cancellationToken);
     }
 
     public async Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default)
@@ -183,6 +188,50 @@ public class BookingRepository : IBookingRepository
         => await _context.Bookings
             .Where(b => b.Status == "Pending" && b.CreatedAt < threshold)
             .ToListAsync(cancellationToken);
+
+    public async Task AddReviewAsync(Review review, CancellationToken cancellationToken = default)
+        => await _context.Reviews.AddAsync(review, cancellationToken);
+
+    public async Task<List<Review>> GetReviewsByBookingIdAsync(long bookingId, CancellationToken cancellationToken = default)
+        => await _context.Reviews
+            .Where(r => r.BookingId == bookingId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<List<Review>> GetReviewsByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default)
+        => await _context.Reviews
+            .Where(r => r.VehicleId == vehicleId && r.IsPublic)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<bool> HasReviewAsync(long bookingId, long reviewerId, CancellationToken cancellationToken = default)
+        => await _context.Reviews.AnyAsync(r => r.BookingId == bookingId && r.ReviewerId == reviewerId, cancellationToken);
+
+    public async Task<DateOnly?> GetNextAvailableDateAsync(long vehicleId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    {
+        var startOnly = DateOnly.FromDateTime(startDate);
+        var endOnly = DateOnly.FromDateTime(endDate);
+
+        var blockedEnd = await _context.BlockedDates
+            .Where(bd => bd.VehicleId == vehicleId && bd.StartDate <= endOnly && bd.EndDate >= startOnly)
+            .OrderByDescending(bd => bd.EndDate)
+            .Select(bd => (DateOnly?)bd.EndDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var bookingEnd = await _context.Bookings
+            .Where(b => b.VehicleId == vehicleId
+                && b.StartDate < endDate && b.EndDate > startDate
+                && b.Status != "Cancelled" && b.Status != "Rejected")
+            .OrderByDescending(b => b.EndDate)
+            .Select(b => (DateOnly?)DateOnly.FromDateTime(b.EndDate))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var latestEnd = blockedEnd.HasValue && bookingEnd.HasValue
+            ? (blockedEnd.Value > bookingEnd.Value ? blockedEnd.Value : bookingEnd.Value)
+            : blockedEnd ?? bookingEnd;
+
+        return latestEnd?.AddDays(1);
+    }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);

@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Check, DollarSign, MapPin, TicketPercent, CreditCard, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, DollarSign, MapPin, TicketPercent, CreditCard, X, Star } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -9,6 +9,10 @@ import { getBookingById, approveBooking, rejectBooking } from "@/features/bookin
 import type { BookingResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
+import { createOwnerReview, getBookingReviews, hasReviewed } from "@/features/review/reviewService";
+import type { ReviewResponse } from "@/features/review/reviewService";
+import StarRatingInput from "@/features/review/components/StarRatingInput";
+import ReviewCard from "@/features/review/components/ReviewCard";
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
@@ -50,12 +54,25 @@ export default function OwnerBookingDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [rejectReason, setRejectReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [reviews, setReviews] = useState<ReviewResponse[]>([]);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      setBooking(await getBookingById(Number(id)));
+      const bookingId = Number(id);
+      setBooking(await getBookingById(bookingId));
+      const [reviewList, reviewed] = await Promise.all([
+        getBookingReviews(bookingId),
+        hasReviewed(bookingId),
+      ]);
+      setReviews(reviewList);
+      setAlreadyReviewed(reviewed);
     } catch {
       setBooking(null);
     } finally {
@@ -64,6 +81,27 @@ export default function OwnerBookingDetailPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function handleSubmitReview() {
+    if (!booking || reviewRating === 0 || isSubmittingReview) return;
+    setIsSubmittingReview(true);
+    try {
+      await createOwnerReview({
+        bookingId: booking.id,
+        rating: reviewRating,
+        comment: reviewComment || undefined,
+      });
+      showToast({ type: "success", title: "Thành công", message: "Đã gửi đánh giá khách hàng." });
+      setShowReviewForm(false);
+      setAlreadyReviewed(true);
+      const updated = await getBookingReviews(booking.id);
+      setReviews(updated);
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể gửi đánh giá." });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  }
 
   async function handleApprove() {
     if (!booking || isProcessing) return;
@@ -253,6 +291,44 @@ export default function OwnerBookingDetailPage() {
           </div>
         </div>
       </Card>
+
+      {booking.status === "Completed" && (
+        <Card className="space-y-4 rounded-md p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-950">Đánh giá khách hàng</h2>
+            {!alreadyReviewed && !showReviewForm && (
+              <Button variant="secondary" size="sm" onClick={() => setShowReviewForm(true)}>
+                <Star className="h-4 w-4" /> Đánh giá khách
+              </Button>
+            )}
+          </div>
+
+          {showReviewForm && !alreadyReviewed && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-semibold text-slate-800">Đánh giá khách hàng</h3>
+              <StarRatingInput value={reviewRating} onChange={setReviewRating} label="Đánh giá" />
+              <div>
+                <p className="mb-1 text-xs font-medium text-slate-500">Nhận xét</p>
+                <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3} placeholder="Nhận xét về khách hàng..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="primary" onClick={handleSubmitReview} isLoading={isSubmittingReview} disabled={reviewRating === 0}>
+                  Gửi đánh giá
+                </Button>
+                <Button variant="ghost" onClick={() => setShowReviewForm(false)}>Hủy</Button>
+              </div>
+            </div>
+          )}
+
+          {reviews.filter((r) => r.reviewType === "Owner").length > 0 && (
+            <div className="space-y-3">
+              {reviews.filter((r) => r.reviewType === "Owner").map((r) => (
+                <ReviewCard key={r.id} review={r} />
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card className="rounded-md p-5">
         <h2 className="mb-3 text-lg font-bold text-slate-950">Lịch sử trạng thái</h2>

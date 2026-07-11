@@ -43,7 +43,15 @@ export default function CustomerCreateBookingPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextAvailableDate, setNextAvailableDate] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    const qStart = searchParams.get("startDate");
+    const qEnd = searchParams.get("endDate");
+    if (qStart) setStartDate(qStart + "T00:00");
+    if (qEnd) setEndDate(qEnd + "T00:00");
+  }, [searchParams]);
 
   useEffect(() => {
     if (!vehicleId) { setLoadingVehicle(false); return; }
@@ -104,8 +112,17 @@ export default function CustomerCreateBookingPage() {
       navigate(`/customer/bookings/${result.id}`);
     } catch (err: any) {
       const data = err?.response?.data;
-      const msg = data?.errors?.length ? data.errors.join(", ") : data?.message || err?.message || "Không thể tạo booking.";
+      const nextAvail = data?.data?.nextAvailable;
+      var msg = data?.errors?.length ? data.errors.join(", ") : data?.message || err?.message || "Không thể tạo booking.";
+      if (nextAvail && !msg.includes("ngày")) {
+        const fmtStart = new Date(startDate).toLocaleDateString("vi-VN");
+        const fmtEnd = new Date(endDate).toLocaleDateString("vi-VN");
+        msg = `Khoảng thời gian ${fmtStart} - ${fmtEnd} không trống.`;
+      }
       setError(msg);
+      if (nextAvail) {
+        setNextAvailableDate(nextAvail);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -115,7 +132,7 @@ export default function CustomerCreateBookingPage() {
     return (
       <div className="mx-auto max-w-lg pt-10">
         <Alert variant="error" title="Thiếu thông tin">
-          Vui lòng chọn xe trước khi đặt. <Link to="/xe" className="underline">Quay lại danh sách xe</Link>
+          Vui lòng chọn xe trước khi đặt. <Link to="/vehicle" className="underline">Quay lại danh sách xe</Link>
         </Alert>
       </div>
     );
@@ -138,7 +155,20 @@ export default function CustomerCreateBookingPage() {
       </section>
 
       {error && (
-        <Alert variant="error" title="Lỗi">{error}</Alert>
+        <Alert variant="error" title="Lỗi">
+          {error}
+          {nextAvailableDate && (
+            <div className="mt-2 text-sm">
+              Xe có thể thuê từ ngày <strong>{new Date(nextAvailableDate).toLocaleDateString("vi-VN")}</strong>.
+              <button type="button" onClick={() => {
+                setStartDate(nextAvailableDate + "T00:00");
+                setEndDate("");
+                setNextAvailableDate(null);
+                setError(null);
+              }} className="ml-2 font-medium text-brand-700 underline hover:text-brand-800">Chọn ngày này</button>
+            </div>
+          )}
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">

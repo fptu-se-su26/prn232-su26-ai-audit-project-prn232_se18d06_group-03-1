@@ -16,5 +16,8 @@ public class OwnerApplicationResponse
     public string? FrontImageUrl { get; set; }
     public string? BackImageUrl { get; set; }
     public string? RejectReason { get; set; }
+    public string? Email { get; set; }
+    public bool EmailVerified { get; set; }
+    public bool DriverLicenseVerified { get; set; }
     public DateTime CreatedAt { get; set; }
 }

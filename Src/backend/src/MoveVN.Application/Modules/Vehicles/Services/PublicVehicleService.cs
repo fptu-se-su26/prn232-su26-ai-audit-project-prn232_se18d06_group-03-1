@@ -29,9 +29,15 @@ public class PublicVehicleService : IPublicVehicleService
         string? type, string? keyword, string? sortBy, int page, int pageSize,
         int? brandId, int? modelId, string? fuelType, string? seatCount,
         string? transmission, string? bodyType, string? bikeType, string? engineCapacity,
+        decimal? priceFrom = null, decimal? priceTo = null, string? featureIds = null,
+        DateTime? searchStartDate = null, DateTime? searchEndDate = null,
+        string? brandIds = null, string? transmissions = null, string? fuelTypes = null,
+        string? bodyTypes = null, string? bikeTypes = null,
         CancellationToken cancellationToken = default)
         => await _repository.GetAvailableVehiclesAsync(type, keyword, sortBy, page, pageSize,
-            brandId, modelId, fuelType, seatCount, transmission, bodyType, bikeType, engineCapacity, cancellationToken);
+            brandId, modelId, fuelType, seatCount, transmission, bodyType, bikeType, engineCapacity,
+            priceFrom, priceTo, featureIds, searchStartDate, searchEndDate,
+            brandIds, transmissions, fuelTypes, bodyTypes, bikeTypes, cancellationToken);
 
     public async Task<VehicleResponse> GetVehicleDetailAsync(long id, CancellationToken cancellationToken = default)
     {

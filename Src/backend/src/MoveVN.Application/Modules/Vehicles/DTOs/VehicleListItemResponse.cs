@@ -14,5 +14,8 @@ public class VehicleListItemResponse
     public string? PricingMode { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? FeaturedImage { get; set; }
+    public double AverageRating { get; set; }
+    public int ReviewCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateOnly? NextAvailableDate { get; set; }
 }

@@ -14,6 +14,9 @@ public class OwnerApplicationCurrentData
 
     public string? CustomerNationalId { get; set; }
     public bool CustomerNationalIdVerified { get; set; }
+    public bool DriverLicenseVerified { get; set; }
 
     public bool IsOwner { get; set; }
+    public string? Email { get; set; }
+    public bool IsEmailVerified { get; set; }
 }

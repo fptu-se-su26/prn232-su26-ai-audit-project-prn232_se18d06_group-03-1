@@ -37,3 +37,8 @@ export async function confirmDeposit(id: number): Promise<BookingResponse> {
   const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.confirmDeposit(id));
   return res.data.data!;
 }
+
+export async function completeBooking(id: number): Promise<BookingResponse> {
+  const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.complete(id));
+  return res.data.data!;
+}

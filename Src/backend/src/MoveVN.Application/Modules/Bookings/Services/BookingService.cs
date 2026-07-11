@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
@@ -18,6 +19,7 @@ public class BookingService : IBookingService
     private readonly IUserRepository _userRepo;
     private readonly IBookingRiskScorer _bookingRiskScorer;
     private readonly INotificationService _notificationService;
+    private readonly IRedisLockService _redisLockService;
     private readonly ICustomerDriverLicenseRepository _customerLicenseRepo;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
@@ -34,6 +36,7 @@ public class BookingService : IBookingService
         IUserRepository userRepo,
         IBookingRiskScorer bookingRiskScorer,
         INotificationService notificationService,
+        IRedisLockService redisLockService,
         ICustomerDriverLicenseRepository customerLicenseRepo)
     {
         _repo = repo;
@@ -41,6 +44,7 @@ public class BookingService : IBookingService
         _userRepo = userRepo;
         _bookingRiskScorer = bookingRiskScorer;
         _notificationService = notificationService;
+        _redisLockService = redisLockService;
         _customerLicenseRepo = customerLicenseRepo;
     }
 
@@ -64,14 +68,14 @@ public class BookingService : IBookingService
 
         var profile = await _repo.GetCustomerProfileByUserIdAsync(customerId, cancellationToken);
         if (profile?.NationalIdVerified != true)
-            throw new ValidationException(new[] { "Bạn cần xác thực CCCD trước khi đặt xe." });
+            throw new ValidationException(new[] { "Ban can xac thuc CCCD truoc khi dat xe." });
 
         if (profile.DriverLicenseVerified != true)
-            throw new ValidationException(new[] { "Bạn cần xác thực giấy phép lái xe trước khi đặt xe." });
+            throw new ValidationException(new[] { "Ban can xac thuc giay phep lai xe truoc khi dat xe." });
 
         var customerLicense = await _customerLicenseRepo.GetByUserIdAndVehicleTypeAsync(customerId, vehicle.VehicleType, cancellationToken);
         if (customerLicense is null)
-            throw new ValidationException(new[] { "Bạn chưa xác thực giấy phép lái xe cho loại xe này." });
+            throw new ValidationException(new[] { "Ban chua xac thuc giay phep lai xe cho loai xe nay." });
 
         if (vehicle.VariantId.HasValue)
         {
@@ -80,13 +84,29 @@ public class BookingService : IBookingService
             {
                 var compatible = await _repo.IsLicenseClassCompatibleAsync(customerLicense.LicenseClass!, variant.RequiredLicenseClassId.Value, cancellationToken);
                 if (!compatible)
-                    throw new ValidationException(new[] { "Hạng bằng lái của bạn không phù hợp với loại xe này." });
+                    throw new ValidationException(new[] { "Hang bang lai cua ban khong phu hop voi loai xe nay." });
             }
         }
 
-        var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, null, cancellationToken);
-        if (hasOverlap)
-            throw new ValidationException(new[] { "Xe đã được đặt trong khoảng thời gian này." });
+        // Redis lock to prevent double booking race condition
+        var @lock = await _redisLockService.AcquireLockAsync(
+            $"booking:create:{request.VehicleId}",
+            TimeSpan.FromSeconds(30),
+            cancellationToken);
+
+        if (@lock is null)
+            throw new AppException(ErrorCode.REDIS_LOCK_FAILED);
+
+        try
+        {
+            var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, null, cancellationToken);
+            if (hasOverlap)
+            {
+                var nextAvailable = await GetNextAvailableDateAsync(request.VehicleId, request.StartDate, request.EndDate, cancellationToken);
+                throw new AppException(ErrorCode.BOOKING_OVERLAP, data: nextAvailable.HasValue
+                    ? new { nextAvailable = nextAvailable.Value.ToString("yyyy-MM-dd") }
+                    : null);
+            }
 
         var totalDays = Math.Max(1, (int)Math.Ceiling((request.EndDate - request.StartDate).TotalDays));
         if (totalDays <= 0)
@@ -150,17 +170,22 @@ public class BookingService : IBookingService
         }, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
-        await NotifyUserAsync(
-            booking.OwnerId,
-            booking,
-            "Booking moi can xu ly",
-            $"{booking.BookingCode}: Khach hang vua gui yeu cau dat xe.",
-            "owner",
-            $"/owner/bookings/{booking.Id}",
-            "BookingCreated",
-            cancellationToken);
+            await NotifyUserAsync(
+                booking.OwnerId,
+                booking,
+                "Booking moi can xu ly",
+                $"{booking.BookingCode}: Khach hang vua gui yeu cau dat xe.",
+                "owner",
+                $"/owner/bookings/{booking.Id}",
+                "BookingCreated",
+                cancellationToken);
 
-        return await MapAsync(booking, cancellationToken);
+            return await MapAsync(booking, cancellationToken);
+        }
+        finally
+        {
+            await _redisLockService.ReleaseLockAsync(@lock, cancellationToken);
+        }
     }
 
     public async Task<BookingResponse> GetByIdAsync(long bookingId, CancellationToken cancellationToken = default)
@@ -289,6 +314,35 @@ public class BookingService : IBookingService
             "BookingRejected",
             cancellationToken);
 
+        return await MapAsync(booking, cancellationToken);
+    }
+
+    public async Task<BookingResponse> CompleteAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.CustomerId != customerId)
+            throw new ValidationException(new[] { "Bạn không có quyền xác nhận hoàn tất booking này." });
+
+        if (booking.Status != "DepositPaid" && booking.Status != "Confirmed")
+            throw new ValidationException(new[] { "Booking chưa thể hoàn tất." });
+
+        var oldStatus = booking.Status;
+        booking.Status = "Completed";
+        booking.UpdatedAt = DateTime.UtcNow;
+        _repo.Update(booking);
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = oldStatus,
+            ToStatus = "Completed",
+            ChangedBy = customerId,
+            Note = "Khách hàng xác nhận đã hoàn tất chuyến đi",
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
         return await MapAsync(booking, cancellationToken);
     }
 
@@ -422,6 +476,11 @@ public class BookingService : IBookingService
             DepositAmount = depositAmount,
             VehicleRequiresDeposit = vehicleRequiresDeposit,
         });
+    }
+
+    private async Task<DateOnly?> GetNextAvailableDateAsync(long vehicleId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        return await _repo.GetNextAvailableDateAsync(vehicleId, startDate, endDate, cancellationToken);
     }
 
     private async Task<BookingResponse> MapAsync(Booking b, CancellationToken cancellationToken)

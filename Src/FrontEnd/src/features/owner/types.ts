@@ -47,6 +47,9 @@ export interface OwnerApplicationDto {
   bankAccountNumber?: string;
   bankAccountHolderName?: string;
   rejectReason?: string;
+  email?: string;
+  emailVerified?: boolean;
+  driverLicenseVerified?: boolean;
   createdAt: string;
 }
 

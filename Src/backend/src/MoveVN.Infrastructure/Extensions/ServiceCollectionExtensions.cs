@@ -75,6 +75,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPresenceService, RedisPresenceService>();
         services.AddScoped<IVehicleRegistrationVerificationService, VehicleRegistrationVerificationService>();
         services.AddScoped<IDriverLicenseVerificationClient, DriverLicenseVerificationClient>();
+        services.AddScoped<INationalIdVerificationClient, NationalIdVerificationClient>();
         services.AddScoped<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
         services.AddScoped<IVehicleVerificationLogService, VehicleVerificationLogService>();
         services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();

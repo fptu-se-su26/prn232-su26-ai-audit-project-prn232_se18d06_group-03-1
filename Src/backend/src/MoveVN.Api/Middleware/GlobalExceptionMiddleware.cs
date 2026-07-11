@@ -39,7 +39,8 @@ public class GlobalExceptionMiddleware
                 Status = false,
                 Code = appException.ErrorCode.Code,
                 Message = appException.ErrorCode.Message,
-                Errors = appException.Errors?.ToList()
+                Errors = appException.Errors?.ToList(),
+                Data = appException.Data
             },
             ValidationException validationException => new ApiResponse<object>
             {

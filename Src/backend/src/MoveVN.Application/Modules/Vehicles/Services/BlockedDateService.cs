@@ -29,8 +29,8 @@ public class BlockedDateService : IBlockedDateService
         if (request.DateFrom > request.DateTo)
             throw new AppException(ErrorCode.BLOCKED_DATE_INVALID_RANGE);
 
-        var blockedStart = request.DateFrom.ToDateTime(TimeOnly.MinValue);
-        var blockedEndExclusive = request.DateTo.AddDays(1).ToDateTime(TimeOnly.MinValue);
+        var blockedStart = request.DateFrom.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var blockedEndExclusive = request.DateTo.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         var hasOverlap = await _repository.Bookings
             .AnyAsync(b =>
