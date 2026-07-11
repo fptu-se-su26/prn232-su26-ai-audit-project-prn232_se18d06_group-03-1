@@ -151,6 +151,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/customer/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
   }
 
+  if (primaryRole === "Staff") {
+    mainItems.push({ to: "/staff/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
+  }
+
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
   }
