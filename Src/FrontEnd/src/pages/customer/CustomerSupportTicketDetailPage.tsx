@@ -12,6 +12,9 @@ import {
   supportTicketStatusColors,
   supportTicketStatusLabels,
 } from "@/features/supportTickets/supportTicketConstants";
+import SupportTicketAttachmentGallery from "@/features/supportTickets/components/SupportTicketAttachmentGallery";
+import SupportTicketAttachmentInput from "@/features/supportTickets/components/SupportTicketAttachmentInput";
+import { serializeSupportTicketAttachmentUrls } from "@/features/supportTickets/supportTicketAttachments";
 import { addSupportTicketMessage, getSupportTicketById } from "@/features/supportTickets/supportTicketService";
 import type { SupportTicketDetailResponse, TicketMessageResponse } from "@/features/supportTickets/types";
 
@@ -23,8 +26,10 @@ export default function CustomerSupportTicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [ticket, setTicket] = useState<SupportTicketDetailResponse | null>(null);
   const [message, setMessage] = useState("");
+  const [replyAttachmentUrls, setReplyAttachmentUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -50,9 +55,13 @@ export default function CustomerSupportTicketDetailPage() {
 
     setIsSending(true);
     try {
-      const updated = await addSupportTicketMessage(ticket.id, { message: message.trim() });
+      const updated = await addSupportTicketMessage(ticket.id, {
+        message: message.trim(),
+        attachmentUrls: serializeSupportTicketAttachmentUrls(replyAttachmentUrls),
+      });
       setTicket(updated);
       setMessage("");
+      setReplyAttachmentUrls([]);
       showToast({ type: "success", title: "Đã gửi", message: "Phản hồi của bạn đã được ghi nhận." });
     } catch {
       showToast({ type: "error", title: "Lỗi", message: "Không thể gửi phản hồi." });
@@ -125,6 +134,7 @@ export default function CustomerSupportTicketDetailPage() {
                     <span className={fromStaff ? "text-slate-500" : "text-brand-100"}>{formatSupportTicketDateTime(item.createdAt)}</span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-6">{item.message}</p>
+                  <SupportTicketAttachmentGallery attachmentUrls={item.attachmentUrls} contrast={fromStaff ? "light" : "dark"} />
                 </div>
               </div>
             );
@@ -146,8 +156,14 @@ export default function CustomerSupportTicketDetailPage() {
               rows={5}
               className="w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
+            <SupportTicketAttachmentInput
+              value={replyAttachmentUrls}
+              onChange={setReplyAttachmentUrls}
+              disabled={isSending}
+              onUploadingChange={setIsUploadingAttachment}
+            />
             <div className="flex justify-end">
-              <Button type="submit" isLoading={isSending}>
+              <Button type="submit" isLoading={isSending} disabled={isUploadingAttachment}>
                 <Send className="h-4 w-4" /> Gửi phản hồi
               </Button>
             </div>
