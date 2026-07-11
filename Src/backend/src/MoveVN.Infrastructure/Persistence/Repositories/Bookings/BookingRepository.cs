@@ -73,6 +73,21 @@ public class BookingRepository : IBookingRepository
         return await query.CountAsync(cancellationToken);
     }
 
+    public async Task<VehicleModelVariant?> GetVariantByIdAsync(int variantId, CancellationToken cancellationToken = default)
+        => await _context.VehicleModelVariant.FirstOrDefaultAsync(v => v.Id == variantId, cancellationToken);
+
+    public async Task<bool> IsLicenseClassCompatibleAsync(string licenseClassCode, int requiredLicenseClassId, CancellationToken cancellationToken = default)
+    {
+        var licenseClass = await _context.DriverLicenseClasses
+            .FirstOrDefaultAsync(lc => lc.Code == licenseClassCode, cancellationToken);
+
+        if (licenseClass is null)
+            return false;
+
+        return await _context.DriverLicenseClassCompatibility
+            .AnyAsync(c => c.LicenseClassId == licenseClass.Id && c.AllowedRequiredLicenseClassId == requiredLicenseClassId, cancellationToken);
+    }
+
     public async Task AddStatusHistoryAsync(BookingStatusHistory history, CancellationToken cancellationToken = default)
         => await _context.BookingStatusHistory.AddAsync(history, cancellationToken);
 

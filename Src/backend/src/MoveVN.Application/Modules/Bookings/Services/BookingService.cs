@@ -4,6 +4,7 @@ using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
+using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Domain.Entities;
@@ -17,6 +18,7 @@ public class BookingService : IBookingService
     private readonly IUserRepository _userRepo;
     private readonly IBookingRiskScorer _bookingRiskScorer;
     private readonly INotificationService _notificationService;
+    private readonly ICustomerDriverLicenseRepository _customerLicenseRepo;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -31,13 +33,15 @@ public class BookingService : IBookingService
         IEmailSender emailSender,
         IUserRepository userRepo,
         IBookingRiskScorer bookingRiskScorer,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        ICustomerDriverLicenseRepository customerLicenseRepo)
     {
         _repo = repo;
         _emailSender = emailSender;
         _userRepo = userRepo;
         _bookingRiskScorer = bookingRiskScorer;
         _notificationService = notificationService;
+        _customerLicenseRepo = customerLicenseRepo;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -57,6 +61,28 @@ public class BookingService : IBookingService
 
         if (vehicle.Status != "Approved")
             throw new ValidationException(new[] { "Xe không có sẵn để đặt." });
+
+        var profile = await _repo.GetCustomerProfileByUserIdAsync(customerId, cancellationToken);
+        if (profile?.NationalIdVerified != true)
+            throw new ValidationException(new[] { "Bạn cần xác thực CCCD trước khi đặt xe." });
+
+        if (profile.DriverLicenseVerified != true)
+            throw new ValidationException(new[] { "Bạn cần xác thực giấy phép lái xe trước khi đặt xe." });
+
+        var customerLicense = await _customerLicenseRepo.GetByUserIdAndVehicleTypeAsync(customerId, vehicle.VehicleType, cancellationToken);
+        if (customerLicense is null)
+            throw new ValidationException(new[] { "Bạn chưa xác thực giấy phép lái xe cho loại xe này." });
+
+        if (vehicle.VariantId.HasValue)
+        {
+            var variant = await _repo.GetVariantByIdAsync(vehicle.VariantId.Value, cancellationToken);
+            if (variant?.RequiredLicenseClassId is not null)
+            {
+                var compatible = await _repo.IsLicenseClassCompatibleAsync(customerLicense.LicenseClass!, variant.RequiredLicenseClassId.Value, cancellationToken);
+                if (!compatible)
+                    throw new ValidationException(new[] { "Hạng bằng lái của bạn không phù hợp với loại xe này." });
+            }
+        }
 
         var hasOverlap = await _repo.HasOverlapAsync(request.VehicleId, request.StartDate, request.EndDate, null, cancellationToken);
         if (hasOverlap)

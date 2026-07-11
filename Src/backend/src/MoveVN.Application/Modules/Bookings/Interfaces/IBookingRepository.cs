@@ -14,6 +14,8 @@ public interface IBookingRepository
     Task<TrustScore?> GetTrustScoreByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<int> CountActiveBookingsByCustomerAsync(long customerId, long? excludeBookingId = null, CancellationToken cancellationToken = default);
     Task<int> CountRecentBookingsByCustomerAsync(long customerId, DateTime since, long? excludeBookingId = null, CancellationToken cancellationToken = default);
+    Task<VehicleModelVariant?> GetVariantByIdAsync(int variantId, CancellationToken cancellationToken = default);
+    Task<bool> IsLicenseClassCompatibleAsync(string licenseClassCode, int requiredLicenseClassId, CancellationToken cancellationToken = default);
     Task AddStatusHistoryAsync(BookingStatusHistory history, CancellationToken cancellationToken = default);
     Task<List<BookingStatusHistoryDto>> GetStatusHistoryAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<(List<BookingResponse> Items, int TotalCount)> GetByCustomerPagedAsync(long customerId, BookingListRequest request, CancellationToken cancellationToken = default);
