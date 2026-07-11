@@ -146,6 +146,8 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
+            <Route path="/admin/support-tickets" element={<StaffSupportTicketListPage />} />
+            <Route path="/admin/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
             <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
             <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
             <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />

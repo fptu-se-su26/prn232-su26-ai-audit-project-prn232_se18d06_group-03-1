@@ -53,7 +53,13 @@ public class SupportTicketService : ISupportTicketService
         }, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        await NotifyStaffAsync(ticket, "Support ticket mới", $"{ticket.TicketNumber}: {ticket.Subject}", cancellationToken);
+        await NotifyStaffAsync(
+            ticket,
+            "Support ticket mới",
+            $"{ticket.TicketNumber}: {ticket.Subject}",
+            StaffTicketPath(ticket),
+            "SupportTicketCreated",
+            cancellationToken);
 
         return await GetDetailOrThrowAsync(ticket.Id, cancellationToken);
     }
@@ -123,11 +129,24 @@ public class SupportTicketService : ISupportTicketService
 
         if (isStaffOrAdmin)
         {
-            await NotifyUserAsync(ticket.UserId, ticket, "Staff đã phản hồi ticket", $"{ticket.TicketNumber}: {ticket.Subject}", cancellationToken);
+            await NotifyUserAsync(
+                ticket.UserId,
+                ticket,
+                "Staff đã phản hồi ticket",
+                $"{ticket.TicketNumber}: {ticket.Subject}",
+                CustomerTicketPath(ticket),
+                "SupportTicketStaffReplied",
+                cancellationToken);
         }
         else
         {
-            await NotifyAssignedStaffOrQueueAsync(ticket, "Customer đã phản hồi ticket", $"{ticket.TicketNumber}: {ticket.Subject}", cancellationToken);
+            await NotifyAssignedStaffOrQueueAsync(
+                ticket,
+                "Customer đã phản hồi ticket",
+                $"{ticket.TicketNumber}: {ticket.Subject}",
+                StaffTicketPath(ticket),
+                "SupportTicketCustomerReplied",
+                cancellationToken);
         }
 
         return await GetDetailOrThrowAsync(ticket.Id, cancellationToken);
@@ -145,7 +164,14 @@ public class SupportTicketService : ISupportTicketService
         _repository.Update(ticket);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        await NotifyUserAsync(ticket.UserId, ticket, "Ticket hỗ trợ đã cập nhật", $"{ticket.TicketNumber} chuyển sang {ticket.Status}.", cancellationToken);
+        await NotifyUserAsync(
+            ticket.UserId,
+            ticket,
+            "Ticket hỗ trợ đã cập nhật",
+            $"{ticket.TicketNumber} chuyển sang {ticket.Status}.",
+            CustomerTicketPath(ticket),
+            "SupportTicketStatusUpdated",
+            cancellationToken);
 
         return await GetDetailOrThrowAsync(ticket.Id, cancellationToken);
     }
@@ -154,27 +180,46 @@ public class SupportTicketService : ISupportTicketService
         => await _repository.GetDetailByIdAsync(ticketId, cancellationToken)
             ?? throw new NotFoundException("Support ticket not found.");
 
-    private async Task NotifyAssignedStaffOrQueueAsync(SupportTicket ticket, string title, string body, CancellationToken cancellationToken)
+    private async Task NotifyAssignedStaffOrQueueAsync(
+        SupportTicket ticket,
+        string title,
+        string body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
     {
         if (ticket.AssignedStaffId.HasValue)
         {
-            await NotifyUserAsync(ticket.AssignedStaffId.Value, ticket, title, body, cancellationToken);
+            await NotifyUserAsync(ticket.AssignedStaffId.Value, ticket, title, body, targetPath, action, cancellationToken);
             return;
         }
 
-        await NotifyStaffAsync(ticket, title, body, cancellationToken);
+        await NotifyStaffAsync(ticket, title, body, targetPath, action, cancellationToken);
     }
 
-    private async Task NotifyStaffAsync(SupportTicket ticket, string title, string body, CancellationToken cancellationToken)
+    private async Task NotifyStaffAsync(
+        SupportTicket ticket,
+        string title,
+        string body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
     {
         var staffIds = await _repository.GetStaffAndAdminUserIdsAsync(cancellationToken);
         foreach (var staffId in staffIds.Distinct())
         {
-            await NotifyUserAsync(staffId, ticket, title, body, cancellationToken);
+            await NotifyUserAsync(staffId, ticket, title, body, targetPath, action, cancellationToken);
         }
     }
 
-    private async Task NotifyUserAsync(long userId, SupportTicket ticket, string title, string body, CancellationToken cancellationToken)
+    private async Task NotifyUserAsync(
+        long userId,
+        SupportTicket ticket,
+        string title,
+        string body,
+        string targetPath,
+        string action,
+        CancellationToken cancellationToken)
     {
         await _notificationService.CreateAsync(new CreateNotificationRequest
         {
@@ -186,11 +231,19 @@ public class SupportTicketService : ISupportTicketService
             {
                 ticketId = ticket.Id,
                 ticketNumber = ticket.TicketNumber,
-                status = ticket.Status
+                status = ticket.Status,
+                targetPath,
+                action
             }),
             Channel = "InApp"
         }, cancellationToken);
     }
+
+    private static string CustomerTicketPath(SupportTicket ticket)
+        => $"/customer/support-tickets/{ticket.Id}";
+
+    private static string StaffTicketPath(SupportTicket ticket)
+        => $"/staff/support-tickets/{ticket.Id}";
 
     private static void NormalizePaging(SupportTicketListRequest request)
     {

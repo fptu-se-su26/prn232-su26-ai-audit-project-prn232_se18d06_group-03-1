@@ -2,6 +2,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import type { UserRole } from "@/features/auth/types";
 import { getNotificationUnreadCount, getNotifications, markAllNotificationsAsRead, markNotificationAsRead } from "@/features/notifications/services/notificationService";
 import type { NotificationItem } from "@/features/notifications/types";
 import { useNotificationConnection } from "@/features/notifications/useNotificationConnection";
@@ -32,12 +33,38 @@ function formatNotificationTime(value: string) {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function getNotificationTargetPath(notification: NotificationItem) {
+type NotificationData = {
+  targetPath?: unknown;
+  ticketId?: unknown;
+};
+
+function getNumericId(value: unknown) {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+  return null;
+}
+
+function getNotificationTargetPath(notification: NotificationItem, activeRole: UserRole | null) {
   if (!notification.dataJson) return null;
 
   try {
-    const data = JSON.parse(notification.dataJson) as { targetPath?: unknown };
-    return typeof data.targetPath === "string" && data.targetPath.startsWith("/") ? data.targetPath : null;
+    const data = JSON.parse(notification.dataJson) as NotificationData;
+    if (typeof data.targetPath === "string" && data.targetPath.startsWith("/")) {
+      if (notification.type === "SupportTicket" && activeRole === "Admin" && data.targetPath.startsWith("/staff/support-tickets")) {
+        return data.targetPath.replace("/staff/support-tickets", "/admin/support-tickets");
+      }
+
+      return data.targetPath;
+    }
+
+    const ticketId = getNumericId(data.ticketId);
+    if (notification.type === "SupportTicket" && ticketId) {
+      if (activeRole === "Customer") return `/customer/support-tickets/${ticketId}`;
+      if (activeRole === "Admin") return `/admin/support-tickets/${ticketId}`;
+      return `/staff/support-tickets/${ticketId}`;
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -46,6 +73,7 @@ function getNotificationTargetPath(notification: NotificationItem) {
 export default function NotificationMenu({ variant = "dashboard" }: NotificationMenuProps) {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
+  const activeRole = useAuthStore((state) => state.activeRole);
   const notifications = useNotificationStore((state) => state.items);
   const notificationUnreadCount = useNotificationStore((state) => state.unreadCount);
   const setNotifications = useNotificationStore((state) => state.setItems);
@@ -102,7 +130,7 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
   }
 
   async function handleNotificationClick(notification: NotificationItem) {
-    const targetPath = getNotificationTargetPath(notification);
+    const targetPath = getNotificationTargetPath(notification, activeRole);
 
     if (!notification.isRead) {
       markNotificationReadLocal(notification.id);
