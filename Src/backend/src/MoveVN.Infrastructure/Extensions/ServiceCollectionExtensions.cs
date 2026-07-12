@@ -80,6 +80,26 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
+        services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPaymentRepository, MoveVN.Infrastructure.Persistence.Repositories.PaymentRepository>();
+        services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IWalletRepository, MoveVN.Infrastructure.Persistence.Repositories.WalletRepository>();
+        services.AddScoped<MoveVN.Application.Modules.Withdrawals.Interfaces.IWithdrawalRepository, MoveVN.Infrastructure.Persistence.Repositories.WithdrawalRepository>();
+        services.AddScoped<MoveVN.Application.Interfaces.IAuditLogRepository, MoveVN.Infrastructure.Persistence.Repositories.AuditLogRepository>();
+
+        // PayOS Payment Gateway
+        services.Configure<PayOsSettings>(settings =>
+        {
+            settings.ClientId = configuration["PAYOS__ClientId"]
+                ?? Environment.GetEnvironmentVariable("PAYOS__ClientId") ?? "";
+            settings.ApiKey = configuration["PAYOS__ApiKey"]
+                ?? Environment.GetEnvironmentVariable("PAYOS__ApiKey") ?? "";
+            settings.ChecksumKey = configuration["PAYOS__ChecksumKey"]
+                ?? Environment.GetEnvironmentVariable("PAYOS__ChecksumKey") ?? "";
+            settings.ReturnUrl = configuration["PAYOS__ReturnUrl"]
+                ?? Environment.GetEnvironmentVariable("PAYOS__ReturnUrl") ?? "http://localhost:5173/payment/result";
+            settings.CancelUrl = configuration["PAYOS__CancelUrl"]
+                ?? Environment.GetEnvironmentVariable("PAYOS__CancelUrl") ?? "http://localhost:5173/payment/cancel";
+        });
+        services.AddScoped<IPayOsService, PayOsService>();
 
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))

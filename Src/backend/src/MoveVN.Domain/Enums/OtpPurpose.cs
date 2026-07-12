@@ -4,5 +4,6 @@ public enum OtpPurpose
 {
     Register = 1,
     ForgotPassword = 2,
-    VerifyEmail = 3
+    VerifyEmail = 3,
+    BankAccountUpdate = 4
 }

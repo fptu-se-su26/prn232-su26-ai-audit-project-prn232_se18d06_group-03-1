@@ -27,7 +27,6 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings
             .Where(b => b.VehicleId == vehicleId
-                && b.Status != "Pending"
                 && b.Status != "Rejected"
                 && b.Status != "Cancelled"
                 && b.StartDate < endDate
@@ -37,6 +36,20 @@ public class BookingRepository : IBookingRepository
             query = query.Where(b => b.Id != excludeBookingId.Value);
 
         return await query.AnyAsync(cancellationToken);
+    }
+
+    public async Task<List<Booking>> GetOverlappingBookingsAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Bookings
+            .Where(b => b.VehicleId == vehicleId
+                && (b.Status == "Pending" || b.Status == "Approved")
+                && b.StartDate < endDate
+                && b.EndDate > startDate);
+
+        if (excludeBookingId.HasValue)
+            query = query.Where(b => b.Id != excludeBookingId.Value);
+
+        return await query.ToListAsync(cancellationToken);
     }
 
     public async Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default)

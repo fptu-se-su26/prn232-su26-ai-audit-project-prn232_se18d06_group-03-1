@@ -10,7 +10,8 @@ import type { BookingResponse, BookingListRequest } from "@/features/booking/typ
 const PAGE_SIZE = 10;
 
 const statusLabels: Record<string, string> = {
-  Pending: "Chờ duyệt",
+  Pending: "Chờ thanh toán",
+  DepositPaid: "Đã đặt cọc",
   Approved: "Đã duyệt",
   Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
@@ -20,6 +21,7 @@ const statusLabels: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   Pending: "bg-amber-100 text-amber-700",
+  DepositPaid: "bg-violet-100 text-violet-700",
   Approved: "bg-blue-100 text-blue-700",
   Rejected: "bg-red-100 text-red-700",
   Cancelled: "bg-slate-100 text-slate-600",

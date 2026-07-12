@@ -1,4 +1,4 @@
-﻿namespace MoveVN.Domain.Entities;
+namespace MoveVN.Domain.Entities;
 
 public class WalletTransaction
 {
@@ -10,6 +10,7 @@ public class WalletTransaction
     public long? ReferenceId { get; set; }
     public string IdempotencyKey { get; set; } = string.Empty;
     public string? Note { get; set; }
+    public string Status { get; set; } = "Completed";
+    public string? ExternalReference { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
-

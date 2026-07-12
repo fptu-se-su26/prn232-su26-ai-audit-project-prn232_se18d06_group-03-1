@@ -1,11 +1,12 @@
-import { ArrowLeft, CalendarDays, Check, DollarSign, MapPin, TicketPercent, CreditCard, Banknote, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Clock, DollarSign, MapPin, TicketPercent, CreditCard, X, ExternalLink, Banknote } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById, approveBooking, rejectBooking, confirmDeposit } from "@/features/booking/bookingService";
+import { getBookingById, approveBooking, rejectBooking, completeBooking } from "@/features/booking/bookingService";
+import { createPaymentLink } from "@/features/payments/services/paymentService";
 import type { BookingResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
@@ -48,7 +49,6 @@ function formatCurrency(n: number) {
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const user = useAuthStore((state) => state.user);
-  const primaryRole = user?.roles[0] ?? "Customer";
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rejectReason, setRejectReason] = useState("");
@@ -96,15 +96,32 @@ export default function BookingDetailPage() {
     }
   }
 
-  async function handleConfirmDeposit() {
+  async function handlePayDeposit() {
     if (!booking || isProcessing) return;
     setIsProcessing(true);
     try {
-      const updated = await confirmDeposit(booking.id);
-      setBooking(updated);
-      showToast({ type: "success", title: "Thành công", message: "Đã xác nhận đặt cọc." });
+      const result = await createPaymentLink(booking.id, window.location.href);
+      if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      } else {
+        showToast({ type: "error", title: "Lỗi", message: "Không nhận được đường dẫn thanh toán." });
+      }
     } catch {
-      showToast({ type: "error", title: "Lỗi", message: "Không thể xác nhận cọc." });
+      showToast({ type: "error", title: "Lỗi thanh toán", message: "Không thể tạo liên kết thanh toán." });
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function handleComplete() {
+    if (!booking || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const updated = await completeBooking(booking.id);
+      setBooking(updated);
+      showToast({ type: "success", title: "Hoàn thành chuyến đi", message: "Xác nhận chuyến đi hoàn thành thành công." });
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể hoàn thành chuyến đi." });
     } finally {
       setIsProcessing(false);
     }
@@ -114,21 +131,20 @@ export default function BookingDetailPage() {
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       <div className="flex items-center gap-3">
-        <Link to={primaryRole === "Owner" ? "/booking/manage" : "/booking/list"}>
+        <Link to={booking?.ownerId === user?.userId ? "/booking/manage" : "/booking/list"}>
           <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Quay lại</Button>
         </Link>
       </div>
 
       <section>
-        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">{primaryRole}</p>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Booking {booking.bookingCode}</h1>
           <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${statusColors[booking.status] ?? "bg-slate-100 text-slate-700"}`}>
             {statusLabels[booking.status] ?? booking.status}
           </span>
-          {primaryRole === "Owner" && (
+          {booking?.ownerId === user?.userId && (
             <span className="mt-2">
               <RiskScoreBadge score={booking.riskScore} />
             </span>
@@ -136,7 +152,7 @@ export default function BookingDetailPage() {
         </div>
       </section>
 
-      {primaryRole === "Owner" && (
+      {booking?.ownerId === user?.userId && (
         <Card className="rounded-md p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -169,7 +185,13 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {primaryRole === "Owner" && booking.status === "Pending" && (
+      {booking?.customerId === user?.userId && booking.status === "Pending" && (
+        <Alert variant="info" title="Đang chờ chủ xe duyệt">
+          Yêu cầu thuê xe của bạn đã được gửi đến chủ xe. Vui lòng chờ chủ xe xác nhận. Bạn sẽ nhận được thông báo và có thể tiến hành thanh toán cọc sau khi chủ xe đồng ý.
+        </Alert>
+      )}
+
+      {booking?.ownerId === user?.userId && booking.status === "Pending" && (
         <Card className="space-y-4 rounded-md p-5">
           <h2 className="text-lg font-bold text-slate-950">Xử lý yêu cầu</h2>
           <div className="flex flex-wrap gap-3">
@@ -192,23 +214,44 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {primaryRole === "Customer" && booking.status === "Approved" && (
+      {booking?.customerId === user?.userId && booking.status === "Approved" && booking.depositAmount > 0 && (
         <Card className="space-y-4 rounded-md p-5">
-          <h2 className="text-lg font-bold text-slate-950">Xác nhận đặt cọc</h2>
+          <h2 className="text-lg font-bold text-slate-950">Đặt cọc</h2>
           <p className="text-sm text-slate-600">
-            Chủ xe đã duyệt booking của bạn. Vui lòng chuyển tiền cọc{" "}
+            Vui lòng thanh toán cọc{" "}
             <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>{" "}
-            vào tài khoản sau và xác nhận để hoàn tất.
+            để xác nhận đặt xe.
           </p>
-          <div className="rounded-md bg-slate-50 p-3 text-sm">
-            <p className="text-slate-500">Thông tin tài khoản ngân hàng:</p>
-            <p className="mt-1 font-medium text-slate-900">Ngân hàng: Vietcombank</p>
-            <p className="font-medium text-slate-900">Số TK: 1234567890</p>
-            <p className="font-medium text-slate-900">Chủ TK: MoveVN Platform</p>
-            <p className="mt-1 text-xs text-slate-500">Nội dung chuyển khoản: {booking.bookingCode}</p>
+          <Button variant="primary" onClick={handlePayDeposit} isLoading={isProcessing}>
+            <ExternalLink className="h-4 w-4" /> Thanh toán cọc qua PayOS
+          </Button>
+        </Card>
+      )}
+
+      {booking?.customerId === user?.userId && booking.status === "DepositPaid" && (
+        <Card className="rounded-md p-5">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5"><Clock className="h-5 w-5 text-slate-400" /></div>
+            <div>
+              <h2 className="font-bold text-slate-950">Đã đặt cọc thành công</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Bạn đã đặt cọc <span className="font-semibold">{formatCurrency(booking.depositAmount)}</span>.
+                Vui lòng chờ chủ xe bàn giao xe và hoàn thành chuyến đi.
+              </p>
+            </div>
           </div>
-          <Button variant="primary" onClick={handleConfirmDeposit} isLoading={isProcessing}>
-            <Banknote className="h-4 w-4" /> Xác nhận đã chuyển cọc
+        </Card>
+      )}
+
+      {booking?.ownerId === user?.userId && booking.status === "DepositPaid" && (
+        <Card className="space-y-4 rounded-md p-5">
+          <h2 className="text-lg font-bold text-slate-950">Hoàn thành chuyến đi</h2>
+          <p className="text-sm text-slate-600">
+            Khách hàng đã thanh toán cọc <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>.
+            Sau khi khách hàng nhận xe, đi và trả xe, vui lòng xác nhận hoàn thành chuyến đi để hệ thống kết toán số dư ví.
+          </p>
+          <Button variant="primary" onClick={handleComplete} isLoading={isProcessing}>
+            <Check className="h-4 w-4" /> Xác nhận hoàn thành chuyến đi
           </Button>
         </Card>
       )}
@@ -282,9 +325,16 @@ export default function BookingDetailPage() {
           <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
             <span className="flex items-center gap-1 text-slate-600">
               <CreditCard className="h-4 w-4 text-brand-700" />
-              Tiền cọc
+              Tiền cọc (Thanh toán qua PayOS)
             </span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.depositAmount)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-1 text-slate-600">
+              <Banknote className="h-4 w-4 text-emerald-600" />
+              Số tiền còn lại (Thanh toán trực tiếp cho chủ xe khi nhận xe)
+            </span>
+            <span className="font-semibold text-emerald-600">{formatCurrency(booking.totalAmount - booking.depositAmount)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-2">
             <span className="flex items-center gap-1 font-semibold text-slate-900">

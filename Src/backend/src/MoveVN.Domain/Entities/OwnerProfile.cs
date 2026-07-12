@@ -1,4 +1,4 @@
-﻿namespace MoveVN.Domain.Entities;
+namespace MoveVN.Domain.Entities;
 
 public class OwnerProfile
 {
@@ -7,6 +7,7 @@ public class OwnerProfile
     public string? BankAccountNumber { get; set; }
     public string? BankName { get; set; }
     public string? BankAccountHolderName { get; set; }
+    public string? BankBin { get; set; }
     public string Tier { get; set; } = "Standard";
     public decimal CommissionRate { get; set; } = 15.00m;
     public int TotalTrips { get; set; }

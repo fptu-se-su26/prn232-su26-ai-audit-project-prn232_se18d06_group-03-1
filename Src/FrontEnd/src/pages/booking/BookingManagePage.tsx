@@ -12,7 +12,8 @@ const PAGE_SIZE = 10;
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
-  Approved: "Đã duyệt",
+  DepositPaid: "Đã đặt cọc",
+  Approved: "Chờ thanh toán",
   Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
   Confirmed: "Đã xác nhận",
@@ -21,6 +22,7 @@ const statusLabels: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   Pending: "bg-amber-100 text-amber-700",
+  DepositPaid: "bg-violet-100 text-violet-700",
   Approved: "bg-blue-100 text-blue-700",
   Rejected: "bg-red-100 text-red-700",
   Cancelled: "bg-slate-100 text-slate-600",
@@ -30,8 +32,9 @@ const statusColors: Record<string, string> = {
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
+  { value: "DepositPaid", label: "Đã đặt cọc" },
   { value: "Pending", label: "Chờ duyệt" },
-  { value: "Approved", label: "Đã duyệt" },
+  { value: "Approved", label: "Chờ thanh toán" },
   { value: "Rejected", label: "Đã từ chối" },
   { value: "Cancelled", label: "Đã hủy" },
 ];
@@ -79,7 +82,8 @@ export default function BookingManagePage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid gap-6">
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Owner</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Yêu cầu thuê xe</h1>
@@ -164,6 +168,7 @@ export default function BookingManagePage() {
           ><ChevronRight className="h-4 w-4" /></button>
         </div>
       )}
+      </div>
     </div>
   );
 }

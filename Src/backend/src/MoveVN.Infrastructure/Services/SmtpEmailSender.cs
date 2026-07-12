@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
@@ -10,10 +11,12 @@ namespace MoveVN.Infrastructure.Services;
 public class SmtpEmailSender : IEmailSender
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<SmtpEmailSender> _logger;
 
-    public SmtpEmailSender(IConfiguration configuration)
+    public SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task SendDepositRequestAsync(string email, string customerName, string bookingCode, string vehicleName, decimal depositAmount, CancellationToken cancellationToken = default)
@@ -23,6 +26,7 @@ public class SmtpEmailSender : IEmailSender
 
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(fromEmail))
         {
+            _logger.LogWarning("SMTP is not configured. Skipped sending deposit email to {Email} for booking {BookingCode}", email, bookingCode);
             return;
         }
 
@@ -55,9 +59,9 @@ public class SmtpEmailSender : IEmailSender
         {
             await client.SendMailAsync(message, cancellationToken);
         }
-        catch
+        catch (Exception ex)
         {
-            // Log failure silently
+            _logger.LogError(ex, "Failed to send deposit email to {Email}", email);
         }
     }
 
@@ -68,7 +72,13 @@ public class SmtpEmailSender : IEmailSender
 
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(fromEmail))
         {
-            throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
+            _logger.LogWarning("==================================================");
+            _logger.LogWarning("SMTP HOST NOT CONFIG. SIMULATED OTP EMAIL SENDING:");
+            _logger.LogWarning("Email Target: {Email}", email);
+            _logger.LogWarning("OTP Purpose: {Purpose}", purpose);
+            _logger.LogWarning("OTP CODE: {Otp}", otp);
+            _logger.LogWarning("==================================================");
+            return;
         }
 
         var port = int.TryParse(_configuration["SMTP_PORT"], out var parsedPort) ? parsedPort : 587;
@@ -102,6 +112,7 @@ public class SmtpEmailSender : IEmailSender
         }
         catch (Exception exception) when (exception is SmtpException or InvalidOperationException)
         {
+            _logger.LogError(exception, "SMTP failed to send OTP to {Email}", email);
             throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
         }
     }

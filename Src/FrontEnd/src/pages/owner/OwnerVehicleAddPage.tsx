@@ -43,8 +43,7 @@ export default function OwnerVehicleAddPage() {
   const [pricePerDay, setPricePerDay] = useState("");
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
-  const [requiresDeposit, setRequiresDeposit] = useState(false);
-  const [depositAmount, setDepositAmount] = useState("");
+  const [depositPercent, setDepositPercent] = useState(0);
 
   const [features, setFeatures] = useState<CatalogFeature[]>([]);
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]);
@@ -130,7 +129,7 @@ export default function OwnerVehicleAddPage() {
   }
 
   function isDepositValid() {
-    return !requiresDeposit || Number(depositAmount) > 0;
+    return depositPercent >= 0 && depositPercent <= 50;
   }
 
   function handleProvinceChange(value: string) {
@@ -140,8 +139,7 @@ export default function OwnerVehicleAddPage() {
     setPricePerDay("");
     setAutoMinPrice("");
     setAutoMaxPrice("");
-    setRequiresDeposit(false);
-    setDepositAmount("");
+    setDepositPercent(0);
   }
 
   function handleAreaChange(value: string) {
@@ -237,8 +235,7 @@ export default function OwnerVehicleAddPage() {
         address: address.trim(),
         areaId,
         pricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : Number(autoMinPrice),
-        requiresDeposit,
-        depositAmount: requiresDeposit ? Number(depositAmount) : null,
+        depositPercent,
         pricingMode,
         fixedPricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : null,
         autoMinPrice: pricingMode === "Auto" ? Number(autoMinPrice) : null,
@@ -435,29 +432,29 @@ export default function OwnerVehicleAddPage() {
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <label className="flex items-center justify-between gap-4">
                   <span>
-                    <span className="block text-sm font-medium text-slate-700">Yêu cầu thế chấp</span>
-                    <span className="mt-0.5 block text-xs text-slate-500">Bật nếu khách cần đặt cọc/thế chấp trước khi thuê xe.</span>
+                    <span className="block text-sm font-medium text-slate-700">Tiền cọc (%)
+                      {depositPercent > 0 && (
+                        <span className="ml-2 text-xs font-normal text-slate-400">
+                          (= {depositPercent}% tổng tiền thuê)
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Chọn 0% nếu không yêu cầu cọc, tối đa 50%.</span>
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={requiresDeposit}
-                    onChange={(e) => {
-                      setRequiresDeposit(e.target.checked);
-                      if (!e.target.checked) setDepositAmount("");
-                    }}
-                    className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                </label>
-                {requiresDeposit && (
-                  <div className="mt-4 space-y-1">
-                    <label className="block text-sm font-medium text-slate-700">Số tiền thế chấp</label>
-                    <div className="relative">
-                      <input type="number" min={0} value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="VD: 2000000" className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 pr-12 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">VNĐ</span>
-                    </div>
-                    {!isDepositValid() && <p className="text-sm text-red-600">Số tiền thế chấp phải lớn hơn 0.</p>}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={0}
+                      max={50}
+                      step={5}
+                      value={depositPercent}
+                      onChange={(e) => setDepositPercent(Number(e.target.value))}
+                      className="h-2 w-32 cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600"
+                    />
+                    <span className="min-w-[3rem] text-sm font-semibold text-slate-900">{depositPercent}%</span>
                   </div>
-                )}
+                </label>
+                {!isDepositValid() && <p className="text-sm text-red-600">Phần trăm tiền cọc phải từ 0 đến 50%.</p>}
               </div>
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-slate-700">Mô tả thêm</label>
@@ -527,7 +524,7 @@ export default function OwnerVehicleAddPage() {
                   <div className="text-slate-500">Dòng xe:</div><div className="font-medium text-slate-900">{models.find((m) => m.id === modelId)?.name}</div>
                   <div className="text-slate-500">Biển số:</div><div className="font-medium text-slate-900">{licensePlate}</div>
                   <div className="text-slate-500">Giá thuê:</div><div className="font-medium text-slate-900">{pricingMode === "Fixed" ? Number(pricePerDay).toLocaleString("vi-VN") : `${Number(autoMinPrice).toLocaleString("vi-VN")} - ${Number(autoMaxPrice).toLocaleString("vi-VN")}`}đ/ngày</div>
-                  <div className="text-slate-500">Thế chấp:</div><div className="font-medium text-slate-900">{requiresDeposit ? `${Number(depositAmount).toLocaleString("vi-VN")}đ` : "Không yêu cầu"}</div>
+                  <div className="text-slate-500">Tiền cọc:</div><div className="font-medium text-slate-900">{depositPercent > 0 ? `${depositPercent}%` : "Không yêu cầu"}</div>
                 </div>
               </div>
               <input ref={docInputRef} type="file" accept="image/*" onChange={handleDocUpload} className="hidden" />

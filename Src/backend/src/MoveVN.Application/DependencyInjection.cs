@@ -40,6 +40,10 @@ using MoveVN.Application.Modules.VehiclePricings.Interfaces;
 using MoveVN.Application.Modules.VehiclePricings.Services;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 using MoveVN.Application.Modules.Vehicles.Services;
+using MoveVN.Application.Modules.AuditLogs.Interfaces;
+using MoveVN.Application.Modules.AuditLogs.Services;
+using MoveVN.Application.Modules.Withdrawals.Interfaces;
+using MoveVN.Application.Modules.Withdrawals.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
@@ -82,8 +86,13 @@ public static class DependencyInjection
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
         services.AddScoped<IBookingRiskScorer, RuleBasedBookingRiskScorer>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPaymentService, MoveVN.Application.Modules.Payments.Services.PaymentService>();
+        services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IWalletService, MoveVN.Application.Modules.Wallets.Services.WalletService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();
         services.AddScoped<ISupportTicketService, SupportTicketService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IWithdrawalService, WithdrawalService>();
+        services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IAdminWalletService, MoveVN.Application.Modules.Wallets.Services.AdminWalletService>();
 
         return services;
     }

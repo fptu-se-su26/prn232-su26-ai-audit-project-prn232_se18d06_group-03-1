@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   UserRound,
   UsersRound,
+  Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -149,6 +150,13 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
+    mainItems.push({ to: "/admin/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark });
+    mainItems.push({ to: "/admin/wallets", label: "Quản lý ví", icon: Wallet });
+  }
+
+  if (primaryRole === "Staff") {
+    mainItems.push({ to: "/staff/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark });
+    mainItems.push({ to: "/staff/wallets", label: "Quản lý ví", icon: Wallet });
   }
 
   if (primaryRole === "Owner") {
@@ -167,6 +175,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     {
       heading: "Ví tiền",
       items: [
+        { to: "/account/wallet", label: "Ví của tôi", icon: Wallet },
         { to: "/account/bank", label: "Ngân hàng", icon: Landmark },
       ],
     },

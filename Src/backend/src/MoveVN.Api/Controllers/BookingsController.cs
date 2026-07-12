@@ -94,4 +94,15 @@ public class BookingsController : BaseApiController
         var result = await _bookingService.RejectAsync(id, ownerId, request, cancellationToken);
         return Success(result, "Đã từ chối booking.");
     }
+
+    [Authorize(Roles = "Owner")]
+    [HttpPut("{id:long}/complete")]
+    public async Task<ActionResult<ApiResponse<BookingResponse>>> Complete(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var ownerId = _currentUser.UserId!.Value;
+        var result = await _bookingService.CompleteAsync(id, ownerId, cancellationToken);
+        return Success(result, "Đã hoàn thành booking.");
+    }
 }

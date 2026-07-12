@@ -69,13 +69,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<VehicleModelPricing> VehicleModelPricing => Set<VehicleModelPricing>();
     public DbSet<VehiclePricing> VehiclePricing => Set<VehiclePricing>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
-    public DbSet<Wallet> Wallets => Set<Wallet>();
-    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<Wallet> Wallets { get; set; }
+    public DbSet<WalletTransaction> WalletTransactions { get; set; }
+    public DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<Wallet>();
+        builder.Entity<WalletTransaction>();
+        builder.Entity<WithdrawalRequest>();
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<DriverLicenseClass>().HasIndex(entity => entity.Code).IsUnique();
@@ -132,7 +136,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .WithMany()
             .HasForeignKey(entity => entity.AreaId)
             .OnDelete(DeleteBehavior.SetNull);
-        builder.Entity<Vehicle>().Property(entity => entity.DepositAmount).HasPrecision(15, 2);
+        builder.Entity<Vehicle>().Property(entity => entity.DepositPercent).HasDefaultValue(0);
         builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
         builder.Entity<VehicleDocument>().HasIndex(entity => entity.VehicleId);
         builder.Entity<VehicleDocument>().HasIndex(entity => new { entity.VehicleId, entity.IsCurrent });

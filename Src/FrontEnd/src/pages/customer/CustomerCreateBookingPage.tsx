@@ -32,7 +32,7 @@ export default function CustomerCreateBookingPage() {
   const navigate = useNavigate();
   const vehicleId = Number(searchParams.get("vehicleId"));
 
-  const [vehicle, setVehicle] = useState<{ pricePerDay: number; requiresDeposit: boolean; depositAmount: number | null } | null>(null);
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number } | null>(null);
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
@@ -49,7 +49,7 @@ export default function CustomerCreateBookingPage() {
     if (!vehicleId) { setLoadingVehicle(false); return; }
     getPublicVehicleById(vehicleId)
       .then((v) => {
-        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, requiresDeposit: v.requiresDeposit, depositAmount: v.depositAmount });
+        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, depositPercent: v.depositPercent });
         setVehicleName(`${v.brandName} ${v.modelName}`);
       })
       .catch(() => setError("Không thể tải thông tin xe."))
@@ -72,8 +72,8 @@ export default function CustomerCreateBookingPage() {
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
     const fee = Math.round(afterDisc * 10 / 100);
-    const deposit = vehicle.requiresDeposit
-      ? Math.round(afterDisc * 20 / 100)
+    const deposit = vehicle.depositPercent > 0
+      ? Math.round(afterDisc * vehicle.depositPercent / 100)
       : 0;
     const total = afterDisc + fee;
     return { base, discPct, discAmt, fee, deposit, total };
@@ -174,7 +174,7 @@ export default function CustomerCreateBookingPage() {
               <input
                 type="datetime-local"
                 value={endDate}
-                min={startDate || today + "T00:00"}
+                min={startDate ? startDate.slice(0, 10) + "T00:00" : today + "T00:00"}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
                 required

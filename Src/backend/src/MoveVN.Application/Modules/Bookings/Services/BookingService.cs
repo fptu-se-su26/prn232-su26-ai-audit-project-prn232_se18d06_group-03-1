@@ -7,7 +7,9 @@ using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
+using MoveVN.Application.Modules.Payments.Interfaces;
 using MoveVN.Domain.Entities;
+using MoveVN.Domain.Enums;
 
 namespace MoveVN.Application.Modules.Bookings.Services;
 
@@ -19,6 +21,7 @@ public class BookingService : IBookingService
     private readonly IBookingRiskScorer _bookingRiskScorer;
     private readonly INotificationService _notificationService;
     private readonly ICustomerDriverLicenseRepository _customerLicenseRepo;
+    private readonly IWalletRepository _walletRepo;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -34,7 +37,8 @@ public class BookingService : IBookingService
         IUserRepository userRepo,
         IBookingRiskScorer bookingRiskScorer,
         INotificationService notificationService,
-        ICustomerDriverLicenseRepository customerLicenseRepo)
+        ICustomerDriverLicenseRepository customerLicenseRepo,
+        IWalletRepository walletRepo)
     {
         _repo = repo;
         _emailSender = emailSender;
@@ -42,6 +46,7 @@ public class BookingService : IBookingService
         _bookingRiskScorer = bookingRiskScorer;
         _notificationService = notificationService;
         _customerLicenseRepo = customerLicenseRepo;
+        _walletRepo = walletRepo;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -97,8 +102,8 @@ public class BookingService : IBookingService
         var discountAmount = Math.Round(basePrice * discountPercent / 100, 0);
         var afterDiscount = basePrice - discountAmount;
         var platformFee = Math.Round(afterDiscount * 10 / 100, 0);
-        var depositAmount = vehicle.RequiresDeposit
-            ? Math.Round(afterDiscount * 20 / 100, 0)
+        var depositAmount = vehicle.DepositPercent > 0
+            ? Math.Round(afterDiscount * vehicle.DepositPercent / 100, 0)
             : 0;
         var totalAmount = afterDiscount + platformFee;
         var createdAt = DateTime.UtcNow;
@@ -108,7 +113,7 @@ public class BookingService : IBookingService
             totalDays,
             totalAmount,
             depositAmount,
-            vehicle.RequiresDeposit,
+            vehicle.DepositPercent > 0,
             createdAt,
             null,
             cancellationToken);
@@ -156,7 +161,7 @@ public class BookingService : IBookingService
             "Booking moi can xu ly",
             $"{booking.BookingCode}: Khach hang vua gui yeu cau dat xe.",
             "owner",
-            $"/owner/bookings/{booking.Id}",
+            $"/booking/{booking.Id}",
             "BookingCreated",
             cancellationToken);
 
@@ -189,7 +194,7 @@ public class BookingService : IBookingService
             throw new ValidationException(new[] { "Bạn không có quyền xử lý booking này." });
 
         if (booking.Status != "Pending")
-            throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
+            throw new ValidationException(new[] { "Chỉ có thể duyệt booking đang chờ." });
 
         var hasOverlap = await _repo.HasOverlapAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
         if (hasOverlap)
@@ -210,39 +215,39 @@ public class BookingService : IBookingService
 
         await _repo.SaveChangesAsync(cancellationToken);
 
-        try
+        await NotifyUserAsync(
+            booking.CustomerId,
+            booking,
+            "Booking da duoc duyet",
+            $"{booking.BookingCode} da duoc chu xe duyet.",
+            "customer",
+            $"/booking/{booking.Id}",
+            "BookingApproved",
+            cancellationToken);
+
+        // Send email to remind customer to pay deposit
+        var customer = await _userRepo.GetByIdAsync(booking.CustomerId, cancellationToken);
+        if (customer != null && !string.IsNullOrWhiteSpace(customer.Email))
         {
-            var customer = await _userRepo.GetByIdAsync(booking.CustomerId, cancellationToken);
             var vehicle = await _repo.GetVehicleByIdAsync(booking.VehicleId, cancellationToken);
-            if (customer is not null && vehicle is not null)
+            var vehicleName = vehicle != null ? $"{vehicle.BrandId} {vehicle.Year}" : "Xe";
+            
+            try
             {
-                var vehicleName = $"{vehicle.BrandId} {vehicle.Year}";
                 await _emailSender.SendDepositRequestAsync(
                     customer.Email,
-                    customer.FullName,
+                    customer.FullName ?? "Khách hàng",
                     booking.BookingCode,
                     vehicleName,
                     booking.DepositAmount,
                     cancellationToken
                 );
             }
+            catch
+            {
+                // Ignore email failure to avoid breaking the approve flow
+            }
         }
-        catch
-        {
-            // Email failure should not block the approval
-        }
-
-        await NotifyUserAsync(
-            booking.CustomerId,
-            booking,
-            "Booking da duoc duyet",
-            booking.DepositAmount > 0
-                ? $"{booking.BookingCode} da duoc chu xe duyet. Vui long xac nhan tien coc."
-                : $"{booking.BookingCode} da duoc chu xe duyet.",
-            "customer",
-            $"/customer/bookings/{booking.Id}",
-            "BookingApproved",
-            cancellationToken);
 
         return await MapAsync(booking, cancellationToken);
     }
@@ -259,7 +264,7 @@ public class BookingService : IBookingService
             throw new ValidationException(new[] { "Bạn không có quyền xử lý booking này." });
 
         if (booking.Status != "Pending")
-            throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
+            throw new ValidationException(new[] { "Booking không ở trạng thái có thể từ chối." });
 
         var oldStatus = booking.Status;
         booking.Status = "Rejected";
@@ -277,6 +282,36 @@ public class BookingService : IBookingService
             Note = request.Reason,
         }, cancellationToken);
 
+        // Refund deposit to customer wallet if already paid
+        if (oldStatus == "DepositPaid" && booking.DepositAmount > 0)
+        {
+            try
+            {
+                var wallets = await _walletRepo.FindAsync(w => w.UserId == booking.CustomerId, cancellationToken);
+                var wallet = wallets.FirstOrDefault();
+                if (wallet != null)
+                {
+                    wallet.Balance += booking.DepositAmount;
+                    _walletRepo.Update(wallet);
+
+                    await _walletRepo.AddTransactionAsync(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        Type = WalletTransactionType.Refund,
+                        Amount = booking.DepositAmount,
+                        BalanceAfter = wallet.Balance,
+                        ReferenceId = booking.Id,
+                        IdempotencyKey = $"refund_booking_{booking.Id}",
+                        Note = $"Hoàn cọc booking {booking.BookingCode} do chủ xe từ chối",
+                    }, cancellationToken);
+                }
+            }
+            catch
+            {
+                // Refund failure should not block the rejection
+            }
+        }
+
         await _repo.SaveChangesAsync(cancellationToken);
 
         await NotifyUserAsync(
@@ -285,7 +320,7 @@ public class BookingService : IBookingService
             "Booking da bi tu choi",
             $"{booking.BookingCode} da bi chu xe tu choi. Ly do: {request.Reason.Trim()}",
             "customer",
-            $"/customer/bookings/{booking.Id}",
+            $"/booking/{booking.Id}",
             "BookingRejected",
             cancellationToken);
 
@@ -301,7 +336,7 @@ public class BookingService : IBookingService
             throw new ValidationException(new[] { "Bạn không có quyền xác nhận cọc cho booking này." });
 
         if (booking.Status != "Approved")
-            throw new ValidationException(new[] { "Booking chưa được duyệt hoặc đã xác nhận cọc." });
+            throw new ValidationException(new[] { "Booking chưa được duyệt, không thể thanh toán cọc." });
 
         var oldStatus = booking.Status;
         booking.Status = "DepositPaid";
@@ -317,6 +352,37 @@ public class BookingService : IBookingService
             Note = "Khách hàng xác nhận đã chuyển cọc",
         }, cancellationToken);
 
+        // Cancel overlapping bookings
+        var overlapping = await _repo.GetOverlappingBookingsAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
+        foreach (var overlap in overlapping)
+        {
+            var oldOverlapStatus = overlap.Status;
+            overlap.Status = "Cancelled";
+            overlap.CancelReason = "Xe đã có khách khác thanh toán cọc thành công.";
+            overlap.CancelledAt = DateTime.UtcNow;
+            overlap.UpdatedAt = DateTime.UtcNow;
+            _repo.Update(overlap);
+
+            await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+            {
+                BookingId = overlap.Id,
+                FromStatus = oldOverlapStatus,
+                ToStatus = "Cancelled",
+                ChangedBy = customerId,
+                Note = "Hệ thống tự động hủy do trùng lịch",
+            }, cancellationToken);
+
+            await NotifyUserAsync(
+                overlap.CustomerId,
+                overlap,
+                "Booking bị hủy do trùng lịch",
+                $"{overlap.BookingCode}: Xe đã có người khác đặt cọc trước. Bạn có thể tìm xe khác nhé.",
+                "customer",
+                $"/booking/{overlap.Id}",
+                "BookingCancelled",
+                cancellationToken);
+        }
+
         await _repo.SaveChangesAsync(cancellationToken);
 
         await NotifyUserAsync(
@@ -325,8 +391,98 @@ public class BookingService : IBookingService
             "Khach hang da xac nhan coc",
             $"{booking.BookingCode}: Khach hang da xac nhan da chuyen coc.",
             "owner",
-            $"/owner/bookings/{booking.Id}",
+            $"/booking/{booking.Id}",
             "BookingDepositConfirmed",
+            cancellationToken);
+
+        return await MapAsync(booking, cancellationToken);
+    }
+
+    public async Task<BookingResponse> CompleteAsync(long bookingId, long ownerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.OwnerId != ownerId)
+            throw new ValidationException(new[] { "Bạn không có quyền hoàn thành booking này." });
+
+        if (booking.Status != "DepositPaid")
+            throw new ValidationException(new[] { "Chỉ có thể hoàn thành những booking đã thanh toán cọc." });
+
+        var oldStatus = booking.Status;
+        booking.Status = "Completed";
+        booking.UpdatedAt = DateTime.UtcNow;
+        _repo.Update(booking);
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = oldStatus,
+            ToStatus = "Completed",
+            ChangedBy = ownerId,
+            Note = "Chủ xe xác nhận hoàn thành chuyến đi",
+        }, cancellationToken);
+
+        // Calculate Owner's share: DepositAmount - PlatformFee
+        var ownerEarning = booking.DepositAmount - booking.PlatformFee;
+        
+        // Find or create Owner's Wallet
+        var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == ownerId, cancellationToken);
+        var ownerWallet = ownerWallets.FirstOrDefault();
+        if (ownerWallet == null)
+        {
+            ownerWallet = new Wallet { UserId = ownerId, Balance = 0, TotalEarned = 0, TotalSpent = 0 };
+            await _walletRepo.AddAsync(ownerWallet, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+        }
+
+        var tx = new WalletTransaction
+        {
+            WalletId = ownerWallet.Id,
+            Type = WalletTransactionType.BookingEarning,
+            Amount = ownerEarning,
+            BalanceAfter = ownerWallet.Balance + ownerEarning,
+            ReferenceId = booking.Id,
+            IdempotencyKey = $"booking_earning_{booking.Id}",
+            Note = $"Thu nhập từ booking {booking.BookingCode} (Đặt cọc: {booking.DepositAmount:N0}đ, Phí: {booking.PlatformFee:N0}đ)",
+            Status = "Completed"
+        };
+        await _walletRepo.AddTransactionAsync(tx, cancellationToken);
+
+        ownerWallet.Balance += ownerEarning;
+        if (ownerEarning > 0)
+        {
+            ownerWallet.TotalEarned += ownerEarning;
+        }
+        else
+        {
+            ownerWallet.TotalSpent += Math.Abs(ownerEarning);
+        }
+        _walletRepo.Update(ownerWallet);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        // Notify customer
+        await NotifyUserAsync(
+            booking.CustomerId,
+            booking,
+            "Chuyến đi đã hoàn thành",
+            $"{booking.BookingCode}: Chủ xe đã xác nhận hoàn thành chuyến đi.",
+            "customer",
+            $"/booking/{booking.Id}",
+            "BookingCompleted",
+            cancellationToken);
+
+        // Notify owner
+        var earningText = ownerEarning >= 0 ? $"+{ownerEarning:N0}đ" : $"-{Math.Abs(ownerEarning):N0}đ";
+        await NotifyUserAsync(
+            booking.OwnerId,
+            booking,
+            "Hoàn thành booking thành công",
+            $"{booking.BookingCode}: Bạn đã xác nhận hoàn thành chuyến đi. Số dư ví thay đổi {earningText}.",
+            "owner",
+            $"/booking/{booking.Id}",
+            "BookingCompleted",
             cancellationToken);
 
         return await MapAsync(booking, cancellationToken);
@@ -434,7 +590,7 @@ public class BookingService : IBookingService
             b.TotalDays,
             b.TotalAmount,
             b.DepositAmount,
-            vehicle?.RequiresDeposit == true,
+            vehicle?.DepositPercent > 0,
             b.CreatedAt,
             b.Id,
             cancellationToken);

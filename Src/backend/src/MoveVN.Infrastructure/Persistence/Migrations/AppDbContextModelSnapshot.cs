@@ -1238,6 +1238,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("bank_account_number");
 
+                    b.Property<string>("BankBin")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_bin");
+
                     b.Property<string>("BankName")
                         .HasColumnType("text")
                         .HasColumnName("bank_name");
@@ -1285,7 +1289,7 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("amount");
 
-                    b.Property<long>("BookingId")
+                    b.Property<long?>("BookingId")
                         .HasColumnType("bigint")
                         .HasColumnName("booking_id");
 
@@ -1315,6 +1319,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("text")
                         .HasColumnName("note");
+
+                    b.Property<long?>("OrderCode")
+                        .HasColumnType("bigint")
+                        .HasColumnName("order_code");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone")
@@ -2104,10 +2112,11 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<decimal?>("DepositAmount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("numeric(15,2)")
-                        .HasColumnName("deposit_amount");
+                    b.Property<int>("DepositPercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("deposit_percent");
 
                     b.Property<string>("Description")
                         .HasColumnType("text")
@@ -2145,10 +2154,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text")
                         .HasColumnName("rejection_reason");
-
-                    b.Property<bool>("RequiresDeposit")
-                        .HasColumnType("boolean")
-                        .HasColumnName("requires_deposit");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2750,6 +2755,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("ExternalReference")
+                        .HasColumnType("text")
+                        .HasColumnName("external_reference");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2763,6 +2772,11 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("reference_id");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2775,6 +2789,76 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("WalletTransactions");
+                });
+
+            modelBuilder.Entity("MoveVN.Domain.Entities.WithdrawalRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("BankAccountHolderName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_holder_name");
+
+                    b.Property<string>("BankAccountNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_number");
+
+                    b.Property<string>("BankBin")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_bin");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bank_name");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalTransactionRef")
+                        .HasColumnType("text")
+                        .HasColumnName("external_transaction_ref");
+
+                    b.Property<string>("ProcessNote")
+                        .HasColumnType("text")
+                        .HasColumnName("process_note");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<long?>("ProcessedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("processed_by");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<long>("WalletTransactionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("wallet_transaction_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WithdrawalRequests");
                 });
 
             modelBuilder.Entity("MoveVN.Infrastructure.Identity.ApplicationRole", b =>

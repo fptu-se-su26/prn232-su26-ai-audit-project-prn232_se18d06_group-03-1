@@ -1,9 +1,9 @@
-﻿namespace MoveVN.Domain.Entities;
+namespace MoveVN.Domain.Entities;
 
 public class Payment
 {
     public long Id { get; set; }
-    public long BookingId { get; set; }
+    public long? BookingId { get; set; }
     public long PayerId { get; set; }
     public string Type { get; set; } = string.Empty;
     public decimal Amount { get; set; }
@@ -14,6 +14,6 @@ public class Payment
     public string IdempotencyKey { get; set; } = string.Empty;
     public DateTime? PaidAt { get; set; }
     public string? Note { get; set; }
+    public long? OrderCode { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
-

@@ -150,9 +150,10 @@ export default function AccountPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <QuickLink to="/account/wallet" icon={CreditCard} title="Ví của tôi" description="Quản lý số dư và giao dịch" color="emerald" />
         <QuickLink to="/account/security/password" icon={KeyRound} title="Đổi mật khẩu" description="Cập nhật mật khẩu tài khoản" color="orange" />
         <QuickLink to="/account/security/sessions" icon={Monitor} title="Phiên đăng nhập" description="Quản lý thiết bị đã đăng nhập" color="blue" />
-        <QuickLink to="/account/verification/cccd" icon={CreditCard} title="Xác thực CCCD" description="Căn cước công dân" color="purple" />
+        <QuickLink to="/account/verification/cccd" icon={IdCard} title="Xác thực CCCD" description="Căn cước công dân" color="purple" />
         <QuickLink to="/account/bank" icon={Landmark} title="Thông tin ngân hàng" description="Quản lý tài khoản thụ hưởng" color="emerald" />
       </div>
     </div>

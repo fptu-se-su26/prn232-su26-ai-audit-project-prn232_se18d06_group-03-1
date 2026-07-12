@@ -32,7 +32,7 @@ export default function BookingNewPage() {
   const navigate = useNavigate();
   const vehicleId = Number(searchParams.get("vehicleId"));
 
-  const [vehicle, setVehicle] = useState<{ pricePerDay: number; requiresDeposit: boolean; depositAmount: number | null; featuredImage?: string | null; images?: any[] } | null>(null);
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; featuredImage?: string | null; images?: any[] } | null>(null);
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
@@ -43,22 +43,29 @@ export default function BookingNewPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dateError = startDate && endDate && new Date(endDate) <= new Date(startDate) ? "Ngày trả phải sau ngày nhận." : null;
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!vehicleId) { setLoadingVehicle(false); return; }
     getPublicVehicleById(vehicleId)
       .then((v) => {
+        if (!v) {
+          setError("Không tìm thấy thông tin xe.");
+          return;
+        }
         setVehicle({ 
           pricePerDay: v.currentPricePerDay ?? v.pricePerDay, 
-          requiresDeposit: v.requiresDeposit, 
-          depositAmount: v.depositAmount,
+          depositPercent: v.depositPercent,
           featuredImage: v.featuredImage,
           images: v.images
         });
         setVehicleName(`${v.brandName} ${v.modelName}`);
       })
-      .catch(() => setError("Không thể tải thông tin xe."))
+      .catch((e) => {
+        console.error("Error fetching vehicle:", e);
+        setError("Không thể tải thông tin xe.");
+      })
       .finally(() => setLoadingVehicle(false));
   }, [vehicleId]);
 
@@ -78,8 +85,8 @@ export default function BookingNewPage() {
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
     const fee = Math.round(afterDisc * 10 / 100);
-    const deposit = vehicle.requiresDeposit
-      ? Math.round(afterDisc * 20 / 100)
+    const deposit = vehicle.depositPercent > 0
+      ? Math.round(afterDisc * vehicle.depositPercent / 100)
       : 0;
     const total = afterDisc + fee;
     return { base, discPct, discAmt, fee, deposit, total };
@@ -106,8 +113,10 @@ export default function BookingNewPage() {
         returnAddress: returnAddress.trim() || undefined,
         customerNote: customerNote.trim() || undefined,
       });
-      showToast({ type: "success", title: "Đặt xe thành công", message: `Mã booking: ${result.bookingCode}` });
+      
+      showToast({ type: "success", title: "Đặt xe thành công", message: "Vui lòng thanh toán cọc để hoàn tất." });
       navigate(`/booking/${result.id}`);
+      
     } catch (err: any) {
       const data = err?.response?.data;
       const msg = data?.errors?.length ? data.errors.join(", ") : data?.message || err?.message || "Không thể tạo booking.";
@@ -146,13 +155,14 @@ export default function BookingNewPage() {
             </div>
           </Link>
 
-          <div className="bg-white dark:bg-slate-900 rounded-3xl flex flex-col items-center shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl flex flex-col items-center shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden w-full">
             
-            <div className="w-full aspect-[4/3] max-h-[250px] overflow-hidden bg-slate-100 dark:bg-slate-800">
+            <div className="w-full h-64 overflow-hidden bg-slate-100 dark:bg-slate-800">
               <img 
-                src={vehicle?.featuredImage || (vehicle?.images?.length ? vehicle.images[0].imageUrl : "https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image")} 
+                src={vehicle?.featuredImage || (vehicle?.images && vehicle.images.length > 0 ? vehicle.images[0].imageUrl : "https://placehold.co/400x300/f8fafc/94a3b8?text=No+Image")} 
                 alt={vehicleName || "Vehicle"} 
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                onError={(e) => { e.currentTarget.src = "https://placehold.co/400x300/f8fafc/94a3b8?text=Image+Error" }}
               />
             </div>
             
@@ -232,12 +242,13 @@ export default function BookingNewPage() {
                     <input 
                       type="datetime-local" 
                       value={endDate}
-                      min={startDate || today + "T00:00"}
+                      min={startDate ? startDate.slice(0, 10) + "T00:00" : today + "T00:00"}
                       onChange={(e) => setEndDate(e.target.value)}
                       required
                       className="bg-transparent text-[14px] w-full outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 [color-scheme:light] dark:[color-scheme:dark]" 
                     />
                   </div>
+                  {dateError && <p className="mt-1 text-xs text-red-500">{dateError}</p>}
                 </div>
               </div>
             </div>
@@ -384,6 +395,7 @@ export default function BookingNewPage() {
           <Button 
             type="submit"
             form="booking-form"
+            disabled={!!dateError}
             isLoading={isSubmitting}
             variant="primary"
             className="w-full h-14 rounded-2xl text-[15px] group shadow-md"
