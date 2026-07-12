@@ -11,6 +11,9 @@ export type VehicleListItemResponse = {
   pricingMode: "Fixed" | "Auto" | null;
   status: string;
   featuredImage: string | null;
+  averageRating: number;
+  reviewCount: number;
+  nextAvailableDate: string | null;
   createdAt: string;
 };
 
@@ -248,6 +251,17 @@ export type VehicleVerificationLogResponse = {
   action: string | null;
   actorUserId: number | null;
   createdAt: string;
+};
+
+export type BusyPeriod = {
+  startDate: string;
+  endDate: string;
+  type: "booking" | "blocked";
+};
+
+export type VehicleAvailabilityResponse = {
+  vehicleId: number;
+  busyPeriods: BusyPeriod[];
 };
 
 export type VehicleModerationDetailResponse = VehicleResponse & {

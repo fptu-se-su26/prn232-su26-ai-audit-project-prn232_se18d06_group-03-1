@@ -1,12 +1,16 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, Banknote } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, Banknote, CheckCircle, Star } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById, confirmDeposit } from "@/features/booking/bookingService";
+import { getBookingById, confirmDeposit, completeBooking } from "@/features/booking/bookingService";
 import type { BookingResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
+import { createCustomerReview, getBookingReviews, hasReviewed } from "@/features/review/reviewService";
+import type { ReviewResponse } from "@/features/review/reviewService";
+import StarRatingInput from "@/features/review/components/StarRatingInput";
+import ReviewCard from "@/features/review/components/ReviewCard";
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
@@ -46,13 +50,30 @@ export default function CustomerBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviews, setReviews] = useState<ReviewResponse[]>([]);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewCleanliness, setReviewCleanliness] = useState(0);
+  const [reviewAccuracy, setReviewAccuracy] = useState(0);
+  const [reviewSupport, setReviewSupport] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      const result = await getBookingById(Number(id));
+      const bookingId = Number(id);
+      const result = await getBookingById(bookingId);
       setBooking(result);
+      const [reviewList, reviewed] = await Promise.all([
+        getBookingReviews(bookingId),
+        hasReviewed(bookingId),
+      ]);
+      setReviews(reviewList);
+      setAlreadyReviewed(reviewed);
     } catch {
       setBooking(null);
     } finally {
@@ -61,6 +82,44 @@ export default function CustomerBookingDetailPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function handleComplete() {
+    if (!booking || isCompleting) return;
+    setIsCompleting(true);
+    try {
+      const updated = await completeBooking(booking.id);
+      setBooking(updated);
+      showToast({ type: "success", title: "Thành công", message: "Chuyến đi đã hoàn tất." });
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể hoàn tất chuyến đi." });
+    } finally {
+      setIsCompleting(false);
+    }
+  }
+
+  async function handleSubmitReview() {
+    if (!booking || reviewRating === 0 || isSubmittingReview) return;
+    setIsSubmittingReview(true);
+    try {
+      await createCustomerReview({
+        bookingId: booking.id,
+        rating: reviewRating,
+        cleanlinessScore: reviewCleanliness || undefined,
+        accuracyScore: reviewAccuracy || undefined,
+        supportScore: reviewSupport || undefined,
+        comment: reviewComment || undefined,
+      });
+      showToast({ type: "success", title: "Thành công", message: "Đã gửi đánh giá." });
+      setShowReviewForm(false);
+      setAlreadyReviewed(true);
+      const updated = await getBookingReviews(booking.id);
+      setReviews(updated);
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể gửi đánh giá." });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  }
 
   if (isLoading) return <LoadingSpinner />;
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
@@ -82,6 +141,21 @@ export default function CustomerBookingDetailPage() {
           </span>
         </div>
       </section>
+
+      {(booking.status === "DepositPaid" || booking.status === "Confirmed") && (
+        <Card className="space-y-4 rounded-md border-2 border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="h-6 w-6 text-emerald-600" />
+            <div>
+              <h2 className="text-lg font-bold text-slate-950">Kết thúc chuyến đi</h2>
+              <p className="text-sm text-slate-600">Xác nhận bạn đã trả xe và hoàn tất chuyến thuê.</p>
+            </div>
+          </div>
+          <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleComplete} isLoading={isCompleting}>
+            <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
+          </Button>
+        </Card>
+      )}
 
       {booking.status === "Approved" && (
         <Card className="space-y-4 rounded-md p-5">
@@ -193,6 +267,53 @@ export default function CustomerBookingDetailPage() {
           </div>
         </div>
       </Card>
+
+      {booking.status === "Completed" && (
+        <Card className="space-y-4 rounded-md p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-950">Đánh giá chuyến đi</h2>
+            {!alreadyReviewed && !showReviewForm && (
+              <Button variant="secondary" size="sm" onClick={() => setShowReviewForm(true)}>
+                <Star className="h-4 w-4" /> Viết đánh giá
+              </Button>
+            )}
+          </div>
+
+          {showReviewForm && !alreadyReviewed && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-semibold text-slate-800">Đánh giá xe và chủ xe</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <StarRatingInput value={reviewRating} onChange={setReviewRating} label="Đánh giá tổng quan" />
+                <StarRatingInput value={reviewCleanliness} onChange={setReviewCleanliness} label="Vệ sinh" />
+                <StarRatingInput value={reviewAccuracy} onChange={setReviewAccuracy} label="Chính xác mô tả" />
+                <StarRatingInput value={reviewSupport} onChange={setReviewSupport} label="Hỗ trợ" />
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-slate-500">Nhận xét</p>
+                <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3} placeholder="Chia sẻ trải nghiệm của bạn..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="primary" onClick={handleSubmitReview} isLoading={isSubmittingReview} disabled={reviewRating === 0}>
+                  Gửi đánh giá
+                </Button>
+                <Button variant="ghost" onClick={() => setShowReviewForm(false)}>Hủy</Button>
+              </div>
+            </div>
+          )}
+
+          {alreadyReviewed && reviews.filter((r) => r.reviewType === "Customer").length === 0 && (
+            <p className="text-sm text-slate-500">Bạn đã gửi đánh giá cho chuyến đi này.</p>
+          )}
+
+          {reviews.filter((r) => r.reviewType === "Customer").length > 0 && (
+            <div className="space-y-3">
+              {reviews.filter((r) => r.reviewType === "Customer").map((r) => (
+                <ReviewCard key={r.id} review={r} />
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card className="rounded-md p-5">
         <h2 className="mb-3 text-lg font-bold text-slate-950">Lịch sử trạng thái</h2>

@@ -11,4 +11,5 @@ public interface ISupportTicketService
     Task<SupportTicketDetailResponse> GetByIdAsync(long ticketId, long currentUserId, bool isStaffOrAdmin, CancellationToken cancellationToken = default);
     Task<SupportTicketDetailResponse> AddMessageAsync(long ticketId, long senderId, bool isStaffOrAdmin, AddTicketMessageRequest request, CancellationToken cancellationToken = default);
     Task<SupportTicketDetailResponse> UpdateStatusAsync(long ticketId, long staffId, UpdateSupportTicketStatusRequest request, CancellationToken cancellationToken = default);
+    Task<string> UploadAttachmentAsync(Stream fileStream, string fileName, long userId, CancellationToken cancellationToken = default);
 }

@@ -267,10 +267,22 @@ public class UserRepository : IUserRepository
                             .Where(cp => cp.UserId == userId)
                             .Select(cp => cp.NationalIdVerified)
                             .FirstOrDefault(),
+                        DriverLicenseVerified = _context.CustomerProfiles
+                            .Where(cp => cp.UserId == userId)
+                            .Select(cp => cp.DriverLicenseVerified)
+                            .FirstOrDefault(),
                         IsOwner = _context.UserRoles
                             .Where(ur => ur.UserId == userId)
                             .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
-                            .Any(name => name == ownerRoleName)
+                            .Any(name => name == ownerRoleName),
+                        Email = _context.Users
+                            .Where(u => u.Id == userId)
+                            .Select(u => u.Email)
+                            .FirstOrDefault(),
+                        IsEmailVerified = _context.Users
+                            .Where(u => u.Id == userId)
+                            .Select(u => u.IsEmailVerified)
+                            .FirstOrDefault()
                     };
 
         return await query.FirstOrDefaultAsync(cancellationToken);

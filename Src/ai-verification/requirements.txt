@@ -7,13 +7,18 @@ python-multipart==0.0.20
 python-dotenv==1.2.1
 numpy==2.2.6
 opencv-python==4.12.0.88
-Pillow==12.0.0
+Pillow==10.2.0
 rapidfuzz==3.14.3
 Unidecode==1.4.0
 paddleocr==3.7.0
 # Install the correct PaddlePaddle build for your machine if this line fails:
 # https://www.paddlepaddle.org.cn/install/quick
 paddlepaddle==3.2.2
+# YOLOv5 + VietOCR field OCR engine.
+# Install a CPU/GPU-specific torch build if the default wheel is not suitable:
+# https://pytorch.org/get-started/locally/
+torch>=2.2.0
+vietocr==0.3.13
 # Optional face production stack:
 # insightface requires Microsoft C++ Build Tools on Windows, so it is not required for the runnable OCR setup.
 # Install later when replacing the OpenCV fallback in app/services/face_service.py.

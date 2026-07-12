@@ -91,6 +91,30 @@ class VehicleRegistrationService:
                 self._error_message(["NO_TEXT_DETECTED"]),
             )
 
+        return self.build_response_from_lines(request, lines, flags)
+
+    def build_response_from_lines(
+        self,
+        request: VehicleRegistrationVerificationRequest,
+        lines: list[OcrLine],
+        flags: list[str] | None = None,
+    ) -> VehicleRegistrationVerificationResponse:
+        flags = list(flags or [])
+        if not lines:
+            return self._response(
+                False,
+                VehicleType.UNKNOWN,
+                False,
+                None,
+                None,
+                None,
+                0.0,
+                VehicleRegistrationExtracted(rawText=[]),
+                sorted(set(["NO_TEXT_DETECTED", *flags])),
+                Recommendation.NEED_MORE_INFO,
+                self._error_message(["NO_TEXT_DETECTED", *flags]),
+            )
+
         extracted = self._extract_fields(lines)
         confidence = round(sum(line.confidence for line in lines) / len(lines), 3)
         registration_vehicle_type = extracted.vehicle_type

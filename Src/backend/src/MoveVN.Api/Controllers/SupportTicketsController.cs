@@ -31,6 +31,35 @@ public class SupportTicketsController : BaseApiController
         return Success(result, "Support ticket created.");
     }
 
+    [HttpPost("attachments")]
+    public async Task<ActionResult<ApiResponse<object>>> UploadAttachment(
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(ApiResponse<object>.Failed("SUPPORT_TICKET_9001", "Attachment image file is required."));
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            return BadRequest(ApiResponse<object>.Failed("SUPPORT_TICKET_9001", "Only JPG, PNG, or WebP support ticket images are allowed."));
+        }
+
+        const int maxSize = 5 * 1024 * 1024;
+        if (file.Length > maxSize)
+        {
+            return BadRequest(ApiResponse<object>.Failed("SUPPORT_TICKET_9001", "Support ticket image must be under 5MB."));
+        }
+
+        var userId = _currentUser.UserId!.Value;
+        await using var stream = file.OpenReadStream();
+        var url = await _supportTicketService.UploadAttachmentAsync(stream, file.FileName, userId, cancellationToken);
+        return Success<object>(new { url });
+    }
+
     [Authorize(Roles = "Customer")]
     [HttpGet("my")]
     public async Task<ActionResult<ApiResponse<PagedResult<SupportTicketListItem>>>> GetMine(

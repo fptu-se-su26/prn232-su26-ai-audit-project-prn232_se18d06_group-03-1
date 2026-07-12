@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Models;
@@ -18,13 +19,16 @@ public class SupportTicketService : ISupportTicketService
 
     private readonly ISupportTicketRepository _repository;
     private readonly INotificationService _notificationService;
+    private readonly ICloudinaryService _cloudinaryService;
 
     public SupportTicketService(
         ISupportTicketRepository repository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        ICloudinaryService cloudinaryService)
     {
         _repository = repository;
         _notificationService = notificationService;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<SupportTicketDetailResponse> CreateAsync(CreateSupportTicketRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -148,6 +152,13 @@ public class SupportTicketService : ISupportTicketService
         await NotifyUserAsync(ticket.UserId, ticket, "Ticket hỗ trợ đã cập nhật", $"{ticket.TicketNumber} chuyển sang {ticket.Status}.", cancellationToken);
 
         return await GetDetailOrThrowAsync(ticket.Id, cancellationToken);
+    }
+
+    public async Task<string> UploadAttachmentAsync(Stream fileStream, string fileName, long userId, CancellationToken cancellationToken = default)
+    {
+        var folder = $"movevn/support-tickets/{userId}/attachments";
+        var result = await _cloudinaryService.UploadAsync(fileStream, fileName, folder, cancellationToken);
+        return result.Url;
     }
 
     private async Task<SupportTicketDetailResponse> GetDetailOrThrowAsync(long ticketId, CancellationToken cancellationToken)

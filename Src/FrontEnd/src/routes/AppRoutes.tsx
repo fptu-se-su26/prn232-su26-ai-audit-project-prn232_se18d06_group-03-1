@@ -35,17 +35,21 @@ import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
 import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
 import DriverLicenseVerificationPage from "@/pages/customer/DriverLicenseVerificationPage";
 import OwnerPendingPage from "@/pages/customer/OwnerPendingPage";
+import BookingNewPage from "@/pages/booking/BookingNewPage";
+import BookingListPage from "@/pages/booking/BookingListPage";
+import BookingManagePage from "@/pages/booking/BookingManagePage";
+import BookingDetailPage from "@/pages/booking/BookingDetailPage";
+import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPage";
 import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
 import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
-import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import OwnerHomePage from "@/pages/owner/OwnerHomePage";
 import OwnerBookingDetailPage from "@/pages/owner/OwnerBookingDetailPage";
 import OwnerBookingListPage from "@/pages/owner/OwnerBookingListPage";
-import OwnerHomePage from "@/pages/owner/OwnerHomePage";
 import OwnerVehicleListPage from "@/pages/owner/OwnerVehicleListPage";
 import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
 import OwnerVehicleAddPage from "@/pages/owner/OwnerVehicleAddPage";
@@ -82,6 +86,10 @@ export default function AppRoutes() {
         <Route path="/support" element={<SupportPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/booking/new" element={<BookingNewPage />} />
+        <Route path="/booking/list" element={<BookingListPage />} />
+        <Route path="/booking/manage" element={<BookingManagePage />} />
+        <Route path="/booking/:id" element={<BookingDetailPage />} />
       </Route>
 
       <Route element={<GuestRoute />}>

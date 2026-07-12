@@ -51,7 +51,6 @@ public class OwnerApplicationsController : BaseApiController
     [HttpPost("me/national-id")]
     public async Task<ActionResult<ApiResponse<NationalIdUploadResponse>>> UploadNationalId(
         IFormFile frontImage,
-        IFormFile backImage,
         CancellationToken cancellationToken)
     {
         if (frontImage is null || frontImage.Length == 0)
@@ -59,22 +58,16 @@ public class OwnerApplicationsController : BaseApiController
             return BadRequest(ApiResponse<NationalIdUploadResponse>.Failed("OWNER_6010", "Vui lòng upload ảnh mặt trước CCCD."));
         }
 
-        if (backImage is null || backImage.Length == 0)
-        {
-            return BadRequest(ApiResponse<NationalIdUploadResponse>.Failed("OWNER_6010", "Vui lòng upload ảnh mặt sau CCCD."));
-        }
-
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
         var frontExt = Path.GetExtension(frontImage.FileName).ToLowerInvariant();
-        var backExt = Path.GetExtension(backImage.FileName).ToLowerInvariant();
 
-        if (!allowedExtensions.Contains(frontExt) || !allowedExtensions.Contains(backExt))
+        if (!allowedExtensions.Contains(frontExt))
         {
             return BadRequest(ApiResponse<NationalIdUploadResponse>.Failed("OWNER_6010", "Chỉ chấp nhận file JPG, PNG hoặc WebP."));
         }
 
         const int maxSize = 5 * 1024 * 1024;
-        if (frontImage.Length > maxSize || backImage.Length > maxSize)
+        if (frontImage.Length > maxSize)
         {
             return BadRequest(ApiResponse<NationalIdUploadResponse>.Failed("OWNER_6010", "Kích thước file tối đa là 5MB."));
         }
@@ -83,12 +76,8 @@ public class OwnerApplicationsController : BaseApiController
         await frontImage.CopyToAsync(frontStream, cancellationToken);
         frontStream.Position = 0;
 
-        using var backStream = new MemoryStream();
-        await backImage.CopyToAsync(backStream, cancellationToken);
-        backStream.Position = 0;
-
         var result = await _ownerApplicationService.UploadNationalIdAsync(
-            frontStream, frontImage.FileName, backStream, backImage.FileName, cancellationToken);
+            frontStream, frontImage.FileName, cancellationToken);
 
         return Success(result, result.Message ?? "National ID uploaded and processed.");
     }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import Button from "@/components/common/Button";
 import PageLoader from "@/components/common/PageLoader";
@@ -167,6 +167,16 @@ export default function ProfilePage() {
               <p className="mt-1 text-xs text-slate-400">Email không thể thay đổi</p>
             </div>
           </div>
+
+          {!user?.roles?.includes("Owner") && (
+            <div className="border-t border-slate-100 pt-6">
+              <Link to="/become-owner">
+                <Button type="button" variant="secondary" className="w-full">
+                  <UserPlus className="h-4 w-4" /> Đăng ký làm chủ xe
+                </Button>
+              </Link>
+            </div>
+          )}
 
           <div className="flex gap-3 border-t border-slate-100 pt-6">
             <Link to="/account" className="flex-1">

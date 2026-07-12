@@ -16,6 +16,8 @@ import {
   supportTicketStatusOptions,
   formatSupportTicketDateTime,
 } from "@/features/supportTickets/supportTicketConstants";
+import SupportTicketAttachmentInput from "@/features/supportTickets/components/SupportTicketAttachmentInput";
+import { serializeSupportTicketAttachmentUrls } from "@/features/supportTickets/supportTicketAttachments";
 import { createSupportTicket, getMySupportTickets } from "@/features/supportTickets/supportTicketService";
 import type { SupportTicketListItem, SupportTicketListRequest } from "@/features/supportTickets/types";
 
@@ -39,7 +41,9 @@ export default function CustomerSupportTicketListPage() {
   const [keyword, setKeyword] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [createForm, setCreateForm] = useState(initialCreateForm);
+  const [createAttachmentUrls, setCreateAttachmentUrls] = useState<string[]>([]);
 
   const load = useCallback(async (nextPage: number, status: string, search: string) => {
     setIsLoading(true);
@@ -82,8 +86,12 @@ export default function CustomerSupportTicketListPage() {
     event.preventDefault();
     setIsCreating(true);
     try {
-      const ticket = await createSupportTicket(createForm);
+      const ticket = await createSupportTicket({
+        ...createForm,
+        attachmentUrls: serializeSupportTicketAttachmentUrls(createAttachmentUrls),
+      });
       setCreateForm(initialCreateForm);
+      setCreateAttachmentUrls([]);
       showToast({ type: "success", title: "Đã tạo ticket", message: "Ticket hỗ trợ đã được gửi đến staff." });
       navigate(`/customer/support-tickets/${ticket.id}`);
     } catch {
@@ -271,7 +279,17 @@ export default function CustomerSupportTicketListPage() {
             />
           </label>
 
-          <Button type="submit" className="w-full" isLoading={isCreating}>
+          <div>
+            <p className="mb-1 text-sm font-medium text-slate-700">Ảnh đính kèm</p>
+            <SupportTicketAttachmentInput
+              value={createAttachmentUrls}
+              onChange={setCreateAttachmentUrls}
+              disabled={isCreating}
+              onUploadingChange={setIsUploadingAttachment}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" isLoading={isCreating} disabled={isUploadingAttachment}>
             <Send className="h-4 w-4" /> Gửi ticket
           </Button>
         </form>

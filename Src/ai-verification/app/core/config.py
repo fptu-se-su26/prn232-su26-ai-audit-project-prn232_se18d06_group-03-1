@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     ocr_space_api_key: str | None = None
     ocr_space_api_url: str = "https://api.ocr.space/parse/image"
     ocr_space_language: str = "vnm"
+    yolo_vietocr_enabled: bool = False
+    yolo_vietocr_yolov5_repo: str = "ultralytics/yolov5"
+    yolo_vietocr_driver_license_weights: str | None = None
+    yolo_vietocr_vehicle_registration_weights: str | None = None
+    yolo_vietocr_confidence_threshold: float = 0.35
     face_match_pass_threshold: float = 0.75
     face_match_manual_threshold: float = 0.55
     low_ocr_confidence_threshold: float = 0.65

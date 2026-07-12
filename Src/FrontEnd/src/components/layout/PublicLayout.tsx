@@ -48,10 +48,10 @@ export default function PublicLayout() {
   const accountLinks = [
     { to: dashboardPath, label: "Khu vực của tôi", icon: UserRound },
     ...(user?.roles.includes("Customer")
-      ? [{ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarDays }]
+      ? [{ to: "/booking/list", label: "Lịch sử thuê xe", icon: CalendarDays }]
       : []),
     ...(user?.roles.includes("Owner")
-      ? [{ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarDays }]
+      ? [{ to: "/booking/manage", label: "Yêu cầu thuê", icon: CalendarDays }]
       : []),
     { to: "/account", label: "Hồ sơ tài khoản", icon: UserRound },
   ];
