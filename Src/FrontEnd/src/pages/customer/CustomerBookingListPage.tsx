@@ -15,6 +15,7 @@ const statusLabels: Record<string, string> = {
   Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
   Confirmed: "Đã xác nhận",
+  InProgress: "Đang nhận xe",
   Completed: "Hoàn thành",
 };
 
@@ -24,6 +25,7 @@ const statusColors: Record<string, string> = {
   Rejected: "bg-red-100 text-red-700",
   Cancelled: "bg-slate-100 text-slate-600",
   Confirmed: "bg-green-100 text-green-700",
+  InProgress: "bg-cyan-100 text-cyan-700",
   Completed: "bg-emerald-100 text-emerald-700",
 };
 

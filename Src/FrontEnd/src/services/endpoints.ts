@@ -72,6 +72,11 @@ export const endpoints = {
     reject: (id: number) => `/api/bookings/${id}/reject`,
     confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
     complete: (id: number) => `/api/bookings/${id}/complete`,
+    checkIn: (id: number) => `/api/bookings/${id}/check-in`,
+    checkOut: (id: number) => `/api/bookings/${id}/check-out`,
+    confirmCheckIn: (id: number) => `/api/bookings/${id}/check-in/confirm`,
+    confirmCheckOut: (id: number) => `/api/bookings/${id}/check-out/confirm`,
+    inspectionReports: (id: number) => `/api/bookings/${id}/inspection-reports`,
   },
   reviews: {
     customer: "/api/reviews/customer",
@@ -88,6 +93,16 @@ export const endpoints = {
     messages: (id: number) => `/api/support-tickets/${id}/messages`,
     status: (id: number) => `/api/support-tickets/${id}/status`,
     uploadAttachment: "/api/support-tickets/attachments",
+  },
+  disputes: {
+    base: "/api/disputes",
+    my: "/api/disputes/my",
+    staff: "/api/disputes/staff",
+    byId: (id: number) => `/api/disputes/${id}`,
+    investigate: (id: number) => `/api/disputes/${id}/investigate`,
+    resolve: (id: number) => `/api/disputes/${id}/resolve`,
+    escalate: (id: number) => `/api/disputes/${id}/escalate`,
+    adminOverride: (id: number) => `/api/disputes/${id}/admin-override`,
   },
   users: {
     me: "/api/users/me",

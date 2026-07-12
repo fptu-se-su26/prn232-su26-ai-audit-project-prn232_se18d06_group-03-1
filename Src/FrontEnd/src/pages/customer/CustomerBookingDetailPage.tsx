@@ -4,8 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById, confirmDeposit, completeBooking } from "@/features/booking/bookingService";
-import type { BookingResponse } from "@/features/booking/types";
+import { getBookingById, confirmDeposit, confirmCheckIn, confirmCheckOut, getInspectionReports } from "@/features/booking/bookingService";
+import type { BookingResponse, InspectionReportResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import { createCustomerReview, getBookingReviews, hasReviewed } from "@/features/review/reviewService";
 import type { ReviewResponse } from "@/features/review/reviewService";
@@ -19,6 +19,7 @@ const statusLabels: Record<string, string> = {
   Cancelled: "Đã hủy",
   DepositPaid: "Đã đặt cọc",
   Confirmed: "Đã xác nhận",
+  InProgress: "Đang nhận xe",
   Completed: "Hoàn thành",
 };
 
@@ -29,6 +30,7 @@ const statusColors: Record<string, string> = {
   Cancelled: "bg-slate-100 text-slate-600",
   DepositPaid: "bg-violet-100 text-violet-700",
   Confirmed: "bg-green-100 text-green-700",
+  InProgress: "bg-cyan-100 text-cyan-700",
   Completed: "bg-emerald-100 text-emerald-700",
 };
 
@@ -59,7 +61,9 @@ export default function CustomerBookingDetailPage() {
   const [reviewSupport, setReviewSupport] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
+  const [inspectionReports, setInspectionReports] = useState<InspectionReportResponse[]>([]);
+  const [isConfirmingCheckIn, setIsConfirmingCheckIn] = useState(false);
+  const [isConfirmingCheckOut, setIsConfirmingCheckOut] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -68,14 +72,17 @@ export default function CustomerBookingDetailPage() {
       const bookingId = Number(id);
       const result = await getBookingById(bookingId);
       setBooking(result);
-      const [reviewList, reviewed] = await Promise.all([
+      const [reviewList, reviewed, reports] = await Promise.all([
         getBookingReviews(bookingId),
         hasReviewed(bookingId),
+        getInspectionReports(bookingId).catch(() => []),
       ]);
       setReviews(reviewList);
       setAlreadyReviewed(reviewed);
+      setInspectionReports(reports);
     } catch {
       setBooking(null);
+      setInspectionReports([]);
     } finally {
       setIsLoading(false);
     }
@@ -83,17 +90,35 @@ export default function CustomerBookingDetailPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function handleComplete() {
-    if (!booking || isCompleting) return;
-    setIsCompleting(true);
+  async function handleConfirmCheckOut() {
+    if (!booking || isConfirmingCheckOut) return;
+    setIsConfirmingCheckOut(true);
     try {
-      const updated = await completeBooking(booking.id);
+      const updated = await confirmCheckOut(booking.id);
       setBooking(updated);
+      const reports = await getInspectionReports(booking.id);
+      setInspectionReports(reports);
       showToast({ type: "success", title: "Thành công", message: "Chuyến đi đã hoàn tất." });
     } catch {
       showToast({ type: "error", title: "Lỗi", message: "Không thể hoàn tất chuyến đi." });
     } finally {
-      setIsCompleting(false);
+      setIsConfirmingCheckOut(false);
+    }
+  }
+
+  async function handleConfirmCheckIn() {
+    if (!booking || isConfirmingCheckIn) return;
+    setIsConfirmingCheckIn(true);
+    try {
+      const updated = await confirmCheckIn(booking.id);
+      setBooking(updated);
+      const reports = await getInspectionReports(booking.id);
+      setInspectionReports(reports);
+      showToast({ type: "success", title: "Đã xác nhận", message: "Bạn đã xác nhận nhận xe." });
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể xác nhận nhận xe." });
+    } finally {
+      setIsConfirmingCheckIn(false);
     }
   }
 
@@ -123,6 +148,8 @@ export default function CustomerBookingDetailPage() {
 
   if (isLoading) return <LoadingSpinner />;
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
+  const checkInReport = inspectionReports.find((report) => report.type === "CheckIn");
+  const checkOutReport = inspectionReports.find((report) => report.type === "CheckOut");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -142,7 +169,36 @@ export default function CustomerBookingDetailPage() {
         </div>
       </section>
 
-      {(booking.status === "DepositPaid" || booking.status === "Confirmed") && (
+      {checkInReport && (booking.status === "DepositPaid" || booking.status === "Confirmed") && (
+        <Card className="space-y-4 rounded-md border-2 border-cyan-200 bg-cyan-50 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="h-6 w-6 text-cyan-600" />
+            <div>
+              <h2 className="text-lg font-bold text-slate-950">Xác nhận nhận xe</h2>
+              <p className="text-sm text-slate-600">Vui lòng kiểm tra biên bản check-in và ảnh xe trước khi xác nhận.</p>
+            </div>
+          </div>
+          <div className="grid gap-3 rounded-md bg-white/70 p-3 text-sm sm:grid-cols-2">
+            <p><span className="font-semibold text-slate-700">Km:</span> {checkInReport.odometerKm ?? "-"}</p>
+            <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {checkInReport.fuelLevel || "-"}</p>
+            <p><span className="font-semibold text-slate-700">Tình trạng:</span> {checkInReport.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+            <p><span className="font-semibold text-slate-700">Ngày lập:</span> {formatDateTime(checkInReport.createdAt)}</p>
+          </div>
+          {checkInReport.damageDescription && <p className="text-sm text-slate-700">{checkInReport.damageDescription}</p>}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {checkInReport.images.map((image) => (
+              <a key={image.id} href={image.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-cyan-100 bg-white">
+                <img src={image.imageUrl} alt="Check-in" className="aspect-square w-full object-cover" />
+              </a>
+            ))}
+          </div>
+          <Button variant="primary" className="bg-cyan-700 hover:bg-cyan-800" onClick={handleConfirmCheckIn} isLoading={isConfirmingCheckIn}>
+            <CheckCircle className="h-4 w-4" /> Xác nhận nhận xe
+          </Button>
+        </Card>
+      )}
+
+      {checkOutReport && booking.status === "InProgress" && (
         <Card className="space-y-4 rounded-md border-2 border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-emerald-600" />
@@ -151,7 +207,21 @@ export default function CustomerBookingDetailPage() {
               <p className="text-sm text-slate-600">Xác nhận bạn đã trả xe và hoàn tất chuyến thuê.</p>
             </div>
           </div>
-          <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleComplete} isLoading={isCompleting}>
+          <div className="grid gap-3 rounded-md bg-white/70 p-3 text-sm sm:grid-cols-2">
+            <p><span className="font-semibold text-slate-700">Km:</span> {checkOutReport.odometerKm ?? "-"}</p>
+            <p><span className="font-semibold text-slate-700">Nhien lieu:</span> {checkOutReport.fuelLevel || "-"}</p>
+            <p><span className="font-semibold text-slate-700">Tinh trang:</span> {checkOutReport.damageNoted ? "Co ghi nhan hu hong" : "Khong ghi nhan hu hong"}</p>
+            <p><span className="font-semibold text-slate-700">Ngay lap:</span> {formatDateTime(checkOutReport.createdAt)}</p>
+          </div>
+          {checkOutReport.damageDescription && <p className="text-sm text-slate-700">{checkOutReport.damageDescription}</p>}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {checkOutReport.images.map((image) => (
+              <a key={image.id} href={image.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-emerald-100 bg-white">
+                <img src={image.imageUrl} alt="Check-out" className="aspect-square w-full object-cover" />
+              </a>
+            ))}
+          </div>
+          <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
             <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
           </Button>
         </Card>

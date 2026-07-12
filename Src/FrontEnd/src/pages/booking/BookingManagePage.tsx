@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -16,6 +16,7 @@ const statusLabels: Record<string, string> = {
   Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
   Confirmed: "Đã xác nhận",
+  InProgress: "Đang nhận xe",
   Completed: "Hoàn thành",
 };
 
@@ -25,6 +26,7 @@ const statusColors: Record<string, string> = {
   Rejected: "bg-red-100 text-red-700",
   Cancelled: "bg-slate-100 text-slate-600",
   Confirmed: "bg-green-100 text-green-700",
+  InProgress: "bg-cyan-100 text-cyan-700",
   Completed: "bg-emerald-100 text-emerald-700",
 };
 
@@ -79,91 +81,102 @@ export default function BookingManagePage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Owner</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950">Yêu cầu thuê xe</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600">Quản lý yêu cầu thuê xe từ khách hàng.</p>
-      </section>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid gap-6">
+        <section className="border-b border-slate-100 pb-4 dark:border-neutral-800 flex flex-wrap justify-between items-end gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">Owner Dashboard</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Yêu cầu thuê xe</h1>
+            <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">Quản lý yêu cầu thuê xe từ khách hàng.</p>
+          </div>
+          <Link to="/owner">
+            <Button variant="secondary" className="text-xs font-semibold border border-slate-200 inline-flex items-center gap-1.5 px-3 py-1.5 h-9 rounded-lg">
+              <ArrowLeft className="h-4 w-4" /> Quay lại Dashboard
+            </Button>
+          </Link>
+        </section>
 
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="h-8 appearance-none rounded-md border border-slate-300 bg-white px-3 pr-8 text-sm text-slate-700"
-          >
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronLeft className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 -rotate-90 text-slate-400" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="h-9 appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-8 text-sm font-medium text-slate-700 outline-none transition hover:border-slate-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-300"
+              >
+                {statusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <ChevronLeft className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 -rotate-90 text-slate-400" />
+            </div>
+            <span className="text-xs font-medium text-slate-400 dark:text-gray-500">{totalCount} kết quả</span>
+          </div>
         </div>
-        <span className="text-sm text-slate-500">{totalCount} kết quả</span>
-      </div>
 
-      {isLoading ? (
-        <LoadingSpinner />
-      ) : items.length === 0 ? (
-        <EmptyState title="Chưa có yêu cầu nào" description="Chưa có khách hàng nào đặt xe của bạn." />
-      ) : (
-        <div className="overflow-x-auto rounded-md border border-slate-200">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Mã booking</th>
-                <th className="px-4 py-3">Khách hàng</th>
-                <th className="px-4 py-3">Ngày thuê</th>
-                <th className="px-4 py-3">Ngày trả</th>
-                <th className="px-4 py-3">Tổng tiền</th>
-                <th className="px-4 py-3">Rủi ro</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {items.map((item) => (
-                <tr key={item.id} className="transition-colors hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{item.bookingCode}</td>
-                  <td className="px-4 py-3 text-slate-700">#{item.customerId}</td>
-                  <td className="px-4 py-3 text-slate-700">{formatDate(item.startDate)}</td>
-                  <td className="px-4 py-3 text-slate-700">{formatDate(item.endDate)}</td>
-                  <td className="px-4 py-3 font-medium text-slate-900">{formatCurrency(item.totalAmount)}</td>
-                  <td className="px-4 py-3">
-                    <RiskScoreBadge score={item.riskScore} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[item.status] ?? "bg-slate-100 text-slate-700"}`}>
-                      {statusLabels[item.status] ?? item.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link to={`/booking/${item.id}`}>
-                      <Button variant="ghost" size="sm"><Eye className="h-3.5 w-3.5" /> Chi tiết</Button>
-                    </Link>
-                  </td>
+        {isLoading ? (
+          <div className="flex min-h-[200px] items-center justify-center"><LoadingSpinner /></div>
+        ) : items.length === 0 ? (
+          <EmptyState title="Chưa có yêu cầu nào" description="Chưa có khách hàng nào đặt xe của bạn." />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-150 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-150 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:bg-neutral-900 dark:text-gray-400">
+                <tr>
+                  <th className="px-5 py-4">Mã booking</th>
+                  <th className="px-5 py-4">Khách hàng</th>
+                  <th className="px-5 py-4">Ngày thuê</th>
+                  <th className="px-5 py-4">Ngày trả</th>
+                  <th className="px-5 py-4">Tổng tiền</th>
+                  <th className="px-5 py-4">Rủi ro</th>
+                  <th className="px-5 py-4">Trạng thái</th>
+                  <th className="px-5 py-4 text-right" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-neutral-900">
+                {items.map((item) => (
+                  <tr key={item.id} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-neutral-900/50">
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-900 dark:text-white">{item.bookingCode}</td>
+                    <td className="px-5 py-4 text-slate-700 dark:text-gray-300">Khách hàng #{item.customerId}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-400">{formatDate(item.startDate)}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-400">{formatDate(item.endDate)}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{formatCurrency(item.totalAmount)}</td>
+                    <td className="px-5 py-4">
+                      <RiskScoreBadge score={item.riskScore} />
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${statusColors[item.status] ?? "bg-slate-100 text-slate-700"}`}>
+                        {statusLabels[item.status] ?? item.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Link to={`/booking/${item.id}`}>
+                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1.5"><Eye className="h-4 w-4" /> Chi tiết</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button type="button" onClick={() => goToPage(page - 1)} disabled={page <= 1}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
-          ><ChevronLeft className="h-4 w-4" /></button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button key={p} type="button" onClick={() => goToPage(p)}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors ${p === page ? "bg-brand-700 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}
-            >{p}</button>
-          ))}
-          <button type="button" onClick={() => goToPage(page + 1)} disabled={page >= totalPages}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
-          ><ChevronRight className="h-4 w-4" /></button>
-        </div>
-      )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button type="button" onClick={() => goToPage(page - 1)} disabled={page <= 1}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-900"
+            ><ChevronLeft className="h-4 w-4" /></button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button key={p} type="button" onClick={() => goToPage(p)}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold transition-colors ${p === page ? "bg-brand-600 text-white shadow-md shadow-brand-600/20" : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-900"}`}
+              >{p}</button>
+            ))}
+            <button type="button" onClick={() => goToPage(page + 1)} disabled={page >= totalPages}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-900"
+            ><ChevronRight className="h-4 w-4" /></button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ public class RuleBasedBookingRiskScorer : IBookingRiskScorer
         var identity = 0m;
         var newUser = 0m;
         var behavior = 0m;
+        var ownerReview = 0m;
         var pattern = 0m;
         var valueDuration = 0m;
         var deposit = 0m;
@@ -20,19 +21,21 @@ public class RuleBasedBookingRiskScorer : IBookingRiskScorer
         AddIdentityRisk(context, factors, ref identity);
         AddNewUserRisk(context, factors, ref newUser);
         AddBehaviorRisk(context, factors, ref behavior);
+        AddOwnerReviewRisk(context, factors, ref ownerReview);
         AddBookingPatternRisk(context, factors, ref pattern);
         AddValueDurationRisk(context, factors, ref valueDuration);
         AddDepositRisk(context, factors, ref deposit);
 
         identity = Math.Clamp(identity, 0m, 35m);
         newUser = Math.Clamp(newUser, 0m, 22m);
-        behavior = Math.Min(behavior, 35m);
+        behavior = Math.Clamp(behavior, -15m, 35m);
+        ownerReview = Math.Clamp(ownerReview, -10m, 25m);
         pattern = Math.Clamp(pattern, 0m, 25m);
         valueDuration = Math.Clamp(valueDuration, 0m, 25m);
         deposit = Math.Clamp(deposit, -5m, 10m);
 
         var score = Math.Clamp(
-            BaseScore + identity + newUser + behavior + pattern + valueDuration + deposit,
+            BaseScore + identity + newUser + behavior + ownerReview + pattern + valueDuration + deposit,
             0m,
             100m);
 
@@ -70,21 +73,21 @@ public class RuleBasedBookingRiskScorer : IBookingRiskScorer
         {
             if (accountAgeDays < 1)
             {
-                AddTo(ref newUser, 17m, "Tài khoản dưới 1 ngày và chưa có chuyến hoàn tất", factors);
+                AddTo(ref newUser, 10m, "Tài khoản dưới 1 ngày và chưa có chuyến hoàn tất", factors);
             }
             else if (accountAgeDays < 7)
             {
-                AddTo(ref newUser, 12m, "Tài khoản dưới 7 ngày và chưa có chuyến hoàn tất", factors);
+                AddTo(ref newUser, 7m, "Tài khoản dưới 7 ngày và chưa có chuyến hoàn tất", factors);
             }
             else if (accountAgeDays < 30)
             {
-                AddTo(ref newUser, 7m, "Tài khoản dưới 30 ngày và chưa có chuyến hoàn tất", factors);
+                AddTo(ref newUser, 4m, "Tài khoản dưới 30 ngày và chưa có chuyến hoàn tất", factors);
             }
         }
 
         if (context.TrustScore is null)
         {
-            AddTo(ref newUser, 5m, "Chưa có lịch sử trust score", factors);
+            factors.Add("Chưa đủ dữ liệu trust score");
         }
     }
 
@@ -92,35 +95,78 @@ public class RuleBasedBookingRiskScorer : IBookingRiskScorer
     {
         if (context.CancellationCount > 0)
         {
-            AddTo(ref behavior, Math.Min(context.CancellationCount * 8m, 20m), "Khách hàng có lịch sử hủy booking", factors);
+            AddTo(ref behavior, Math.Min(context.CancellationCount * 8m, 20m), $"Khách đã hủy {context.CancellationCount} booking", factors);
         }
 
         if (context.ReportCount > 0)
         {
-            AddTo(ref behavior, Math.Min(context.ReportCount * 15m, 30m), "Khách hàng có report", factors);
-        }
-
-        if (context.AverageRating is null)
-        {
-            factors.Add("Chưa có lịch sử đánh giá");
-        }
-        else if (context.AverageRating < 3m)
-        {
-            AddTo(ref behavior, 10m, "Điểm đánh giá khách hàng thấp", factors);
+            AddTo(ref behavior, Math.Min(context.ReportCount * 15m, 30m), $"Khách có {context.ReportCount} report", factors);
         }
 
         if (context.CompletedTrips >= 10)
         {
-            AddTo(ref behavior, -15m, "Khách hàng đã hoàn tất ít nhất 10 chuyến", factors);
+            AddTo(ref behavior, -15m, "Khách đã hoàn tất ít nhất 10 chuyến", factors);
         }
         else if (context.CompletedTrips >= 3)
         {
-            AddTo(ref behavior, -8m, "Khách hàng đã hoàn tất ít nhất 3 chuyến", factors);
+            AddTo(ref behavior, -8m, "Khách đã hoàn tất ít nhất 3 chuyến", factors);
         }
 
         if (context.TrustScore >= 80m)
         {
-            AddTo(ref behavior, -10m, "Trust score cao", factors);
+            AddTo(ref behavior, -6m, "Trust score cao", factors);
+        }
+        else if (context.TrustScore < 50m)
+        {
+            AddTo(ref behavior, 8m, "Trust score thấp", factors);
+        }
+    }
+
+    private static void AddOwnerReviewRisk(BookingRiskContext context, List<string> factors, ref decimal ownerReview)
+    {
+        if (context.OwnerReviewCount == 0)
+        {
+            if (context.AverageRating.HasValue)
+            {
+                if (context.AverageRating >= 4.5m)
+                {
+                    AddTo(ref ownerReview, -3m, "Trust score ghi nhận đánh giá khách hàng tốt", factors);
+                }
+                else if (context.AverageRating < 3m)
+                {
+                    AddTo(ref ownerReview, 5m, "Trust score ghi nhận đánh giá khách hàng thấp", factors);
+                }
+            }
+
+            factors.Add("Chưa đủ dữ liệu đánh giá từ chủ xe sau chuyến hoàn tất");
+            return;
+        }
+
+        if (context.OwnerAverageRating >= 4.5m && context.OwnerReviewCount >= 3)
+        {
+            AddTo(ref ownerReview, -8m, $"Khách có {context.OwnerReviewCount} đánh giá tốt từ chủ xe", factors);
+        }
+        else if (context.OwnerAverageRating >= 4m && context.OwnerReviewCount >= 2)
+        {
+            AddTo(ref ownerReview, -4m, $"Khách có điểm đánh giá tốt từ chủ xe ({context.OwnerAverageRating:0.0}/5)", factors);
+        }
+        else if (context.OwnerAverageRating < 3m)
+        {
+            AddTo(ref ownerReview, 15m, $"Điểm đánh giá từ chủ xe thấp ({context.OwnerAverageRating:0.0}/5)", factors);
+        }
+        else if (context.OwnerAverageRating < 3.5m)
+        {
+            AddTo(ref ownerReview, 8m, $"Điểm đánh giá từ chủ xe cần lưu ý ({context.OwnerAverageRating:0.0}/5)", factors);
+        }
+
+        if (context.OwnerLowRatingCount >= 2)
+        {
+            AddTo(ref ownerReview, 6m, $"Có {context.OwnerLowRatingCount} đánh giá thấp từ chủ xe", factors);
+        }
+
+        if (context.OwnerRecentLowRatingCount90Days >= 1)
+        {
+            AddTo(ref ownerReview, 5m, "Có đánh giá thấp từ chủ xe trong 90 ngày gần đây", factors);
         }
     }
 
@@ -141,14 +187,22 @@ public class RuleBasedBookingRiskScorer : IBookingRiskScorer
             AddTo(ref pattern, 7m, "Nhận xe trong vòng 72 giờ", factors);
         }
 
-        if (context.ActiveBookingCount >= 2)
+        if (context.ActiveBookingCount >= 5)
         {
-            AddTo(ref pattern, 8m, "Có nhiều booking đang hoạt động", factors);
+            AddTo(ref pattern, 15m, $"Khách có {context.ActiveBookingCount} booking đang hoạt động", factors);
+        }
+        else if (context.ActiveBookingCount >= 3)
+        {
+            AddTo(ref pattern, 8m, $"Khách có {context.ActiveBookingCount} booking đang hoạt động", factors);
         }
 
-        if (context.RecentBookingCount7Days >= 3)
+        if (context.RecentBookingCount7Days >= 5)
         {
-            AddTo(ref pattern, 12m, "Có nhiều booking gần đây", factors);
+            AddTo(ref pattern, 12m, $"Khách tạo {context.RecentBookingCount7Days} booking trong 7 ngày gần đây", factors);
+        }
+        else if (context.RecentBookingCount7Days >= 3)
+        {
+            AddTo(ref pattern, 6m, $"Khách tạo {context.RecentBookingCount7Days} booking trong 7 ngày gần đây", factors);
         }
     }
 

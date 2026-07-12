@@ -4,6 +4,7 @@ using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
+using MoveVN.Application.Modules.Disputes.Interfaces;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
@@ -11,6 +12,7 @@ using MoveVN.Infrastructure.Persistence.Mongo;
 using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 using MoveVN.Infrastructure.Persistence.Repositories;
 using MoveVN.Infrastructure.Persistence.Repositories.Bookings;
+using MoveVN.Infrastructure.Persistence.Repositories.Disputes;
 using MoveVN.Infrastructure.Persistence.Repositories.SupportTickets;
 using MoveVN.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -81,6 +83,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
+        services.AddScoped<IDisputeRepository, DisputeRepository>();
 
         var mongoConnection = configuration["MONGO_CONNECTION"];
         if (!string.IsNullOrWhiteSpace(mongoConnection))

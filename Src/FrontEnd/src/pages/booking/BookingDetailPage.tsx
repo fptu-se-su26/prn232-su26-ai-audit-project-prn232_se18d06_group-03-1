@@ -1,12 +1,12 @@
-import { ArrowLeft, CalendarDays, Check, DollarSign, MapPin, TicketPercent, CreditCard, Banknote, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Camera, Check, ClipboardCheck, DollarSign, MapPin, TicketPercent, CreditCard, Banknote, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById, approveBooking, rejectBooking, confirmDeposit } from "@/features/booking/bookingService";
-import type { BookingResponse } from "@/features/booking/types";
+import { getBookingById, approveBooking, rejectBooking, confirmDeposit, createCheckInReport, getInspectionReports } from "@/features/booking/bookingService";
+import type { BookingResponse, InspectionReportResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -18,6 +18,7 @@ const statusLabels: Record<string, string> = {
   Cancelled: "Đã hủy",
   DepositPaid: "Đã đặt cọc",
   Confirmed: "Đã xác nhận",
+  InProgress: "Đang nhận xe",
   Completed: "Hoàn thành",
 };
 
@@ -28,6 +29,7 @@ const statusColors: Record<string, string> = {
   Cancelled: "bg-slate-100 text-slate-600",
   DepositPaid: "bg-violet-100 text-violet-700",
   Confirmed: "bg-green-100 text-green-700",
+  InProgress: "bg-cyan-100 text-cyan-700",
   Completed: "bg-emerald-100 text-emerald-700",
 };
 
@@ -47,24 +49,38 @@ function formatCurrency(n: number) {
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const primaryRole = user?.roles[0] ?? "Customer";
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rejectReason, setRejectReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [inspectionReports, setInspectionReports] = useState<InspectionReportResponse[]>([]);
+  const [odometerKm, setOdometerKm] = useState("");
+  const [fuelLevel, setFuelLevel] = useState("");
+  const [damageNoted, setDamageNoted] = useState(false);
+  const [damageDescription, setDamageDescription] = useState("");
+  const [checkInImages, setCheckInImages] = useState<File[]>([]);
 
   const load = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      setBooking(await getBookingById(Number(id)));
+      const bookingId = Number(id);
+      const result = await getBookingById(bookingId);
+      setBooking(result);
+      if (user) {
+        const reports = await getInspectionReports(bookingId).catch(() => []);
+        setInspectionReports(reports);
+      }
     } catch {
       setBooking(null);
+      setInspectionReports([]);
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -110,15 +126,41 @@ export default function BookingDetailPage() {
     }
   }
 
+  async function handleCreateCheckInReport() {
+    if (!booking || isProcessing || checkInImages.length === 0) return;
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      if (odometerKm) formData.append("odometerKm", odometerKm);
+      if (fuelLevel) formData.append("fuelLevel", fuelLevel);
+      formData.append("damageNoted", String(damageNoted));
+      if (damageDescription) formData.append("damageDescription", damageDescription);
+      checkInImages.forEach((file) => formData.append("images", file));
+
+      await createCheckInReport(booking.id, formData);
+      const reports = await getInspectionReports(booking.id);
+      setInspectionReports(reports);
+      setOdometerKm("");
+      setFuelLevel("");
+      setDamageNoted(false);
+      setDamageDescription("");
+      setCheckInImages([]);
+      showToast({ type: "success", title: "Đã tạo biên bản", message: "Biên bản check-in đang chờ khách xác nhận." });
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tạo biên bản check-in." });
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
   if (isLoading) return <LoadingSpinner />;
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
+  const checkInReport = inspectionReports.find((report) => report.type === "CheckIn");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       <div className="flex items-center gap-3">
-        <Link to={primaryRole === "Owner" ? "/booking/manage" : "/booking/list"}>
-          <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Quay lại</Button>
-        </Link>
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /> Quay lại</Button>
       </div>
 
       <section>
@@ -189,6 +231,61 @@ export default function BookingDetailPage() {
               </Button>
             </div>
           </div>
+        </Card>
+      )}
+
+      {primaryRole === "Staff" && checkInReport && (
+        <Card className="space-y-4 rounded-md p-5">
+          <div className="flex items-center gap-3">
+            <ClipboardCheck className="h-5 w-5 text-brand-700" />
+            <div>
+              <h2 className="text-lg font-bold text-slate-950">Biên bản check-in</h2>
+              <p className="text-sm text-slate-600">Ghi nhận tình trạng xe và ảnh trước khi bàn giao.</p>
+            </div>
+          </div>
+
+          {checkInReport ? (
+            <div className="space-y-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <p><span className="font-semibold text-slate-700">Km:</span> {checkInReport.odometerKm ?? "-"}</p>
+                <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {checkInReport.fuelLevel || "-"}</p>
+                <p><span className="font-semibold text-slate-700">Tình trạng:</span> {checkInReport.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+                <p><span className="font-semibold text-slate-700">Xác nhận khách:</span> {checkInReport.isCustomerConfirmed ? "Đã xác nhận" : "Chờ xác nhận"}</p>
+              </div>
+              {checkInReport.damageDescription && <p className="text-sm text-slate-700">{checkInReport.damageDescription}</p>}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {checkInReport.images.map((image) => (
+                  <a key={image.id} href={image.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-slate-200 bg-white">
+                    <img src={image.imageUrl} alt="Check-in" className="aspect-square w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : booking.status === "DepositPaid" || booking.status === "Confirmed" ? (
+            <div className="space-y-4 rounded-md border border-slate-200 p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input type="number" min="0" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} placeholder="Số km hiện tại" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
+                <input type="text" value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder="Mức nhiên liệu" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
+              </div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input type="checkbox" checked={damageNoted} onChange={(e) => setDamageNoted(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+                Có ghi nhận hư hỏng/tình trạng cần lưu ý
+              </label>
+              <textarea value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} rows={3} placeholder="Mô tả tình trạng xe, vết xước, phụ kiện đi kèm..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 hover:bg-slate-100">
+                <Camera className="mb-2 h-6 w-6 text-brand-700" />
+                <span className="font-semibold">Chọn ảnh before</span>
+                <span className="mt-1 text-xs">JPG, PNG, WebP - tối đa 12 ảnh</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => setCheckInImages(Array.from(e.target.files ?? []).slice(0, 12))} />
+              </label>
+              {checkInImages.length > 0 && <p className="text-xs font-medium text-slate-500">Đã chọn {checkInImages.length} ảnh</p>}
+              <Button variant="primary" onClick={handleCreateCheckInReport} isLoading={isProcessing} disabled={checkInImages.length === 0}>
+                Tạo biên bản check-in
+              </Button>
+            </div>
+          ) : (
+            <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-500">Booking chưa ở trạng thái có thể check-in.</p>
+          )}
         </Card>
       )}
 

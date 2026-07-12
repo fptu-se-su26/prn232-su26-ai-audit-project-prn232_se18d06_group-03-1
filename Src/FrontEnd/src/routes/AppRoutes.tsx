@@ -45,6 +45,7 @@ import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
 import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
+import DisputePage from "@/pages/disputes/DisputePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import OwnerHomePage from "@/pages/owner/OwnerHomePage";
@@ -121,6 +122,7 @@ export default function AppRoutes() {
             <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
             <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
             <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
+            <Route path="/customer/disputes" element={<DisputePage />} />
             <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
             <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
@@ -133,6 +135,7 @@ export default function AppRoutes() {
             <Route path="/owner" element={<OwnerHomePage />} />
             <Route path="/owner/bookings" element={<OwnerBookingListPage />} />
             <Route path="/owner/bookings/:id" element={<OwnerBookingDetailPage />} />
+            <Route path="/owner/disputes" element={<DisputePage />} />
             <Route path="/owner/vehicles" element={<OwnerVehicleListPage />} />
             <Route path="/owner/vehicles/car" element={<OwnerVehicleListPage />} />
             <Route path="/owner/vehicles/motorbike" element={<OwnerVehicleListPage />} />
@@ -143,6 +146,7 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Staff"]} />}>
             <Route path="/staff" element={<StaffHomePage />} />
+            <Route path="/staff/bookings/:id" element={<BookingDetailPage />} />
             <Route path="/staff/moderation" element={<StaffModerationDashboardPage />} />
             <Route path="/staff/vehicles" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicles/:id" element={<StaffVehiclesPage />} />
@@ -151,6 +155,7 @@ export default function AppRoutes() {
             <Route path="/staff/vehicle-listings" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-listings/:id" element={<StaffVehiclesPage />} />
             <Route path="/staff/driver-license-verifications" element={<StaffDriverLicenseVerificationsPage />} />
+            <Route path="/staff/disputes" element={<DisputePage />} />
             <Route path="/staff/support-tickets" element={<StaffSupportTicketListPage />} />
             <Route path="/staff/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
           </Route>
@@ -166,6 +171,7 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
+            <Route path="/admin/disputes" element={<DisputePage />} />
             <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
             <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
             <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />

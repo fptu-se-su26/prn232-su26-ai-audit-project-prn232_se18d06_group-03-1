@@ -1,14 +1,33 @@
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Car, Bike, MapPin, CalendarCheck } from "lucide-react";
+import {
+  Bike,
+  CalendarDays,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  DollarSign,
+  Gauge,
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCatalogBrands, getCatalogModels } from "@/features/vehicles/services/vehicleService";
-import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
-import type { VehicleListItemResponse, CatalogBrand, CatalogModel } from "@/features/vehicles/types";
-import { fuelTypeOptions, motorbikeTypeOptions } from "@/features/vehicleModelVariants/options";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
-import useClickOutside from "@/hooks/useClickOutside";
-import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import Button from "@/components/common/Button";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import { fuelTypeOptions, motorbikeTypeOptions } from "@/features/vehicleModelVariants/options";
+import { getCatalogAreas, getCatalogBrands, getCatalogModels } from "@/features/vehicles/services/vehicleService";
+import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
+import type { CatalogArea, CatalogBrand, CatalogModel, VehicleListItemResponse } from "@/features/vehicles/types";
+
+const PAGE_SIZE = 12;
+const MIN_PRICE_LIMIT = 0;
+const MAX_PRICE_LIMIT = 2_000_000;
+const PRICE_STEP = 50_000;
 
 const carBodyTypes = [
   { value: "Sedan", label: "Sedan" },
@@ -20,7 +39,9 @@ const carBodyTypes = [
   { value: "MPV/Minivan", label: "MPV / Minivan" },
   { value: "Wagon", label: "Wagon" },
 ];
+
 const seatCounts = ["2", "4", "5", "7", "8", "9", "16", "29", "30"];
+
 const transmissionOptions = [
   { value: "Automatic", label: "Tự động" },
   { value: "Manual", label: "Số sàn" },
@@ -28,174 +49,282 @@ const transmissionOptions = [
   { value: "DCT", label: "DCT" },
 ];
 
-function FilterDropdown({ value, label, options, onChange }: { value: string; label: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false));
-  const current = options.find((o) => o.value === value);
-  return (
-    <div className="relative w-full" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-10 w-full items-center justify-between rounded border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-neutral-855 dark:bg-neutral-900 dark:text-gray-200 dark:hover:bg-neutral-800"
-      >
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-400 dark:text-gray-500">{label}:</span>
-          <span className="font-bold text-brand-600 dark:text-brand-400">{current?.label ?? "Tất cả"}</span>
-        </div>
-        <svg className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
-      </button>
-      {open && (
-        <div className="dropdown-scrollbar absolute left-0 top-full z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-slate-200/85 bg-white py-1.5 shadow-xl dark:border-neutral-800 dark:bg-neutral-900 animate-fadeIn">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className={`flex w-full items-center px-4 py-2.5 text-left text-xs font-semibold transition-colors ${
-                opt.value === value
-                  ? "bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300 font-bold"
-                  : "text-slate-700 hover:bg-slate-50 dark:text-gray-300 dark:hover:bg-neutral-800"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+const sortOptions = [
+  { value: "price_asc", label: "Giá thấp đến cao" },
+  { value: "price_desc", label: "Giá cao đến thấp" },
+  { value: "rating_desc", label: "Đánh giá tốt nhất" },
+];
 
 function splitAreaName(areaName: string | null) {
   if (!areaName) return null;
   const [province, ...wardParts] = areaName.split(" - ");
-  const ward = wardParts.join(" - ").trim();
-  return { province: province?.trim() ?? "", ward };
+  return { province: province?.trim() ?? "", ward: wardParts.join(" - ").trim() };
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{children}</label>;
+}
+
+function FilterGroup({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-t border-slate-100 pt-4 first:border-t-0 first:pt-0 dark:border-neutral-900">
+      <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+        <span className="text-brand-600 dark:text-brand-400">{icon}</span>
+        <span>{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function SelectField({
+  value,
+  options,
+  onChange,
+  placeholder = "Tất cả",
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={[
+        "h-10 w-full rounded-md border bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:bg-neutral-950 dark:text-white",
+        value
+          ? "border-brand-400 bg-brand-50/60 dark:border-brand-500 dark:bg-brand-950/25"
+          : "border-slate-200 dark:border-neutral-800",
+      ].join(" ")}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 export default function VehicleListPage() {
   const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const [items, setItems] = useState<VehicleListItemResponse[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [brands, setBrands] = useState<CatalogBrand[]>([]);
+  const [models, setModels] = useState<CatalogModel[]>([]);
+  const [areas, setAreas] = useState<CatalogArea[]>([]);
+
   const [keyword, setKeyword] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [modelFilter, setModelFilter] = useState("");
-  const [models, setModels] = useState<CatalogModel[]>([]);
+  const [areaFilter, setAreaFilter] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
   const [fuelTypeFilter, setFuelTypeFilter] = useState("");
   const [seatCountFilter, setSeatCountFilter] = useState("");
   const [transmissionFilter, setTransmissionFilter] = useState("");
   const [bodyTypeFilter, setBodyTypeFilter] = useState("");
   const [bikeTypeFilter, setBikeTypeFilter] = useState("");
-  const [engineCapacityFilter, setEngineCapacityFilter] = useState("");
-  const token = useAuthStore((state) => state.token);
-  const user = useAuthStore((state) => state.user);
-  const [isLoading, setIsLoading] = useState(true);
-  const [brands, setBrands] = useState<CatalogBrand[]>([]);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
-    getCatalogBrands().then(setBrands).catch(() => {});
+    getCatalogBrands().then(setBrands).catch(() => setBrands([]));
+    getCatalogAreas().then(setAreas).catch(() => setAreas([]));
   }, []);
 
   useEffect(() => {
-    if (brandFilter) {
-      getCatalogModels(Number(brandFilter)).then(setModels).catch(() => setModels([]));
-      setModelFilter("");
-    } else {
+    if (!brandFilter) {
       setModels([]);
+      setModelFilter("");
+      return;
     }
+
+    getCatalogModels(Number(brandFilter)).then(setModels).catch(() => setModels([]));
+    setModelFilter("");
   }, [brandFilter]);
 
-  function buildParams(p?: number, kw?: string, sort?: string, vt?: string, bf?: string, mf?: string, ft?: string, sc?: string, tr?: string, bt?: string, bkT?: string, ec?: string) {
-    const params: Record<string, string | number | boolean | undefined> = { page: p ?? page, pageSize: 12 };
-    const effectiveType = vt !== undefined ? vt : typeFilter;
-    if (effectiveType) params.type = effectiveType;
-    const searchKw = kw !== undefined ? kw : keyword;
-    if (searchKw) params.keyword = searchKw;
-    const searchSort = sort !== undefined ? sort : sortBy;
-    if (searchSort) params.sortBy = searchSort;
-    const searchBrand = bf !== undefined ? bf : brandFilter;
-    if (searchBrand) params.brandId = Number(searchBrand);
-    const searchModel = mf !== undefined ? mf : modelFilter;
-    if (searchModel) params.modelId = Number(searchModel);
-    const searchFuelType = ft !== undefined ? ft : fuelTypeFilter;
-    if (searchFuelType) params.fuelType = searchFuelType;
-    const searchSeatCount = sc !== undefined ? sc : seatCountFilter;
-    if (searchSeatCount) params.seatCount = searchSeatCount;
-    const searchTransmission = tr !== undefined ? tr : transmissionFilter;
-    if (searchTransmission) params.transmission = searchTransmission;
-    const searchBodyType = bt !== undefined ? bt : bodyTypeFilter;
-    if (searchBodyType) params.bodyType = searchBodyType;
-    const searchBikeType = bkT !== undefined ? bkT : bikeTypeFilter;
-    if (searchBikeType) params.bikeType = searchBikeType;
-    const searchEngineCapacity = ec !== undefined ? ec : engineCapacityFilter;
-    if (searchEngineCapacity) params.engineCapacity = searchEngineCapacity;
-    return params;
+  const visibleBrands = useMemo(
+    () => brands.filter((brand) => !typeFilter || brand.vehicleType === typeFilter),
+    [brands, typeFilter],
+  );
+
+  const hasActiveFilters = Boolean(
+    keyword ||
+      sortBy ||
+      typeFilter ||
+      brandFilter ||
+      modelFilter ||
+      areaFilter ||
+      minPrice ||
+      maxPrice ||
+      pickupDate ||
+      returnDate ||
+      fuelTypeFilter ||
+      seatCountFilter ||
+      transmissionFilter ||
+      bodyTypeFilter ||
+      bikeTypeFilter,
+  );
+
+  const activeFilterCount = [
+    keyword,
+    sortBy,
+    typeFilter,
+    brandFilter,
+    modelFilter,
+    areaFilter,
+    minPrice,
+    maxPrice,
+    pickupDate,
+    returnDate,
+    fuelTypeFilter,
+    seatCountFilter,
+    transmissionFilter,
+    bodyTypeFilter,
+    bikeTypeFilter,
+  ].filter(Boolean).length;
+
+  const formatPrice = (value: string) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+
+  const getOptionLabel = (options: { value: string; label: string }[], value: string) =>
+    options.find((option) => option.value === value)?.label ?? value;
+
+  const activeChips = [
+    keyword ? { key: "keyword", label: keyword, clear: () => setKeyword("") } : null,
+    areaFilter ? { key: "area", label: getOptionLabel(areas.map((area) => ({ value: String(area.id), label: area.province })), areaFilter), clear: () => setAreaFilter("") } : null,
+    typeFilter ? { key: "type", label: typeFilter === "Car" ? "Ô tô" : "Xe máy", clear: () => setTypeFilter("") } : null,
+    brandFilter ? { key: "brand", label: getOptionLabel(visibleBrands.map((brand) => ({ value: String(brand.id), label: brand.name })), brandFilter), clear: () => setBrandFilter("") } : null,
+    modelFilter ? { key: "model", label: getOptionLabel(models.map((model) => ({ value: String(model.id), label: model.name })), modelFilter), clear: () => setModelFilter("") } : null,
+    minPrice || maxPrice ? { key: "price", label: `${formatPrice(minPrice)} - ${formatPrice(maxPrice || String(MAX_PRICE_LIMIT))}`, clear: () => { setMinPrice(""); setMaxPrice(""); } } : null,
+    pickupDate || returnDate ? { key: "date", label: `${pickupDate || "..."} → ${returnDate || "..."}`, clear: () => { setPickupDate(""); setReturnDate(""); } } : null,
+  ].filter((chip): chip is { key: string; label: string; clear: () => void } => Boolean(chip));
+
+  const buildParams = useCallback(
+    (targetPage: number) => {
+      const params: Record<string, string | number | boolean | undefined> = {
+        page: targetPage,
+        pageSize: PAGE_SIZE,
+      };
+
+      if (keyword.trim()) params.keyword = keyword.trim();
+      if (sortBy) params.sortBy = sortBy;
+      if (typeFilter) params.type = typeFilter;
+      if (brandFilter) params.brandId = Number(brandFilter);
+      if (modelFilter) params.modelId = Number(modelFilter);
+      if (areaFilter) params.areaId = Number(areaFilter);
+      if (minPrice) params.minPrice = Number(minPrice);
+      if (maxPrice) params.maxPrice = Number(maxPrice);
+      if (pickupDate) params.startDate = pickupDate;
+      if (returnDate) params.endDate = returnDate;
+      if (fuelTypeFilter) params.fuelType = fuelTypeFilter;
+      if (seatCountFilter) params.seatCount = seatCountFilter;
+      if (transmissionFilter) params.transmission = transmissionFilter;
+      if (bodyTypeFilter) params.bodyType = bodyTypeFilter;
+      if (bikeTypeFilter) params.bikeType = bikeTypeFilter;
+
+      return params;
+    },
+    [
+      areaFilter,
+      bikeTypeFilter,
+      bodyTypeFilter,
+      brandFilter,
+      fuelTypeFilter,
+      keyword,
+      maxPrice,
+      minPrice,
+      modelFilter,
+      pickupDate,
+      returnDate,
+      seatCountFilter,
+      sortBy,
+      transmissionFilter,
+      typeFilter,
+    ],
+  );
+
+  const load = useCallback(
+    async (targetPage = page) => {
+      setIsLoading(true);
+      try {
+        const result = await getPublicVehicles(buildParams(targetPage));
+        setItems(result.items);
+        setTotalCount(result.totalCount);
+        setTotalPages(result.totalPages);
+        setPage(result.page);
+      } catch {
+        setItems([]);
+        setTotalCount(0);
+        setTotalPages(0);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [buildParams, page],
+  );
+
+  useEffect(() => {
+    void load(1);
+  }, [load]);
+
+  function updateFilter(setter: (value: string) => void, value: string) {
+    setter(value);
+    setPage(1);
   }
 
-  const load = useCallback(async (p?: number, kw?: string, sort?: string, vt?: string, bf?: string, mf?: string, ft?: string, sc?: string, tr?: string, bt?: string, bkT?: string, ec?: string) => {
-    setIsLoading(true);
-    try {
-      const params = buildParams(p, kw, sort, vt, bf, mf, ft, sc, tr, bt, bkT, ec);
-      const result = await getPublicVehicles(params);
-      setItems(result.items);
-      setTotalCount(result.totalCount);
-      setTotalPages(result.totalPages);
-      setPage(result.page);
-    } catch {
-      setItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter]);
-
-  useEffect(() => { void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }, [typeFilter, load]);
-
-  const visibleBrands = brands.filter((b) => !typeFilter || b.vehicleType === typeFilter);
-  const hasActiveFilters = sortBy !== "" || typeFilter !== "" || brandFilter !== "" || modelFilter !== ""
-    || fuelTypeFilter !== "" || seatCountFilter !== "" || transmissionFilter !== "" || bodyTypeFilter !== ""
-    || bikeTypeFilter !== "" || engineCapacityFilter !== "";
-
-  const handleSearch = () => {
+  function handleSearch() {
     setPage(1);
-    void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter);
-  };
+    void load(1);
+  }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSearch();
-  };
-
-  const clearAllFilters = () => {
+  function clearAllFilters() {
     setKeyword("");
     setSortBy("");
     setTypeFilter("");
     setBrandFilter("");
     setModelFilter("");
+    setAreaFilter("");
+    setMinPrice("");
+    setMaxPrice("");
+    setPickupDate("");
+    setReturnDate("");
     setFuelTypeFilter("");
     setSeatCountFilter("");
     setTransmissionFilter("");
     setBodyTypeFilter("");
     setBikeTypeFilter("");
-    setEngineCapacityFilter("");
     setPage(1);
     if (searchRef.current) searchRef.current.value = "";
-    void load(1, "", "", "", "", "", "", "", "", "", "", "");
-  };
+  }
 
-  const goToPage = (p: number) => {
-    if (p < 1 || p > totalPages) return;
-    setPage(p);
-    void load(p, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter);
-  };
+  function goToPage(targetPage: number) {
+    if (targetPage < 1 || targetPage > totalPages) return;
+    setPage(targetPage);
+    void load(targetPage);
+  }
 
   const pageNumbers = useMemo(() => {
     const pages: (number | "...")[] = [];
@@ -212,287 +341,447 @@ export default function VehicleListPage() {
   }, [page, totalPages]);
 
   return (
-    <div className="bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] text-slate-900 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white min-h-screen transition-colors duration-300 pb-16">
-      {/* Premium Header Banner */}
-      <div className="relative py-16 sm:py-20 px-4 text-center overflow-hidden border-b border-slate-100 dark:border-neutral-900 bg-white/40 dark:bg-black/25 backdrop-blur-md shadow-md">
-        <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-brand-500/10 to-transparent blur-3xl pointer-events-none" />
-        <span className="text-sm sm:text-base font-extrabold uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400">Hành trình phía trước</span>
-        <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight text-slate-900 dark:text-white leading-none">
-          Tìm chiếc xe{" "}
-          <span className="italic lowercase text-brand-600 dark:text-brand-400">
-            phù hợp
+    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+      <div className="relative overflow-hidden border-b border-slate-100 bg-white/40 px-5 py-14 text-left shadow-md backdrop-blur-md dark:border-neutral-900 dark:bg-black/25 sm:px-6 sm:py-[4.5rem] lg:px-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-brand-500/10 to-transparent blur-3xl" />
+        <div className="relative max-w-4xl">
+          <span className="text-sm font-extrabold uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400 sm:text-base">
+            Thuê xe linh hoạt
           </span>
-        </h1>
+          <h1 className="mt-4 text-4xl font-black uppercase leading-tight tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
+            Chọn đúng xe, đúng lịch,{" "}
+            <span className="italic lowercase text-brand-600 dark:text-brand-400">
+              đúng ngân sách
+            </span>
+          </h1>
+          <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-600 dark:text-gray-400 sm:text-base">
+            So sánh xe còn trống theo thời gian nhận trả, khu vực và mức giá để đặt chuyến đi gọn hơn.
+          </p>
+        </div>
       </div>
 
-      {/* Two Column Layout Container */}
-      <div className="mx-auto max-w-7xl px-4 py-8 flex flex-col lg:flex-row gap-8">
-        
-        {/* Left Column: sticky filter sidebar */}
-        <aside className="w-full lg:w-80 shrink-0">
-          <div className="sticky top-24 bg-white border border-slate-300 dark:border-neutral-700 dark:bg-neutral-950/70 rounded shadow-[0_12px_40px_-4px_rgba(124,58,237,0.18)] dark:shadow-[0_12px_40px_-4px_rgba(139,92,246,0.25)] p-5 transition-colors space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-neutral-900 pb-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                <SlidersHorizontal className="h-4.5 w-4.5 text-brand-600" />
-                <span>Bộ lọc tìm kiếm</span>
-              </h2>
-              {hasActiveFilters && (
-                <button type="button" onClick={clearAllFilters} className="text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-wider">
-                  Xóa tất cả
-                </button>
-              )}
-            </div>
-
-            {/* Keyword Search */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Từ khóa</label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Hãng, dòng xe, biển số..."
-                  className="h-10 w-full rounded border border-slate-200 bg-slate-50/50 dark:bg-neutral-900/50 dark:border-neutral-800 pl-9 pr-3 text-xs font-semibold outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:text-white transition-all placeholder:text-slate-400/80"
-                />
-              </div>
-            </div>
-
-            {/* Filter Dropdowns arranged vertically */}
-            <div className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Sắp xếp</label>
-                <FilterDropdown label="Sắp xếp" value={sortBy} onChange={(v) => { setSortBy(v); setPage(1); void load(1, keyword, v, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
-                  options={[{ value: "", label: "Mới nhất" }, { value: "price_asc", label: "Giá tăng dần" }, { value: "price_desc", label: "Giá giảm dần" }]} />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Loại xe</label>
-                <FilterDropdown label="Loại xe" value={typeFilter} onChange={(v) => { setTypeFilter(v); setBrandFilter(""); setModelFilter(""); setFuelTypeFilter(""); setSeatCountFilter(""); setTransmissionFilter(""); setBodyTypeFilter(""); setBikeTypeFilter(""); setPage(1); void load(1, keyword, sortBy, v, "", "", "", "", "", "", "", ""); }}
-                  options={[{ value: "", label: "Tất cả" }, { value: "Car", label: "Ô tô" }, { value: "Motorbike", label: "Xe máy" }]} />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Hãng xe</label>
-                <FilterDropdown label="Hãng xe" value={brandFilter} onChange={(v) => { setBrandFilter(v); setModelFilter(""); setPage(1); void load(1, keyword, sortBy, typeFilter, v, "", fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
-                  options={[{ value: "", label: "Tất cả" }, ...visibleBrands.map((b) => ({ value: String(b.id), label: b.name }))]} />
-              </div>
-
-              {brandFilter && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Dòng xe</label>
-                  <FilterDropdown label="Dòng xe" value={modelFilter} onChange={(v) => { setModelFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, v, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
-                    options={[{ value: "", label: "Tất cả" }, ...models.map((m) => ({ value: String(m.id), label: m.name }))]} />
+      <div className="flex w-full flex-col gap-6 px-5 py-8 sm:px-6 lg:flex-row lg:gap-8 lg:px-8">
+        <aside className="w-full shrink-0 lg:w-[360px]">
+          <section className="sticky top-24 rounded-md border border-slate-300 bg-white p-5 shadow-[0_12px_40px_-4px_rgba(124,58,237,0.18)] transition-colors dark:border-neutral-700 dark:bg-neutral-950/70 dark:shadow-[0_12px_40px_-4px_rgba(139,92,246,0.25)]">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 dark:border-neutral-900">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">
+                  <SlidersHorizontal className="h-4.5 w-4.5" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-950 dark:text-white">
+                    Bộ lọc{activeFilterCount ? ` (${activeFilterCount})` : ""}
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {activeFilterCount ? `Đang áp dụng ${activeFilterCount} bộ lọc` : "Chọn các tiêu chí phổ biến trước."}
+                  </p>
                 </div>
-              )}
-
-              {(!typeFilter || typeFilter === "Car") && (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Số chỗ</label>
-                    <FilterDropdown label="Số chỗ" value={seatCountFilter} onChange={(v) => { setSeatCountFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, v, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
-                      options={[{ value: "", label: "Tất cả" }, ...seatCounts.map((item) => ({ value: item, label: `${item} chỗ` }))]} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Truyền động</label>
-                    <FilterDropdown label="Truyền động" value={transmissionFilter} onChange={(v) => { setTransmissionFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, v, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
-                      options={[{ value: "", label: "Tất cả" }, ...transmissionOptions]} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Kiểu thân</label>
-                    <FilterDropdown label="Kiểu thân" value={bodyTypeFilter} onChange={(v) => { setBodyTypeFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, v, bikeTypeFilter, engineCapacityFilter); }}
-                      options={[{ value: "", label: "Tất cả" }, ...carBodyTypes]} />
-                  </div>
-                </>
-              )}
-
-              {(!typeFilter || typeFilter === "Motorbike") && (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Loại xe máy</label>
-                    <FilterDropdown label="Loại xe" value={bikeTypeFilter} onChange={(v) => { setBikeTypeFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, v, engineCapacityFilter); }}
-                      options={[{ value: "", label: "Tất cả" }, ...motorbikeTypeOptions]} />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Dung tích</label>
-                    <input type="text" value={engineCapacityFilter} onChange={(e) => { setEngineCapacityFilter(e.target.value); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, fuelTypeFilter, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, e.target.value); }} placeholder="VD: 125cc" className="h-10 w-full rounded border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white font-semibold" />
-                  </div>
-                </>
-              )}
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Nhiên liệu</label>
-                <FilterDropdown label="Nhiên liệu" value={fuelTypeFilter} onChange={(v) => { setFuelTypeFilter(v); setPage(1); void load(1, keyword, sortBy, typeFilter, brandFilter, modelFilter, v, seatCountFilter, transmissionFilter, bodyTypeFilter, bikeTypeFilter, engineCapacityFilter); }}
-                  options={[{ value: "", label: "Tất cả" }, ...fuelTypeOptions]} />
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="w-full h-11 inline-flex items-center justify-center gap-2 rounded bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold uppercase tracking-wider shadow-md shadow-brand-600/15 transition-all active:scale-[0.98]"
-            >
-              <Search className="h-4 w-4" /> Áp dụng bộ lọc
-            </button>
-          </div>
+            {activeChips.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {activeChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={chip.clear}
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-brand-300 bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 transition hover:bg-brand-100 dark:border-brand-500/60 dark:bg-brand-950/40 dark:text-brand-300"
+                  >
+                    <span className="truncate">{chip.label}</span>
+                    <X className="h-3 w-3 shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-5 space-y-5">
+              <FilterGroup icon={<Search className="h-4 w-4" />} title="Từ khóa">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={keyword}
+                    onChange={(event) => updateFilter(setKeyword, event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") handleSearch();
+                    }}
+                    placeholder="Tìm theo xe, hãng..."
+                    className={[
+                      "h-10 w-full rounded-md border bg-white pl-9 pr-3 text-sm font-semibold outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:bg-neutral-950 dark:text-white",
+                      keyword ? "border-brand-400 bg-brand-50/60 dark:border-brand-500 dark:bg-brand-950/25" : "border-slate-200 dark:border-neutral-800",
+                    ].join(" ")}
+                  />
+                </div>
+              </FilterGroup>
+
+              <FilterGroup icon={<CalendarDays className="h-4 w-4" />} title="Thời gian">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <input
+                    type="date"
+                    value={pickupDate}
+                    onChange={(event) => updateFilter(setPickupDate, event.target.value)}
+                    className={[
+                      "h-10 min-w-0 rounded-md border bg-white px-2 text-xs font-semibold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:bg-neutral-950 dark:text-white",
+                      pickupDate ? "border-brand-400 bg-brand-50/60 dark:border-brand-500 dark:bg-brand-950/25" : "border-slate-200 dark:border-neutral-800",
+                    ].join(" ")}
+                  />
+                  <span className="text-xs font-black text-slate-400">→</span>
+                  <input
+                    type="date"
+                    min={pickupDate || undefined}
+                    value={returnDate}
+                    onChange={(event) => updateFilter(setReturnDate, event.target.value)}
+                    className={[
+                      "h-10 min-w-0 rounded-md border bg-white px-2 text-xs font-semibold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:bg-neutral-950 dark:text-white",
+                      returnDate ? "border-brand-400 bg-brand-50/60 dark:border-brand-500 dark:bg-brand-950/25" : "border-slate-200 dark:border-neutral-800",
+                    ].join(" ")}
+                  />
+                </div>
+              </FilterGroup>
+
+              <FilterGroup icon={<DollarSign className="h-4 w-4" />} title="Giá">
+                <div className="space-y-3">
+                  <div className="relative h-7">
+                    <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200 dark:bg-neutral-800" />
+                    <input
+                      type="range"
+                      min={MIN_PRICE_LIMIT}
+                      max={MAX_PRICE_LIMIT}
+                      step={PRICE_STEP}
+                      value={Number(minPrice || MIN_PRICE_LIMIT)}
+                      onChange={(event) => {
+                        const next = Math.min(Number(event.target.value), Number(maxPrice || MAX_PRICE_LIMIT) - PRICE_STEP);
+                        updateFilter(setMinPrice, String(Math.max(MIN_PRICE_LIMIT, next)));
+                      }}
+                      className="pointer-events-none absolute inset-x-0 top-0 h-7 w-full appearance-none bg-transparent accent-brand-600 [&::-webkit-slider-thumb]:pointer-events-auto"
+                    />
+                    <input
+                      type="range"
+                      min={MIN_PRICE_LIMIT}
+                      max={MAX_PRICE_LIMIT}
+                      step={PRICE_STEP}
+                      value={Number(maxPrice || MAX_PRICE_LIMIT)}
+                      onChange={(event) => {
+                        const next = Math.max(Number(event.target.value), Number(minPrice || MIN_PRICE_LIMIT) + PRICE_STEP);
+                        updateFilter(setMaxPrice, String(Math.min(MAX_PRICE_LIMIT, next)));
+                      }}
+                      className="pointer-events-none absolute inset-x-0 top-0 h-7 w-full appearance-none bg-transparent accent-brand-600 [&::-webkit-slider-thumb]:pointer-events-auto"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                    <span>{formatPrice(minPrice)}</span>
+                    <span>{formatPrice(maxPrice || String(MAX_PRICE_LIMIT))}</span>
+                  </div>
+                </div>
+              </FilterGroup>
+
+              <FilterGroup icon={<Car className="h-4 w-4" />} title="Thông tin xe">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <FieldLabel>Địa điểm</FieldLabel>
+                    <SelectField
+                      value={areaFilter}
+                      onChange={(value) => updateFilter(setAreaFilter, value)}
+                      options={areas.map((area) => ({ value: String(area.id), label: `${area.province} - ${area.district}` }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <FieldLabel>Loại xe</FieldLabel>
+                    <SelectField
+                      value={typeFilter}
+                      onChange={(value) => {
+                        updateFilter(setTypeFilter, value);
+                        setBrandFilter("");
+                        setModelFilter("");
+                        setBodyTypeFilter("");
+                        setBikeTypeFilter("");
+                      }}
+                      options={[
+                        { value: "Car", label: "Ô tô" },
+                        { value: "Motorbike", label: "Xe máy" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </FilterGroup>
+
+              <div className="border-t border-slate-100 pt-4 dark:border-neutral-900">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen((value) => !value)}
+                  className="flex w-full items-center justify-between text-left text-sm font-black text-slate-950 transition hover:text-brand-700 dark:text-white dark:hover:text-brand-300"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Gauge className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                    Bộ lọc nâng cao
+                  </span>
+                  <span className={`text-xs transition-transform ${advancedOpen ? "rotate-180" : ""}`}>▼</span>
+                </button>
+
+                {advancedOpen && (
+                  <div className="mt-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <FieldLabel>Hãng xe</FieldLabel>
+                      <SelectField
+                        value={brandFilter}
+                        onChange={(value) => updateFilter(setBrandFilter, value)}
+                        options={visibleBrands.map((brand) => ({ value: String(brand.id), label: brand.name }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <FieldLabel>Dòng xe</FieldLabel>
+                      <SelectField
+                        value={modelFilter}
+                        onChange={(value) => updateFilter(setModelFilter, value)}
+                        options={models.map((model) => ({ value: String(model.id), label: model.name }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <FieldLabel>Số ghế</FieldLabel>
+                      <SelectField
+                        value={seatCountFilter}
+                        onChange={(value) => updateFilter(setSeatCountFilter, value)}
+                        options={seatCounts.map((count) => ({ value: count, label: `${count} chỗ` }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <FieldLabel>Nhiên liệu</FieldLabel>
+                      <SelectField
+                        value={fuelTypeFilter}
+                        onChange={(value) => updateFilter(setFuelTypeFilter, value)}
+                        options={fuelTypeOptions}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <FieldLabel>Sắp xếp</FieldLabel>
+                      <SelectField
+                        value={sortBy}
+                        onChange={(value) => updateFilter(setSortBy, value)}
+                        placeholder="Mới nhất"
+                        options={sortOptions}
+                      />
+                    </div>
+
+                    {(!typeFilter || typeFilter === "Car") && (
+                      <>
+                        <div className="space-y-1.5">
+                          <FieldLabel>Truyền động</FieldLabel>
+                          <SelectField
+                            value={transmissionFilter}
+                            onChange={(value) => updateFilter(setTransmissionFilter, value)}
+                            options={transmissionOptions}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <FieldLabel>Kiểu thân</FieldLabel>
+                          <SelectField
+                            value={bodyTypeFilter}
+                            onChange={(value) => updateFilter(setBodyTypeFilter, value)}
+                            options={carBodyTypes}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {(!typeFilter || typeFilter === "Motorbike") && (
+                      <div className="space-y-1.5">
+                        <FieldLabel>Loại xe máy</FieldLabel>
+                        <SelectField
+                          value={bikeTypeFilter}
+                          onChange={(value) => updateFilter(setBikeTypeFilter, value)}
+                          options={motorbikeTypeOptions}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-[auto_1fr] gap-2 border-t border-slate-100 pt-4 dark:border-neutral-900">
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                disabled={!hasActiveFilters}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-neutral-800 dark:text-gray-300 dark:hover:bg-neutral-900"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Reset
+              </button>
+              <Button type="button" variant="primary" onClick={handleSearch} className="h-10">
+                <Search className="h-4 w-4" />
+                Áp dụng
+              </Button>
+            </div>
+          </section>
         </aside>
 
-        {/* Right Column: Vehicle Results Grid */}
-        <main className="flex-grow">
-          <div className="flex items-center justify-between mb-6 px-1">
+        <main className="min-w-0 flex-1">
+          <div className="mb-5 flex items-center justify-between px-1">
             <div className="text-sm font-semibold text-slate-700 dark:text-gray-300">
-              Tìm thấy <span className="text-brand-600 dark:text-brand-400 font-extrabold">{totalCount}</span> xe sẵn sàng
+              Tìm thấy <span className="font-extrabold text-brand-600 dark:text-brand-400">{totalCount}</span> xe sẵn sàng
             </div>
             {isLoading && <LoadingSpinner className="h-5 w-5 text-brand-600" />}
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-20"><LoadingSpinner className="h-10 w-10 text-brand-600" /></div>
+            <div className="flex items-center justify-center py-20">
+              <LoadingSpinner className="h-10 w-10 text-brand-600" />
+            </div>
           ) : items.length === 0 ? (
-            <div className="flex min-h-[350px] flex-col items-center justify-center text-center bg-white/40 dark:bg-neutral-950/40 backdrop-blur-sm border border-slate-300 dark:border-neutral-700 rounded-2xl p-12 shadow-sm">
-              <Car className="h-16 w-16 text-slate-300 dark:text-neutral-700 animate-pulse" />
-              <p className="mt-4 text-base font-bold text-slate-700 dark:text-gray-300">Chưa có xe nào đang cho thuê</p>
-              <p className="mt-2 text-xs text-slate-400">Hãy điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
-              <button type="button" onClick={clearAllFilters} className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-brand-600 text-white px-5 text-xs font-bold uppercase tracking-wider transition-all hover:bg-brand-700 shadow-md">Xóa bộ lọc</button>
+            <div className="flex min-h-[350px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+              <Car className="h-16 w-16 text-slate-300 dark:text-neutral-700" />
+              <p className="mt-4 text-base font-bold text-slate-700 dark:text-gray-300">Chưa tìm thấy xe phù hợp</p>
+              <p className="mt-2 text-xs text-slate-400">Hãy điều chỉnh bộ lọc hoặc mở rộng khoảng giá/ngày thuê.</p>
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="mt-6 inline-flex h-10 items-center justify-center rounded-md bg-brand-600 px-5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:bg-brand-700"
+              >
+                Xóa bộ lọc
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {items.map((vehicle) => {
                 const area = splitAreaName(vehicle.areaName);
                 return (
-                  <div key={vehicle.id} className="group relative flex flex-col justify-between overflow-hidden rounded border border-slate-300 bg-white dark:border-neutral-700 dark:bg-neutral-950/70 shadow-[0_12px_40px_-4px_rgba(124,58,237,0.18)] dark:shadow-[0_12px_40px_-4px_rgba(139,92,246,0.25)] transition-all duration-300 hover:shadow-[0_18px_48px_-4px_rgba(124,58,237,0.24)] dark:hover:shadow-[0_18px_48px_-4px_rgba(139,92,246,0.35)] hover:-translate-y-1">
-                    <div>
-                      {/* Image Box */}
-                      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-neutral-900">
-                        {vehicle.featuredImage ? (
-                          <img src={vehicle.featuredImage} alt={vehicle.licensePlate} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            {vehicle.vehicleType === "Car" ? <Car className="h-12 w-12 text-slate-300 dark:text-neutral-700" /> : <Bike className="h-12 w-12 text-slate-300 dark:text-neutral-700" />}
-                          </div>
-                        )}
-                        
-                        {/* Vehicle Type Badges */}
-                        <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-xl bg-slate-900/85 backdrop-blur-md px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-wider text-white">
-                          {vehicle.vehicleType === "Car" ? <Car className="h-3.5 w-3.5" /> : <Bike className="h-3.5 w-3.5" />}
-                          <span>{vehicle.vehicleType === "Car" ? "Ô tô" : "Xe máy"}</span>
-                        </span>
-                        
-                        {/* Year badge */}
-                        <span className="absolute top-4 right-4 inline-flex items-center rounded-xl bg-brand-600/90 backdrop-blur-sm px-2.5 py-1 text-[9px] font-extrabold tracking-wider text-white">
-                          Đời {vehicle.year}
-                        </span>
-                      </div>
-
-                      {/* Metadata Content */}
-                      <div className="p-5">
-                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-brand-600 dark:text-brand-400">
-                          <span>{vehicle.brandName}</span>
-                          <span>•</span>
-                          <span>{vehicle.modelName}</span>
+                  <article
+                    key={vehicle.id}
+                    className="group relative flex min-h-full flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-xl dark:border-neutral-800 dark:bg-neutral-950"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-neutral-900">
+                      {vehicle.featuredImage ? (
+                        <img
+                          src={vehicle.featuredImage}
+                          alt={vehicle.licensePlate}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          {vehicle.vehicleType === "Car" ? (
+                            <Car className="h-12 w-12 text-slate-300 dark:text-neutral-700" />
+                          ) : (
+                            <Bike className="h-12 w-12 text-slate-300 dark:text-neutral-700" />
+                          )}
                         </div>
-                        
-                        <h3 className="mt-2 text-base font-extrabold text-slate-900 dark:text-white truncate">
-                          {vehicle.variantName || `${vehicle.brandName} ${vehicle.modelName}`}
-                        </h3>
+                      )}
 
-                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-50 dark:bg-neutral-900 border border-slate-100 dark:border-neutral-850 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-gray-400">
-                          {vehicle.licensePlate}
-                        </div>
-
-                        {area && (
-                          <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-500 dark:text-gray-400">
-                            <MapPin className="h-4.5 w-4.5 shrink-0 text-brand-500" />
-                            <span className="truncate">{area.province}</span>
-                            {area.ward && <span className="truncate text-slate-400 dark:text-gray-500"> - {area.ward}</span>}
-                          </div>
-                        )}
-                      </div>
+                      <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-slate-950/85 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                        {vehicle.vehicleType === "Car" ? <Car className="h-3.5 w-3.5" /> : <Bike className="h-3.5 w-3.5" />}
+                        {vehicle.vehicleType === "Car" ? "Ô tô" : "Xe máy"}
+                      </span>
+                      <span className="absolute right-3 top-3 rounded-md bg-brand-600/95 px-2.5 py-1 text-[10px] font-extrabold text-white">
+                        Đời {vehicle.year}
+                      </span>
                     </div>
 
-                    {/* Pricing and Action buttons */}
-                    <div className="p-5 pt-0">
-                      <div className="border-t border-slate-100 dark:border-neutral-900 pt-4">
-                        <div className="flex items-center justify-between">
+                    <div className="flex flex-1 flex-col p-4">
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-brand-600 dark:text-brand-400">
+                        <span>{vehicle.brandName}</span>
+                        <span>•</span>
+                        <span>{vehicle.modelName}</span>
+                      </div>
+                      <h3 className="mt-2 truncate text-base font-extrabold text-slate-950 dark:text-white">
+                        {vehicle.variantName || `${vehicle.brandName} ${vehicle.modelName}`}
+                      </h3>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-md bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-200 dark:bg-neutral-900 dark:text-gray-300 dark:ring-neutral-800">
+                          {vehicle.licensePlate}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-100">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          Đánh giá
+                        </span>
+                      </div>
+
+                      {area && (
+                        <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-500 dark:text-gray-400">
+                          <MapPin className="h-4 w-4 shrink-0 text-brand-500" />
+                          <span className="truncate">{area.province}</span>
+                          {area.ward && <span className="truncate text-slate-400"> - {area.ward}</span>}
+                        </div>
+                      )}
+
+                      <div className="mt-auto border-t border-slate-100 pt-4 dark:border-neutral-900">
+                        <div className="flex items-end justify-between gap-3">
                           <div>
-                            <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-400">Giá thuê</span>
-                            <span className="text-base font-black text-brand-600 dark:text-brand-400">
+                            <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                              Giá thuê
+                            </span>
+                            <span className="text-lg font-black text-brand-600 dark:text-brand-400">
                               {vehicle.pricePerDay.toLocaleString("vi-VN")}đ
-                              <span className="text-xs font-normal text-slate-400 dark:text-gray-500">/ngày</span>
+                              <span className="text-xs font-normal text-slate-400">/ngày</span>
                             </span>
                           </div>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 mt-3">
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
                           <button
                             type="button"
                             onClick={() => navigate(`/vehicle/${vehicle.id}`)}
-                            className="inline-flex h-9 items-center justify-center rounded border border-slate-200 bg-white hover:bg-slate-50 px-3 text-xs font-bold text-slate-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-colors whitespace-nowrap"
+                            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800"
                           >
                             Chi tiết
                           </button>
-                          {token && user ? (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/customer/bookings/new?vehicleId=${vehicle.id}`)}
-                              className="inline-flex h-9 items-center justify-center rounded bg-brand-600 hover:bg-brand-700 px-3 text-xs font-bold text-white shadow-md shadow-brand-600/10 transition-colors whitespace-nowrap"
-                            >
-                              Đặt ngay
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/vehicle/${vehicle.id}`)}
-                              className="inline-flex h-9 items-center justify-center rounded bg-brand-600 hover:bg-brand-700 px-3 text-xs font-bold text-white shadow-md shadow-brand-600/10 transition-colors whitespace-nowrap"
-                            >
-                              Thuê ngay
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => navigate(token && user ? `/customer/bookings/new?vehicleId=${vehicle.id}` : `/vehicle/${vehicle.id}`)}
+                            className="inline-flex h-10 items-center justify-center rounded-md bg-brand-600 px-3 text-xs font-bold text-white shadow-md shadow-brand-600/10 transition hover:bg-brand-700"
+                          >
+                            {token && user ? "Đặt ngay" : "Thuê ngay"}
+                          </button>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-200 dark:border-neutral-800 mt-10 pt-6 px-1">
-              <div className="text-xs font-semibold text-slate-500 dark:text-gray-400">Trang {page} / {totalPages}</div>
+            <div className="mt-10 flex items-center justify-between border-t border-slate-200 px-1 pt-6 dark:border-neutral-800">
+              <div className="text-xs font-semibold text-slate-500 dark:text-gray-400">
+                Trang {page} / {totalPages}
+              </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   disabled={page <= 1}
                   onClick={() => goToPage(page - 1)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded border border-slate-200 dark:border-neutral-800 text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 dark:border-neutral-800 dark:hover:bg-neutral-900"
                 >
                   <ChevronLeft className="h-4.5 w-4.5" />
                 </button>
-                {pageNumbers.map((p, i) => p === "..." ? (
-                  <span key={`e-${i}`} className="inline-flex h-9 w-9 items-center justify-center text-xs text-slate-400">...</span>
-                ) : (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => goToPage(p as number)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded text-xs font-bold transition-all ${
-                      p === page
-                        ? "bg-brand-600 text-white shadow-md shadow-brand-600/15"
-                        : "border border-slate-200 dark:border-neutral-855 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-neutral-900"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
+                {pageNumbers.map((item, index) =>
+                  item === "..." ? (
+                    <span key={`ellipsis-${index}`} className="inline-flex h-9 w-9 items-center justify-center text-xs text-slate-400">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => goToPage(item)}
+                      className={`inline-flex h-9 w-9 items-center justify-center rounded-md text-xs font-bold transition ${
+                        item === page
+                          ? "bg-brand-600 text-white shadow-md shadow-brand-600/15"
+                          : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-neutral-800 dark:text-gray-300 dark:hover:bg-neutral-900"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  ),
+                )}
                 <button
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => goToPage(page + 1)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded border border-slate-200 dark:border-neutral-800 text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-neutral-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 dark:border-neutral-800 dark:hover:bg-neutral-900"
                 >
                   <ChevronRight className="h-4.5 w-4.5" />
                 </button>

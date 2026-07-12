@@ -16,19 +16,19 @@ function getRiskLevel(score?: number | null): RiskLevel {
 
 const levelConfig: Record<RiskLevel, { label: string; className: string }> = {
   Low: {
-    label: "Rủi ro thấp",
+    label: "Mức rủi ro thấp",
     className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   },
   Medium: {
-    label: "Rủi ro vừa",
+    label: "Mức rủi ro trung bình",
     className: "bg-amber-50 text-amber-700 ring-amber-200",
   },
   High: {
-    label: "Rủi ro cao",
+    label: "Mức rủi ro cao",
     className: "bg-red-50 text-red-700 ring-red-200",
   },
   Unknown: {
-    label: "Chưa có điểm",
+    label: "Chưa đánh giá",
     className: "bg-slate-50 text-slate-600 ring-slate-200",
   },
 };

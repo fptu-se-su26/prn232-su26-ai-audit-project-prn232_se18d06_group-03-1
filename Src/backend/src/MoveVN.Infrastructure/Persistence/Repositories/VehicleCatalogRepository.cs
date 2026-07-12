@@ -343,7 +343,32 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public Task<VehicleDocument?> GetVehicleDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default)
         => _context.VehicleDocuments.FirstOrDefaultAsync(doc => doc.Id == documentId && doc.VehicleId == vehicleId, cancellationToken);
 
-    public async Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(string? type, string? keyword, string? sortBy, int page, int pageSize, int? brandId, int? modelId, string? fuelType, string? seatCount, string? transmission, string? bodyType, string? bikeType, string? engineCapacity, decimal? priceFrom, decimal? priceTo, string? featureIds, DateTime? searchStartDate = null, DateTime? searchEndDate = null, string? brandIds = null, string? transmissions = null, string? fuelTypes = null, string? bodyTypes = null, string? bikeTypes = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(
+        string? type,
+        string? keyword,
+        string? sortBy,
+        int page,
+        int pageSize,
+        int? brandId,
+        int? modelId,
+        string? fuelType,
+        string? seatCount,
+        string? transmission,
+        string? bodyType,
+        string? bikeType,
+        string? engineCapacity,
+        decimal? priceFrom,
+        decimal? priceTo,
+        string? featureIds,
+        DateTime? searchStartDate = null,
+        DateTime? searchEndDate = null,
+        string? brandIds = null,
+        string? transmissions = null,
+        string? fuelTypes = null,
+        string? bodyTypes = null,
+        string? bikeTypes = null,
+        int? areaId = null,
+        CancellationToken cancellationToken = default)
     {
         var query = _context.Vehicles.Where(v => v.Status == VehicleStatus.Approved);
         if (!string.IsNullOrWhiteSpace(type)) query = query.Where(v => v.VehicleType == type);
@@ -358,6 +383,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         }
         else if (brandId.HasValue) query = query.Where(v => v.BrandId == brandId.Value);
         if (modelId.HasValue) query = query.Where(v => v.ModelId == modelId.Value);
+        if (areaId.HasValue) query = query.Where(v => v.AreaId == areaId.Value);
         if (!string.IsNullOrWhiteSpace(fuelType))
         {
             var fuelList = fuelType.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -408,18 +434,23 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
                 .Any(bd => bd.VehicleId == v.Id
                     && bd.StartDate <= searchEndOnly
                     && bd.EndDate >= searchStartOnly));
-            query = query.Where(v => !_context.Bookings
-                .Any(b => b.VehicleId == v.Id
-                    && b.Status != "Rejected"
-                    && b.Status != "Cancelled"
-                    && b.StartDate < searchEndDt
-                    && b.EndDate > searchStartDt));
+                query = query.Where(v => !_context.Bookings
+                    .Any(b => b.VehicleId == v.Id
+                        && b.Status != "Rejected"
+                        && b.Status != "Cancelled"
+                        && b.StartDate < searchEndDt
+                        && b.EndDate > searchStartDt));
         }
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             var kw = keyword.Trim().ToLower();
             query = query.Where(v => v.LicensePlate.ToLower().Contains(kw)
-                || (v.Description != null && v.Description.ToLower().Contains(kw)));
+                || (v.Description != null && v.Description.ToLower().Contains(kw))
+                || v.Address.ToLower().Contains(kw)
+                || _context.VehicleBrand.Any(b => b.Id == v.BrandId && b.Name.ToLower().Contains(kw))
+                || _context.VehicleModel.Any(m => m.Id == v.ModelId && m.Name.ToLower().Contains(kw))
+                || (v.VariantId != null && _context.VehicleModelVariant.Any(var => var.Id == v.VariantId && var.Name.ToLower().Contains(kw)))
+                || (v.AreaId.HasValue && _context.Area.Any(a => a.Id == v.AreaId.Value && (a.Province.ToLower().Contains(kw) || a.District.ToLower().Contains(kw)))));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -427,7 +458,9 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         {
             "price_asc" => query.OrderBy(v => v.PricePerDay),
             "price_desc" => query.OrderByDescending(v => v.PricePerDay),
-            "rating_desc" => query.OrderByDescending(v => _context.Reviews.Where(r => r.VehicleId == v.Id).Average(r => (double?)r.Rating) ?? 0),
+            "rating_desc" => query.OrderByDescending(v => _context.Reviews
+                .Where(r => r.VehicleId == v.Id && r.IsPublic)
+                .Average(r => (decimal?)r.Rating) ?? 0m),
             _ => query.OrderByDescending(v => v.CreatedAt)
         };
 
