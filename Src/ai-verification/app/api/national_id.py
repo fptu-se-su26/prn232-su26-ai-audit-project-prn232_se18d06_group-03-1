@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.core.security import verify_internal_api_key
@@ -7,6 +9,8 @@ from app.services.image_loader import ImageLoadError, ImageLoader
 from app.services.national_id_service import NationalIdService
 from app.services.ocr_service import OcrProcessingError, OcrUnavailableError
 from app.services.ocr_space_service import OcrSpaceService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/verify",
@@ -39,6 +43,7 @@ async def verify_national_id_file(
     except ImageLoadError as exc:
         response = service.build_response_from_lines(request, [], ["IMAGE_DECODE_FAILED"])
         response.message = str(exc)
+        logger.warning("NationalId result — recommendation=%s confidence=%s flags=%s message=%s", response.recommendation, response.ocr_confidence, response.flags, response.message)
         return response
 
     try:
@@ -50,12 +55,18 @@ async def verify_national_id_file(
     except OcrUnavailableError as exc:
         response = service.build_response_from_lines(request, [], ["OCR_ENGINE_UNAVAILABLE"])
         response.message = str(exc)
+        logger.warning("NationalId result — recommendation=%s confidence=%s flags=%s message=%s", response.recommendation, response.ocr_confidence, response.flags, response.message)
         return response
     except OcrProcessingError as exc:
         response = service.build_response_from_lines(request, [], ["OCR_PROCESSING_FAILED"])
         response.message = str(exc)
+        logger.warning("NationalId result — recommendation=%s confidence=%s flags=%s message=%s", response.recommendation, response.ocr_confidence, response.flags, response.message)
         return response
 
     if not lines:
-        return service.build_response_from_lines(request, [], ["NO_TEXT_DETECTED"])
-    return service.build_response_from_lines(request, lines)
+        response = service.build_response_from_lines(request, [], ["NO_TEXT_DETECTED"])
+        logger.info("NationalId result — recommendation=%s confidence=%s flags=%s message=%s", response.recommendation, response.ocr_confidence, response.flags, response.message)
+        return response
+    response = service.build_response_from_lines(request, lines)
+    logger.info("NationalId result — recommendation=%s confidence=%s flags=%s message=%s", response.recommendation, response.ocr_confidence, response.flags, response.message)
+    return response

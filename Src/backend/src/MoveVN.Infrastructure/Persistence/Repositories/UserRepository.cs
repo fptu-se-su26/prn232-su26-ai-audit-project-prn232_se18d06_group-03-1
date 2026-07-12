@@ -134,6 +134,79 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<(List<NationalIdVerificationListItem> Items, int TotalCount)> GetNationalIdVerificationsPagedAsync(
+        string? status, string? keyword, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _context.VerificationRequests
+            .AsNoTracking()
+            .Where(x => x.Type == "NationalId");
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(x => x.Status == status);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var queryWithUser = from vr in query
+                            join u in _context.Users on vr.UserId equals u.Id
+                            select new { vr, u };
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var kw = keyword.Trim().ToLowerInvariant();
+            queryWithUser = queryWithUser.Where(x => x.u.FullName.ToLower().Contains(kw) || x.u.Email.ToLower().Contains(kw));
+        }
+
+        var items = await queryWithUser
+            .OrderByDescending(x => x.vr.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new NationalIdVerificationListItem
+            {
+                Id = x.vr.Id,
+                UserId = x.vr.UserId,
+                UserFullName = x.u.FullName,
+                UserEmail = x.u.Email,
+                Status = x.vr.Status,
+                Confidence = x.vr.Confidence,
+                DecisionReason = x.vr.DecisionReason,
+                CreatedAt = x.vr.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public async Task<NationalIdVerificationDetailDto?> GetNationalIdVerificationDetailAsync(long id, CancellationToken cancellationToken = default)
+    {
+        return await _context.VerificationRequests
+            .AsNoTracking()
+            .Where(x => x.Id == id && x.Type == "NationalId")
+            .Join(_context.Users,
+                vr => vr.UserId,
+                u => u.Id,
+                (vr, u) => new NationalIdVerificationDetailDto
+                {
+                    Id = vr.Id,
+                    UserId = vr.UserId,
+                    UserFullName = u.FullName,
+                    UserEmail = u.Email,
+                    Status = vr.Status,
+                    FrontImageUrl = vr.FrontImageUrl,
+                    ExternalProvider = vr.ExternalProvider,
+                    ExternalResultJson = vr.ExternalResultJson,
+                    Confidence = vr.Confidence,
+                    DecisionReason = vr.DecisionReason,
+                    ProcessedAt = vr.ProcessedAt,
+                    ReviewedBy = vr.ReviewedBy,
+                    ReviewedAt = vr.ReviewedAt,
+                    RejectionReason = vr.RejectionReason,
+                    CreatedAt = vr.CreatedAt
+                })
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<(List<AdminUserListItem> Items, int TotalCount)> GetAdminUserListAsync(
         string? keyword, string? sortBy, string? role, string? status, bool? isOnline,
         int page, int pageSize, CancellationToken cancellationToken = default)
@@ -266,6 +339,11 @@ public class UserRepository : IUserRepository
                         CustomerNationalIdVerified = _context.CustomerProfiles
                             .Where(cp => cp.UserId == userId)
                             .Select(cp => cp.NationalIdVerified)
+                            .FirstOrDefault(),
+                        CustomerNationalIdRequestStatus = _context.VerificationRequests
+                            .Where(vr => vr.UserId == userId && vr.Type == "NationalId")
+                            .OrderByDescending(vr => vr.CreatedAt)
+                            .Select(vr => vr.Status)
                             .FirstOrDefault(),
                         DriverLicenseVerified = _context.CustomerProfiles
                             .Where(cp => cp.UserId == userId)

@@ -30,6 +30,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly IOtpService _otpService;
     private readonly INotificationService _notificationService;
     private readonly INationalIdVerificationClient _nationalIdVerificationClient;
+    private readonly INationalIdVerificationLogService _nationalIdLogService;
     private readonly ILogger<OwnerApplicationService> _logger;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -44,6 +45,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         IOtpService otpService,
         INotificationService notificationService,
         INationalIdVerificationClient nationalIdVerificationClient,
+        INationalIdVerificationLogService nationalIdLogService,
         ILogger<OwnerApplicationService> logger,
         IUnitOfWork unitOfWork)
     {
@@ -57,6 +59,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _otpService = otpService;
         _notificationService = notificationService;
         _nationalIdVerificationClient = nationalIdVerificationClient;
+        _nationalIdLogService = nationalIdLogService;
         _logger = logger;
         _unitOfWork = unitOfWork;
     }
@@ -132,6 +135,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             Id = data?.Id ?? 0,
             Status = data?.Status ?? "None",
             NationalIdVerified = data?.CustomerNationalIdVerified ?? false,
+            NationalIdRequestStatus = data?.CustomerNationalIdRequestStatus,
             BankInfoCompleted = bankInfoCompleted,
             IsOwner = data?.IsOwner ?? false,
             NextStep = DetermineNextStep(data, data?.CustomerNationalIdVerified ?? false, bankInfoCompleted, data?.IsOwner ?? false),
@@ -412,9 +416,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         var existingRequest = await _userRepository.GetLatestNationalIdVerificationByUserIdAsync(userId, cancellationToken);
         if (existingRequest is not null && existingRequest.Status is "Pending" or "Processing")
         {
-            existingRequest.Status = "Failed";
-            existingRequest.DecisionReason = "Cancelled due to a new upload request.";
-            _userRepository.UpdateVerificationRequest(existingRequest);
+            throw new AppException(ErrorCode.OWNER_VERIFICATION_PROCESSING);
         }
 
         var verificationRequest = new VerificationRequest
@@ -437,10 +439,11 @@ public class OwnerApplicationService : IOwnerApplicationService
 
             var preVerifyResult = await _nationalIdVerificationClient.PreVerifyAsync(frontBytes, frontFileName, cancellationToken);
 
-            if (preVerifyResult is null || !preVerifyResult.Success)
+            if (preVerifyResult is null)
             {
-                verificationRequest.Status = "Rejected";
-                verificationRequest.DecisionReason = "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn.\nKhuyến khích sử dụng ảnh chụp từ ứng dụng VNeID để có chất lượng tốt nhất.";
+                verificationRequest.Status = "Failed";
+                verificationRequest.DecisionReason = "Dịch vụ xác thực CCCD tạm thời không khả dụng. Vui lòng thử lại sau.";
+                verificationRequest.ExternalProvider = "AI_VERIFICATION";
                 verificationRequest.ProcessedAt = DateTime.UtcNow;
                 _userRepository.UpdateVerificationRequest(verificationRequest);
 
@@ -448,9 +451,20 @@ public class OwnerApplicationService : IOwnerApplicationService
                 _userRepository.UpdateOwnerApplication(application);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+                await _nationalIdLogService.LogAsync(new NationalIdVerificationLogEntry
+                {
+                    UserId = userId,
+                    VerificationRequestId = verificationRequest.Id,
+                    Provider = "AI_VERIFICATION",
+                    DocumentType = "NationalId",
+                    Recommendation = null,
+                    Message = verificationRequest.DecisionReason,
+                    ErrorMessage = "AI service returned null response",
+                }, cancellationToken);
+
                 return new NationalIdUploadResponse
                 {
-                    Status = "Rejected",
+                    Status = "Failed",
                     NationalIdVerified = false,
                     OwnerApplicationStatus = application.Status,
                     NextStep = "UploadNationalId",
@@ -458,48 +472,105 @@ public class OwnerApplicationService : IOwnerApplicationService
                 };
             }
 
-            var folder = $"movevn/private/identity/{userId}/{verificationRequest.Id}";
+            var publicId = $"movevn/private/identity/{userId}/front";
+
+            if (existingRequest is not null && !string.IsNullOrWhiteSpace(existingRequest.FrontImagePublicId))
+            {
+                await _cloudinaryService.DeleteAsync(existingRequest.FrontImagePublicId, cancellationToken);
+            }
 
             using var frontForCloud = new MemoryStream(frontBytes);
-            var frontUpload = await _cloudinaryService.UploadAsync(frontForCloud, frontFileName, $"{folder}/front", cancellationToken);
+            var frontUpload = await _cloudinaryService.UploadWithPublicIdAsync(frontForCloud, frontFileName, publicId, cancellationToken);
 
             verificationRequest.FrontImagePublicId = frontUpload.PublicId;
             verificationRequest.FrontImageUrl = frontUpload.Url;
-            verificationRequest.Status = "Verified";
             verificationRequest.ExternalProvider = "AI_VERIFICATION";
             verificationRequest.ExternalResultJson = preVerifyResult.RawResponse;
             verificationRequest.Confidence = (decimal)preVerifyResult.Confidence;
             verificationRequest.ProcessedAt = DateTime.UtcNow;
-            verificationRequest.DecisionReason = "AI pre-verification passed.";
 
-            customerProfile.NationalId = preVerifyResult.NationalId;
-            customerProfile.NationalIdHash = HashNationalId(preVerifyResult.NationalId);
-            customerProfile.NationalIdMasked = MaskNationalId(preVerifyResult.NationalId);
-            if (preVerifyResult.DateOfBirth.HasValue)
-                customerProfile.DateOfBirth = DateOnly.FromDateTime(preVerifyResult.DateOfBirth.Value);
-            customerProfile.Address = preVerifyResult.Address;
-            customerProfile.NationalIdVerified = true;
-            _userRepository.UpdateCustomerProfile(customerProfile);
+            var recommendation = preVerifyResult.Recommendation;
+            var shouldAutoVerify = recommendation == "Pass" && preVerifyResult.Success;
 
-            bool bankInfoCompleted = !string.IsNullOrWhiteSpace(application.BankName)
-                && !string.IsNullOrWhiteSpace(application.BankAccountNumber);
+            if (shouldAutoVerify)
+            {
+                verificationRequest.Status = "Verified";
+                verificationRequest.DecisionReason = "AI đã xác thực CCCD thành công.";
 
-            application.Status = bankInfoCompleted ? "ReadyToSubmit" : "WaitingBankInfo";
-            application.NationalIdVerificationRequestId = verificationRequest.Id;
+                customerProfile.NationalId = preVerifyResult.NationalId;
+                customerProfile.NationalIdHash = HashNationalId(preVerifyResult.NationalId);
+                customerProfile.NationalIdMasked = MaskNationalId(preVerifyResult.NationalId);
+                if (preVerifyResult.DateOfBirth.HasValue)
+                    customerProfile.DateOfBirth = DateOnly.FromDateTime(preVerifyResult.DateOfBirth.Value);
+                customerProfile.Address = preVerifyResult.Address;
+                customerProfile.NationalIdVerified = true;
+                _userRepository.UpdateCustomerProfile(customerProfile);
+
+                bool bankInfoCompleted = !string.IsNullOrWhiteSpace(application.BankName)
+                    && !string.IsNullOrWhiteSpace(application.BankAccountNumber);
+
+                application.Status = bankInfoCompleted ? "ReadyToSubmit" : "WaitingBankInfo";
+                application.NationalIdVerificationRequestId = verificationRequest.Id;
+                application.UpdatedAt = DateTime.UtcNow;
+                _userRepository.UpdateOwnerApplication(application);
+
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+                await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
+
+                await LogAiResultAsync(userId, verificationRequest, preVerifyResult, cancellationToken);
+
+                return new NationalIdUploadResponse
+                {
+                    Status = "Verified",
+                    NationalIdVerified = true,
+                    OwnerApplicationStatus = application.Status,
+                    NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo",
+                    Message = verificationRequest.DecisionReason
+                };
+            }
+
+            var isPending = recommendation is "ManualReview" or "NeedMoreInfo";
+            if (isPending)
+            {
+                verificationRequest.Status = "Pending";
+                verificationRequest.DecisionReason = "AI chưa đủ chắc chắn, hồ sơ cần nhân viên kiểm tra.";
+                _userRepository.UpdateVerificationRequest(verificationRequest);
+
+                application.UpdatedAt = DateTime.UtcNow;
+                _userRepository.UpdateOwnerApplication(application);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                await LogAiResultAsync(userId, verificationRequest, preVerifyResult, cancellationToken);
+
+                return new NationalIdUploadResponse
+                {
+                    Status = "Pending",
+                    NationalIdVerified = false,
+                    OwnerApplicationStatus = application.Status,
+                    NextStep = "UploadNationalId",
+                    Message = verificationRequest.DecisionReason
+                };
+            }
+
+            verificationRequest.Status = "Rejected";
+            verificationRequest.DecisionReason = "Hình ảnh không hợp lệ hoặc quá mờ. Vui lòng kiểm tra lại ảnh chụp của bạn.\nKhuyến khích sử dụng ảnh chụp từ ứng dụng VNeID để có chất lượng tốt nhất.";
+            _userRepository.UpdateVerificationRequest(verificationRequest);
+
             application.UpdatedAt = DateTime.UtcNow;
             _userRepository.UpdateOwnerApplication(application);
-
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-            await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
+            await LogAiResultAsync(userId, verificationRequest, preVerifyResult, cancellationToken);
 
             return new NationalIdUploadResponse
             {
-                Status = "Verified",
-                NationalIdVerified = true,
+                Status = "Rejected",
+                NationalIdVerified = false,
                 OwnerApplicationStatus = application.Status,
-                NextStep = bankInfoCompleted ? "ReviewSubmit" : "BankInfo"
+                NextStep = "UploadNationalId",
+                Message = verificationRequest.DecisionReason
             };
         }
         catch (AppException)
@@ -508,6 +579,14 @@ public class OwnerApplicationService : IOwnerApplicationService
             verificationRequest.ExternalResultJson ??= "{}";
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _nationalIdLogService.LogAsync(new NationalIdVerificationLogEntry
+            {
+                UserId = userId,
+                VerificationRequestId = verificationRequest.Id,
+                Provider = "AI_VERIFICATION",
+                DocumentType = "NationalId",
+                Message = "AppException thrown during verification",
+            }, cancellationToken);
             throw;
         }
         catch (Exception ex)
@@ -517,7 +596,39 @@ public class OwnerApplicationService : IOwnerApplicationService
             verificationRequest.ExternalResultJson ??= "{}";
             _userRepository.UpdateVerificationRequest(verificationRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _nationalIdLogService.LogAsync(new NationalIdVerificationLogEntry
+            {
+                UserId = userId,
+                VerificationRequestId = verificationRequest.Id,
+                Provider = "AI_VERIFICATION",
+                DocumentType = "NationalId",
+                ErrorMessage = ex.Message,
+            }, cancellationToken);
             throw new AppException(ErrorCode.OWNER_VERIFICATION_REQUEST_FAILED, [ex.Message]);
+        }
+    }
+
+    private async Task LogAiResultAsync(long userId, VerificationRequest request, NationalIdPreVerifyResult result, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _nationalIdLogService.LogAsync(new NationalIdVerificationLogEntry
+            {
+                UserId = userId,
+                VerificationRequestId = request.Id,
+                Provider = "AI_VERIFICATION",
+                DocumentType = "NationalId",
+                Response = result.RawResponse,
+                Recommendation = result.Recommendation,
+                Flags = result.Flags,
+                OcrConfidence = (decimal)result.Confidence,
+                Message = request.DecisionReason,
+                FilePublicId = request.FrontImagePublicId,
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to log AI verification result to MongoDB for user {UserId}", userId);
         }
     }
 

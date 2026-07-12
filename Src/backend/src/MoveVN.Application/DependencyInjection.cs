@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IOwnerApplicationService, OwnerApplicationService>();
         services.AddScoped<IStaffOwnerApplicationService, StaffOwnerApplicationService>();
+        services.AddScoped<INationalIdReviewService, NationalIdReviewService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IVehicleBrandService, VehicleBrandService>();
         services.AddScoped<IVehicleModelService, VehicleModelService>();

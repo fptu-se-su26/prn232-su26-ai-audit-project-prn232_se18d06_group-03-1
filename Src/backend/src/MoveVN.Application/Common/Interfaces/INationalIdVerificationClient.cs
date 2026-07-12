@@ -16,5 +16,6 @@ public class NationalIdPreVerifyResult
     public DateTime? DateOfBirth { get; set; }
     public string? Address { get; set; }
     public List<string> Flags { get; set; } = [];
+    public string? Recommendation { get; set; }
     public string RawResponse { get; set; } = "{}";
 }

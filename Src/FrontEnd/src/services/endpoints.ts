@@ -27,6 +27,7 @@ export const endpoints = {
     pricingRules: "/api/admin/pricing-rules",
     platformFeeRules: "/api/admin/platform-fee-rules",
     driverLicenseVerifications: "/api/admin/driver-license-verifications",
+    nationalIdVerifications: "/api/admin/national-id-verifications",
   },
   vehicles: {
     my: "/api/vehicles/my",
@@ -44,6 +45,7 @@ export const endpoints = {
     vehicles: "/api/staff/vehicles",
     vehicleModerationOverview: "/api/staff/vehicles/moderation-overview",
     driverLicenseVerifications: "/api/staff/driver-license-verifications",
+    nationalIdVerifications: "/api/staff/national-id-verifications",
   },
   driverLicenses: {
     me: "/api/driver-licenses/me",

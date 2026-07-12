@@ -54,7 +54,9 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
         var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
         var valid = raw.TryGetProperty("valid", out var v) && v.GetBoolean();
 
-        if (!valid)
+        var recommendation = raw.TryGetProperty("recommendation", out var rec) ? rec.GetString() : null;
+
+        if (!valid && recommendation is not ("ManualReview" or "NeedMoreInfo"))
         {
             _logger.LogWarning("AI national ID verification failed: {Body}", responseBody);
             return null;
@@ -105,6 +107,7 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
             DateOfBirth = dateOfBirth,
             Address = address,
             Flags = flags,
+            Recommendation = recommendation,
             RawResponse = string.IsNullOrWhiteSpace(responseBody) ? "{}" : responseBody
         };
     }
