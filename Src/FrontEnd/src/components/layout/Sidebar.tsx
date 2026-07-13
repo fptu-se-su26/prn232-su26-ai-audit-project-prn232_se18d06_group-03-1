@@ -155,6 +155,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/", label: "Về trang chủ", icon: Home });
   }
 
+  if (primaryRole === "Staff") {
+    mainItems.push({ to: "/staff/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
+  }
+
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
     mainItems.push({ to: "/admin/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark });

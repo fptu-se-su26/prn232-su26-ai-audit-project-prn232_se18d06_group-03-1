@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, Eye, Search } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, Eye, Inbox, ListFilter, RotateCcw, Search } from "lucide-react";
+import type { ComponentType, FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "@/components/common/Button";
 import EmptyState from "@/components/common/EmptyState";
@@ -7,6 +8,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { showToast } from "@/components/common/toastStore";
 import {
   formatSupportTicketDateTime,
+  supportTicketCategoryOptions,
   supportTicketPriorityColors,
   supportTicketPriorityLabels,
   supportTicketPriorityOptions,
@@ -19,6 +21,37 @@ import type { SupportTicketListItem, SupportTicketListRequest } from "@/features
 
 const PAGE_SIZE = 10;
 
+const emptyStats = {
+  all: 0,
+  Open: 0,
+  InProgress: 0,
+  Resolved: 0,
+  Closed: 0,
+};
+
+type StaffTicketStats = typeof emptyStats;
+type StaffTicketStatsKey = keyof StaffTicketStats;
+
+const statusSummaryCards: Array<{
+  key: StaffTicketStatsKey;
+  status: string;
+  label: string;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+  accentClass: string;
+}> = [
+  { key: "all", status: "", label: "Tất cả", description: "Toàn bộ ticket", icon: ListFilter, accentClass: "text-slate-700 bg-slate-100" },
+  { key: "Open", status: "Open", label: "Cần xử lý", description: "Ticket mới mở", icon: Inbox, accentClass: "text-blue-700 bg-blue-100" },
+  { key: "InProgress", status: "InProgress", label: "Đang xử lý", description: "Đã có staff nhận", icon: Clock3, accentClass: "text-amber-700 bg-amber-100" },
+  { key: "Resolved", status: "Resolved", label: "Đã xử lý", description: "Chờ đóng hoặc xác nhận", icon: CheckCircle2, accentClass: "text-emerald-700 bg-emerald-100" },
+  { key: "Closed", status: "Closed", label: "Đã đóng", description: "Hoàn tất hỗ trợ", icon: CheckCircle2, accentClass: "text-slate-600 bg-slate-100" },
+];
+
+const supportTicketCategoryLabels = supportTicketCategoryOptions.reduce<Record<string, string>>((labels, option) => {
+  labels[option.value] = option.label;
+  return labels;
+}, {});
+
 export default function StaffSupportTicketListPage() {
   const [items, setItems] = useState<SupportTicketListItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -26,16 +59,20 @@ export default function StaffSupportTicketListPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [keywordDraft, setKeywordDraft] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [stats, setStats] = useState<StaffTicketStats>(emptyStats);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
 
-  const load = useCallback(async (nextPage: number, status: string, priority: string, search: string) => {
+  const load = useCallback(async (nextPage: number, status: string, priority: string, category: string, search: string) => {
     setIsLoading(true);
     try {
       const params: SupportTicketListRequest = { page: nextPage, pageSize: PAGE_SIZE };
       if (status) params.status = status;
       if (priority) params.priority = priority;
+      if (category) params.category = category;
       if (search) params.keyword = search;
       const result = await getStaffSupportTickets(params);
       setItems(result.items);
@@ -53,8 +90,42 @@ export default function StaffSupportTicketListPage() {
   }, []);
 
   useEffect(() => {
-    void load(1, statusFilter, priorityFilter, keyword);
-  }, [keyword, load, priorityFilter, statusFilter]);
+    void load(1, statusFilter, priorityFilter, categoryFilter, keyword);
+  }, [categoryFilter, keyword, load, priorityFilter, statusFilter]);
+
+  const loadStats = useCallback(async (priority: string, category: string, search: string) => {
+    setIsStatsLoading(true);
+    try {
+      const baseParams: SupportTicketListRequest = { page: 1, pageSize: 1 };
+      if (priority) baseParams.priority = priority;
+      if (category) baseParams.category = category;
+      if (search) baseParams.keyword = search;
+
+      const [all, open, inProgress, resolved, closed] = await Promise.all([
+        getStaffSupportTickets(baseParams),
+        getStaffSupportTickets({ ...baseParams, status: "Open" }),
+        getStaffSupportTickets({ ...baseParams, status: "InProgress" }),
+        getStaffSupportTickets({ ...baseParams, status: "Resolved" }),
+        getStaffSupportTickets({ ...baseParams, status: "Closed" }),
+      ]);
+
+      setStats({
+        all: all.totalCount,
+        Open: open.totalCount,
+        InProgress: inProgress.totalCount,
+        Resolved: resolved.totalCount,
+        Closed: closed.totalCount,
+      });
+    } catch {
+      setStats(emptyStats);
+    } finally {
+      setIsStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStats(priorityFilter, categoryFilter, keyword);
+  }, [categoryFilter, keyword, loadStats, priorityFilter]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,8 +136,19 @@ export default function StaffSupportTicketListPage() {
   function goToPage(nextPage: number) {
     if (nextPage < 1 || nextPage > totalPages) return;
     setPage(nextPage);
-    void load(nextPage, statusFilter, priorityFilter, keyword);
+    void load(nextPage, statusFilter, priorityFilter, categoryFilter, keyword);
   }
+
+  function resetFilters() {
+    setStatusFilter("");
+    setPriorityFilter("");
+    setCategoryFilter("");
+    setKeywordDraft("");
+    setKeyword("");
+    setPage(1);
+  }
+
+  const hasActiveFilters = Boolean(statusFilter || priorityFilter || categoryFilter || keyword);
 
   return (
     <div className="space-y-6">
@@ -75,6 +157,36 @@ export default function StaffSupportTicketListPage() {
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Ticket hỗ trợ</h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-600">Tiếp nhận, phản hồi và cập nhật trạng thái yêu cầu hỗ trợ.</p>
       </section>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {statusSummaryCards.map((card) => {
+          const Icon = card.icon;
+          const isActive = statusFilter === card.status;
+          return (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => {
+                setStatusFilter(card.status);
+                setPage(1);
+              }}
+              className={[
+                "rounded-md border bg-white p-4 text-left shadow-sm transition",
+                isActive ? "border-brand-400 ring-2 ring-brand-100" : "border-slate-200 hover:border-brand-200 hover:shadow-md",
+              ].join(" ")}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className={`inline-flex h-9 w-9 items-center justify-center rounded-md ${card.accentClass}`}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="text-2xl font-bold text-slate-950">{isStatsLoading ? "..." : stats[card.key]}</span>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-slate-900">{card.label}</p>
+              <p className="mt-1 text-xs text-slate-500">{card.description}</p>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-3">
@@ -87,6 +199,21 @@ export default function StaffSupportTicketListPage() {
             className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
           >
             {supportTicketStatusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={categoryFilter}
+            onChange={(event) => {
+              setCategoryFilter(event.target.value);
+              setPage(1);
+            }}
+            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
+          >
+            <option value="">Tất cả danh mục</option>
+            {supportTicketCategoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -123,6 +250,9 @@ export default function StaffSupportTicketListPage() {
           <Button type="submit" size="sm" variant="secondary">
             <Search className="h-4 w-4" /> Tìm
           </Button>
+          <Button type="button" size="sm" variant="ghost" disabled={!hasActiveFilters} onClick={resetFilters}>
+            <RotateCcw className="h-4 w-4" /> Xóa lọc
+          </Button>
         </form>
       </div>
 
@@ -138,6 +268,7 @@ export default function StaffSupportTicketListPage() {
                 <th className="px-4 py-3">Mã ticket</th>
                 <th className="px-4 py-3">Khách hàng</th>
                 <th className="px-4 py-3">Tiêu đề</th>
+                <th className="px-4 py-3">Danh mục</th>
                 <th className="px-4 py-3">Ưu tiên</th>
                 <th className="px-4 py-3">Trạng thái</th>
                 <th className="px-4 py-3">Staff</th>
@@ -153,6 +284,11 @@ export default function StaffSupportTicketListPage() {
                   <td className="min-w-64 px-4 py-3">
                     <p className="font-medium text-slate-900">{item.subject}</p>
                     <p className="mt-1 text-xs text-slate-500">{formatSupportTicketDateTime(item.lastMessageAt ?? item.createdAt)}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                      {supportTicketCategoryLabels[item.category] ?? item.category}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${supportTicketPriorityColors[item.priority] ?? "bg-slate-100 text-slate-600"}`}>

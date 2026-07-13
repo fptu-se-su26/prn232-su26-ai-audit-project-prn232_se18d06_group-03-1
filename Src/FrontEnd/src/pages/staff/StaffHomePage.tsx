@@ -1,4 +1,5 @@
 import { ClipboardCheck, Headphones } from "lucide-react";
+import { Link } from "react-router-dom";
 import Card from "@/components/ui/Card";
 
 export default function StaffHomePage() {
@@ -15,11 +16,13 @@ export default function StaffHomePage() {
           <h2 className="mt-4 text-base font-bold text-slate-950">Tác vụ cần xử lý</h2>
           <p className="mt-2 text-sm text-slate-600">Các quy trình nghiệp vụ cho nhân viên sẽ được nối tại đây.</p>
         </Card>
-        <Card className="rounded-md">
-          <Headphones className="h-6 w-6 text-brand-700" />
-          <h2 className="mt-4 text-base font-bold text-slate-950">Hỗ trợ khách hàng</h2>
-          <p className="mt-2 text-sm text-slate-600">Khu vực hỗ trợ và kiểm duyệt thông tin vận hành.</p>
-        </Card>
+        <Link to="/staff/support-tickets" className="block">
+          <Card className="rounded-md transition hover:border-brand-200 hover:shadow-md">
+            <Headphones className="h-6 w-6 text-brand-700" />
+            <h2 className="mt-4 text-base font-bold text-slate-950">Hỗ trợ khách hàng</h2>
+            <p className="mt-2 text-sm text-slate-600">Khu vực hỗ trợ và kiểm duyệt thông tin vận hành.</p>
+          </Card>
+        </Link>
       </div>
     </div>
   );
