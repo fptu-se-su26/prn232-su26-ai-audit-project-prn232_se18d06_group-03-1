@@ -7,8 +7,8 @@ import type { GoongPlacePrediction } from "@/features/locations/types";
 
 export type SelectedAddress = {
   address: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   placeId: string;
 };
 
@@ -20,6 +20,7 @@ type AddressAutocompleteProps = {
   label?: string;
   placeholder?: string;
   disabled?: boolean;
+  resolveCoordinates?: boolean;
 };
 
 export default function AddressAutocomplete({
@@ -30,6 +31,7 @@ export default function AddressAutocomplete({
   label = "Địa chỉ chi tiết",
   placeholder = "Nhập địa chỉ để tìm gợi ý",
   disabled = false,
+  resolveCoordinates = true,
 }: AddressAutocompleteProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -75,6 +77,19 @@ export default function AddressAutocomplete({
   }, [debouncedValue, disabled]);
 
   const handleSelect = useCallback(async (prediction: GoongPlacePrediction) => {
+    if (!resolveCoordinates) {
+      const address = prediction.description;
+      onChange(address);
+      onSelect({
+        address,
+        latitude: null,
+        longitude: null,
+        placeId: prediction.placeId,
+      });
+      setIsOpen(false);
+      return;
+    }
+
     setIsSelecting(true);
     setError(null);
     try {
@@ -96,7 +111,7 @@ export default function AddressAutocomplete({
     } finally {
       setIsSelecting(false);
     }
-  }, [onChange, onSelect]);
+  }, [onChange, onSelect, resolveCoordinates]);
 
   return (
     <div ref={rootRef} className="relative space-y-1">
