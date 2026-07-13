@@ -5,6 +5,7 @@ using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Disputes.Interfaces;
+using MoveVN.Application.Modules.Locations.Interfaces;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
@@ -82,6 +83,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVehicleVerificationLogService, VehicleVerificationLogService>();
         services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();
         services.AddScoped<INationalIdVerificationLogService, NationalIdVerificationLogService>();
+        services.AddScoped<IGoongPlaceService, GoongPlaceService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
         services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPaymentRepository, MoveVN.Infrastructure.Persistence.Repositories.PaymentRepository>();

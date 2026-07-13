@@ -61,6 +61,10 @@ export const endpoints = {
     pricingRegions: "/api/catalog/pricing-regions",
     driverLicenseClasses: "/api/catalog/driver-license-classes",
   },
+  locations: {
+    goongAutocomplete: "/api/locations/goong/autocomplete",
+    goongDetail: "/api/locations/goong/detail",
+  },
   publicVehicles: {
     list: "/api/public/vehicles",
     byId: (id: number) => `/api/public/vehicles/${id}`,

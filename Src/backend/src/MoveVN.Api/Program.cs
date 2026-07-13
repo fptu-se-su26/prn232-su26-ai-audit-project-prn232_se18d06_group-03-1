@@ -46,6 +46,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddFluentValidationAutoValidation(config => config.DisableDataAnnotationsValidation = true);
 builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddScoped<INotificationRealtimeDispatcher, SignalRNotificationRealtimeDispatcher>();

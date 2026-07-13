@@ -17,6 +17,8 @@ public class VehicleResponse
     public string? Description { get; set; }
     public string Address { get; set; } = string.Empty;
     public int? AreaId { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
     public string? AreaName { get; set; }
     public int? PricingRegionId { get; set; }
     public string? PricingRegionCode { get; set; }

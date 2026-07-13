@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import FormDropdown from "@/components/common/FormDropdown";
 import { Skeleton } from "@/components/common/Skeleton";
+import AddressAutocomplete, { type SelectedAddress } from "@/features/locations/components/AddressAutocomplete";
 import { getCatalogAreas, getCatalogFeatures, getVehicleById, getVehiclePricing, updateVehicle, updateVehiclePricing } from "@/features/vehicles/services/vehicleService";
 import type { CatalogArea, CatalogFeature, VehiclePricingResponse, VehicleResponse } from "@/features/vehicles/types";
 
@@ -77,6 +78,8 @@ export default function OwnerVehicleEditPage() {
   const [odometerKm, setOdometerKm] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [areaId, setAreaId] = useState<number | null>(null);
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]);
@@ -115,6 +118,8 @@ export default function OwnerVehicleEditPage() {
       setOdometerKm(vehicleData.odometerKm?.toString() ?? "");
       setDescription(vehicleData.description ?? "");
       setAddress(vehicleData.address);
+      setLatitude(vehicleData.latitude ?? null);
+      setLongitude(vehicleData.longitude ?? null);
       setAreaId(vehicleData.areaId);
       setSelectedProvince(areaList.find((area) => area.id === vehicleData.areaId)?.province ?? "");
       setSelectedFeatureIds(vehicleData.features.map((f) => f.id));
@@ -161,6 +166,12 @@ export default function OwnerVehicleEditPage() {
     setAreaId(null);
   }
 
+  function handleAddressSelect(selected: SelectedAddress) {
+    setAddress(selected.address);
+    setLatitude(selected.latitude);
+    setLongitude(selected.longitude);
+  }
+
   async function handleSaveInfo() {
     if (!vehicle || !id || !isDepositValid()) return;
     setSaving("info");
@@ -173,6 +184,8 @@ export default function OwnerVehicleEditPage() {
         description: description.trim() || null,
         address: address.trim(),
         areaId,
+        latitude,
+        longitude,
         pricePerDay: vehicle.pricePerDay,
         depositPercent,
         featureIds: selectedFeatureIds,
@@ -197,6 +210,8 @@ export default function OwnerVehicleEditPage() {
         description: description.trim() || null,
         address: address.trim(),
         areaId,
+        latitude,
+        longitude,
         pricePerDay: vehicle.pricePerDay,
         depositPercent,
         featureIds: selectedFeatureIds,
@@ -221,6 +236,8 @@ export default function OwnerVehicleEditPage() {
         description: description.trim() || null,
         address: address.trim(),
         areaId,
+        latitude,
+        longitude,
         pricePerDay: vehicle.pricePerDay,
         depositPercent,
         featureIds: selectedFeatureIds,
@@ -372,10 +389,16 @@ export default function OwnerVehicleEditPage() {
                 <label className="block text-sm font-medium text-slate-700">Phường/Xã</label>
                 <FormDropdown value={areaId != null ? String(areaId) : ""} onChange={(v) => setAreaId(Number(v))} placeholder="Chọn phường/xã" disabled={!selectedProvince} options={provinceAreas.map((area) => ({ value: String(area.id), label: `${area.district} (${area.pricingRegionCode})` }))} />
               </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Địa chỉ chi tiết</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="VD: Số 123, Đường ABC, Phường XYZ" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
-              </div>
+              <AddressAutocomplete
+                value={address}
+                onChange={setAddress}
+                onSelect={handleAddressSelect}
+                onManualChange={() => {
+                  setLatitude(null);
+                  setLongitude(null);
+                }}
+                placeholder="VD: Số 123, Đường ABC, Phường XYZ"
+              />
               {areaId && (
                 <div className="space-y-1">
                   {pricing?.suggestion && (

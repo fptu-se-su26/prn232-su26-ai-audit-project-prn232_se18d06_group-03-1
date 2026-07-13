@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, Bike, Car, Check, ChevronLeft, ChevronRight, Im
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FormDropdown from "@/components/common/FormDropdown";
+import AddressAutocomplete, { type SelectedAddress } from "@/features/locations/components/AddressAutocomplete";
 import { createVehicle, getCatalogAreas, getCatalogBrands, getCatalogFeatures, getCatalogModels, getCatalogVariants, getPricingSuggestion, uploadVehicleDocument, uploadVehicleImage } from "@/features/vehicles/services/vehicleService";
 import type { CatalogArea, CatalogBrand, CatalogFeature, CatalogModel, CatalogVariant, PricingSuggestionResponse } from "@/features/vehicles/types";
 import { getVehicleErrorMessage } from "@/features/vehicles/vehicleDisplay";
@@ -34,6 +35,8 @@ export default function OwnerVehicleAddPage() {
   const [odometerKm, setOdometerKm] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const [areas, setAreas] = useState<CatalogArea[]>([]);
   const [selectedProvince, setSelectedProvince] = useState("");
@@ -150,6 +153,12 @@ export default function OwnerVehicleAddPage() {
     setAutoMaxPrice("");
   }
 
+  function handleAddressSelect(selected: SelectedAddress) {
+    setAddress(selected.address);
+    setLatitude(selected.latitude);
+    setLongitude(selected.longitude);
+  }
+
   function handlePricingModeChange(mode: "Fixed" | "Auto") {
     setPricingMode(mode);
     if (
@@ -234,6 +243,8 @@ export default function OwnerVehicleAddPage() {
         description: description.trim() || null,
         address: address.trim(),
         areaId,
+        latitude,
+        longitude,
         pricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : Number(autoMinPrice),
         depositPercent,
         pricingMode,
@@ -368,10 +379,16 @@ export default function OwnerVehicleAddPage() {
                 <label className="block text-sm font-medium text-slate-700">Phường/Xã</label>
                 <FormDropdown value={areaId != null ? String(areaId) : ""} onChange={handleAreaChange} placeholder="Chọn phường/xã" disabled={!selectedProvince} options={provinceAreas.map((area) => ({ value: String(area.id), label: `${area.district} (${area.pricingRegionCode})` }))} />
               </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Địa chỉ chi tiết</label>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="VD: Số 123, Đường ABC, Phường XYZ" className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
-              </div>
+              <AddressAutocomplete
+                value={address}
+                onChange={setAddress}
+                onSelect={handleAddressSelect}
+                onManualChange={() => {
+                  setLatitude(null);
+                  setLongitude(null);
+                }}
+                placeholder="VD: Số 123, Đường ABC, Phường XYZ"
+              />
               {areaId && (
                 <>
                   {pricingSuggestion && (

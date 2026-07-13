@@ -66,6 +66,8 @@ export type VehicleResponse = {
   description: string | null;
   address: string;
   areaId: number | null;
+  latitude: number | null;
+  longitude: number | null;
   areaName: string | null;
   pricingRegionId: number | null;
   pricingRegionCode: string | null;
@@ -99,6 +101,8 @@ export type CreateVehicleRequest = {
   description?: string | null;
   address: string;
   areaId?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   pricePerDay: number;
   depositPercent: number;
   pricingMode?: "Fixed" | "Auto" | null;
@@ -118,6 +122,8 @@ export type UpdateVehicleRequest = {
   description?: string | null;
   address: string;
   areaId?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   pricePerDay: number;
   depositPercent: number;
   featureIds: number[];

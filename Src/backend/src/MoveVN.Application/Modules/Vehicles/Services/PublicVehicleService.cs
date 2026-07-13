@@ -85,6 +85,8 @@ public class PublicVehicleService : IPublicVehicleService
             Description = vehicle.Description,
             Address = vehicle.Address,
             AreaId = vehicle.AreaId,
+            Latitude = vehicle.Latitude,
+            Longitude = vehicle.Longitude,
             AreaName = area is not null ? $"{area.Province} - {area.District}" : null,
             PricingRegionId = area?.PricingRegionId,
             PricingRegionCode = region?.Code,

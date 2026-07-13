@@ -90,6 +90,8 @@ public class VehicleService : IVehicleService
             Description = vehicle.Description,
             Address = vehicle.Address,
             AreaId = vehicle.AreaId,
+            Latitude = vehicle.Latitude,
+            Longitude = vehicle.Longitude,
             AreaName = area is not null ? $"{area.Province} - {area.District}" : null,
             PricingRegionId = area?.PricingRegionId,
             PricingRegionCode = region?.Code,
@@ -171,6 +173,8 @@ public class VehicleService : IVehicleService
             Description = request.Description,
             Address = request.Address,
             AreaId = request.AreaId,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             PricePerDay = currentPrice,
             DepositPercent = request.DepositPercent,
             Status = VehicleStatus.Pending,
@@ -312,6 +316,8 @@ public class VehicleService : IVehicleService
         vehicle.Description = request.Description;
         vehicle.Address = request.Address;
         vehicle.AreaId = request.AreaId;
+        vehicle.Latitude = request.Latitude;
+        vehicle.Longitude = request.Longitude;
         ValidateDeposit(request.DepositPercent);
         vehicle.DepositPercent = request.DepositPercent;
 
