@@ -44,6 +44,20 @@ public class BookingRepository : IBookingRepository
                 && bd.EndDate >= bookingStartDateOnly, cancellationToken);
     }
 
+    public async Task<List<Booking>> GetOverlappingBookingsAsync(long vehicleId, DateTime startDate, DateTime endDate, long? excludeBookingId = null, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Bookings
+            .Where(b => b.VehicleId == vehicleId
+                && (b.Status == "Pending" || b.Status == "Approved")
+                && b.StartDate < endDate
+                && b.EndDate > startDate);
+
+        if (excludeBookingId.HasValue)
+            query = query.Where(b => b.Id != excludeBookingId.Value);
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
     public async Task<Vehicle?> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default)
         => await _context.Vehicles.FirstOrDefaultAsync(v => v.Id == vehicleId, cancellationToken);
 

@@ -28,6 +28,7 @@ export const endpoints = {
     platformFeeRules: "/api/admin/platform-fee-rules",
     driverLicenseVerifications: "/api/admin/driver-license-verifications",
     nationalIdVerifications: "/api/admin/national-id-verifications",
+    dashboardStats: "/api/admin/dashboard/stats",
   },
   vehicles: {
     my: "/api/vehicles/my",
@@ -74,6 +75,7 @@ export const endpoints = {
     reject: (id: number) => `/api/bookings/${id}/reject`,
     confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
     complete: (id: number) => `/api/bookings/${id}/complete`,
+    ownerComplete: (id: number) => `/api/bookings/${id}/owner-complete`,
   },
   reviews: {
     customer: "/api/reviews/customer",

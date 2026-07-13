@@ -19,7 +19,8 @@ import {
   Car,
   Bike,
   Compass,
-  ArrowUpRight
+  ArrowUpRight,
+  Wallet
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -181,6 +182,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
+  const activeRole = useAuthStore((state) => state.activeRole);
   const [darkMode, setDarkMode] = useState(true); // Default to dark mode for ultra premium dealership aesthetic
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -200,8 +202,9 @@ export default function HomePage() {
 
   const accountLinks = [
     { to: dashboardPath, label: "Khu vực của tôi", icon: UserRound },
-    ...(user?.roles.includes("Customer") ? [{ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarDays }] : []),
-    ...(user?.roles.includes("Owner") ? [{ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarDays }] : []),
+    ...(user?.roles.includes("Customer") ? [{ to: "/booking/list", label: "Lịch sử thuê xe", icon: CalendarDays }] : []),
+    ...(user?.roles.includes("Owner") ? [{ to: "/booking/manage", label: "Yêu cầu thuê", icon: CalendarDays }] : []),
+    { to: "/account/wallet", label: "Ví của tôi", icon: Wallet },
     { to: "/account", label: "Hồ sơ tài khoản", icon: UserRound },
   ];
 

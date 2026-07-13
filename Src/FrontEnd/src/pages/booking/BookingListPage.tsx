@@ -11,7 +11,7 @@ const PAGE_SIZE = 10;
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
-  Approved: "Đã duyệt",
+  Approved: "Chờ thanh toán",
   Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
   Confirmed: "Đã xác nhận",
@@ -30,7 +30,8 @@ const statusColors: Record<string, string> = {
 const statusOptions = [
   { value: "", label: "Tất cả" },
   { value: "Pending", label: "Chờ duyệt" },
-  { value: "Approved", label: "Đã duyệt" },
+  { value: "Approved", label: "Chờ thanh toán" },
+  { value: "DepositPaid", label: "Đã đặt cọc" },
   { value: "Rejected", label: "Đã từ chối" },
   { value: "Cancelled", label: "Đã hủy" },
 ];
@@ -78,7 +79,8 @@ export default function BookingListPage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid gap-6">
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Customer</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Lịch sử thuê xe</h1>
@@ -159,6 +161,7 @@ export default function BookingListPage() {
           ><ChevronRight className="h-4 w-4" /></button>
         </div>
       )}
+      </div>
     </div>
   );
 }

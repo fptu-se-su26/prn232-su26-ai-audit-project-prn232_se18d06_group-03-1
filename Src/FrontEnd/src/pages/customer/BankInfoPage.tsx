@@ -1,47 +1,140 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Landmark, Building, CreditCard, User, ArrowLeft, CheckCircle } from "lucide-react";
+import { Landmark, Building, CreditCard, User, ArrowLeft, CheckCircle, Mail } from "lucide-react";
 import Button from "@/components/common/Button";
 import FormField from "@/components/common/FormField";
 import { Skeleton } from "@/components/common/Skeleton";
 import { useOwnerApplication } from "@/features/owner/hooks/useOwnerApplication";
 import { VIETNAM_BANKS } from "@/features/owner/data/banks";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
+import { showToast } from "@/components/common/toastStore";
+import { 
+  getBankAccountDetails, 
+  requestBankAccountOtp, 
+  verifyBankAccountOtp 
+} from "@/features/wallets/services/walletService";
 
 export default function BankInfoPage() {
   const navigate = useNavigate();
-  const { application, handleBankUpdate, isLoading, error, setError, refetch } = useOwnerApplication("bank");
+  const user = useAuthStore((state) => state.user);
+  const isOwner = user?.roles?.includes("Owner") ?? false;
+
+  const { application, handleBankUpdate, isLoading: wizardLoading, error: wizardError, refetch } = useOwnerApplication(isOwner ? null : "bank");
 
   const [selectedBank, setSelectedBank] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountHolderName, setAccountHolderName] = useState("");
+  
+  // OTP state for Owner
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  
+  const [isSaving, setIsSaving] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [success, setSuccess] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (application) {
-      setInitialLoading(false);
-      setSelectedBank(application.bankName ?? "");
-      setAccountNumber(application.bankAccountNumber ?? "");
-      setAccountHolderName(application.bankAccountHolderName ?? "");
+    async function loadData() {
+      try {
+        if (isOwner) {
+          const bankDetails = await getBankAccountDetails();
+          if (bankDetails) {
+            setSelectedBank(bankDetails.bankName ?? "");
+            setAccountNumber(bankDetails.bankAccountNumber ?? "");
+            setAccountHolderName(bankDetails.bankAccountHolderName ?? "");
+          }
+        } else if (application) {
+          setSelectedBank(application.bankName ?? "");
+          setAccountNumber(application.bankAccountNumber ?? "");
+          setAccountHolderName(application.bankAccountHolderName ?? "");
+        }
+      } catch (err) {
+        console.error("Failed to load bank info", err);
+      } finally {
+        setInitialLoading(false);
+      }
     }
-  }, [application]);
+
+    if (isOwner || application) {
+      loadData();
+    }
+  }, [isOwner, application]);
+
+  const handleSendOtp = async () => {
+    if (!selectedBank || !accountNumber.trim() || !accountHolderName.trim()) {
+      showToast({ type: "error", title: "Lỗi", message: "Vui lòng nhập đầy đủ thông tin tài khoản ngân hàng." });
+      return;
+    }
+    try {
+      setIsSendingOtp(true);
+      setLocalError(null);
+      await requestBankAccountOtp();
+      setOtpSent(true);
+      showToast({ type: "success", title: "Đã gửi OTP", message: "Mã OTP đã được gửi về email của bạn." });
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || "Không thể gửi OTP. Vui lòng thử lại.";
+      setLocalError(errMsg);
+      showToast({ type: "error", title: "Lỗi gửi OTP", message: errMsg });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedBank || !accountNumber.trim() || !accountHolderName.trim()) return;
-    try {
-      setSuccess(false);
-      setError(null);
-      await handleBankUpdate(selectedBank, accountNumber.trim(), accountHolderName.trim());
-      await refetch();
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch {
-      // error handled by hook
+
+    if (isOwner) {
+      if (!otp) {
+        showToast({ type: "error", title: "Lỗi", message: "Vui lòng nhập mã OTP." });
+        return;
+      }
+      try {
+        setIsSaving(true);
+        setLocalError(null);
+        setSuccess(false);
+        const bankBin = VIETNAM_BANKS.find(b => b.name === selectedBank)?.code || "";
+        await verifyBankAccountOtp({
+          otp,
+          bankName: selectedBank,
+          bankAccountNumber: accountNumber.trim(),
+          bankAccountHolderName: accountHolderName.trim(),
+          bankBin: bankBin || undefined
+        });
+        setSuccess(true);
+        setOtp("");
+        setOtpSent(false);
+        showToast({ type: "success", title: "Thành công", message: "Đã cập nhật thông tin tài khoản nhận tiền." });
+        setTimeout(() => setSuccess(false), 3000);
+      } catch (err: any) {
+        const errMsg = err.response?.data?.message || "Xác thực OTP thất bại.";
+        setLocalError(errMsg);
+        showToast({ type: "error", title: "Lỗi", message: errMsg });
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      try {
+        setIsSaving(true);
+        setLocalError(null);
+        setSuccess(false);
+        await handleBankUpdate(selectedBank, accountNumber.trim(), accountHolderName.trim());
+        await refetch();
+        setSuccess(true);
+        showToast({ type: "success", title: "Thành công", message: "Cập nhật thông tin ngân hàng thành công." });
+        setTimeout(() => setSuccess(false), 3000);
+      } catch (err: any) {
+        const errMsg = err.message || "Cập nhật thông tin ngân hàng thất bại.";
+        setLocalError(errMsg);
+      } finally {
+        setIsSaving(false);
+      }
     }
   }
 
-  const isValid = selectedBank && accountNumber.trim() && accountHolderName.trim();
+  const isValid = selectedBank && accountNumber.trim() && accountHolderName.trim() && (!isOwner || otp.trim());
 
   if (initialLoading) {
     return (
@@ -61,6 +154,8 @@ export default function BankInfoPage() {
       </div>
     );
   }
+
+  const displayError = localError || (isOwner ? null : wizardError);
 
   return (
     <div className="mx-auto max-w-2xl py-6">
@@ -107,8 +202,8 @@ export default function BankInfoPage() {
         </div>
       )}
 
-      {error && (
-        <div className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
+      {displayError && (
+        <div className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{displayError}</div>
       )}
 
       {/* Form */}
@@ -154,8 +249,43 @@ export default function BankInfoPage() {
           leftIcon={<User className="h-4 w-4" />}
         />
 
+        {/* OTP Input for Owner */}
+        {isOwner && (
+          <div className="mb-5 border-t border-zinc-100 pt-5">
+            <label className="mb-1.5 block text-sm font-semibold text-zinc-800">
+              Xác thực OTP (Bắt buộc để bảo mật tài khoản nhận tiền)
+            </label>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Nhập mã OTP từ email"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  disabled={!otpSent}
+                  className="h-11 w-full rounded-md border border-zinc-200 bg-white pl-10 pr-3 text-sm text-zinc-900 outline-none transition focus:border-purple-500 focus:ring-4 focus:ring-purple-100 disabled:bg-zinc-50 disabled:text-zinc-400"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSendOtp}
+                isLoading={isSendingOtp}
+                disabled={!selectedBank || !accountNumber || !accountHolderName}
+                className="h-11 shrink-0 px-4 !bg-purple-50 hover:!bg-purple-100 !text-purple-700 font-semibold border-none rounded-md"
+              >
+                {otpSent ? "Gửi lại OTP" : "Gửi mã OTP"}
+              </Button>
+            </div>
+            <p className="mt-1.5 text-xs text-zinc-500">
+              Mã OTP sẽ được gửi tới email liên kết với tài khoản của bạn để xác thực thông tin thay đổi.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6">
-          <Button className="w-full" size="lg" disabled={!isValid} isLoading={isLoading}>
+          <Button className="w-full" size="lg" disabled={!isValid} isLoading={isSaving}>
             <Landmark className="h-5 w-5" />
             Lưu thông tin ngân hàng
           </Button>

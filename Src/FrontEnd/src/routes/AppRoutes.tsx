@@ -25,6 +25,8 @@ import AdminVehicleModelPricingsPage from "@/pages/admin/AdminVehicleModelPricin
 import AdminPricingRulesPage from "@/pages/admin/AdminPricingRulesPage";
 import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
 import AdminVehiclesPage from "@/pages/admin/AdminVehiclesPage";
+import AdminWithdrawalsPage from "@/pages/admin/AdminWithdrawalsPage";
+import AdminWalletsPage from "@/pages/admin/AdminWalletsPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import OwnerRegisterPage from "@/pages/auth/OwnerRegisterPage";
@@ -32,6 +34,7 @@ import RegisterPage from "@/pages/auth/RegisterPage";
 import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
 import BankInfoPage from "@/pages/customer/BankInfoPage";
+import WalletPage from "@/pages/account/WalletPage";
 import BecomeOwnerPage from "@/pages/customer/BecomeOwnerPage";
 import CccdVerificationPage from "@/pages/customer/CccdVerificationPage";
 import DriverLicenseVerificationPage from "@/pages/customer/DriverLicenseVerificationPage";
@@ -101,6 +104,7 @@ export default function AppRoutes() {
           <Route path="/account/verification/cccd" element={<CccdVerificationPage />} />
           <Route path="/account/verification/drivers-license" element={<DriverLicenseVerificationPage />} />
           <Route path="/account/security/password" element={<ChangePasswordPage />} />
+          <Route path="/account/wallet" element={<WalletPage />} />
           <Route path="/account/security/sessions" element={<UnderDevelopment />} />
           <Route path="/change-password" element={<Navigate to="/account/security/password" replace />} />
           <Route path="/logout" element={<LogoutPage />} />
@@ -144,6 +148,8 @@ export default function AppRoutes() {
             <Route path="/staff/national-id-verifications" element={<StaffNationalIdVerificationsPage />} />
             <Route path="/staff/support-tickets" element={<StaffSupportTicketListPage />} />
             <Route path="/staff/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
+            <Route path="/staff/withdrawals" element={<AdminWithdrawalsPage />} />
+            <Route path="/staff/wallets" element={<AdminWalletsPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
@@ -170,6 +176,8 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-model-pricings" element={<AdminVehicleModelPricingsPage />} />
             <Route path="/admin/pricing-rules" element={<AdminPricingRulesPage />} />
             <Route path="/admin/platform-fee-rules" element={<AdminPlatformFeeRulesPage />} />
+            <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
+            <Route path="/admin/wallets" element={<AdminWalletsPage />} />
           </Route>
         </Route>
       </Route>

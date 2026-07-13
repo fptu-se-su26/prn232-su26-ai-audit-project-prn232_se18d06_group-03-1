@@ -10,6 +10,7 @@ import {
   Sun,
   UserRound,
   X,
+  Wallet,
 } from "lucide-react";
 import NotificationMenu from "@/components/layout/NotificationMenu";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -28,6 +29,7 @@ const navItems = [
 export default function PublicLayout() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
+  const activeRole = useAuthStore((state) => state.activeRole);
   const [darkMode, setDarkMode] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -52,6 +54,7 @@ export default function PublicLayout() {
     ...(user?.roles.includes("Owner")
       ? [{ to: "/booking/manage", label: "Yêu cầu thuê", icon: CalendarDays }]
       : []),
+    { to: "/account/wallet", label: "Ví của tôi", icon: Wallet },
     { to: "/account", label: "Hồ sơ tài khoản", icon: UserRound },
   ];
 

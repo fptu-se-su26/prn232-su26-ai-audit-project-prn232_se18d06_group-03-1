@@ -42,3 +42,8 @@ export async function completeBooking(id: number): Promise<BookingResponse> {
   const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.complete(id));
   return res.data.data!;
 }
+
+export async function ownerCompleteBooking(id: number): Promise<BookingResponse> {
+  const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.ownerComplete(id));
+  return res.data.data!;
+}

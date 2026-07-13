@@ -305,7 +305,7 @@ export default function VehicleDetailPage() {
             </p>
             <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
               <span className="font-semibold text-slate-700">Thế chấp: </span>
-              {vehicle.requiresDeposit ? `${(vehicle.depositAmount ?? 0).toLocaleString("vi-VN")}đ` : "Không yêu cầu"}
+              {vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}
             </div>
             <div className="mt-3 flex items-center gap-2">
               {vehicle.vehicleType === "Car" ? (
