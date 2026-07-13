@@ -70,10 +70,6 @@ function AvailabilityCalendar({ busyPeriods, month, year, onPrev, onNext }: {
   );
 }
 
-function formatVnd(value: number | null | undefined) {
-  return value != null ? `${value.toLocaleString("vi-VN")}đ` : "-";
-}
-
 function VehicleDetailSkeleton() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -348,7 +344,7 @@ export default function VehicleDetailPage() {
                   const params = new URLSearchParams({ vehicleId: String(id) });
                   if (bookingStartDate) params.set("startDate", bookingStartDate);
                   if (bookingEndDate) params.set("endDate", bookingEndDate);
-                  navigate(`/customer/bookings/new?${params.toString()}`);
+                  navigate(`/booking/new?${params.toString()}`);
                 }}>
                   <CalendarCheck className="h-4 w-4" /> Đặt ngay
                 </Button>

@@ -8,6 +8,8 @@ using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Bookings.Services;
 using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
+using MoveVN.Application.Modules.Disputes.Interfaces;
+using MoveVN.Application.Modules.Disputes.Services;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Services;
 using MoveVN.Application.Modules.Reviews.Interfaces;
@@ -97,6 +99,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IWithdrawalService, WithdrawalService>();
         services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IAdminWalletService, MoveVN.Application.Modules.Wallets.Services.AdminWalletService>();
+        services.AddScoped<IDisputeService, DisputeService>();
 
         return services;
     }

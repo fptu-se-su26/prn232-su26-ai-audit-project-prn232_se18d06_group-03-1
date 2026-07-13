@@ -59,3 +59,29 @@ export interface BookingListRequest {
   page?: number;
   pageSize?: number;
 }
+
+export interface CheckInOutImageResponse {
+  id: number;
+  bookingId: number;
+  inspectionId?: number;
+  imageUrl: string;
+  imageType: string;
+  uploadedBy: number;
+  createdAt: string;
+}
+
+export interface InspectionReportResponse {
+  id: number;
+  bookingId: number;
+  type: string;
+  createdByUserId: number;
+  odometerKm?: number;
+  fuelLevel?: string;
+  damageNoted: boolean;
+  damageDescription?: string;
+  reportPdfUrl?: string;
+  customerSignatureUrl?: string;
+  isCustomerConfirmed: boolean;
+  createdAt: string;
+  images: CheckInOutImageResponse[];
+}

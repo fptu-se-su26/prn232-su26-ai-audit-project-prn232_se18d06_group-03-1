@@ -1,13 +1,13 @@
-import { ArrowLeft, CalendarDays, Check, Clock, DollarSign, MapPin, TicketPercent, CreditCard, X, ExternalLink, Banknote } from "lucide-react";
+import { ArrowLeft, CalendarDays, Camera, Check, Clock, ClipboardCheck, DollarSign, MapPin, TicketPercent, CreditCard, X, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById, approveBooking, rejectBooking, ownerCompleteBooking } from "@/features/booking/bookingService";
+import { getBookingById, approveBooking, rejectBooking, ownerCompleteBooking, createCheckInReport, getInspectionReports } from "@/features/booking/bookingService";
 import { createPaymentLink } from "@/features/payments/services/paymentService";
-import type { BookingResponse } from "@/features/booking/types";
+import type { BookingResponse, InspectionReportResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -19,6 +19,7 @@ const statusLabels: Record<string, string> = {
   Cancelled: "Đã hủy",
   DepositPaid: "Đã đặt cọc",
   Confirmed: "Đã xác nhận",
+  InProgress: "Đang nhận xe",
   Completed: "Hoàn thành",
 };
 
@@ -29,6 +30,7 @@ const statusColors: Record<string, string> = {
   Cancelled: "bg-slate-100 text-slate-600",
   DepositPaid: "bg-violet-100 text-violet-700",
   Confirmed: "bg-green-100 text-green-700",
+  InProgress: "bg-cyan-100 text-cyan-700",
   Completed: "bg-emerald-100 text-emerald-700",
 };
 
@@ -48,23 +50,38 @@ function formatCurrency(n: number) {
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const primaryRole = user?.roles[0] ?? "Customer";
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rejectReason, setRejectReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [inspectionReports, setInspectionReports] = useState<InspectionReportResponse[]>([]);
+  const [odometerKm, setOdometerKm] = useState("");
+  const [fuelLevel, setFuelLevel] = useState("");
+  const [damageNoted, setDamageNoted] = useState(false);
+  const [damageDescription, setDamageDescription] = useState("");
+  const [checkInImages, setCheckInImages] = useState<File[]>([]);
 
   const load = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      setBooking(await getBookingById(Number(id)));
+      const bookingId = Number(id);
+      const result = await getBookingById(bookingId);
+      setBooking(result);
+      if (user) {
+        const reports = await getInspectionReports(bookingId).catch(() => []);
+        setInspectionReports(reports);
+      }
     } catch {
       setBooking(null);
+      setInspectionReports([]);
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -104,10 +121,10 @@ export default function BookingDetailPage() {
       if (result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else {
-        showToast({ type: "error", title: "Lỗi", message: "Không nhận được đường dẫn thanh toán." });
+        showToast({ type: "error", title: "Lá»—i", message: "KhÃ´ng nháº­n Ä‘Æ°á»£c Ä‘Æ°á»ng dáº«n thanh toÃ¡n." });
       }
     } catch {
-      showToast({ type: "error", title: "Lỗi thanh toán", message: "Không thể tạo liên kết thanh toán." });
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tạo liên kết thanh toán." });
     } finally {
       setIsProcessing(false);
     }
@@ -119,9 +136,36 @@ export default function BookingDetailPage() {
     try {
       const updated = await ownerCompleteBooking(booking.id);
       setBooking(updated);
-      showToast({ type: "success", title: "Hoàn thành chuyến đi", message: "Xác nhận chuyến đi hoàn thành thành công." });
+      showToast({ type: "success", title: "HoÃ n thÃ nh chuyáº¿n Ä‘i", message: "XÃ¡c nháº­n chuyáº¿n Ä‘i hoÃ n thÃ nh thÃ nh cÃ´ng." });
     } catch {
-      showToast({ type: "error", title: "Lỗi", message: "Không thể hoàn thành chuyến đi." });
+      showToast({ type: "error", title: "Lá»—i", message: "KhÃ´ng thá»ƒ hoÃ n thÃ nh chuyáº¿n Ä‘i." });
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function handleCreateCheckInReport() {
+    if (!booking || isProcessing || checkInImages.length === 0) return;
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      if (odometerKm) formData.append("odometerKm", odometerKm);
+      if (fuelLevel) formData.append("fuelLevel", fuelLevel);
+      formData.append("damageNoted", String(damageNoted));
+      if (damageDescription) formData.append("damageDescription", damageDescription);
+      checkInImages.forEach((file) => formData.append("images", file));
+
+      await createCheckInReport(booking.id, formData);
+      const reports = await getInspectionReports(booking.id);
+      setInspectionReports(reports);
+      setOdometerKm("");
+      setFuelLevel("");
+      setDamageNoted(false);
+      setDamageDescription("");
+      setCheckInImages([]);
+      showToast({ type: "success", title: "Đã tạo biên bản", message: "Biên bản check-in đang chờ khách xác nhận." });
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tạo biên bản check-in." });
     } finally {
       setIsProcessing(false);
     }
@@ -129,22 +173,22 @@ export default function BookingDetailPage() {
 
   if (isLoading) return <LoadingSpinner />;
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
+  const checkInReport = inspectionReports.find((report) => report.type === "CheckIn");
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       <div className="flex items-center gap-3">
-        <Link to={booking?.ownerId === user?.userId ? "/booking/manage" : "/booking/list"}>
-          <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Quay lại</Button>
-        </Link>
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /> Quay lại</Button>
       </div>
 
       <section>
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">{primaryRole}</p>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Booking {booking.bookingCode}</h1>
           <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${statusColors[booking.status] ?? "bg-slate-100 text-slate-700"}`}>
             {statusLabels[booking.status] ?? booking.status}
           </span>
-          {booking?.ownerId === user?.userId && (
+          {primaryRole === "Owner" && (
             <span className="mt-2">
               <RiskScoreBadge score={booking.riskScore} />
             </span>
@@ -152,7 +196,7 @@ export default function BookingDetailPage() {
         </div>
       </section>
 
-      {booking?.ownerId === user?.userId && (
+      {primaryRole === "Owner" && (
         <Card className="rounded-md p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -185,13 +229,7 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {booking?.customerId === user?.userId && booking.status === "Pending" && (
-        <Alert variant="info" title="Đang chờ chủ xe duyệt">
-          Yêu cầu thuê xe của bạn đã được gửi đến chủ xe. Vui lòng chờ chủ xe xác nhận. Bạn sẽ nhận được thông báo và có thể tiến hành thanh toán cọc sau khi chủ xe đồng ý.
-        </Alert>
-      )}
-
-      {booking?.ownerId === user?.userId && booking.status === "Pending" && (
+      {primaryRole === "Owner" && booking.status === "Pending" && (
         <Card className="space-y-4 rounded-md p-5">
           <h2 className="text-lg font-bold text-slate-950">Xử lý yêu cầu</h2>
           <div className="flex flex-wrap gap-3">
@@ -214,13 +252,68 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {booking?.customerId === user?.userId && booking.status === "Approved" && booking.depositAmount > 0 && (
+      {primaryRole === "Owner" && (
         <Card className="space-y-4 rounded-md p-5">
-          <h2 className="text-lg font-bold text-slate-950">Đặt cọc</h2>
+          <div className="flex items-center gap-3">
+            <ClipboardCheck className="h-5 w-5 text-brand-700" />
+            <div>
+              <h2 className="text-lg font-bold text-slate-950">Biên bản check-in</h2>
+              <p className="text-sm text-slate-600">Ghi nhận tình trạng xe và ảnh trước khi bàn giao.</p>
+            </div>
+          </div>
+
+          {checkInReport ? (
+            <div className="space-y-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <p><span className="font-semibold text-slate-700">Km:</span> {checkInReport.odometerKm ?? "-"}</p>
+                <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {checkInReport.fuelLevel || "-"}</p>
+                <p><span className="font-semibold text-slate-700">Tình trạng:</span> {checkInReport.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+                <p><span className="font-semibold text-slate-700">Xác nhận khách:</span> {checkInReport.isCustomerConfirmed ? "Đã xác nhận" : "Chờ xác nhận"}</p>
+              </div>
+              {checkInReport.damageDescription && <p className="text-sm text-slate-700">{checkInReport.damageDescription}</p>}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {checkInReport.images.map((image) => (
+                  <a key={image.id} href={image.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-slate-200 bg-white">
+                    <img src={image.imageUrl} alt="Check-in" className="aspect-square w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : booking.status === "DepositPaid" || booking.status === "Confirmed" ? (
+            <div className="space-y-4 rounded-md border border-slate-200 p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input type="number" min="0" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} placeholder="Số km hiện tại" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
+                <input type="text" value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder="Mức nhiên liệu" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
+              </div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input type="checkbox" checked={damageNoted} onChange={(e) => setDamageNoted(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+                Có ghi nhận hư hỏng/tình trạng cần lưu ý
+              </label>
+              <textarea value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} rows={3} placeholder="Mô tả tình trạng xe, vết xước, phụ kiện đi kèm..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 hover:bg-slate-100">
+                <Camera className="mb-2 h-6 w-6 text-brand-700" />
+                <span className="font-semibold">Chọn ảnh before</span>
+                <span className="mt-1 text-xs">JPG, PNG, WebP - tối đa 12 ảnh</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => setCheckInImages(Array.from(e.target.files ?? []).slice(0, 12))} />
+              </label>
+              {checkInImages.length > 0 && <p className="text-xs font-medium text-slate-500">Đã chọn {checkInImages.length} ảnh</p>}
+              <Button variant="primary" onClick={handleCreateCheckInReport} isLoading={isProcessing} disabled={checkInImages.length === 0}>
+                Tạo biên bản check-in
+              </Button>
+            </div>
+          ) : (
+            <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-500">Booking chưa ở trạng thái có thể check-in.</p>
+          )}
+        </Card>
+      )}
+
+      {primaryRole === "Customer" && booking.status === "Approved" && (
+        <Card className="space-y-4 rounded-md p-5">
+          <h2 className="text-lg font-bold text-slate-950">Thanh toán đặt cọc</h2>
           <p className="text-sm text-slate-600">
-            Vui lòng thanh toán cọc{" "}
+            Chủ xe đã duyệt booking của bạn. Vui lòng thanh toán cọc{" "}
             <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>{" "}
-            để xác nhận đặt xe.
+            qua PayOS để xác nhận đặt xe.
           </p>
           <Button variant="primary" onClick={handlePayDeposit} isLoading={isProcessing}>
             <ExternalLink className="h-4 w-4" /> Thanh toán cọc qua PayOS
@@ -228,30 +321,15 @@ export default function BookingDetailPage() {
         </Card>
       )}
 
-      {booking?.customerId === user?.userId && booking.status === "DepositPaid" && (
-        <Card className="rounded-md p-5">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5"><Clock className="h-5 w-5 text-slate-400" /></div>
-            <div>
-              <h2 className="font-bold text-slate-950">Đã đặt cọc thành công</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Bạn đã đặt cọc <span className="font-semibold">{formatCurrency(booking.depositAmount)}</span>.
-                Vui lòng chờ chủ xe bàn giao xe và hoàn thành chuyến đi.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {booking?.ownerId === user?.userId && booking.status === "DepositPaid" && (
+      {primaryRole === "Owner" && booking.status === "DepositPaid" && (
         <Card className="space-y-4 rounded-md p-5">
-          <h2 className="text-lg font-bold text-slate-950">Hoàn thành chuyến đi</h2>
+          <h2 className="text-lg font-bold text-slate-950">HoÃ n thÃ nh chuyáº¿n Ä‘i</h2>
           <p className="text-sm text-slate-600">
-            Khách hàng đã thanh toán cọc <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>.
-            Sau khi khách hàng nhận xe, đi và trả xe, vui lòng xác nhận hoàn thành chuyến đi để hệ thống kết toán số dư ví.
+            KhÃ¡ch hÃ ng Ä‘Ã£ thanh toÃ¡n cá»c <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>.
+            XÃ¡c nháº­n hoÃ n thÃ nh Ä‘á»ƒ há»‡ thá»‘ng káº¿t toÃ¡n sá»‘ dÆ° vÃ­.
           </p>
           <Button variant="primary" onClick={handleComplete} isLoading={isProcessing}>
-            <Check className="h-4 w-4" /> Xác nhận hoàn thành chuyến đi
+            <Check className="h-4 w-4" /> XÃ¡c nháº­n hoÃ n thÃ nh chuyáº¿n Ä‘i
           </Button>
         </Card>
       )}
@@ -325,16 +403,9 @@ export default function BookingDetailPage() {
           <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
             <span className="flex items-center gap-1 text-slate-600">
               <CreditCard className="h-4 w-4 text-brand-700" />
-              Tiền cọc (Thanh toán qua PayOS)
+              Tiền cọc
             </span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.depositAmount)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1 text-slate-600">
-              <Banknote className="h-4 w-4 text-emerald-600" />
-              Số tiền còn lại (Thanh toán trực tiếp cho chủ xe khi nhận xe)
-            </span>
-            <span className="font-semibold text-emerald-600">{formatCurrency(booking.totalAmount - booking.depositAmount)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-2">
             <span className="flex items-center gap-1 font-semibold text-slate-900">

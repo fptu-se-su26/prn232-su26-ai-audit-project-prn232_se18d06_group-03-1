@@ -24,6 +24,7 @@ public class BookingService : IBookingService
     private readonly IRedisLockService _redisLockService;
     private readonly ICustomerDriverLicenseRepository _customerLicenseRepo;
     private readonly IWalletRepository _walletRepo;
+    private readonly ICloudinaryService _cloudinaryService;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -41,7 +42,8 @@ public class BookingService : IBookingService
         INotificationService notificationService,
         IRedisLockService redisLockService,
         ICustomerDriverLicenseRepository customerLicenseRepo,
-        IWalletRepository walletRepo)
+        IWalletRepository walletRepo,
+        ICloudinaryService cloudinaryService)
     {
         _repo = repo;
         _emailSender = emailSender;
@@ -51,6 +53,7 @@ public class BookingService : IBookingService
         _redisLockService = redisLockService;
         _customerLicenseRepo = customerLicenseRepo;
         _walletRepo = walletRepo;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -219,7 +222,7 @@ public class BookingService : IBookingService
             throw new ValidationException(new[] { "Bạn không có quyền xử lý booking này." });
 
         if (booking.Status != "Pending")
-            throw new ValidationException(new[] { "Chỉ có thể duyệt booking đang chờ." });
+            throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
 
         var hasOverlap = await _repo.HasOverlapAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
         if (hasOverlap)
@@ -240,39 +243,39 @@ public class BookingService : IBookingService
 
         await _repo.SaveChangesAsync(cancellationToken);
 
-        await NotifyUserAsync(
-            booking.CustomerId,
-            booking,
-            "Booking da duoc duyet",
-            $"{booking.BookingCode} da duoc chu xe duyet.",
-            "customer",
-            $"/booking/{booking.Id}",
-            "BookingApproved",
-            cancellationToken);
-
-        // Send email to remind customer to pay deposit
-        var customer = await _userRepo.GetByIdAsync(booking.CustomerId, cancellationToken);
-        if (customer != null && !string.IsNullOrWhiteSpace(customer.Email))
+        try
         {
+            var customer = await _userRepo.GetByIdAsync(booking.CustomerId, cancellationToken);
             var vehicle = await _repo.GetVehicleByIdAsync(booking.VehicleId, cancellationToken);
-            var vehicleName = vehicle != null ? $"{vehicle.BrandId} {vehicle.Year}" : "Xe";
-
-            try
+            if (customer is not null && vehicle is not null)
             {
+                var vehicleName = $"{vehicle.BrandId} {vehicle.Year}";
                 await _emailSender.SendDepositRequestAsync(
                     customer.Email,
-                    customer.FullName ?? "Khách hàng",
+                    customer.FullName,
                     booking.BookingCode,
                     vehicleName,
                     booking.DepositAmount,
                     cancellationToken
                 );
             }
-            catch
-            {
-                // Ignore email failure to avoid breaking the approve flow
-            }
         }
+        catch
+        {
+            // Email failure should not block the approval
+        }
+
+        await NotifyUserAsync(
+            booking.CustomerId,
+            booking,
+            "Booking da duoc duyet",
+            booking.DepositAmount > 0
+                ? $"{booking.BookingCode} da duoc chu xe duyet. Vui long xac nhan tien coc."
+                : $"{booking.BookingCode} da duoc chu xe duyet.",
+            "customer",
+            $"/customer/bookings/{booking.Id}",
+            "BookingApproved",
+            cancellationToken);
 
         return await MapAsync(booking, cancellationToken);
     }
@@ -289,7 +292,7 @@ public class BookingService : IBookingService
             throw new ValidationException(new[] { "Bạn không có quyền xử lý booking này." });
 
         if (booking.Status != "Pending")
-            throw new ValidationException(new[] { "Booking không ở trạng thái có thể từ chối." });
+            throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
 
         var oldStatus = booking.Status;
         booking.Status = "Rejected";
@@ -307,36 +310,6 @@ public class BookingService : IBookingService
             Note = request.Reason,
         }, cancellationToken);
 
-        // Refund deposit to customer wallet if already paid
-        if (oldStatus == "DepositPaid" && booking.DepositAmount > 0)
-        {
-            try
-            {
-                var wallets = await _walletRepo.FindAsync(w => w.UserId == booking.CustomerId, cancellationToken);
-                var wallet = wallets.FirstOrDefault();
-                if (wallet != null)
-                {
-                    wallet.Balance += booking.DepositAmount;
-                    _walletRepo.Update(wallet);
-
-                    await _walletRepo.AddTransactionAsync(new WalletTransaction
-                    {
-                        WalletId = wallet.Id,
-                        Type = WalletTransactionType.Refund,
-                        Amount = booking.DepositAmount,
-                        BalanceAfter = wallet.Balance,
-                        ReferenceId = booking.Id,
-                        IdempotencyKey = $"refund_booking_{booking.Id}",
-                        Note = $"Hoàn cọc booking {booking.BookingCode} do chủ xe từ chối",
-                    }, cancellationToken);
-                }
-            }
-            catch
-            {
-                // Refund failure should not block the rejection
-            }
-        }
-
         await _repo.SaveChangesAsync(cancellationToken);
 
         await NotifyUserAsync(
@@ -345,7 +318,7 @@ public class BookingService : IBookingService
             "Booking da bi tu choi",
             $"{booking.BookingCode} da bi chu xe tu choi. Ly do: {request.Reason.Trim()}",
             "customer",
-            $"/booking/{booking.Id}",
+            $"/customer/bookings/{booking.Id}",
             "BookingRejected",
             cancellationToken);
 
@@ -360,7 +333,7 @@ public class BookingService : IBookingService
         if (booking.CustomerId != customerId)
             throw new ValidationException(new[] { "Bạn không có quyền xác nhận hoàn tất booking này." });
 
-        if (booking.Status != "DepositPaid" && booking.Status != "Confirmed")
+        if (booking.Status != "DepositPaid" && booking.Status != "Confirmed" && booking.Status != "InProgress")
             throw new ValidationException(new[] { "Booking chưa thể hoàn tất." });
 
         var oldStatus = booking.Status;
@@ -390,7 +363,7 @@ public class BookingService : IBookingService
             throw new ValidationException(new[] { "Bạn không có quyền xác nhận cọc cho booking này." });
 
         if (booking.Status != "Approved")
-            throw new ValidationException(new[] { "Booking chưa được duyệt, không thể thanh toán cọc." });
+            throw new ValidationException(new[] { "Booking chưa được duyệt hoặc đã xác nhận cọc." });
 
         var oldStatus = booking.Status;
         booking.Status = "DepositPaid";
@@ -406,13 +379,12 @@ public class BookingService : IBookingService
             Note = "Khách hàng xác nhận đã chuyển cọc",
         }, cancellationToken);
 
-        // Cancel overlapping bookings
         var overlapping = await _repo.GetOverlappingBookingsAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
         foreach (var overlap in overlapping)
         {
             var oldOverlapStatus = overlap.Status;
             overlap.Status = "Cancelled";
-            overlap.CancelReason = "Xe đã có khách khác thanh toán cọc thành công.";
+            overlap.CancelReason = "Xe da co khach khac thanh toan coc thanh cong.";
             overlap.CancelledAt = DateTime.UtcNow;
             overlap.UpdatedAt = DateTime.UtcNow;
             _repo.Update(overlap);
@@ -423,14 +395,14 @@ public class BookingService : IBookingService
                 FromStatus = oldOverlapStatus,
                 ToStatus = "Cancelled",
                 ChangedBy = customerId,
-                Note = "Hệ thống tự động hủy do trùng lịch",
+                Note = "He thong tu dong huy do trung lich",
             }, cancellationToken);
 
             await NotifyUserAsync(
                 overlap.CustomerId,
                 overlap,
-                "Booking bị hủy do trùng lịch",
-                $"{overlap.BookingCode}: Xe đã có người khác đặt cọc trước. Bạn có thể tìm xe khác nhé.",
+                "Booking bi huy do trung lich",
+                $"{overlap.BookingCode}: Xe da co nguoi khac dat coc truoc. Ban co the tim xe khac nhe.",
                 "customer",
                 $"/booking/{overlap.Id}",
                 "BookingCancelled",
@@ -445,7 +417,7 @@ public class BookingService : IBookingService
             "Khach hang da xac nhan coc",
             $"{booking.BookingCode}: Khach hang da xac nhan da chuyen coc.",
             "owner",
-            $"/booking/{booking.Id}",
+            $"/owner/bookings/{booking.Id}",
             "BookingDepositConfirmed",
             cancellationToken);
 
@@ -455,13 +427,13 @@ public class BookingService : IBookingService
     public async Task<BookingResponse> OwnerCompleteAsync(long bookingId, long ownerId, CancellationToken cancellationToken = default)
     {
         var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
-            ?? throw new NotFoundException("Booking không tồn tại.");
+            ?? throw new NotFoundException("Booking khong ton tai.");
 
         if (booking.OwnerId != ownerId)
-            throw new ValidationException(new[] { "Bạn không có quyền hoàn thành booking này." });
+            throw new ValidationException(new[] { "Ban khong co quyen hoan thanh booking nay." });
 
-        if (booking.Status != "DepositPaid")
-            throw new ValidationException(new[] { "Chỉ có thể hoàn thành những booking đã thanh toán cọc." });
+        if (booking.Status != "DepositPaid" && booking.Status != "InProgress")
+            throw new ValidationException(new[] { "Chi co the hoan thanh booking da thanh toan coc hoac dang trong chuyen." });
 
         var oldStatus = booking.Status;
         booking.Status = "Completed";
@@ -474,13 +446,10 @@ public class BookingService : IBookingService
             FromStatus = oldStatus,
             ToStatus = "Completed",
             ChangedBy = ownerId,
-            Note = "Chủ xe xác nhận hoàn thành chuyến đi",
+            Note = "Chu xe xac nhan hoan thanh chuyen di",
         }, cancellationToken);
 
-        // Calculate Owner's share: DepositAmount - PlatformFee
         var ownerEarning = booking.DepositAmount - booking.PlatformFee;
-
-        // Find or create Owner's Wallet
         var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == ownerId, cancellationToken);
         var ownerWallet = ownerWallets.FirstOrDefault();
         if (ownerWallet == null)
@@ -490,7 +459,7 @@ public class BookingService : IBookingService
             await _repo.SaveChangesAsync(cancellationToken);
         }
 
-        var tx = new WalletTransaction
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
         {
             WalletId = ownerWallet.Id,
             Type = WalletTransactionType.BookingEarning,
@@ -498,48 +467,289 @@ public class BookingService : IBookingService
             BalanceAfter = ownerWallet.Balance + ownerEarning,
             ReferenceId = booking.Id,
             IdempotencyKey = $"booking_earning_{booking.Id}",
-            Note = $"Thu nhập từ booking {booking.BookingCode} (Đặt cọc: {booking.DepositAmount:N0}đ, Phí: {booking.PlatformFee:N0}đ)",
-            Status = "Completed"
-        };
-        await _walletRepo.AddTransactionAsync(tx, cancellationToken);
+            Note = $"Thu nhap tu booking {booking.BookingCode} (Dat coc: {booking.DepositAmount:N0}d, Phi: {booking.PlatformFee:N0}d)",
+            Status = "Completed",
+        }, cancellationToken);
 
         ownerWallet.Balance += ownerEarning;
         if (ownerEarning > 0)
-        {
             ownerWallet.TotalEarned += ownerEarning;
-        }
         else
-        {
             ownerWallet.TotalSpent += Math.Abs(ownerEarning);
-        }
         _walletRepo.Update(ownerWallet);
 
         await _repo.SaveChangesAsync(cancellationToken);
 
-        // Notify customer
         await NotifyUserAsync(
             booking.CustomerId,
             booking,
-            "Chuyến đi đã hoàn thành",
-            $"{booking.BookingCode}: Chủ xe đã xác nhận hoàn thành chuyến đi.",
+            "Chuyen di da hoan thanh",
+            $"{booking.BookingCode}: Chu xe da xac nhan hoan thanh chuyen di.",
             "customer",
             $"/booking/{booking.Id}",
             "BookingCompleted",
             cancellationToken);
 
-        // Notify owner
-        var earningText = ownerEarning >= 0 ? $"+{ownerEarning:N0}đ" : $"-{Math.Abs(ownerEarning):N0}đ";
+        var earningText = ownerEarning >= 0 ? $"+{ownerEarning:N0}d" : $"-{Math.Abs(ownerEarning):N0}d";
         await NotifyUserAsync(
             booking.OwnerId,
             booking,
-            "Hoàn thành booking thành công",
-            $"{booking.BookingCode}: Bạn đã xác nhận hoàn thành chuyến đi. Số dư ví thay đổi {earningText}.",
+            "Hoan thanh booking thanh cong",
+            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di. So du vi thay doi {earningText}.",
             "owner",
             $"/booking/{booking.Id}",
             "BookingCompleted",
             cancellationToken);
 
         return await MapAsync(booking, cancellationToken);
+    }
+
+    public async Task<InspectionReportResponse> CreateCheckInReportAsync(
+        long bookingId,
+        long ownerId,
+        CreateInspectionReportRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.OwnerId != ownerId)
+            throw new ValidationException(new[] { "Ban khong co quyen tao bien ban cho booking nay." });
+
+        if (booking.Status != "DepositPaid" && booking.Status != "Confirmed")
+            throw new ValidationException(new[] { "Chỉ có thể check-in booking đã đặt cọc hoặc đã xác nhận." });
+
+        if (await _repo.HasInspectionReportAsync(bookingId, "CheckIn", cancellationToken))
+            throw new ValidationException(new[] { "Booking này đã có biên bản check-in." });
+
+        if (request.Images.Count == 0)
+            throw new ValidationException(new[] { "Cần tải lên ít nhất 1 ảnh check-in." });
+
+        if (request.Images.Count > 12)
+            throw new ValidationException(new[] { "Chỉ được tải tối đa 12 ảnh check-in." });
+
+        var uploadedUrls = new List<string>();
+        foreach (var image in request.Images)
+        {
+            var upload = await _cloudinaryService.UploadAsync(
+                image.Content,
+                image.FileName,
+                $"movevn/bookings/{bookingId}/check-in",
+                cancellationToken);
+            uploadedUrls.Add(upload.Url);
+        }
+
+        var report = new InspectionReport
+        {
+            BookingId = bookingId,
+            Type = "CheckIn",
+            StaffId = ownerId,
+            OdometerKm = request.OdometerKm,
+            FuelLevel = request.FuelLevel,
+            DamageNoted = request.DamageNoted,
+            DamageDescription = request.DamageDescription,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        await _repo.AddInspectionReportAsync(report, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        foreach (var url in uploadedUrls)
+        {
+            await _repo.AddCheckInOutImageAsync(new CheckInOutImage
+            {
+                BookingId = bookingId,
+                InspectionId = report.Id,
+                ImageUrl = url,
+                ImageType = "Before",
+                UploadedBy = ownerId,
+                CreatedAt = DateTime.UtcNow,
+            }, cancellationToken);
+        }
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = booking.Status,
+            ToStatus = booking.Status,
+            ChangedBy = ownerId,
+            Note = "Owner tao bien ban check-in, cho khach xac nhan nhan xe.",
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        var images = await _repo.GetCheckInOutImagesAsync(bookingId, cancellationToken);
+        return MapInspectionReport(report, images, isCustomerConfirmed: false);
+    }
+
+    public async Task<InspectionReportResponse> CreateCheckOutReportAsync(
+        long bookingId,
+        long ownerId,
+        CreateInspectionReportRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking khong ton tai.");
+
+        if (booking.OwnerId != ownerId)
+            throw new ValidationException(new[] { "Ban khong co quyen tao bien ban cho booking nay." });
+
+        if (booking.Status != "InProgress")
+            throw new ValidationException(new[] { "Chi co the check-out booking dang trong chuyen." });
+
+        if (await _repo.HasInspectionReportAsync(bookingId, "CheckOut", cancellationToken))
+            throw new ValidationException(new[] { "Booking nay da co bien ban check-out." });
+
+        if (request.Images.Count == 0)
+            throw new ValidationException(new[] { "Can tai len it nhat 1 anh check-out." });
+
+        if (request.Images.Count > 12)
+            throw new ValidationException(new[] { "Chi duoc tai toi da 12 anh check-out." });
+
+        var uploadedUrls = new List<string>();
+        foreach (var image in request.Images)
+        {
+            var upload = await _cloudinaryService.UploadAsync(
+                image.Content,
+                image.FileName,
+                $"movevn/bookings/{bookingId}/check-out",
+                cancellationToken);
+            uploadedUrls.Add(upload.Url);
+        }
+
+        var report = new InspectionReport
+        {
+            BookingId = bookingId,
+            Type = "CheckOut",
+            StaffId = ownerId,
+            OdometerKm = request.OdometerKm,
+            FuelLevel = request.FuelLevel,
+            DamageNoted = request.DamageNoted,
+            DamageDescription = request.DamageDescription,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        await _repo.AddInspectionReportAsync(report, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        foreach (var url in uploadedUrls)
+        {
+            await _repo.AddCheckInOutImageAsync(new CheckInOutImage
+            {
+                BookingId = bookingId,
+                InspectionId = report.Id,
+                ImageUrl = url,
+                ImageType = "After",
+                UploadedBy = ownerId,
+                CreatedAt = DateTime.UtcNow,
+            }, cancellationToken);
+        }
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = booking.Status,
+            ToStatus = booking.Status,
+            ChangedBy = ownerId,
+            Note = "Owner tao bien ban check-out, cho khach xac nhan tra xe.",
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        var images = await _repo.GetCheckInOutImagesAsync(bookingId, cancellationToken);
+        return MapInspectionReport(report, images, isCustomerConfirmed: false);
+    }
+
+    public async Task<BookingResponse> ConfirmCheckInAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.CustomerId != customerId)
+            throw new ValidationException(new[] { "Bạn không có quyền xác nhận check-in cho booking này." });
+
+        if (booking.Status != "DepositPaid" && booking.Status != "Confirmed")
+            throw new ValidationException(new[] { "Booking không ở trạng thái chờ xác nhận check-in." });
+
+        var report = await _repo.GetInspectionReportAsync(bookingId, "CheckIn", cancellationToken);
+        if (report is null)
+            throw new ValidationException(new[] { "Chưa có biên bản check-in để xác nhận." });
+
+        var oldStatus = booking.Status;
+        booking.Status = "InProgress";
+        booking.UpdatedAt = DateTime.UtcNow;
+        _repo.Update(booking);
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = oldStatus,
+            ToStatus = "InProgress",
+            ChangedBy = customerId,
+            Note = "Khách hàng xác nhận biên bản check-in và nhận xe.",
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+        return await MapAsync(booking, cancellationToken);
+    }
+
+    public async Task<BookingResponse> ConfirmCheckOutAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking khong ton tai.");
+
+        if (booking.CustomerId != customerId)
+            throw new ValidationException(new[] { "Ban khong co quyen xac nhan check-out cho booking nay." });
+
+        if (booking.Status != "InProgress")
+            throw new ValidationException(new[] { "Booking khong o trang thai cho xac nhan check-out." });
+
+        var report = await _repo.GetInspectionReportAsync(bookingId, "CheckOut", cancellationToken);
+        if (report is null)
+            throw new ValidationException(new[] { "Chua co bien ban check-out de xac nhan." });
+
+        var oldStatus = booking.Status;
+        booking.Status = "Completed";
+        booking.UpdatedAt = DateTime.UtcNow;
+        _repo.Update(booking);
+
+        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        {
+            BookingId = booking.Id,
+            FromStatus = oldStatus,
+            ToStatus = "Completed",
+            ChangedBy = customerId,
+            Note = "Khach hang xac nhan bien ban check-out va tra xe.",
+        }, cancellationToken);
+
+        await _repo.SaveChangesAsync(cancellationToken);
+        return await MapAsync(booking, cancellationToken);
+    }
+
+    public async Task<List<InspectionReportResponse>> GetInspectionReportsAsync(
+        long bookingId,
+        long userId,
+        bool isStaffOrAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (!isStaffOrAdmin && booking.CustomerId != userId && booking.OwnerId != userId)
+            throw new ValidationException(new[] { "Bạn không có quyền xem biên bản của booking này." });
+
+        var reports = await _repo.GetInspectionReportsAsync(bookingId, cancellationToken);
+        var images = await _repo.GetCheckInOutImagesAsync(bookingId, cancellationToken);
+
+        return reports
+            .Select(report =>
+            {
+                var isCustomerConfirmed = report.Type == "CheckIn"
+                    ? booking.Status is "InProgress" or "Completed"
+                    : booking.Status == "Completed";
+                return MapInspectionReport(report, images, isCustomerConfirmed);
+            })
+            .ToList();
     }
 
     private async Task NotifyUserAsync(
@@ -604,6 +814,7 @@ public class BookingService : IBookingService
             ?? throw new NotFoundException("KhÃ¡ch hÃ ng khÃ´ng tá»“n táº¡i.");
         var profile = await _repo.GetCustomerProfileByUserIdAsync(customerId, cancellationToken);
         var trustScore = await _repo.GetTrustScoreByUserIdAsync(customerId, cancellationToken);
+        var ownerReviewStats = await _repo.GetOwnerReviewStatsForCustomerAsync(customerId, cancellationToken);
         var activeBookingCount = await _repo.CountActiveBookingsByCustomerAsync(customerId, currentBookingId, cancellationToken);
         var recentBookingCount = await _repo.CountRecentBookingsByCustomerAsync(
             customerId,
@@ -623,6 +834,10 @@ public class BookingService : IBookingService
             CancellationCount = trustScore?.CancellationCount ?? 0,
             ReportCount = trustScore?.ReportCount ?? 0,
             AverageRating = trustScore?.AverageRating,
+            OwnerReviewCount = ownerReviewStats.OwnerReviewCount,
+            OwnerAverageRating = ownerReviewStats.OwnerAverageRating,
+            OwnerLowRatingCount = ownerReviewStats.OwnerLowRatingCount,
+            OwnerRecentLowRatingCount90Days = ownerReviewStats.OwnerRecentLowRatingCount90Days,
             ActiveBookingCount = activeBookingCount,
             RecentBookingCount7Days = recentBookingCount,
             BookingCreatedAt = bookingCreatedAt,
@@ -637,6 +852,41 @@ public class BookingService : IBookingService
     private async Task<DateOnly?> GetNextAvailableDateAsync(long vehicleId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
     {
         return await _repo.GetNextAvailableDateAsync(vehicleId, startDate, endDate, cancellationToken);
+    }
+
+    private static InspectionReportResponse MapInspectionReport(
+        InspectionReport report,
+        IReadOnlyCollection<CheckInOutImage> images,
+        bool isCustomerConfirmed)
+    {
+        return new InspectionReportResponse
+        {
+            Id = report.Id,
+            BookingId = report.BookingId,
+            Type = report.Type,
+            CreatedByUserId = report.StaffId,
+            OdometerKm = report.OdometerKm,
+            FuelLevel = report.FuelLevel,
+            DamageNoted = report.DamageNoted,
+            DamageDescription = report.DamageDescription,
+            ReportPdfUrl = report.ReportPdfUrl,
+            CustomerSignatureUrl = report.CustomerSignatureUrl,
+            IsCustomerConfirmed = isCustomerConfirmed,
+            CreatedAt = report.CreatedAt,
+            Images = images
+                .Where(image => image.InspectionId == report.Id)
+                .Select(image => new CheckInOutImageResponse
+                {
+                    Id = image.Id,
+                    BookingId = image.BookingId,
+                    InspectionId = image.InspectionId,
+                    ImageUrl = image.ImageUrl,
+                    ImageType = image.ImageType,
+                    UploadedBy = image.UploadedBy,
+                    CreatedAt = image.CreatedAt,
+                })
+                .ToList(),
+        };
     }
 
     private async Task<BookingResponse> MapAsync(Booking b, CancellationToken cancellationToken)
@@ -679,7 +929,7 @@ public class BookingService : IBookingService
             ReturnAddress = b.ReturnAddress,
             CustomerNote = b.CustomerNote,
             Status = b.Status,
-            RiskScore = b.RiskScore,
+            RiskScore = risk.Score,
             RiskLevel = risk.Level,
             RiskFactors = risk.Factors,
             CancelReason = b.CancelReason,

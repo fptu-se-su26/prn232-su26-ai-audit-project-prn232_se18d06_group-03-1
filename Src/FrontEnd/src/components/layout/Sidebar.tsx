@@ -25,6 +25,7 @@ import {
   Monitor,
   Percent,
   ReceiptText,
+  Scale,
   ShieldCheck,
   UserPlus,
   UserRound,
@@ -47,8 +48,8 @@ const roleLabels: Record<UserRole, string> = {
 const roleIcons = {
   Admin: ShieldCheck,
   Staff: ClipboardList,
-  Owner: Car,
-  Customer: Home,
+  Owner: LayoutDashboard,
+  Customer: LayoutDashboard,
 };
 
 const vehicleCatalogItems = [
@@ -73,6 +74,7 @@ const adminModerationItems = [
   { to: "/admin/vehicle-listings", label: "Tin đăng xe", icon: ClipboardList },
   { to: "/admin/driver-license-verifications", label: "Xác minh GPLX", icon: FileBadge },
   { to: "/admin/national-id-verifications", label: "Xác minh CCCD", icon: IdCard },
+  { to: "/admin/disputes", label: "Tranh chấp", icon: Scale },
 ];
 
 const staffModerationItems = [
@@ -80,6 +82,7 @@ const staffModerationItems = [
   { to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList },
   { to: "/staff/driver-license-verifications", label: "Duyệt GPLX", icon: FileBadge },
   { to: "/staff/national-id-verifications", label: "Duyệt CCCD", icon: IdCard },
+  { to: "/staff/disputes", label: "Tranh chấp", icon: Scale },
 ];
 
 const ownerVehicleItems = [
@@ -143,15 +146,13 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   ];
 
   if (primaryRole === "Customer") {
-    mainItems.push({ to: "/vehicle", label: "Thuê xe", icon: Car });
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
     if (!user?.roles?.includes("Owner")) {
       mainItems.push({ to: "/become-owner", label: "Đăng ký làm chủ xe", icon: UserPlus });
     }
-  }
-
-  if (primaryRole === "Customer") {
+    mainItems.push({ to: "/customer/disputes", label: "Tranh chấp", icon: Scale });
     mainItems.push({ to: "/customer/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
+    mainItems.push({ to: "/", label: "Về trang chủ", icon: Home });
   }
 
   if (primaryRole === "Admin") {
@@ -166,8 +167,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   }
 
   if (primaryRole === "Owner") {
-    mainItems.push({ to: "/vehicle", label: "Thuê xe", icon: Car });
     mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
+    mainItems.push({ to: "/owner/disputes", label: "Tranh chấp", icon: Scale });
+    mainItems.push({ to: "/", label: "Về trang chủ", icon: Home });
   }
 
   const profileGroups = [
@@ -203,6 +205,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     {
       heading: "Hệ thống",
       items: [
+        { to: "/", label: "Về trang chủ", icon: Home },
         { to: "/logout", label: "Đăng xuất", icon: LogOut },
       ],
     },

@@ -12,6 +12,10 @@ public class BookingRiskContext
     public int CancellationCount { get; set; }
     public int ReportCount { get; set; }
     public decimal? AverageRating { get; set; }
+    public int OwnerReviewCount { get; set; }
+    public decimal? OwnerAverageRating { get; set; }
+    public int OwnerLowRatingCount { get; set; }
+    public int OwnerRecentLowRatingCount90Days { get; set; }
     public int ActiveBookingCount { get; set; }
     public int RecentBookingCount7Days { get; set; }
     public DateTime BookingCreatedAt { get; set; }
@@ -27,4 +31,12 @@ public class BookingRiskResult
     public decimal Score { get; set; }
     public string Level { get; set; } = "Low";
     public List<string> Factors { get; set; } = new();
+}
+
+public class BookingCustomerReviewStats
+{
+    public int OwnerReviewCount { get; set; }
+    public decimal? OwnerAverageRating { get; set; }
+    public int OwnerLowRatingCount { get; set; }
+    public int OwnerRecentLowRatingCount90Days { get; set; }
 }

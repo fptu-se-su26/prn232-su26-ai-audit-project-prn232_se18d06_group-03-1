@@ -67,6 +67,31 @@ public class BookingRepository : IBookingRepository
     public async Task<TrustScore?> GetTrustScoreByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         => await _context.TrustScores.FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
 
+    public async Task<BookingCustomerReviewStats> GetOwnerReviewStatsForCustomerAsync(long customerId, CancellationToken cancellationToken = default)
+    {
+        var recentThreshold = DateTime.UtcNow.AddDays(-90);
+        var reviews = await (
+                from review in _context.Reviews
+                join booking in _context.Bookings on review.BookingId equals booking.Id
+                where booking.CustomerId == customerId
+                    && booking.OwnerId == review.ReviewerId
+                    && review.RevieweeId == customerId
+                select new
+                {
+                    review.Rating,
+                    review.CreatedAt
+                })
+            .ToListAsync(cancellationToken);
+
+        return new BookingCustomerReviewStats
+        {
+            OwnerReviewCount = reviews.Count,
+            OwnerAverageRating = reviews.Count == 0 ? null : reviews.Average(review => (decimal)review.Rating),
+            OwnerLowRatingCount = reviews.Count(review => review.Rating <= 2),
+            OwnerRecentLowRatingCount90Days = reviews.Count(review => review.Rating <= 2 && review.CreatedAt >= recentThreshold),
+        };
+    }
+
     public async Task<int> CountActiveBookingsByCustomerAsync(long customerId, long? excludeBookingId = null, CancellationToken cancellationToken = default)
     {
         var query = _context.Bookings
@@ -84,7 +109,11 @@ public class BookingRepository : IBookingRepository
     public async Task<int> CountRecentBookingsByCustomerAsync(long customerId, DateTime since, long? excludeBookingId = null, CancellationToken cancellationToken = default)
     {
         var query = _context.Bookings
-            .Where(b => b.CustomerId == customerId && b.CreatedAt >= since);
+            .Where(b => b.CustomerId == customerId
+                && b.CreatedAt >= since
+                && b.Status != "Rejected"
+                && b.Status != "Cancelled"
+                && b.Status != "Completed");
 
         if (excludeBookingId.HasValue)
             query = query.Where(b => b.Id != excludeBookingId.Value);
@@ -122,6 +151,33 @@ public class BookingRepository : IBookingRepository
                 Note = h.Note,
                 CreatedAt = h.CreatedAt,
             })
+            .ToListAsync(cancellationToken);
+
+    public async Task AddInspectionReportAsync(InspectionReport report, CancellationToken cancellationToken = default)
+        => await _context.InspectionReports.AddAsync(report, cancellationToken);
+
+    public async Task AddCheckInOutImageAsync(CheckInOutImage image, CancellationToken cancellationToken = default)
+        => await _context.CheckInOutImages.AddAsync(image, cancellationToken);
+
+    public async Task<bool> HasInspectionReportAsync(long bookingId, string type, CancellationToken cancellationToken = default)
+        => await _context.InspectionReports.AnyAsync(report => report.BookingId == bookingId && report.Type == type, cancellationToken);
+
+    public async Task<InspectionReport?> GetInspectionReportAsync(long bookingId, string type, CancellationToken cancellationToken = default)
+        => await _context.InspectionReports
+            .Where(report => report.BookingId == bookingId && report.Type == type)
+            .OrderByDescending(report => report.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<List<InspectionReport>> GetInspectionReportsAsync(long bookingId, CancellationToken cancellationToken = default)
+        => await _context.InspectionReports
+            .Where(report => report.BookingId == bookingId)
+            .OrderByDescending(report => report.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<List<CheckInOutImage>> GetCheckInOutImagesAsync(long bookingId, CancellationToken cancellationToken = default)
+        => await _context.CheckInOutImages
+            .Where(image => image.BookingId == bookingId)
+            .OrderBy(image => image.CreatedAt)
             .ToListAsync(cancellationToken);
 
     public async Task<(List<BookingResponse> Items, int TotalCount)> GetByCustomerPagedAsync(long customerId, BookingListRequest request, CancellationToken cancellationToken = default)
