@@ -52,6 +52,7 @@ builder.Services.AddScoped<INotificationRealtimeDispatcher, SignalRNotificationR
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
+builder.Services.AddHostedService<BookingAutoCancelBackgroundService>();
 
 const string frontendCorsPolicy = "Frontend";
 var allowedOrigins = builder.Configuration
