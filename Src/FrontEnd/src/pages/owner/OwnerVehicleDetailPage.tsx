@@ -10,6 +10,7 @@ import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import Button from "@/components/common/Button";
 import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
+import VehicleLocationMap from "@/features/locations/components/VehicleLocationMap";
 import { getVehicleErrorMessage } from "@/features/vehicles/vehicleDisplay";
 
 function splitAreaName(areaName: string | null) {
@@ -260,6 +261,7 @@ export default function OwnerVehicleDetailPage() {
   const sc = statusConfig[vehicle.status] ?? statusConfig.Pending;
   const vehicleArea = splitAreaName(vehicle.areaName);
   const displayPrice = vehicle.currentPricePerDay ?? vehicle.pricePerDay;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vehicle.address)}`;
   const vehicleImages = vehicle.images.map((image, index) => ({
     url: image.imageUrl,
     label: image.isPrimary ? "Ảnh chính" : `Ảnh xe ${index + 1}`,
@@ -452,6 +454,24 @@ export default function OwnerVehicleDetailPage() {
                 {vehicleArea.ward !== "-" && <span>- {vehicleArea.ward}</span>}
                 {vehicle.pricingRegionCode && <span className="rounded bg-slate-100 px-2 py-0.5">Mã vùng: {vehicle.pricingRegionCode}</span>}
               </div>
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                Mở Google Maps
+              </a>
+              {vehicle.latitude != null && vehicle.longitude != null && (
+                <VehicleLocationMap
+                  latitude={vehicle.latitude}
+                  longitude={vehicle.longitude}
+                  title={`${vehicle.brandName} ${vehicle.modelName}`}
+                  address={vehicle.address}
+                  googleMapsUrl={googleMapsUrl}
+                />
+              )}
             </div>
           </div>
 
