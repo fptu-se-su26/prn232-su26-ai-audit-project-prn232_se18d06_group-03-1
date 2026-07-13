@@ -17,6 +17,7 @@ import AdminCarVariantsPage from "@/pages/admin/AdminCarVariantsPage";
 import AdminMotorbikeVariantsPage from "@/pages/admin/AdminMotorbikeVariantsPage";
 import AdminDriverLicenseClassesPage from "@/pages/admin/AdminDriverLicenseClassesPage";
 import AdminDriverLicenseVerificationsPage from "@/pages/admin/AdminDriverLicenseVerificationsPage";
+import AdminNationalIdVerificationsPage from "@/pages/admin/AdminNationalIdVerificationsPage";
 import AdminVehicleFeaturesPage from "@/pages/admin/AdminVehicleFeaturesPage";
 import AdminPricingRegionsPage from "@/pages/admin/AdminPricingRegionsPage";
 import AdminAreasPage from "@/pages/admin/AdminAreasPage";
@@ -59,6 +60,7 @@ import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
 import StaffDriverLicenseVerificationsPage from "@/pages/staff/StaffDriverLicenseVerificationsPage";
+import StaffNationalIdVerificationsPage from "@/pages/staff/StaffNationalIdVerificationsPage";
 import StaffSupportTicketDetailPage from "@/pages/staff/StaffSupportTicketDetailPage";
 import StaffSupportTicketListPage from "@/pages/staff/StaffSupportTicketListPage";
 import StaffVehiclesPage from "@/pages/staff/StaffVehiclesPage";
@@ -139,6 +141,7 @@ export default function AppRoutes() {
             <Route path="/staff/vehicle-listings" element={<StaffVehiclesPage />} />
             <Route path="/staff/vehicle-listings/:id" element={<StaffVehiclesPage />} />
             <Route path="/staff/driver-license-verifications" element={<StaffDriverLicenseVerificationsPage />} />
+            <Route path="/staff/national-id-verifications" element={<StaffNationalIdVerificationsPage />} />
             <Route path="/staff/support-tickets" element={<StaffSupportTicketListPage />} />
             <Route path="/staff/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
           </Route>
@@ -154,6 +157,7 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
+            <Route path="/admin/national-id-verifications" element={<AdminNationalIdVerificationsPage />} />
             <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
             <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
             <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />

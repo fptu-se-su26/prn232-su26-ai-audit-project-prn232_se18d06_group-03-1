@@ -1,3 +1,4 @@
+using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Application.Modules.Admin.DTOs;
 using MoveVN.Domain.Entities;
@@ -30,6 +31,8 @@ public interface IUserRepository
     void UpdateVerificationRequest(VerificationRequest request);
     Task<VerificationRequest?> GetVerificationRequestByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetLatestNationalIdVerificationByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<(List<NationalIdVerificationListItem> Items, int TotalCount)> GetNationalIdVerificationsPagedAsync(string? status, string? keyword, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<NationalIdVerificationDetailDto?> GetNationalIdVerificationDetailAsync(long id, CancellationToken cancellationToken = default);
     Task<(List<AdminUserListItem> Items, int TotalCount)> GetAdminUserListAsync(string? keyword, string? sortBy, string? role, string? status, bool? isOnline, int page, int pageSize, CancellationToken cancellationToken = default);
 
     Task<OwnerApplication?> GetOwnerApplicationByIdAsync(long id, CancellationToken cancellationToken = default);

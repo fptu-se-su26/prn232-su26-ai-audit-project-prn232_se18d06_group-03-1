@@ -27,6 +27,7 @@ public class MongoDbContext
     public IMongoCollection<PricingCalculationLogDocument> PricingCalculationLogs => _database.GetCollection<PricingCalculationLogDocument>("pricing_calculation_logs");
     public IMongoCollection<VehicleVerificationLogDocument> VehicleVerificationLogs => _database.GetCollection<VehicleVerificationLogDocument>("vehicle_verification_logs");
     public IMongoCollection<DriverLicenseVerificationLogDocument> DriverLicenseVerificationLogs => _database.GetCollection<DriverLicenseVerificationLogDocument>("driver_license_verification_logs");
+    public IMongoCollection<NationalIdVerificationLogDocument> NationalIdVerificationLogs => _database.GetCollection<NationalIdVerificationLogDocument>("national_id_verification_logs");
     public IMongoCollection<UserActivityLogDocument> UserActivityLogs => _database.GetCollection<UserActivityLogDocument>("user_activity_logs");
     public IMongoCollection<SearchLogDocument> SearchLogs => _database.GetCollection<SearchLogDocument>("search_logs");
     public IMongoCollection<MongoMigrationHistory> MigrationHistory => _database.GetCollection<MongoMigrationHistory>("mongo_migrations");

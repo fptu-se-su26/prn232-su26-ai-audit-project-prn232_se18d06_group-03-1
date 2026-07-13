@@ -91,7 +91,17 @@ class NationalIdService:
         extracted = self._extract_fields(lines)
         checks = self._document_checks(extracted)
         matches = self._match_checks(request, extracted)
-        confidence = round(sum(line.confidence for line in lines) / len(lines), 3)
+        fields_found = [
+            extracted.national_id_number, extracted.full_name,
+            extracted.date_of_birth, extracted.sex,
+            extracted.place_of_origin, extracted.place_of_residence,
+        ]
+        checks_ok = [
+            checks.national_motto_found, checks.national_id_title_found,
+            checks.chip_card_marker_found,
+        ]
+        score = sum(1 for f in fields_found if f) + sum(1 for c in checks_ok if c)
+        confidence = round(score / (len(fields_found) + len(checks_ok)), 3)
 
         if not extracted.national_id_number:
             flags.append("NATIONAL_ID_NUMBER_NOT_FOUND")

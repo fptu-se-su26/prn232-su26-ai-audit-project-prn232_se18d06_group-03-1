@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Application.Modules.Owner.Interfaces;
@@ -49,6 +50,7 @@ public class OwnerApplicationsController : BaseApiController
     }
 
     [HttpPost("me/national-id")]
+    [EnableRateLimiting("NationalIdUpload")]
     public async Task<ActionResult<ApiResponse<NationalIdUploadResponse>>> UploadNationalId(
         IFormFile frontImage,
         CancellationToken cancellationToken)

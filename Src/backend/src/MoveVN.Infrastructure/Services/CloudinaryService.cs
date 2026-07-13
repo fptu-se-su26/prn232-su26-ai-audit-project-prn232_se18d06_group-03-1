@@ -52,6 +52,32 @@ public class CloudinaryService : ICloudinaryService
             result.Bytes);
     }
 
+    public async Task<CloudinaryUploadResult> UploadWithPublicIdAsync(Stream fileStream, string fileName, string publicId, CancellationToken cancellationToken = default)
+    {
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(fileName, fileStream),
+            PublicId = publicId,
+            UseFilename = false,
+            UniqueFilename = false,
+            Overwrite = true
+        };
+
+        var result = await _cloudinary.UploadAsync(uploadParams, cancellationToken);
+
+        if (result.Error is not null)
+        {
+            throw new AppException(ErrorCode.CLOUDINARY_UPLOAD_FAILED, [result.Error.Message]);
+        }
+
+        return new CloudinaryUploadResult(
+            result.PublicId,
+            result.SecureUrl.AbsoluteUri,
+            result.Width,
+            result.Height,
+            result.Bytes);
+    }
+
     public Task<string> GetSignedUrlAsync(string publicId, int expiryMinutes = 60)
     {
         try

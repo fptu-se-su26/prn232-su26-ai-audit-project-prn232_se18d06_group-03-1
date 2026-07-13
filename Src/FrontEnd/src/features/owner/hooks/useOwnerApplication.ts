@@ -93,7 +93,11 @@ export function useOwnerApplication(stepParam?: string | null) {
         formData.append("frontImage", frontImage);
         const result = await uploadNationalId(formData);
         setOcrResult(result);
-        setWizardStep("success");
+        if (result.status === "Pending") {
+          setWizardStep("pending");
+        } else if (result.status === "Verified") {
+          setWizardStep("success");
+        }
         return result;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Tải ảnh thất bại. Vui lòng thử lại.";

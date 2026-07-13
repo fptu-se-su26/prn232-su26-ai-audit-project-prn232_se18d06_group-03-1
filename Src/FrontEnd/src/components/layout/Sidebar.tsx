@@ -71,12 +71,14 @@ const adminModerationItems = [
   { to: "/admin/vehicle-documents", label: "Giấy tờ xe", icon: FileBadge },
   { to: "/admin/vehicle-listings", label: "Tin đăng xe", icon: ClipboardList },
   { to: "/admin/driver-license-verifications", label: "Xác minh GPLX", icon: FileBadge },
+  { to: "/admin/national-id-verifications", label: "Xác minh CCCD", icon: IdCard },
 ];
 
 const staffModerationItems = [
   { to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge },
   { to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList },
   { to: "/staff/driver-license-verifications", label: "Duyệt GPLX", icon: FileBadge },
+  { to: "/staff/national-id-verifications", label: "Duyệt CCCD", icon: IdCard },
 ];
 
 const ownerVehicleItems = [

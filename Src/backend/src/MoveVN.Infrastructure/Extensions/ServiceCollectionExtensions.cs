@@ -79,6 +79,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVehicleVerificationLogQueryService, VehicleVerificationLogQueryService>();
         services.AddScoped<IVehicleVerificationLogService, VehicleVerificationLogService>();
         services.AddScoped<IDriverLicenseVerificationLogService, DriverLicenseVerificationLogService>();
+        services.AddScoped<INationalIdVerificationLogService, NationalIdVerificationLogService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 

@@ -34,8 +34,9 @@ export type NationalIdSide = "front" | "back";
 
 export interface OwnerApplicationDto {
   id: number;
-  status: OwnerApplicationStatus;
+  status: string;
   nationalIdVerified: boolean;
+  nationalIdRequestStatus?: string;
   bankInfoCompleted: boolean;
   isOwner: boolean;
   nextStep: OwnerNextStep;
