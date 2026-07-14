@@ -253,8 +253,37 @@ public class PaymentService : IPaymentService
             await _walletRepo.AddTransactionAsync(paymentTx, cancellationToken);
             customerWallet.Balance -= data.Amount;
             customerWallet.TotalSpent += data.Amount;
-            
             _walletRepo.Update(customerWallet);
+
+            // 2.5. Owner Wallet Operations - Credit deposit minus platform fee immediately
+            var ownerEarning = booking.DepositAmount - booking.PlatformFee;
+            var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == booking.OwnerId, cancellationToken);
+            var ownerWallet = ownerWallets.FirstOrDefault();
+            if (ownerWallet == null)
+            {
+                ownerWallet = new Wallet { UserId = booking.OwnerId, Balance = 0, TotalEarned = 0, TotalSpent = 0 };
+                await _walletRepo.AddAsync(ownerWallet, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            var ownerTx = new WalletTransaction
+            {
+                WalletId = ownerWallet.Id,
+                Type = WalletTransactionType.BookingEarning,
+                Amount = ownerEarning,
+                BalanceAfter = ownerWallet.Balance + ownerEarning,
+                ReferenceId = booking.Id,
+                IdempotencyKey = $"booking_earning_{booking.Id}",
+                Note = $"Thu nhập từ booking {booking.BookingCode} (Đặt cọc: {booking.DepositAmount:N0}đ, Phí: {booking.PlatformFee:N0}đ)",
+                Status = "Completed"
+            };
+            await _walletRepo.AddTransactionAsync(ownerTx, cancellationToken);
+            ownerWallet.Balance += ownerEarning;
+            if (ownerEarning > 0)
+                ownerWallet.TotalEarned += ownerEarning;
+            else
+                ownerWallet.TotalSpent += Math.Abs(ownerEarning);
+            _walletRepo.Update(ownerWallet);
 
             // 3. Update Booking Status
             var oldStatus = booking.Status;

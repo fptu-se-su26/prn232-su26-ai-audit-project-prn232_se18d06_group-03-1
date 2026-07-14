@@ -449,35 +449,6 @@ public class BookingService : IBookingService
             Note = "Chu xe xac nhan hoan thanh chuyen di",
         }, cancellationToken);
 
-        var ownerEarning = booking.DepositAmount - booking.PlatformFee;
-        var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == ownerId, cancellationToken);
-        var ownerWallet = ownerWallets.FirstOrDefault();
-        if (ownerWallet == null)
-        {
-            ownerWallet = new Wallet { UserId = ownerId, Balance = 0, TotalEarned = 0, TotalSpent = 0 };
-            await _walletRepo.AddAsync(ownerWallet, cancellationToken);
-            await _repo.SaveChangesAsync(cancellationToken);
-        }
-
-        await _walletRepo.AddTransactionAsync(new WalletTransaction
-        {
-            WalletId = ownerWallet.Id,
-            Type = WalletTransactionType.BookingEarning,
-            Amount = ownerEarning,
-            BalanceAfter = ownerWallet.Balance + ownerEarning,
-            ReferenceId = booking.Id,
-            IdempotencyKey = $"booking_earning_{booking.Id}",
-            Note = $"Thu nhap tu booking {booking.BookingCode} (Dat coc: {booking.DepositAmount:N0}d, Phi: {booking.PlatformFee:N0}d)",
-            Status = "Completed",
-        }, cancellationToken);
-
-        ownerWallet.Balance += ownerEarning;
-        if (ownerEarning > 0)
-            ownerWallet.TotalEarned += ownerEarning;
-        else
-            ownerWallet.TotalSpent += Math.Abs(ownerEarning);
-        _walletRepo.Update(ownerWallet);
-
         await _repo.SaveChangesAsync(cancellationToken);
 
         await NotifyUserAsync(
@@ -490,12 +461,11 @@ public class BookingService : IBookingService
             "BookingCompleted",
             cancellationToken);
 
-        var earningText = ownerEarning >= 0 ? $"+{ownerEarning:N0}d" : $"-{Math.Abs(ownerEarning):N0}d";
         await NotifyUserAsync(
             booking.OwnerId,
             booking,
             "Hoan thanh booking thanh cong",
-            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di. So du vi thay doi {earningText}.",
+            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di.",
             "owner",
             $"/booking/{booking.Id}",
             "BookingCompleted",
