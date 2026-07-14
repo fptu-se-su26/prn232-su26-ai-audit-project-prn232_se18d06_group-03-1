@@ -287,6 +287,11 @@ public class DisputeService : IDisputeService
         await _repository.ExecuteInTransactionAsync(async ct =>
         {
             ApplyDecision(dispute, request, actorId, actorRole == "Admin", availablePlatformAmount);
+            if (dispute.Status == "Resolved")
+            {
+                await ApplyPlatformFeeRevenueAsync(booking, DateTime.UtcNow, ct);
+                await ApplyRemainingDepositRefundAsync(dispute, booking, DateTime.UtcNow, ct);
+            }
             dispute.AssignedStaffId ??= actorId;
             _repository.Update(dispute);
             await _repository.SaveChangesAsync(ct);
@@ -355,6 +360,11 @@ public class DisputeService : IDisputeService
         await _repository.ExecuteInTransactionAsync(async ct =>
         {
             ApplyDecision(dispute, request, adminId, isAdmin: true, availablePlatformAmount);
+            if (dispute.Status == "Resolved")
+            {
+                await ApplyPlatformFeeRevenueAsync(booking, DateTime.UtcNow, ct);
+                await ApplyRemainingDepositRefundAsync(dispute, booking, DateTime.UtcNow, ct);
+            }
             _repository.Update(dispute);
             await _repository.SaveChangesAsync(ct);
             await AddAuditAsync(dispute.Id, adminId, actorRole, "DisputeAdminOverride", oldStatus, JsonSerializer.Serialize(new
@@ -423,12 +433,15 @@ public class DisputeService : IDisputeService
         var refundedDepositAmount = 0m;
         await _repository.ExecuteInTransactionAsync(async ct =>
         {
-            if (confirmationRole == "Customer" && dispute.CompensationDirection == "CustomerPaysOwner")
+            if (confirmationRole == "Customer")
             {
                 platformFeeCredited = await ApplyPlatformFeeRevenueAsync(booking, now, ct);
-                var wasCompleted = dispute.PlatformSettlementCompletedAt.HasValue;
-                await ApplyPlatformPayoutAsync(dispute, booking, now, ct);
-                platformPayoutCompleted = !wasCompleted && dispute.PlatformSettlementCompletedAt.HasValue;
+                if (dispute.CompensationDirection == "CustomerPaysOwner")
+                {
+                    var wasCompleted = dispute.PlatformSettlementCompletedAt.HasValue;
+                    await ApplyPlatformPayoutAsync(dispute, booking, now, ct);
+                    platformPayoutCompleted = !wasCompleted && dispute.PlatformSettlementCompletedAt.HasValue;
+                }
                 refundedDepositAmount = await ApplyRemainingDepositRefundAsync(dispute, booking, now, ct);
                 if (dispute.PlatformSettledAmount > 0m && dispute.ExternalSettlementAmount == 0m)
                 {
@@ -490,10 +503,19 @@ public class DisputeService : IDisputeService
         }
 
         var reason = RequireText(request.Reason, "Admin close reason is required.");
+        var booking = await _repository.GetBookingByIdAsync(dispute.BookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking not found.");
         var oldStatus = dispute.Status;
         await _repository.ExecuteInTransactionAsync(async ct =>
         {
-            CloseDispute(dispute, adminId, reason, DateTime.UtcNow);
+            var now = DateTime.UtcNow;
+            await ApplyPlatformFeeRevenueAsync(booking, now, ct);
+            if (dispute.CompensationDirection == "CustomerPaysOwner")
+            {
+                await ApplyPlatformPayoutAsync(dispute, booking, now, ct);
+            }
+            await ApplyRemainingDepositRefundAsync(dispute, booking, now, ct);
+            CloseDispute(dispute, adminId, reason, now);
             _repository.Update(dispute);
             await _repository.SaveChangesAsync(ct);
             await AddAuditAsync(dispute.Id, adminId, "Admin", "DisputeAdminClosed", oldStatus, reason, ct);
@@ -598,12 +620,12 @@ public class DisputeService : IDisputeService
     private async Task<decimal> GetAvailablePlatformSettlementAsync(Booking booking, CancellationToken cancellationToken)
     {
         var completedDisputePayouts = await _repository.GetCompletedPlatformSettlementForBookingAsync(booking.Id, cancellationToken);
-        var completedBookingEarning = await _repository.GetCompletedBookingEarningForBookingAsync(booking.Id, cancellationToken);
+        var completedDepositRefunds = await _repository.GetCompletedDepositRefundForBookingAsync(booking.Id, cancellationToken);
         return DisputeDepositCalculator.GetAvailableAmount(
             booking.DepositAmount,
             booking.PlatformFee,
             completedDisputePayouts,
-            completedBookingEarning);
+            completedDepositRefunds);
     }
 
     private async Task ApplyPlatformPayoutAsync(Dispute dispute, Booking booking, DateTime completedAt, CancellationToken cancellationToken)
@@ -709,12 +731,12 @@ public class DisputeService : IDisputeService
         }
 
         var previousDisputePayouts = await _repository.GetCompletedPlatformSettlementForBookingAsync(booking.Id, cancellationToken);
-        var completedBookingEarning = await _repository.GetCompletedBookingEarningForBookingAsync(booking.Id, cancellationToken);
+        var completedDepositRefunds = await _repository.GetCompletedDepositRefundForBookingAsync(booking.Id, cancellationToken);
         var refundAmount = DisputeDepositCalculator.GetAvailableAmount(
             booking.DepositAmount,
             booking.PlatformFee,
             previousDisputePayouts + dispute.PlatformSettledAmount,
-            completedBookingEarning);
+            completedDepositRefunds);
         if (refundAmount <= 0m)
         {
             return 0m;
@@ -851,9 +873,13 @@ public class DisputeService : IDisputeService
             throw new ValidationException(["Compensation amount cannot be negative."]);
         }
 
-        if (request.CompensationAmount.Value > booking.DepositAmount && !isAdmin)
+        var heldSecurityAmount = DisputeDepositCalculator.GetAvailableAmount(
+            booking.DepositAmount,
+            booking.PlatformFee,
+            completedDisputePayouts: 0m);
+        if (request.CompensationAmount.Value > heldSecurityAmount && !isAdmin)
         {
-            throw new ValidationException(["Staff cannot set compensation above the booking deposit."]);
+            throw new ValidationException(["Staff cannot set compensation above the held security amount after platform fee."]);
         }
 
         if (useAdminAmount && !isAdmin)

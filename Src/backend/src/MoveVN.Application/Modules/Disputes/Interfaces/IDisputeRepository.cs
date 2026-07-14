@@ -11,7 +11,6 @@ public interface IDisputeRepository
     Task<InspectionReport?> GetInspectionReportAsync(long bookingId, string type, CancellationToken cancellationToken = default);
     Task<bool> HasOpenDisputeForBookingAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<decimal> GetCompletedPlatformSettlementForBookingAsync(long bookingId, CancellationToken cancellationToken = default);
-    Task<decimal> GetCompletedBookingEarningForBookingAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<decimal> GetCompletedDepositRefundForBookingAsync(long bookingId, CancellationToken cancellationToken = default);
     Task AddDisputeAsync(Dispute dispute, CancellationToken cancellationToken = default);
     Task AddReportAsync(Report report, CancellationToken cancellationToken = default);
