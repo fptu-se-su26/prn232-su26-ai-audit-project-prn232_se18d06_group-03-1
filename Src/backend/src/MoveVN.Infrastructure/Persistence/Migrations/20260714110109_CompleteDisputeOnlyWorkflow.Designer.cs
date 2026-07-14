@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoveVN.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MoveVN.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714110109_CompleteDisputeOnlyWorkflow")]
+    partial class CompleteDisputeOnlyWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -824,10 +827,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("platform_settled_amount");
 
-                    b.Property<DateTime?>("PlatformSettlementCompletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("platform_settlement_completed_at");
-
                     b.Property<long?>("ReportId")
                         .HasColumnType("bigint")
                         .HasColumnName("report_id");
@@ -840,13 +839,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_at");
 
-                    b.Property<string>("SettlementMethod")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("DepositThenExternal")
-                        .HasColumnName("settlement_method");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text")
@@ -857,10 +849,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BookingId")
-                        .IsUnique()
-                        .HasFilter("status <> 'Resolved'");
 
                     b.ToTable("Disputes");
                 });
@@ -2929,9 +2917,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("wallet_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique();
 
                     b.ToTable("WalletTransactions");
                 });

@@ -6,6 +6,7 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
+using MoveVN.Application.Modules.Disputes.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Payments.Interfaces;
@@ -24,6 +25,7 @@ public class BookingService : IBookingService
     private readonly IRedisLockService _redisLockService;
     private readonly ICustomerDriverLicenseRepository _customerLicenseRepo;
     private readonly IWalletRepository _walletRepo;
+    private readonly IDisputeRepository _disputeRepository;
     private readonly ICloudinaryService _cloudinaryService;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
@@ -43,6 +45,7 @@ public class BookingService : IBookingService
         IRedisLockService redisLockService,
         ICustomerDriverLicenseRepository customerLicenseRepo,
         IWalletRepository walletRepo,
+        IDisputeRepository disputeRepository,
         ICloudinaryService cloudinaryService)
     {
         _repo = repo;
@@ -53,6 +56,7 @@ public class BookingService : IBookingService
         _redisLockService = redisLockService;
         _customerLicenseRepo = customerLicenseRepo;
         _walletRepo = walletRepo;
+        _disputeRepository = disputeRepository;
         _cloudinaryService = cloudinaryService;
     }
 
@@ -432,24 +436,46 @@ public class BookingService : IBookingService
         if (booking.OwnerId != ownerId)
             throw new ValidationException(new[] { "Ban khong co quyen hoan thanh booking nay." });
 
-        if (booking.Status != "DepositPaid" && booking.Status != "InProgress")
-            throw new ValidationException(new[] { "Chi co the hoan thanh booking da thanh toan coc hoac dang trong chuyen." });
+        var bookingEarningKey = $"booking_earning_{booking.Id}";
+        var earningAlreadySettled = await _walletRepo.TransactionExistsAsync(bookingEarningKey, cancellationToken);
+        if (booking.Status == "Completed" && earningAlreadySettled)
+            return await MapAsync(booking, cancellationToken);
 
-        var oldStatus = booking.Status;
-        booking.Status = "Completed";
-        booking.UpdatedAt = DateTime.UtcNow;
-        _repo.Update(booking);
+        if (booking.Status != "DepositPaid" && booking.Status != "InProgress" && booking.Status != "Completed")
+            throw new ValidationException(new[] { "Chi co the hoan thanh booking da thanh toan coc, dang trong chuyen hoac da duoc khach xac nhan." });
 
-        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        if (await _disputeRepository.HasOpenDisputeForBookingAsync(booking.Id, cancellationToken))
+            throw new ValidationException(new[] { "Booking đang có tranh chấp. Khoản tiền cọc được giữ đến khi tranh chấp kết thúc." });
+
+        var disputePayout = await _disputeRepository.GetCompletedPlatformSettlementForBookingAsync(booking.Id, cancellationToken);
+        var refundedDeposit = await _disputeRepository.GetCompletedDepositRefundForBookingAsync(booking.Id, cancellationToken);
+        var checkOut = await _disputeRepository.GetInspectionReportAsync(booking.Id, "CheckOut", cancellationToken);
+        if (checkOut is not null
+            && DateTime.UtcNow < checkOut.CreatedAt.AddHours(48)
+            && disputePayout <= 0m
+            && refundedDeposit <= 0m)
         {
-            BookingId = booking.Id,
-            FromStatus = oldStatus,
-            ToStatus = "Completed",
-            ChangedBy = ownerId,
-            Note = "Chu xe xac nhan hoan thanh chuyen di",
-        }, cancellationToken);
+            throw new ValidationException(new[] { "Khoản tiền đang được giữ trong 48 giờ sau check-out để khách có thể mở tranh chấp." });
+        }
 
-        var ownerEarning = booking.DepositAmount - booking.PlatformFee;
+        if (booking.Status != "Completed")
+        {
+            var oldStatus = booking.Status;
+            booking.Status = "Completed";
+            booking.UpdatedAt = DateTime.UtcNow;
+            _repo.Update(booking);
+
+            await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+            {
+                BookingId = booking.Id,
+                FromStatus = oldStatus,
+                ToStatus = "Completed",
+                ChangedBy = ownerId,
+                Note = "Chu xe xac nhan hoan thanh chuyen di",
+            }, cancellationToken);
+        }
+
+        var ownerEarning = Math.Max(booking.DepositAmount - booking.PlatformFee - disputePayout - refundedDeposit, 0m);
         var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == ownerId, cancellationToken);
         var ownerWallet = ownerWallets.FirstOrDefault();
         if (ownerWallet == null)
@@ -459,24 +485,27 @@ public class BookingService : IBookingService
             await _repo.SaveChangesAsync(cancellationToken);
         }
 
-        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        if (!earningAlreadySettled)
         {
-            WalletId = ownerWallet.Id,
-            Type = WalletTransactionType.BookingEarning,
-            Amount = ownerEarning,
-            BalanceAfter = ownerWallet.Balance + ownerEarning,
-            ReferenceId = booking.Id,
-            IdempotencyKey = $"booking_earning_{booking.Id}",
-            Note = $"Thu nhap tu booking {booking.BookingCode} (Dat coc: {booking.DepositAmount:N0}d, Phi: {booking.PlatformFee:N0}d)",
-            Status = "Completed",
-        }, cancellationToken);
+            await _walletRepo.AddTransactionAsync(new WalletTransaction
+            {
+                WalletId = ownerWallet.Id,
+                Type = WalletTransactionType.BookingEarning,
+                Amount = ownerEarning,
+                BalanceAfter = ownerWallet.Balance + ownerEarning,
+                ReferenceId = booking.Id,
+                IdempotencyKey = bookingEarningKey,
+                Note = $"Thu nhap tu booking {booking.BookingCode} (Dat coc: {booking.DepositAmount:N0}d, Phi: {booking.PlatformFee:N0}d, Boi thuong: {disputePayout:N0}d, Hoan coc: {refundedDeposit:N0}d)",
+                Status = "Completed",
+            }, cancellationToken);
 
-        ownerWallet.Balance += ownerEarning;
-        if (ownerEarning > 0)
-            ownerWallet.TotalEarned += ownerEarning;
-        else
-            ownerWallet.TotalSpent += Math.Abs(ownerEarning);
-        _walletRepo.Update(ownerWallet);
+            if (ownerEarning > 0m)
+            {
+                ownerWallet.Balance += ownerEarning;
+                ownerWallet.TotalEarned += ownerEarning;
+                _walletRepo.Update(ownerWallet);
+            }
+        }
 
         await _repo.SaveChangesAsync(cancellationToken);
 

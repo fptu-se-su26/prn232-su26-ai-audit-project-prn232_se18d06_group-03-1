@@ -41,8 +41,12 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 }
 
+function isCreditTransaction(type: string) {
+  return ["TopUp", "BookingEarning", "Refund", "PayoutReversal", "DisputeCompensation", "PlatformFeeRevenue"].includes(type);
+}
+
 function getTransactionIcon(type: string) {
-  if (type === "TopUp" || type === "BookingEarning" || type === "Refund" || type === "PayoutReversal") {
+  if (isCreditTransaction(type)) {
     return <ArrowDownLeft className="h-5 w-5 text-emerald-500" />;
   }
   return <ArrowUpRight className="h-5 w-5 text-rose-500" />;
@@ -54,11 +58,14 @@ function getTransactionLabel(type: string) {
     BookingEarning: "Thu nhập cho thuê",
     Refund: "Hoàn tiền",
     PayoutReversal: "Hủy rút tiền",
+    DisputeCompensation: "Bồi thường tranh chấp",
+    PlatformFeeRevenue: "Doanh thu phí nền tảng",
     AdminAdjust: "Điều chỉnh hệ thống",
     BookingPayment: "Thanh toán cọc",
     Withdrawal: "Rút tiền",
     Penalty: "Phí phạt",
     PlatformFee: "Phí nền tảng",
+    BookingEarningReversal: "Thu hồi khoản giải ngân trùng",
   };
   return map[type] || type;
 }
@@ -392,7 +399,7 @@ export default function WalletPage() {
                 </div>
               ) : (
                 transactions.map((tx) => {
-                  const isPositive = tx.type === "TopUp" || tx.type === "BookingEarning" || tx.type === "Refund" || tx.type === "PayoutReversal";
+                  const isPositive = isCreditTransaction(tx.type);
                   return (
                     <div key={tx.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <div className="flex items-center gap-4">

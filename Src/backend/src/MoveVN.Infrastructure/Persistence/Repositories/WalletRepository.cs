@@ -25,6 +25,9 @@ public class WalletRepository : IWalletRepository
         await _context.WalletTransactions.AddAsync(transaction, cancellationToken);
     }
 
+    public Task<bool> TransactionExistsAsync(string idempotencyKey, CancellationToken cancellationToken = default)
+        => _context.WalletTransactions.AnyAsync(transaction => transaction.IdempotencyKey == idempotencyKey, cancellationToken);
+
     public async Task<IReadOnlyList<Wallet>> FindAsync(Expression<Func<Wallet, bool>> predicate, CancellationToken cancellationToken = default)
     {
         return await _context.Wallets.Where(predicate).ToListAsync(cancellationToken);

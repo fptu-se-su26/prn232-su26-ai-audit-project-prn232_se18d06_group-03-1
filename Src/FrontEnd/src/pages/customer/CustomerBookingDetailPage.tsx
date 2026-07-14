@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -151,6 +151,7 @@ export default function CustomerBookingDetailPage() {
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
   const checkInReport = inspectionReports.find((report) => report.type === "CheckIn");
   const checkOutReport = inspectionReports.find((report) => report.type === "CheckOut");
+  const damageDisputeUrl = `/customer/disputes?bookingId=${booking.id}&reportType=Damage&description=${encodeURIComponent("Tôi không đồng ý với biên bản check-out và yêu cầu kiểm tra lại.")}`;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -222,9 +223,17 @@ export default function CustomerBookingDetailPage() {
               </a>
             ))}
           </div>
-          <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
-            <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
-          </Button>
+          <p className="text-sm text-slate-600">Nếu thông tin hoặc hình ảnh có sai sót, hãy mở tranh chấp trước khi xác nhận hoàn tất.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
+              <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
+            </Button>
+            <Link to={damageDisputeUrl}>
+              <Button type="button" variant="secondary" className="border-red-200 text-red-700 hover:bg-red-50">
+                <ShieldAlert className="h-4 w-4" /> Có sai sót / Mở tranh chấp
+              </Button>
+            </Link>
+          </div>
         </Card>
       )}
 

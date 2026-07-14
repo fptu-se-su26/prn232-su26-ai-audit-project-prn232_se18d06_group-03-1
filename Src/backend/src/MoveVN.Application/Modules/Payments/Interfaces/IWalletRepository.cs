@@ -11,6 +11,7 @@ public interface IWalletRepository
     void Update(Wallet wallet);
 
     Task AddTransactionAsync(WalletTransaction transaction, CancellationToken cancellationToken = default);
+    Task<bool> TransactionExistsAsync(string idempotencyKey, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<WalletTransaction> Items, int TotalCount)> GetTransactionsPagedAsync(long walletId, int page, int pageSize, string? type = null, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<(Wallet Wallet, string UserFullName, string UserEmail)> Items, int TotalCount)> GetAllWalletsPagedAsync(int page, int pageSize, string? keyword = null, CancellationToken cancellationToken = default);
 }
