@@ -62,7 +62,7 @@ public class PublicVehicleService : IPublicVehicleService
         PricingSuggestionResponse? suggestion = null;
         if (vehicle.AreaId.HasValue)
         {
-            suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken);
+            suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
         }
 
         var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);

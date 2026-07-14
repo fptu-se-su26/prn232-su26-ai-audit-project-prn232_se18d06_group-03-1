@@ -407,7 +407,14 @@ export default function OwnerVehicleEditPage() {
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
                           {pricing.suggestion.hasSuggestion ? (
-                            <>Giá gợi ý: <span className="font-semibold">{pricing.suggestion.suggestedMinPrice?.toLocaleString("vi-VN")}đ</span> – <span className="font-semibold">{pricing.suggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}đ</span>/ngày</>
+                            <>
+                              Giá gợi ý: <span className="font-semibold">{pricing.suggestion.suggestedMinPrice?.toLocaleString("vi-VN")}đ</span> – <span className="font-semibold">{pricing.suggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}đ</span>/ngày
+                              {pricing.suggestion.dynamicSuggestedPrice != null && (
+                                <span className="mt-2 inline-flex items-center rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">
+                                  Giá đề xuất: {pricing.suggestion.dynamicSuggestedPrice.toLocaleString("vi-VN")}đ
+                                </span>
+                              )}
+                            </>
                           ) : "Chưa có khung giá gợi ý."}
                         </div>
                       </div>

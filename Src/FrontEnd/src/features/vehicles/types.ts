@@ -183,6 +183,13 @@ export type PricingSuggestionResponse = {
   basePrice: number | null;
   suggestedMinPrice: number | null;
   suggestedMaxPrice: number | null;
+  dynamicSuggestedPrice: number | null;
+  dynamicFormattedSuggestedPrice: string | null;
+  dynamicPricingMultiplier: number | null;
+  dynamicPricingAppliedRules: string[];
+  dynamicIsWeekend: boolean | null;
+  dynamicIsHoliday: boolean | null;
+  dynamicIsLowVacancy: boolean | null;
 };
 
 export type VehiclePricingResponse = {

@@ -60,9 +60,11 @@ public class VehiclesController : BaseApiController
     public async Task<ActionResult<ApiResponse<PricingSuggestionResponse>>> GetPricingSuggestion(
         [FromQuery] int modelId,
         [FromQuery] int areaId,
+        [FromQuery] DateOnly? date,
+        [FromQuery] decimal? vacantRate,
         CancellationToken cancellationToken = default)
     {
-        var result = await _vehiclePricingService.GetSuggestionAsync(modelId, areaId, cancellationToken);
+        var result = await _vehiclePricingService.GetSuggestionAsync(modelId, areaId, date, vacantRate, cancellationToken);
         return Success(result);
     }
 

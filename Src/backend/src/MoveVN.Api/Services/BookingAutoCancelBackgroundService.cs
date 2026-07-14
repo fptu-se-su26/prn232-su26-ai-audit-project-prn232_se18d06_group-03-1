@@ -37,9 +37,16 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         await RunSafelyAsync(stoppingToken);
 
         using var timer = new PeriodicTimer(GetScanInterval());
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
-            await RunSafelyAsync(stoppingToken);
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                await RunSafelyAsync(stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Normal host shutdown.
         }
     }
 

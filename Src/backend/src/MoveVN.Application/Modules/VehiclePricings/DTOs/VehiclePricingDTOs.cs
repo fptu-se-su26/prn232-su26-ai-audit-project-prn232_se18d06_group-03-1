@@ -22,6 +22,13 @@ public class PricingSuggestionResponse
     public decimal? BasePrice { get; set; }
     public decimal? SuggestedMinPrice { get; set; }
     public decimal? SuggestedMaxPrice { get; set; }
+    public decimal? DynamicSuggestedPrice { get; set; }
+    public string? DynamicFormattedSuggestedPrice { get; set; }
+    public decimal? DynamicPricingMultiplier { get; set; }
+    public List<string> DynamicPricingAppliedRules { get; set; } = [];
+    public bool? DynamicIsWeekend { get; set; }
+    public bool? DynamicIsHoliday { get; set; }
+    public bool? DynamicIsLowVacancy { get; set; }
 }
 
 public class VehiclePricingResponse
