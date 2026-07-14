@@ -6,6 +6,6 @@ public static class DisputeDepositCalculator
         decimal depositAmount,
         decimal platformFee,
         decimal completedDisputePayouts,
-        decimal completedBookingEarning = 0m)
-        => Math.Max(depositAmount - platformFee - completedDisputePayouts - completedBookingEarning, 0m);
+        decimal completedDepositRefunds = 0m)
+        => Math.Max(depositAmount - platformFee - completedDisputePayouts - completedDepositRefunds, 0m);
 }

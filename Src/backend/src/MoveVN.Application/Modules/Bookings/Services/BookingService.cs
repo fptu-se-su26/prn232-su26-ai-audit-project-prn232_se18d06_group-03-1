@@ -7,6 +7,7 @@ using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Disputes.Interfaces;
+using MoveVN.Application.Modules.Disputes.Services;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Payments.Interfaces;
@@ -436,11 +437,6 @@ public class BookingService : IBookingService
         if (booking.OwnerId != ownerId)
             throw new ValidationException(new[] { "Ban khong co quyen hoan thanh booking nay." });
 
-        var bookingEarningKey = $"booking_earning_{booking.Id}";
-        var earningAlreadySettled = await _walletRepo.TransactionExistsAsync(bookingEarningKey, cancellationToken);
-        if (booking.Status == "Completed" && earningAlreadySettled)
-            return await MapAsync(booking, cancellationToken);
-
         if (booking.Status != "DepositPaid" && booking.Status != "InProgress" && booking.Status != "Completed")
             throw new ValidationException(new[] { "Chi co the hoan thanh booking da thanh toan coc, dang trong chuyen hoac da duoc khach xac nhan." });
 
@@ -475,39 +471,17 @@ public class BookingService : IBookingService
             }, cancellationToken);
         }
 
-        var ownerEarning = Math.Max(booking.DepositAmount - booking.PlatformFee - disputePayout - refundedDeposit, 0m);
-        var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == ownerId, cancellationToken);
-        var ownerWallet = ownerWallets.FirstOrDefault();
-        if (ownerWallet == null)
+        await _disputeRepository.ExecuteInTransactionAsync(async ct =>
         {
-            ownerWallet = new Wallet { UserId = ownerId, Balance = 0, TotalEarned = 0, TotalSpent = 0 };
-            await _walletRepo.AddAsync(ownerWallet, cancellationToken);
-            await _repo.SaveChangesAsync(cancellationToken);
-        }
-
-        if (!earningAlreadySettled)
-        {
-            await _walletRepo.AddTransactionAsync(new WalletTransaction
-            {
-                WalletId = ownerWallet.Id,
-                Type = WalletTransactionType.BookingEarning,
-                Amount = ownerEarning,
-                BalanceAfter = ownerWallet.Balance + ownerEarning,
-                ReferenceId = booking.Id,
-                IdempotencyKey = bookingEarningKey,
-                Note = $"Thu nhap tu booking {booking.BookingCode} (Dat coc: {booking.DepositAmount:N0}d, Phi: {booking.PlatformFee:N0}d, Boi thuong: {disputePayout:N0}d, Hoan coc: {refundedDeposit:N0}d)",
-                Status = "Completed",
-            }, cancellationToken);
-
-            if (ownerEarning > 0m)
-            {
-                ownerWallet.Balance += ownerEarning;
-                ownerWallet.TotalEarned += ownerEarning;
-                _walletRepo.Update(ownerWallet);
-            }
-        }
-
-        await _repo.SaveChangesAsync(cancellationToken);
+            _ = await CreditPlatformFeeToAdminAsync(booking, DateTime.UtcNow, ct);
+            _ = await RefundDepositToCustomerAsync(
+                booking,
+                disputePayout,
+                refundedDeposit,
+                DateTime.UtcNow,
+                ct);
+            await _repo.SaveChangesAsync(ct);
+        }, cancellationToken);
 
         await NotifyUserAsync(
             booking.CustomerId,
@@ -519,18 +493,112 @@ public class BookingService : IBookingService
             "BookingCompleted",
             cancellationToken);
 
-        var earningText = ownerEarning >= 0 ? $"+{ownerEarning:N0}d" : $"-{Math.Abs(ownerEarning):N0}d";
         await NotifyUserAsync(
             booking.OwnerId,
             booking,
             "Hoan thanh booking thanh cong",
-            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di. So du vi thay doi {earningText}.",
+            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di. Tien coc khong duoc tinh la thu nhap cua chu xe.",
             "owner",
             $"/booking/{booking.Id}",
             "BookingCompleted",
             cancellationToken);
 
         return await MapAsync(booking, cancellationToken);
+    }
+
+    private async Task<decimal> CreditPlatformFeeToAdminAsync(
+        Booking booking,
+        DateTime completedAt,
+        CancellationToken cancellationToken)
+    {
+        var feeAmount = Math.Min(Math.Max(booking.PlatformFee, 0m), Math.Max(booking.DepositAmount, 0m));
+        var idempotencyKey = $"booking_platform_fee_{booking.Id}";
+        if (feeAmount <= 0m || await _walletRepo.TransactionExistsAsync(idempotencyKey, cancellationToken))
+        {
+            return 0m;
+        }
+
+        var adminId = (await _disputeRepository.GetAdminUserIdsAsync(cancellationToken)).OrderBy(id => id).FirstOrDefault();
+        if (adminId <= 0)
+        {
+            throw new ValidationException(["Khong the quyet toan phi nen tang vi chua co tai khoan Admin."]);
+        }
+
+        var adminWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == adminId, cancellationToken)).FirstOrDefault();
+        if (adminWallet is null)
+        {
+            adminWallet = new Wallet { UserId = adminId };
+            await _walletRepo.AddAsync(adminWallet, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+        }
+
+        adminWallet.Balance += feeAmount;
+        adminWallet.TotalEarned += feeAmount;
+        adminWallet.UpdatedAt = completedAt;
+        _walletRepo.Update(adminWallet);
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        {
+            WalletId = adminWallet.Id,
+            Type = WalletTransactionType.PlatformFeeRevenue,
+            Amount = feeAmount,
+            BalanceAfter = adminWallet.Balance,
+            ReferenceId = booking.Id,
+            IdempotencyKey = idempotencyKey,
+            Note = $"Phi nen tang tu booking {booking.BookingCode}",
+            Status = "Completed"
+        }, cancellationToken);
+
+        return feeAmount;
+    }
+
+    private async Task<decimal> RefundDepositToCustomerAsync(
+        Booking booking,
+        decimal completedDisputePayouts,
+        decimal completedDepositRefunds,
+        DateTime completedAt,
+        CancellationToken cancellationToken)
+    {
+        var idempotencyKey = $"booking_deposit_refund_{booking.Id}";
+        if (await _walletRepo.TransactionExistsAsync(idempotencyKey, cancellationToken))
+        {
+            return 0m;
+        }
+
+        var refundAmount = DisputeDepositCalculator.GetAvailableAmount(
+            booking.DepositAmount,
+            booking.PlatformFee,
+            completedDisputePayouts,
+            completedDepositRefunds);
+        if (refundAmount <= 0m)
+        {
+            return 0m;
+        }
+
+        var customerWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == booking.CustomerId, cancellationToken)).FirstOrDefault();
+        if (customerWallet is null)
+        {
+            customerWallet = new Wallet { UserId = booking.CustomerId };
+            await _walletRepo.AddAsync(customerWallet, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+        }
+
+        customerWallet.Balance += refundAmount;
+        customerWallet.TotalSpent = Math.Max(customerWallet.TotalSpent - refundAmount, 0m);
+        customerWallet.UpdatedAt = completedAt;
+        _walletRepo.Update(customerWallet);
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        {
+            WalletId = customerWallet.Id,
+            Type = WalletTransactionType.Refund,
+            Amount = refundAmount,
+            BalanceAfter = customerWallet.Balance,
+            ReferenceId = booking.Id,
+            IdempotencyKey = idempotencyKey,
+            Note = $"Hoan tien bao dam booking {booking.BookingCode}",
+            Status = "Completed"
+        }, cancellationToken);
+
+        return refundAmount;
     }
 
     public async Task<InspectionReportResponse> CreateCheckInReportAsync(

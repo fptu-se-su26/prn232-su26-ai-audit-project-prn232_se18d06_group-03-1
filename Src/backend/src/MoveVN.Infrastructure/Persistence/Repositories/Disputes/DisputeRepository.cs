@@ -37,23 +37,17 @@ public class DisputeRepository : IDisputeRepository
             .Where(dispute => dispute.BookingId == bookingId && dispute.PlatformSettlementCompletedAt != null)
             .SumAsync(dispute => dispute.PlatformSettledAmount, cancellationToken);
 
-    public Task<decimal> GetCompletedBookingEarningForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
+    public Task<decimal> GetCompletedDepositRefundForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
         => _context.WalletTransactions
             .Where(transaction =>
-                transaction.IdempotencyKey == $"booking_earning_{bookingId}"
+                transaction.Type == WalletTransactionType.Refund
                 && transaction.Status == "Completed"
-                && transaction.Amount > 0m)
+                && (transaction.IdempotencyKey == $"booking_deposit_refund_{bookingId}"
+                    || (transaction.IdempotencyKey.StartsWith("dispute_deposit_refund_")
+                        && _context.Disputes.Any(dispute =>
+                            dispute.Id == transaction.ReferenceId
+                            && dispute.BookingId == bookingId))))
             .SumAsync(transaction => transaction.Amount, cancellationToken);
-
-    public Task<decimal> GetCompletedDepositRefundForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
-        => (from transaction in _context.WalletTransactions
-            join dispute in _context.Disputes on transaction.ReferenceId equals dispute.Id
-            where dispute.BookingId == bookingId
-                  && transaction.Type == WalletTransactionType.Refund
-                  && transaction.Status == "Completed"
-                  && transaction.IdempotencyKey.StartsWith("dispute_deposit_refund_")
-            select transaction.Amount)
-            .SumAsync(cancellationToken);
 
     public async Task AddDisputeAsync(Dispute dispute, CancellationToken cancellationToken = default)
         => await _context.Disputes.AddAsync(dispute, cancellationToken);
