@@ -21,10 +21,39 @@ public class DisputeRepository : IDisputeRepository
     public Task<Dispute?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         => _context.Disputes.FirstOrDefaultAsync(dispute => dispute.Id == id, cancellationToken);
 
+    public Task<Report?> GetReportByIdAsync(long id, CancellationToken cancellationToken = default)
+        => _context.Reports.FirstOrDefaultAsync(report => report.Id == id, cancellationToken);
+
+    public Task<InspectionReport?> GetInspectionReportAsync(long bookingId, string type, CancellationToken cancellationToken = default)
+        => _context.InspectionReports.FirstOrDefaultAsync(report => report.BookingId == bookingId && report.Type == type, cancellationToken);
+
     public Task<bool> HasOpenDisputeForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
         => _context.Disputes.AnyAsync(dispute =>
             dispute.BookingId == bookingId
             && dispute.Status != "Resolved", cancellationToken);
+
+    public Task<decimal> GetCompletedPlatformSettlementForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
+        => _context.Disputes
+            .Where(dispute => dispute.BookingId == bookingId && dispute.PlatformSettlementCompletedAt != null)
+            .SumAsync(dispute => dispute.PlatformSettledAmount, cancellationToken);
+
+    public Task<decimal> GetCompletedBookingEarningForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
+        => _context.WalletTransactions
+            .Where(transaction =>
+                transaction.IdempotencyKey == $"booking_earning_{bookingId}"
+                && transaction.Status == "Completed"
+                && transaction.Amount > 0m)
+            .SumAsync(transaction => transaction.Amount, cancellationToken);
+
+    public Task<decimal> GetCompletedDepositRefundForBookingAsync(long bookingId, CancellationToken cancellationToken = default)
+        => (from transaction in _context.WalletTransactions
+            join dispute in _context.Disputes on transaction.ReferenceId equals dispute.Id
+            where dispute.BookingId == bookingId
+                  && transaction.Type == WalletTransactionType.Refund
+                  && transaction.Status == "Completed"
+                  && transaction.IdempotencyKey.StartsWith("dispute_deposit_refund_")
+            select transaction.Amount)
+            .SumAsync(cancellationToken);
 
     public async Task AddDisputeAsync(Dispute dispute, CancellationToken cancellationToken = default)
         => await _context.Disputes.AddAsync(dispute, cancellationToken);
@@ -35,8 +64,14 @@ public class DisputeRepository : IDisputeRepository
     public async Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken = default)
         => await _context.AuditLogs.AddAsync(auditLog, cancellationToken);
 
+    public async Task AddEvidenceSubmissionAsync(DisputeEvidenceSubmission submission, CancellationToken cancellationToken = default)
+        => await _context.DisputeEvidenceSubmissions.AddAsync(submission, cancellationToken);
+
     public void Update(Dispute dispute)
         => _context.Disputes.Update(dispute);
+
+    public void UpdateReport(Report report)
+        => _context.Reports.Update(report);
 
     public async Task<(List<DisputeListItem> Items, int TotalCount)> GetUserDisputesAsync(long userId, DisputeListRequest request, CancellationToken cancellationToken = default)
     {
@@ -62,6 +97,9 @@ public class DisputeRepository : IDisputeRepository
             return null;
         }
 
+        var inspectionReports = await GetInspectionReportsAsync(item.BookingId, cancellationToken);
+        var images = await GetCheckInOutImagesAsync(item.BookingId, cancellationToken);
+
         return new DisputeDetailResponse
         {
             Id = item.Id,
@@ -80,12 +118,69 @@ public class DisputeRepository : IDisputeRepository
             Description = item.Description,
             EvidenceUrls = item.EvidenceUrls,
             Resolution = item.Resolution,
+            CompensationDirection = item.CompensationDirection,
+            SettlementMethod = item.SettlementMethod,
             CompensationAmount = item.CompensationAmount,
+            AdminApprovedAmount = item.AdminApprovedAmount,
+            FinalCompensationAmount = item.FinalCompensationAmount,
+            PlatformSettledAmount = item.PlatformSettledAmount,
+            PlatformSettlementCompletedAt = item.PlatformSettlementCompletedAt,
+            ExternalSettlementAmount = item.ExternalSettlementAmount,
+            CustomerExternalConfirmed = item.CustomerExternalConfirmed,
+            CustomerExternalConfirmedAt = item.CustomerExternalConfirmedAt,
+            OwnerExternalConfirmed = item.OwnerExternalConfirmed,
+            OwnerExternalConfirmedAt = item.OwnerExternalConfirmedAt,
+            DecidedBy = item.DecidedBy,
+            DecisionIssuedAt = item.DecisionIssuedAt,
+            ClosedBy = item.ClosedBy,
+            ClosedAt = item.ClosedAt,
+            AdminCloseReason = item.AdminCloseReason,
+            EscalatedBy = item.EscalatedBy,
+            EscalatedAt = item.EscalatedAt,
+            EvidenceRequestedFrom = item.EvidenceRequestedFrom,
+            EvidenceRequestMessage = item.EvidenceRequestMessage,
+            EvidenceRequestedAt = item.EvidenceRequestedAt,
+            EvidenceRespondedAt = item.EvidenceRespondedAt,
             ResolvedAt = item.ResolvedAt,
             CreatedAt = item.CreatedAt,
-            AuditLogs = await GetAuditLogsAsync(id, cancellationToken)
+            UpdatedAt = item.UpdatedAt,
+            AuditLogs = await GetAuditLogsAsync(id, cancellationToken),
+            EvidenceSubmissions = await GetEvidenceSubmissionsAsync(id, cancellationToken),
+            InspectionReports = inspectionReports
+                .Select(report => MapInspectionReport(report, images))
+                .ToList()
         };
     }
+
+    public async Task<List<InspectionReport>> GetInspectionReportsAsync(long bookingId, CancellationToken cancellationToken = default)
+        => await _context.InspectionReports
+            .AsNoTracking()
+            .Where(report => report.BookingId == bookingId)
+            .OrderByDescending(report => report.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<List<CheckInOutImage>> GetCheckInOutImagesAsync(long bookingId, CancellationToken cancellationToken = default)
+        => await _context.CheckInOutImages
+            .AsNoTracking()
+            .Where(image => image.BookingId == bookingId)
+            .OrderBy(image => image.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<List<DisputeEvidenceSubmissionItem>> GetEvidenceSubmissionsAsync(long disputeId, CancellationToken cancellationToken = default)
+        => await (from submission in _context.DisputeEvidenceSubmissions.AsNoTracking()
+                  join user in _context.Users.AsNoTracking() on submission.SubmittedBy equals user.Id
+                  where submission.DisputeId == disputeId
+                  orderby submission.CreatedAt
+                  select new DisputeEvidenceSubmissionItem
+                  {
+                      Id = submission.Id,
+                      SubmittedBy = submission.SubmittedBy,
+                      SubmittedByName = user.FullName,
+                      SubmittedRole = submission.SubmittedRole,
+                      Message = submission.Message,
+                      EvidenceUrls = submission.EvidenceUrls,
+                      CreatedAt = submission.CreatedAt
+                  }).ToListAsync(cancellationToken);
 
     public async Task<List<long>> GetStaffUserIdsAsync(CancellationToken cancellationToken = default)
         => await GetUserIdsByRolesAsync([UserRoleType.Staff.ToString()], cancellationToken);
@@ -95,6 +190,21 @@ public class DisputeRepository : IDisputeRepository
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);
+
+    public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await action(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 
     private IQueryable<DisputeListItem> BuildListQuery()
         => from dispute in _context.Disputes.AsNoTracking()
@@ -130,9 +240,32 @@ public class DisputeRepository : IDisputeRepository
                Description = report == null ? string.Empty : report.Description,
                EvidenceUrls = report == null ? null : report.EvidenceUrls,
                Resolution = dispute.Resolution,
+               CompensationDirection = dispute.CompensationDirection,
+               SettlementMethod = dispute.SettlementMethod,
                CompensationAmount = dispute.CompensationAmount,
+               AdminApprovedAmount = dispute.AdminApprovedAmount,
+               FinalCompensationAmount = dispute.AdminApprovedAmount ?? dispute.CompensationAmount,
+               PlatformSettledAmount = dispute.PlatformSettledAmount,
+               PlatformSettlementCompletedAt = dispute.PlatformSettlementCompletedAt,
+               ExternalSettlementAmount = dispute.ExternalSettlementAmount,
+               CustomerExternalConfirmed = dispute.CustomerExternalConfirmed,
+               CustomerExternalConfirmedAt = dispute.CustomerExternalConfirmedAt,
+               OwnerExternalConfirmed = dispute.OwnerExternalConfirmed,
+               OwnerExternalConfirmedAt = dispute.OwnerExternalConfirmedAt,
+               DecidedBy = dispute.DecidedBy,
+               DecisionIssuedAt = dispute.DecisionIssuedAt,
+               ClosedBy = dispute.ClosedBy,
+               ClosedAt = dispute.ClosedAt,
+               AdminCloseReason = dispute.AdminCloseReason,
+               EscalatedBy = dispute.EscalatedBy,
+               EscalatedAt = dispute.EscalatedAt,
+               EvidenceRequestedFrom = dispute.EvidenceRequestedFrom,
+               EvidenceRequestMessage = dispute.EvidenceRequestMessage,
+               EvidenceRequestedAt = dispute.EvidenceRequestedAt,
+               EvidenceRespondedAt = dispute.EvidenceRespondedAt,
                ResolvedAt = dispute.ResolvedAt,
-               CreatedAt = dispute.CreatedAt
+               CreatedAt = dispute.CreatedAt,
+               UpdatedAt = dispute.UpdatedAt
            };
 
     private static IQueryable<DisputeListItem> ApplyFilters(IQueryable<DisputeListItem> query, DisputeListRequest request)
@@ -193,4 +326,36 @@ public class DisputeRepository : IDisputeRepository
             .Select(row => row.UserId)
             .Distinct()
             .ToListAsync(cancellationToken);
+
+    private static MoveVN.Application.Modules.Bookings.DTOs.InspectionReportResponse MapInspectionReport(
+        InspectionReport report,
+        IReadOnlyCollection<CheckInOutImage> images)
+        => new()
+        {
+            Id = report.Id,
+            BookingId = report.BookingId,
+            Type = report.Type,
+            CreatedByUserId = report.StaffId,
+            OdometerKm = report.OdometerKm,
+            FuelLevel = report.FuelLevel,
+            DamageNoted = report.DamageNoted,
+            DamageDescription = report.DamageDescription,
+            ReportPdfUrl = report.ReportPdfUrl,
+            CustomerSignatureUrl = report.CustomerSignatureUrl,
+            IsCustomerConfirmed = false,
+            CreatedAt = report.CreatedAt,
+            Images = images
+                .Where(image => image.InspectionId == report.Id)
+                .Select(image => new MoveVN.Application.Modules.Bookings.DTOs.CheckInOutImageResponse
+                {
+                    Id = image.Id,
+                    BookingId = image.BookingId,
+                    InspectionId = image.InspectionId,
+                    ImageUrl = image.ImageUrl,
+                    ImageType = image.ImageType,
+                    UploadedBy = image.UploadedBy,
+                    CreatedAt = image.CreatedAt,
+                })
+                .ToList()
+        };
 }

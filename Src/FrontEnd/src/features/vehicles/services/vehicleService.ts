@@ -63,9 +63,18 @@ export async function toggleVehicleStatus(id: number) {
   await apiClient.put(endpoints.vehicles.toggleStatus(id));
 }
 
-export async function getPricingSuggestion(modelId: number, areaId: number) {
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export async function getPricingSuggestion(modelId: number, areaId: number, options?: { date?: string; vacantRate?: number }) {
   const res = await apiClient.get<ApiResponse<PricingSuggestionResponse>>(endpoints.vehicles.pricingSuggestion, {
-    params: { modelId, areaId },
+    params: {
+      modelId,
+      areaId,
+      date: options?.date ?? todayIsoDate(),
+      vacantRate: options?.vacantRate ?? 1,
+    },
   });
   return res.data.data;
 }

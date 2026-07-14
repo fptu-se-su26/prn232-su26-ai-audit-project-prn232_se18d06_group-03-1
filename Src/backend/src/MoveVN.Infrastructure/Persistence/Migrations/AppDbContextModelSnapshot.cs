@@ -723,6 +723,14 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<decimal?>("AdminApprovedAmount")
+                        .HasColumnType("numeric")
+                        .HasColumnName("admin_approved_amount");
+
+                    b.Property<string>("AdminCloseReason")
+                        .HasColumnType("text")
+                        .HasColumnName("admin_close_reason");
+
                     b.Property<long?>("AssignedStaffId")
                         .HasColumnType("bigint")
                         .HasColumnName("assigned_staff_id");
@@ -731,17 +739,94 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("booking_id");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<long?>("ClosedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("closed_by");
+
                     b.Property<decimal?>("CompensationAmount")
                         .HasColumnType("numeric")
                         .HasColumnName("compensation_amount");
+
+                    b.Property<string>("CompensationDirection")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("compensation_direction");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("CustomerExternalConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("customer_external_confirmed");
+
+                    b.Property<DateTime?>("CustomerExternalConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("customer_external_confirmed_at");
+
+                    b.Property<long?>("DecidedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("decided_by");
+
+                    b.Property<DateTime?>("DecisionIssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decision_issued_at");
+
+                    b.Property<DateTime?>("EscalatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("escalated_at");
+
+                    b.Property<long?>("EscalatedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("escalated_by");
+
+                    b.Property<string>("EvidenceRequestMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("evidence_request_message");
+
+                    b.Property<DateTime?>("EvidenceRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("evidence_requested_at");
+
+                    b.Property<string>("EvidenceRequestedFrom")
+                        .HasColumnType("text")
+                        .HasColumnName("evidence_requested_from");
+
+                    b.Property<DateTime?>("EvidenceRespondedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("evidence_responded_at");
+
+                    b.Property<decimal>("ExternalSettlementAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("external_settlement_amount");
+
                     b.Property<long>("OpenedBy")
                         .HasColumnType("bigint")
                         .HasColumnName("opened_by");
+
+                    b.Property<bool>("OwnerExternalConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("owner_external_confirmed");
+
+                    b.Property<DateTime?>("OwnerExternalConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("owner_external_confirmed_at");
+
+                    b.Property<decimal>("PlatformSettledAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("platform_settled_amount");
+
+                    b.Property<DateTime?>("PlatformSettlementCompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("platform_settlement_completed_at");
 
                     b.Property<long?>("ReportId")
                         .HasColumnType("bigint")
@@ -755,14 +840,71 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_at");
 
+                    b.Property<string>("SettlementMethod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("DepositThenExternal")
+                        .HasColumnName("settlement_method");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("status");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("BookingId")
+                        .IsUnique()
+                        .HasFilter("status <> 'Resolved'");
+
                     b.ToTable("Disputes");
+                });
+
+            modelBuilder.Entity("MoveVN.Domain.Entities.DisputeEvidenceSubmission", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("DisputeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("dispute_id");
+
+                    b.Property<string>("EvidenceUrls")
+                        .HasColumnType("text")
+                        .HasColumnName("evidence_urls");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<long>("SubmittedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("submitted_by");
+
+                    b.Property<string>("SubmittedRole")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("submitted_role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisputeId", "SubmittedBy");
+
+                    b.ToTable("DisputeEvidenceSubmissions");
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.DriverLicenseClass", b =>
@@ -2787,6 +2929,9 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("wallet_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
 
                     b.ToTable("WalletTransactions");
                 });

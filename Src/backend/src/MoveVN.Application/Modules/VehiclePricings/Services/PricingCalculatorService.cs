@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Interfaces;
@@ -11,14 +13,24 @@ namespace MoveVN.Application.Modules.VehiclePricings.Services;
 public class PricingCalculatorService : IPricingCalculatorService
 {
     private readonly IVehicleCatalogRepository _repository;
+    private readonly IDynamicPricingSuggestionClient _dynamicPricingClient;
+    private readonly ILogger<PricingCalculatorService> _logger;
 
-    public PricingCalculatorService(IVehicleCatalogRepository repository)
+    public PricingCalculatorService(
+        IVehicleCatalogRepository repository,
+        IDynamicPricingSuggestionClient dynamicPricingClient,
+        ILogger<PricingCalculatorService> logger)
     {
         _repository = repository;
+        _dynamicPricingClient = dynamicPricingClient;
+        _logger = logger;
     }
 
-    public async Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, CancellationToken cancellationToken = default)
+    public async Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, DateOnly? date = null, decimal? vacantRate = null, CancellationToken cancellationToken = default)
     {
+        if (vacantRate is < 0 or > 1)
+            throw new AppException(ErrorCode.PRICING_INVALID_RANGE);
+
         var model = await _repository.GetVehicleModelByIdAsync(modelId, cancellationToken);
         if (model is null)
             throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
@@ -41,17 +53,21 @@ public class PricingCalculatorService : IPricingCalculatorService
             };
         }
 
-        return new PricingSuggestionResponse
+        var basePrice = Math.Round(pricing.BasePrice * region.Coefficient, 2);
+        var suggestion = new PricingSuggestionResponse
         {
             HasSuggestion = true,
             ModelId = modelId,
             AreaId = area.Id,
             PricingRegionId = area.PricingRegionId,
             PricingRegionCode = region.Code,
-            BasePrice = Math.Round(pricing.BasePrice * region.Coefficient, 2),
+            BasePrice = basePrice,
             SuggestedMinPrice = Math.Round(pricing.SuggestedMinPrice * region.Coefficient, 2),
             SuggestedMaxPrice = Math.Round(pricing.SuggestedMaxPrice * region.Coefficient, 2)
         };
+
+        await EnrichDynamicSuggestionAsync(suggestion, model.BrandId, date, vacantRate, cancellationToken);
+        return suggestion;
     }
 
     public async Task ValidatePricingAsync(Vehicle vehicle, UpdateVehiclePricingRequest request, CancellationToken cancellationToken = default)
@@ -76,7 +92,7 @@ public class PricingCalculatorService : IPricingCalculatorService
         if (!vehicle.AreaId.HasValue)
             return;
 
-        var suggestion = await GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken);
+        var suggestion = await GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
         if (!suggestion.HasSuggestion)
             return;
 
@@ -110,7 +126,7 @@ public class PricingCalculatorService : IPricingCalculatorService
 
         if (vehicle.AreaId.HasValue)
         {
-            var suggestion = await GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken);
+            var suggestion = await GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
             if (suggestion.BasePrice.HasValue)
                 price = suggestion.BasePrice.Value;
         }
@@ -139,4 +155,49 @@ public class PricingCalculatorService : IPricingCalculatorService
         if (price < min || price > max)
             throw new AppException(ErrorCode.PRICING_OUT_OF_SUGGESTED_RANGE);
     }
+
+    private async Task EnrichDynamicSuggestionAsync(
+        PricingSuggestionResponse suggestion,
+        int brandId,
+        DateOnly? date,
+        decimal? vacantRate,
+        CancellationToken cancellationToken)
+    {
+        if (!suggestion.BasePrice.HasValue)
+            return;
+
+        try
+        {
+            var vehicleType = await _repository.VehicleBrands
+                .Where(x => x.Id == brandId)
+                .Select(x => x.VehicleType)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(vehicleType))
+                return;
+
+            var result = await _dynamicPricingClient.SuggestAsync(new DynamicPricingSuggestionRequest
+            {
+                VehicleType = NormalizeVehicleType(vehicleType),
+                Date = date ?? DateOnly.FromDateTime(DateTime.UtcNow),
+                VacantRate = vacantRate ?? 1m,
+                BasePrice = suggestion.BasePrice.Value
+            }, cancellationToken);
+
+            suggestion.DynamicSuggestedPrice = result.SuggestedPrice;
+            suggestion.DynamicFormattedSuggestedPrice = result.FormattedSuggestedPrice;
+            suggestion.DynamicPricingMultiplier = result.Multiplier;
+            suggestion.DynamicPricingAppliedRules = result.AppliedRules;
+            suggestion.DynamicIsWeekend = result.IsWeekend;
+            suggestion.DynamicIsHoliday = result.IsHoliday;
+            suggestion.DynamicIsLowVacancy = result.IsLowVacancy;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            _logger.LogWarning(ex, "Dynamic pricing suggestion failed for model {ModelId}, area {AreaId}.", suggestion.ModelId, suggestion.AreaId);
+        }
+    }
+
+    private static string NormalizeVehicleType(string value)
+        => value.Trim().Equals("Motorcycle", StringComparison.OrdinalIgnoreCase) ? "Motorbike" : value.Trim();
 }

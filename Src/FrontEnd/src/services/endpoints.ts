@@ -104,13 +104,18 @@ export const endpoints = {
   },
   disputes: {
     base: "/api/disputes",
+    uploadEvidenceImages: "/api/disputes/evidence-images",
     my: "/api/disputes/my",
     staff: "/api/disputes/staff",
     byId: (id: number) => `/api/disputes/${id}`,
     investigate: (id: number) => `/api/disputes/${id}/investigate`,
+    requestMoreEvidence: (id: number) => `/api/disputes/${id}/request-more-evidence`,
+    evidence: (id: number) => `/api/disputes/${id}/evidence`,
     resolve: (id: number) => `/api/disputes/${id}/resolve`,
     escalate: (id: number) => `/api/disputes/${id}/escalate`,
     adminOverride: (id: number) => `/api/disputes/${id}/admin-override`,
+    confirmExternalSettlement: (id: number) => `/api/disputes/${id}/confirm-external-settlement`,
+    adminClose: (id: number) => `/api/disputes/${id}/admin-close`,
   },
   users: {
     me: "/api/users/me",

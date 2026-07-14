@@ -42,6 +42,8 @@ function getTransactionLabel(type: string) {
     Withdrawal: "Rút tiền",
     Penalty: "Phí phạt",
     PlatformFee: "Phí nền tảng",
+    PlatformFeeRevenue: "Doanh thu phí nền tảng",
+    BookingEarningReversal: "Thu hồi khoản giải ngân trùng",
   };
   return map[type] || type;
 }
@@ -370,7 +372,7 @@ export default function AdminWalletsPage() {
                     </div>
                   ) : (
                     detail.transactions.map((tx) => {
-                      const isPositive = tx.type === "TopUp" || tx.type === "BookingEarning" || tx.type === "Refund" || tx.type === "PayoutReversal";
+                      const isPositive = tx.type === "TopUp" || tx.type === "BookingEarning" || tx.type === "Refund" || tx.type === "PayoutReversal" || tx.type === "DisputeCompensation" || tx.type === "PlatformFeeRevenue";
                       return (
                         <div key={tx.id} className="p-4 flex justify-between items-center hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors text-xs sm:text-sm">
                           <div className="space-y-1">
