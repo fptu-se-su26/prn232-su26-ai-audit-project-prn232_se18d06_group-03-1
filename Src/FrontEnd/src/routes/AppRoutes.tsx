@@ -116,6 +116,7 @@ export default function AppRoutes() {
           <Route path="/account/verification" element={<VerificationOverviewPage />} />
           <Route path="/account/verification/cccd" element={<CccdVerificationPage />} />
           <Route path="/account/verification/drivers-license" element={<DriverLicenseVerificationPage />} />
+          <Route path="/account/verification/national-id" element={<Navigate to="/account/verification/cccd" replace />} />
           <Route path="/account/security/password" element={<ChangePasswordPage />} />
           <Route path="/account/wallet" element={<WalletPage />} />
           <Route path="/account/security/sessions" element={<UnderDevelopment />} />

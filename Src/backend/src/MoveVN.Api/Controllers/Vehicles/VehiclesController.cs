@@ -158,6 +158,13 @@ public class VehiclesController : BaseApiController
         return Success(new object());
     }
 
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> Delete(long id, CancellationToken cancellationToken = default)
+    {
+        await _vehicleService.DeleteVehicleAsync(id, _currentUser.UserId!.Value, cancellationToken);
+        return Success(new object());
+    }
+
     [HttpPost("{id}/blocked-dates")]
     public async Task<ActionResult<ApiResponse<BlockedDateResponse>>> CreateBlockedDate(
         long id,

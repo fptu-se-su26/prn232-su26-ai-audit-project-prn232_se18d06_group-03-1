@@ -53,6 +53,7 @@ export type VehicleDocumentResponse = {
 export type VehicleResponse = {
   id: number;
   ownerId: number;
+  ownerName: string;
   brandId: number;
   brandName: string;
   modelId: number;

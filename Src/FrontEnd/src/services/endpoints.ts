@@ -38,6 +38,7 @@ export const endpoints = {
     pricing: (id: number) => `/api/vehicles/${id}/pricing`,
     pricingSuggestion: "/api/vehicles/pricing/suggestion",
     toggleStatus: (id: number) => `/api/vehicles/${id}/toggle-status`,
+    deleteVehicle: (id: number) => `/api/vehicles/${id}`,
     blockedDates: (id: number) => `/api/vehicles/${id}/blocked-dates`,
     deleteBlockedDate: (blockedDateId: number) => `/api/vehicles/blocked-dates/${blockedDateId}`,
     base: "/api/vehicles",

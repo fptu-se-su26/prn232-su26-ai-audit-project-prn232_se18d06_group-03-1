@@ -379,6 +379,30 @@ public class VehicleService : IVehicleService
         await _repository.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteVehicleAsync(long id, long ownerId, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await _repository.Vehicles
+            .FirstOrDefaultAsync(v => v.Id == id && v.OwnerId == ownerId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
+
+        if (vehicle.Status == VehicleStatus.Approved)
+            throw new AppException(ErrorCode.VEHICLE_DELETE_APPROVED);
+
+        var now = DateTime.UtcNow;
+        var hasActiveBookings = await _repository.Bookings
+            .AnyAsync(b =>
+                b.VehicleId == id &&
+                b.EndDate > now &&
+                b.Status != "Cancelled" &&
+                b.Status != "Rejected", cancellationToken);
+
+        if (hasActiveBookings)
+            throw new AppException(ErrorCode.VEHICLE_DELETE_ACTIVE_BOOKINGS);
+
+        _repository.Remove(vehicle);
+        await _repository.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task VerifyVehicleDocumentAsync(
         Vehicle vehicle,
         string brandName,

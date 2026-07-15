@@ -16,13 +16,16 @@ public class PublicVehicleService : IPublicVehicleService
 {
     private readonly IVehicleCatalogRepository _repository;
     private readonly IPricingCalculatorService _pricingCalculator;
+    private readonly IUserRepository _userRepository;
 
     public PublicVehicleService(
         IVehicleCatalogRepository repository,
-        IPricingCalculatorService pricingCalculator)
+        IPricingCalculatorService pricingCalculator,
+        IUserRepository userRepository)
     {
         _repository = repository;
         _pricingCalculator = pricingCalculator;
+        _userRepository = userRepository;
     }
 
     public async Task<PagedResult<VehicleListItemResponse>> GetAvailableVehiclesAsync(
@@ -68,10 +71,13 @@ public class PublicVehicleService : IPublicVehicleService
         var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
         var features = await _repository.GetVehicleFeatureResponsesAsync(vehicle.Id, cancellationToken);
 
+        var owner = await _userRepository.GetByIdAsync(vehicle.OwnerId, cancellationToken);
+
         return new VehicleResponse
         {
             Id = vehicle.Id,
             OwnerId = vehicle.OwnerId,
+            OwnerName = owner?.FullName ?? "",
             BrandId = vehicle.BrandId,
             BrandName = brand?.Name ?? "",
             ModelId = vehicle.ModelId,

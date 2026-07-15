@@ -36,8 +36,14 @@ export default function BookingNewPage() {
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(() => {
+    const d = searchParams.get("startDate");
+    return d ? d + "T00:00" : "";
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = searchParams.get("endDate");
+    return d ? d + "T00:00" : "";
+  });
   const [pickupAddress, setPickupAddress] = useState("");
   const [returnAddress, setReturnAddress] = useState("");
   const [customerNote, setCustomerNote] = useState("");

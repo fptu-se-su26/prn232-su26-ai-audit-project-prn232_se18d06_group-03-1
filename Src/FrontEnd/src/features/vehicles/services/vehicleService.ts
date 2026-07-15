@@ -193,3 +193,7 @@ export async function createBlockedDate(vehicleId: number, data: BlockedDateRequ
 export async function deleteBlockedDate(blockedDateId: number) {
   await apiClient.delete(endpoints.vehicles.deleteBlockedDate(blockedDateId));
 }
+
+export async function deleteVehicle(id: number) {
+  await apiClient.delete(endpoints.vehicles.deleteVehicle(id));
+}

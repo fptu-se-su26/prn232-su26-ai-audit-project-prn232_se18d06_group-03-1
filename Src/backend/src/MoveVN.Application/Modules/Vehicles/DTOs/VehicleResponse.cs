@@ -4,6 +4,7 @@ public class VehicleResponse
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
+    public string OwnerName { get; set; } = string.Empty;
     public int BrandId { get; set; }
     public string BrandName { get; set; } = string.Empty;
     public int ModelId { get; set; }
