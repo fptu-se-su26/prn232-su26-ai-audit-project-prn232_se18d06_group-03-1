@@ -15,6 +15,11 @@ export interface BookingResponse {
   platformFee: number;
   depositAmount: number;
   totalAmount: number;
+  escrowAmount: number;
+  escrowStatus: string;
+  escrowHeldAt?: string;
+  escrowSettledAt?: string;
+  paymentDueAt?: string;
   pickupAddress: string;
   returnAddress?: string;
   customerNote?: string;
@@ -23,6 +28,11 @@ export interface BookingResponse {
   riskLevel?: string;
   riskFactors?: string[];
   cancelReason?: string;
+  cancellationPolicyTier?: string;
+  cancellationRefundAmount: number;
+  cancellationForfeitedAmount: number;
+  cancellationOwnerCompensation: number;
+  cancellationPlatformFee: number;
   createdAt: string;
   updatedAt: string;
   statusHistory: BookingStatusHistoryDto[];
@@ -34,6 +44,18 @@ export interface BookingStatusHistoryDto {
   changedBy?: number;
   note?: string;
   createdAt: string;
+}
+
+export interface BookingCancellationQuote {
+  bookingId: number;
+  canCancel: boolean;
+  hasPaidDeposit: boolean;
+  paidDepositAmount: number;
+  refundPercent: number;
+  refundAmount: number;
+  forfeitedAmount: number;
+  hoursBeforePickup: number;
+  policyMessage: string;
 }
 
 export interface CreateBookingRequest {
@@ -56,6 +78,9 @@ export interface RejectBookingRequest {
 
 export interface BookingListRequest {
   status?: string;
+  keyword?: string;
+  fromDate?: string;
+  toDate?: string;
   page?: number;
   pageSize?: number;
 }

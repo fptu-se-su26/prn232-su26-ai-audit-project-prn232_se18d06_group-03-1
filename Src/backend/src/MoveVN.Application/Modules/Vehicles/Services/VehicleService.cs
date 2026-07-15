@@ -593,8 +593,8 @@ public class VehicleService : IVehicleService
 
     private static void ValidateDeposit(int depositPercent)
     {
-        if (depositPercent < 0 || depositPercent > 50)
-            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Phần trăm tiền cọc phải từ 0 đến 50%."]);
+        if (depositPercent < 20 || depositPercent > 50)
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Phần trăm tiền cọc phải từ 20 đến 50%."]);
     }
 
     private static string NormalizeVehicleType(string value)

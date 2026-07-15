@@ -36,6 +36,7 @@ import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { showToast } from "@/components/common/toastStore";
+import { useSearchParams } from "react-router-dom";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
@@ -96,6 +97,7 @@ function getStatusText(status: string) {
 }
 
 export default function WalletPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeRole = useAuthStore((state) => state.activeRole);
   const isOwner = activeRole === "Owner";
 
@@ -108,6 +110,10 @@ export default function WalletPage() {
 
   // Tabs
   const [activeTab, setActiveTab] = useState<"transactions" | "withdrawals">("transactions");
+
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "withdrawals" && isOwner ? "withdrawals" : "transactions");
+  }, [searchParams, isOwner]);
 
   // Top Up Modal
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
@@ -368,13 +374,13 @@ export default function WalletPage() {
         {isOwner && (
           <div className="flex border-b border-slate-200 dark:border-slate-800">
             <button 
-              onClick={() => setActiveTab("transactions")}
+              onClick={() => setSearchParams({ tab: "transactions" })}
               className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 -mb-[2px] ${activeTab === "transactions" ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"}`}
             >
               Lịch sử giao dịch
             </button>
             <button 
-              onClick={() => setActiveTab("withdrawals")}
+              onClick={() => setSearchParams({ tab: "withdrawals" })}
               className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 -mb-[2px] ${activeTab === "withdrawals" ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"}`}
             >
               Yêu cầu rút tiền

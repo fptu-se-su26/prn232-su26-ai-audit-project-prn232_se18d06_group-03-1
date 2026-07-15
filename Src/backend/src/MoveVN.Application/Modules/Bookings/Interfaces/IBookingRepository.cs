@@ -30,6 +30,7 @@ public interface IBookingRepository
     Task<(List<BookingResponse> Items, int TotalCount)> GetByCustomerPagedAsync(long customerId, BookingListRequest request, CancellationToken cancellationToken = default);
     Task<(List<BookingResponse> Items, int TotalCount)> GetByOwnerPagedAsync(long ownerId, BookingListRequest request, CancellationToken cancellationToken = default);
     Task<List<Booking>> GetExpiredPendingAsync(DateTime threshold, CancellationToken cancellationToken = default);
+    Task<List<Booking>> GetExpiredApprovedAsync(DateTime now, CancellationToken cancellationToken = default);
     Task AddReviewAsync(Review review, CancellationToken cancellationToken = default);
     Task<List<Review>> GetReviewsByBookingIdAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<List<Review>> GetReviewsByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default);

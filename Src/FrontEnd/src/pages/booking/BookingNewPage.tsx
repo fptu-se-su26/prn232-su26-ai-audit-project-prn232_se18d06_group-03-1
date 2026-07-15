@@ -84,12 +84,12 @@ export default function BookingNewPage() {
     const discPct = getDiscountPercent(totalDays);
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
-    const fee = Math.round(afterDisc * 10 / 100);
-    const deposit = vehicle.depositPercent > 0
-      ? Math.round(afterDisc * vehicle.depositPercent / 100)
-      : 0;
-    const total = afterDisc + fee;
-    return { base, discPct, discAmt, fee, deposit, total };
+    const total = afterDisc;
+    const fee = Math.round(total * 10 / 100);
+    const depositPercent = Math.max(20, vehicle.depositPercent || 0);
+    const deposit = Math.round(total * depositPercent / 100);
+    const remaining = Math.max(total - deposit, 0);
+    return { base, discPct, discAmt, fee, deposit, depositPercent, remaining, total };
   }, [vehicle, totalDays]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -368,15 +368,19 @@ export default function BookingNewPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-[14px]">
-                  <span className="text-slate-600 dark:text-slate-400">Phí nền tảng (10%)</span>
+                  <span className="text-slate-600 dark:text-slate-400">Phí nền tảng (10%, đã gồm trong giá)</span>
                   <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.fee)}</span>
                 </div>
                 {pricePreview.deposit > 0 && (
                   <div className="flex justify-between text-[14px] pt-2 border-t border-slate-50 dark:border-slate-800">
-                    <span className="text-slate-600 dark:text-slate-400">Tiền cọc</span>
+                    <span className="text-slate-600 dark:text-slate-400">Tiền cọc ({pricePreview.depositPercent}%)</span>
                     <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.deposit)}</span>
                   </div>
                 )}
+                <div className="flex justify-between gap-4 rounded-xl bg-amber-50 px-3 py-2 text-[13px] dark:bg-amber-950/30">
+                  <span className="text-amber-800 dark:text-amber-300">Còn lại trả chủ xe khi nhận xe</span>
+                  <span className="shrink-0 font-semibold text-amber-900 dark:text-amber-200">{formatCurrency(pricePreview.remaining)}</span>
+                </div>
               </div>
             ) : (
               <div className="space-y-4 mb-6 border-b border-slate-100 dark:border-slate-800 pb-5 text-[14px] text-slate-500 dark:text-slate-500 italic text-center">

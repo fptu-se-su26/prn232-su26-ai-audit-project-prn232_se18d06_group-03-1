@@ -55,6 +55,7 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         try
         {
             await AutoCancelExpiredPendingBookingsAsync(cancellationToken);
+            await AutoCancelExpiredApprovedBookingsAsync(cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -64,6 +65,46 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         {
             _logger.LogWarning(exception, "Booking auto-cancel job failed.");
         }
+    }
+
+    private async Task AutoCancelExpiredApprovedBookingsAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+        var now = DateTime.UtcNow;
+        var expiredBookings = (await bookingRepository.GetExpiredApprovedAsync(now, cancellationToken))
+            .Take(GetBatchSize())
+            .ToList();
+
+        foreach (var booking in expiredBookings)
+        {
+            const string reason = "Khach hang khong thanh toan tien coc dung han. He thong tu dong huy booking.";
+            booking.Status = "Cancelled";
+            booking.CancelReason = reason;
+            booking.CancelledAt = now;
+            booking.UpdatedAt = now;
+            booking.CancellationSource = "PaymentTimeout";
+            bookingRepository.Update(booking);
+            await bookingRepository.AddStatusHistoryAsync(new BookingStatusHistory
+            {
+                BookingId = booking.Id,
+                FromStatus = "Approved",
+                ToStatus = "Cancelled",
+                Note = reason,
+                CreatedAt = now
+            }, cancellationToken);
+        }
+
+        if (expiredBookings.Count == 0) return;
+        await bookingRepository.SaveChangesAsync(cancellationToken);
+        foreach (var booking in expiredBookings)
+        {
+            await NotifyBookingAutoRejectedAsync(notificationService, booking, booking.CustomerId, "customer", cancellationToken);
+            if (booking.OwnerId != booking.CustomerId)
+                await NotifyBookingAutoRejectedAsync(notificationService, booking, booking.OwnerId, "owner", cancellationToken);
+        }
+        _logger.LogInformation("Auto-cancelled {Count} approved booking(s) after deposit deadline.", expiredBookings.Count);
     }
 
     private async Task AutoCancelExpiredPendingBookingsAsync(CancellationToken cancellationToken)
@@ -88,9 +129,9 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         foreach (var booking in expiredBookings)
         {
             var previousStatus = booking.Status;
-            var reason = $"Booking was automatically cancelled because it stayed pending for more than {GetPendingTimeout().TotalMinutes:0} minutes.";
+            var reason = $"Chủ xe không phản hồi trong {GetPendingTimeout().TotalHours:0} giờ. Hệ thống tự động từ chối booking.";
 
-            booking.Status = "Cancelled";
+            booking.Status = "Rejected";
             booking.CancelReason = reason;
             booking.CancelledAt = now;
             booking.UpdatedAt = now;
@@ -100,7 +141,7 @@ public class BookingAutoCancelBackgroundService : BackgroundService
             {
                 BookingId = booking.Id,
                 FromStatus = previousStatus,
-                ToStatus = "Cancelled",
+                ToStatus = "Rejected",
                 ChangedBy = null,
                 Note = reason,
                 CreatedAt = now
@@ -111,18 +152,18 @@ public class BookingAutoCancelBackgroundService : BackgroundService
 
         foreach (var booking in expiredBookings)
         {
-            await NotifyBookingAutoCancelledAsync(notificationService, booking, booking.CustomerId, "customer", cancellationToken);
+            await NotifyBookingAutoRejectedAsync(notificationService, booking, booking.CustomerId, "customer", cancellationToken);
 
             if (booking.OwnerId != booking.CustomerId)
             {
-                await NotifyBookingAutoCancelledAsync(notificationService, booking, booking.OwnerId, "owner", cancellationToken);
+                await NotifyBookingAutoRejectedAsync(notificationService, booking, booking.OwnerId, "owner", cancellationToken);
             }
         }
 
-        _logger.LogInformation("Auto-cancelled {Count} expired pending booking(s).", expiredBookings.Count);
+        _logger.LogInformation("Auto-rejected {Count} pending booking(s) without an owner response.", expiredBookings.Count);
     }
 
-    private async Task NotifyBookingAutoCancelledAsync(
+    private async Task NotifyBookingAutoRejectedAsync(
         INotificationService notificationService,
         Booking booking,
         long userId,
@@ -135,8 +176,10 @@ public class BookingAutoCancelBackgroundService : BackgroundService
             {
                 UserId = userId,
                 Type = "Booking",
-                Title = "Booking da tu dong huy",
-                Body = $"{booking.BookingCode} da tu dong huy vi qua thoi gian cho xu ly.",
+                Title = booking.Status == "Rejected"
+                    ? "Booking đã tự động bị từ chối"
+                    : "Booking đã tự động bị hủy",
+                Body = $"{booking.BookingCode}: {booking.CancelReason}",
                 DataJson = JsonSerializer.Serialize(new
                 {
                     bookingId = booking.Id,
@@ -147,14 +190,14 @@ public class BookingAutoCancelBackgroundService : BackgroundService
                     targetPath = roleTarget == "owner"
                         ? $"/owner/bookings/{booking.Id}"
                         : $"/customer/bookings/{booking.Id}",
-                    action = "BookingAutoCancelled"
+                    action = "BookingAutoRejected"
                 }),
                 Channel = "InApp"
             }, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            _logger.LogWarning(exception, "Failed to send auto-cancel notification for booking {BookingId} to user {UserId}.", booking.Id, userId);
+            _logger.LogWarning(exception, "Failed to send auto-reject notification for booking {BookingId} to user {UserId}.", booking.Id, userId);
         }
     }
 

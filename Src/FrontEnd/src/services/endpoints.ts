@@ -77,7 +77,6 @@ export const endpoints = {
     owner: "/api/bookings/owner",
     approve: (id: number) => `/api/bookings/${id}/approve`,
     reject: (id: number) => `/api/bookings/${id}/reject`,
-    confirmDeposit: (id: number) => `/api/bookings/${id}/confirm-deposit`,
     complete: (id: number) => `/api/bookings/${id}/complete`,
     ownerComplete: (id: number) => `/api/bookings/${id}/owner-complete`,
     checkIn: (id: number) => `/api/bookings/${id}/check-in`,
@@ -85,6 +84,8 @@ export const endpoints = {
     confirmCheckIn: (id: number) => `/api/bookings/${id}/check-in/confirm`,
     confirmCheckOut: (id: number) => `/api/bookings/${id}/check-out/confirm`,
     inspectionReports: (id: number) => `/api/bookings/${id}/inspection-reports`,
+    cancellationQuote: (id: number) => `/api/bookings/${id}/cancellation-quote`,
+    cancel: (id: number) => `/api/bookings/${id}/cancel`,
   },
   reviews: {
     customer: "/api/reviews/customer",

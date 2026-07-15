@@ -121,6 +121,19 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public Task<PlatformFeeRule?> GetPlatformFeeRuleByIdAsync(long id, CancellationToken cancellationToken = default)
         => _context.PlatformFeeRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
+    public Task<PlatformFeeRule?> GetActivePlatformFeeRuleAsync(long ownerId, DateTime effectiveAt, CancellationToken cancellationToken = default)
+        => _context.PlatformFeeRules
+            .Where(rule => rule.IsActive
+                && (!rule.StartAt.HasValue || rule.StartAt <= effectiveAt)
+                && (!rule.EndAt.HasValue || rule.EndAt >= effectiveAt)
+                && ((rule.TargetType == "Owner" && rule.TargetId == ownerId)
+                    || rule.TargetType == "All"
+                    || rule.TargetType == "Global"))
+            .OrderBy(rule => rule.TargetType == "Owner" && rule.TargetId == ownerId ? 0 : 1)
+            .ThenBy(rule => rule.Priority)
+            .ThenBy(rule => rule.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<Vehicle?> GetVehicleByIdAsync(long id, CancellationToken cancellationToken = default)
         => _context.Vehicles.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 

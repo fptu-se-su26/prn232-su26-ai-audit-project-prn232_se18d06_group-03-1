@@ -43,6 +43,7 @@ public interface IVehicleCatalogRepository
     Task<VehicleModelPricing?> GetVehicleModelPricingByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<PricingRule?> GetPricingRuleByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<PlatformFeeRule?> GetPlatformFeeRuleByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<PlatformFeeRule?> GetActivePlatformFeeRuleAsync(long ownerId, DateTime effectiveAt, CancellationToken cancellationToken = default);
     Task<Vehicle?> GetVehicleByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<Vehicle?> GetVehicleByIdAndOwnerIdAsync(long id, long ownerId, CancellationToken cancellationToken = default);
     Task<bool> VehicleBrandExistsAsync(int id, CancellationToken cancellationToken = default);

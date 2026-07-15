@@ -54,6 +54,12 @@ public class PaymentService : IPaymentService
 
         if (booking.Status != "Approved")
             throw new ValidationException(new[] { "Booking chưa được duyệt, không thể thanh toán cọc." });
+
+        var now = DateTime.UtcNow;
+        if (booking.PaymentDueAt.HasValue && booking.PaymentDueAt <= now)
+            throw new ValidationException(new[] { "Đã hết hạn thanh toán tiền cọc." });
+        if (booking.StartDate <= now)
+            throw new ValidationException(new[] { "Đã đến giờ nhận xe, không thể tạo giao dịch đặt cọc." });
             
         // Check if there is already a Pending payment
         var existingPayments = await _paymentRepo.FindAsync(p => p.BookingId == bookingId && p.Status == PaymentStatus.Pending, cancellationToken);
@@ -175,16 +181,39 @@ public class PaymentService : IPaymentService
 
             if (payment.Amount != data.Amount)
             {
-                _logger.LogWarning("Amount mismatch for Payment {PaymentId}. Expected {Expected}, Got {Actual}", payment.Id, payment.Amount, data.Amount);
+                payment.Status = PaymentStatus.Failed;
+                payment.Note = $"PayOS amount mismatch. Expected {payment.Amount}, received {data.Amount}.";
+                _paymentRepo.Update(payment);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                _logger.LogError("Rejected amount mismatch for Payment {PaymentId}. Expected {Expected}, Got {Actual}", payment.Id, payment.Amount, data.Amount);
+                return;
             }
 
-            // 1. Update Payment
-            payment.Status = PaymentStatus.Paid;
-            payment.PaidAt = DateTime.UtcNow;
-            payment.GatewayTransactionId = data.PaymentLinkId; 
-            _paymentRepo.Update(payment);
+            Booking? booking = null;
+            if (payment.Type == "BookingDeposit")
+            {
+                if (!payment.BookingId.HasValue)
+                {
+                    _logger.LogError("Payment {PaymentId} has no BookingId.", payment.Id);
+                    return;
+                }
 
-            // 2. Customer Wallet Operations
+                booking = await _bookingRepo.GetByIdAsync(payment.BookingId.Value, cancellationToken);
+                var now = DateTime.UtcNow;
+                if (booking == null || booking.Status != "Approved"
+                    || booking.StartDate <= now
+                    || (booking.PaymentDueAt.HasValue && booking.PaymentDueAt <= now))
+                {
+                    payment.Status = PaymentStatus.Failed;
+                    payment.Note = "Booking is no longer eligible for deposit payment; manual reconciliation is required.";
+                    _paymentRepo.Update(payment);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    _logger.LogError("Rejected late or invalid deposit webhook for Payment {PaymentId}.", payment.Id);
+                    return;
+                }
+            }
+
+            // 1. Ensure the customer wallet exists before changing payment state.
             var customerWallets = await _walletRepo.FindAsync(w => w.UserId == payment.PayerId, cancellationToken);
             var customerWallet = customerWallets.FirstOrDefault();
             if (customerWallet == null)
@@ -193,6 +222,12 @@ public class PaymentService : IPaymentService
                 await _walletRepo.AddAsync(customerWallet, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken); 
             }
+
+            // 2. Only the verified webhook path can update a payment to Paid.
+            payment.Status = PaymentStatus.Paid;
+            payment.PaidAt = DateTime.UtcNow;
+            payment.GatewayTransactionId = data.PaymentLinkId;
+            _paymentRepo.Update(payment);
 
             var topUpTx = new WalletTransaction
             {
@@ -227,18 +262,7 @@ public class PaymentService : IPaymentService
             }
 
             // The rest is for Booking payments
-            if (!payment.BookingId.HasValue)
-            {
-                _logger.LogError("Payment {PaymentId} has no BookingId.", payment.Id);
-                return;
-            }
-
-            var booking = await _bookingRepo.GetByIdAsync(payment.BookingId.Value, cancellationToken);
-            if (booking == null)
-            {
-                _logger.LogError("Booking {BookingId} for Payment {PaymentId} not found.", payment.BookingId, payment.Id);
-                return;
-            }
+            if (booking == null) return;
 
             var paymentTx = new WalletTransaction
             {
@@ -255,39 +279,12 @@ public class PaymentService : IPaymentService
             customerWallet.TotalSpent += data.Amount;
             _walletRepo.Update(customerWallet);
 
-            // 2.5. Owner Wallet Operations - Credit deposit minus platform fee immediately
-            var ownerEarning = booking.DepositAmount - booking.PlatformFee;
-            var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == booking.OwnerId, cancellationToken);
-            var ownerWallet = ownerWallets.FirstOrDefault();
-            if (ownerWallet == null)
-            {
-                ownerWallet = new Wallet { UserId = booking.OwnerId, Balance = 0, TotalEarned = 0, TotalSpent = 0 };
-                await _walletRepo.AddAsync(ownerWallet, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-            }
-
-            var ownerTx = new WalletTransaction
-            {
-                WalletId = ownerWallet.Id,
-                Type = WalletTransactionType.BookingEarning,
-                Amount = ownerEarning,
-                BalanceAfter = ownerWallet.Balance + ownerEarning,
-                ReferenceId = booking.Id,
-                IdempotencyKey = $"booking_earning_{booking.Id}",
-                Note = $"Thu nhập từ booking {booking.BookingCode} (Đặt cọc: {booking.DepositAmount:N0}đ, Phí: {booking.PlatformFee:N0}đ)",
-                Status = "Completed"
-            };
-            await _walletRepo.AddTransactionAsync(ownerTx, cancellationToken);
-            ownerWallet.Balance += ownerEarning;
-            if (ownerEarning > 0)
-                ownerWallet.TotalEarned += ownerEarning;
-            else
-                ownerWallet.TotalSpent += Math.Abs(ownerEarning);
-            _walletRepo.Update(ownerWallet);
-
             // 3. Update Booking Status
             var oldStatus = booking.Status;
             booking.Status = "DepositPaid";
+            booking.EscrowAmount = data.Amount;
+            booking.EscrowStatus = "Held";
+            booking.EscrowHeldAt = DateTime.UtcNow;
             booking.UpdatedAt = DateTime.UtcNow;
             _bookingRepo.Update(booking);
 

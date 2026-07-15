@@ -7,5 +7,6 @@ public static class PaymentStatus
     public const string Expired = "Expired";
     public const string Cancelled = "Cancelled";
     public const string Refunded = "Refunded";
+    public const string PartiallyRefunded = "PartiallyRefunded";
     public const string Failed = "Failed";
 }

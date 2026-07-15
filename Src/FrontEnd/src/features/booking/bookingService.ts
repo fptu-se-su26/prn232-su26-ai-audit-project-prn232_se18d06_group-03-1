@@ -1,7 +1,7 @@
 import { apiClient } from "@/services/apiClient";
 import { endpoints } from "@/services/endpoints";
 import type { ApiResponse } from "@/features/auth/types";
-import type { BookingResponse, BookingListRequest, CreateBookingRequest, InspectionReportResponse, RejectBookingRequest } from "./types";
+import type { BookingResponse, BookingCancellationQuote, BookingListRequest, CreateBookingRequest, InspectionReportResponse, RejectBookingRequest } from "./types";
 
 export async function createBooking(data: CreateBookingRequest): Promise<BookingResponse> {
   const res = await apiClient.post<ApiResponse<BookingResponse>>(endpoints.bookings.base, data);
@@ -30,11 +30,6 @@ export async function approveBooking(id: number): Promise<BookingResponse> {
 
 export async function rejectBooking(id: number, data: RejectBookingRequest): Promise<BookingResponse> {
   const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.reject(id), data);
-  return res.data.data!;
-}
-
-export async function confirmDeposit(id: number): Promise<BookingResponse> {
-  const res = await apiClient.put<ApiResponse<BookingResponse>>(endpoints.bookings.confirmDeposit(id));
   return res.data.data!;
 }
 
@@ -75,4 +70,14 @@ export async function confirmCheckOut(id: number): Promise<BookingResponse> {
 export async function getInspectionReports(id: number): Promise<InspectionReportResponse[]> {
   const res = await apiClient.get<ApiResponse<InspectionReportResponse[]>>(endpoints.bookings.inspectionReports(id));
   return res.data.data ?? [];
+}
+
+export async function getBookingCancellationQuote(id: number): Promise<BookingCancellationQuote> {
+  const res = await apiClient.get<ApiResponse<BookingCancellationQuote>>(endpoints.bookings.cancellationQuote(id));
+  return res.data.data!;
+}
+
+export async function cancelBooking(id: number, reason?: string): Promise<BookingResponse> {
+  const res = await apiClient.post<ApiResponse<BookingResponse>>(endpoints.bookings.cancel(id), { reason });
+  return res.data.data!;
 }

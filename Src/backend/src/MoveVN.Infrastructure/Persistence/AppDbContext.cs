@@ -80,6 +80,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         builder.Entity<Wallet>();
         builder.Entity<WalletTransaction>().HasIndex(entity => entity.IdempotencyKey).IsUnique();
+        builder.Entity<Booking>().Property(entity => entity.EscrowStatus).HasDefaultValue("None");
+        builder.Entity<Booking>().HasIndex(entity => new { entity.Status, entity.PaymentDueAt });
         builder.Entity<WithdrawalRequest>();
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
