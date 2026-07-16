@@ -14,6 +14,11 @@ public class Booking
     public decimal PlatformFee { get; set; }
     public decimal DepositAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal EscrowAmount { get; set; }
+    public string EscrowStatus { get; set; } = "None";
+    public DateTime? EscrowHeldAt { get; set; }
+    public DateTime? EscrowSettledAt { get; set; }
+    public DateTime? PaymentDueAt { get; set; }
     public string PickupAddress { get; set; } = string.Empty;
     public string ReturnAddress { get; set; } = string.Empty;
     public string? CustomerNote { get; set; }
@@ -27,5 +32,11 @@ public class Booking
     public long? PlatformFeeRuleId { get; set; }
     public string PlatformFeeType { get; set; } = string.Empty;
     public decimal PlatformFeeValue { get; set; }
+    public string? CancellationPolicyTier { get; set; }
+    public string? CancellationSource { get; set; }
+    public decimal CancellationRefundAmount { get; set; }
+    public decimal CancellationForfeitedAmount { get; set; }
+    public decimal CancellationOwnerCompensation { get; set; }
+    public decimal CancellationPlatformFee { get; set; }
 }
 

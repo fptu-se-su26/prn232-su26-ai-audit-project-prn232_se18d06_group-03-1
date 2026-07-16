@@ -29,6 +29,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<CustomerDriverLicense> CustomerDriverLicenses => Set<CustomerDriverLicense>();
     public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<DisputeEvidenceSubmission> DisputeEvidenceSubmissions => Set<DisputeEvidenceSubmission>();
     public DbSet<DriverLicenseClass> DriverLicenseClasses => Set<DriverLicenseClass>();
     public DbSet<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => Set<DriverLicenseClassCompatibility>();
     public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
@@ -78,7 +79,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         base.OnModelCreating(builder);
 
         builder.Entity<Wallet>();
-        builder.Entity<WalletTransaction>();
+        builder.Entity<WalletTransaction>().HasIndex(entity => entity.IdempotencyKey).IsUnique();
+        builder.Entity<Booking>().Property(entity => entity.EscrowStatus).HasDefaultValue("None");
+        builder.Entity<Booking>().HasIndex(entity => new { entity.Status, entity.PaymentDueAt });
         builder.Entity<WithdrawalRequest>();
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
@@ -138,6 +141,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Vehicle>().Property(entity => entity.DepositPercent).HasDefaultValue(0);
         builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
+        builder.Entity<Dispute>().Property(entity => entity.PlatformSettledAmount).HasDefaultValue(0);
+        builder.Entity<Dispute>().Property(entity => entity.SettlementMethod).HasDefaultValue("DepositThenExternal");
+        builder.Entity<Dispute>().Property(entity => entity.ExternalSettlementAmount).HasDefaultValue(0);
+        builder.Entity<Dispute>()
+            .HasIndex(entity => entity.BookingId)
+            .IsUnique()
+            .HasFilter("status <> 'Resolved'");
+        builder.Entity<DisputeEvidenceSubmission>().HasIndex(entity => new { entity.DisputeId, entity.SubmittedBy });
         builder.Entity<VehicleDocument>().HasIndex(entity => entity.VehicleId);
         builder.Entity<VehicleDocument>().HasIndex(entity => new { entity.VehicleId, entity.IsCurrent });
         builder.Entity<VehicleDocument>().HasIndex(entity => entity.VerificationStatus);

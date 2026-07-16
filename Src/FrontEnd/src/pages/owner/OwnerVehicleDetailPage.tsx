@@ -509,7 +509,7 @@ export default function OwnerVehicleDetailPage() {
             <p className="text-2xl font-bold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span></p>
             <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
               <span className="font-semibold text-slate-700">Thế chấp: </span>
-              {vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}
+              {Math.max(20, vehicle.depositPercent || 0)}%
             </div>
             {vehicle.pricingMode === "Auto" ? (
               <>

@@ -13,6 +13,8 @@ public class Payment
     public string Status { get; set; } = "Pending";
     public string IdempotencyKey { get; set; } = string.Empty;
     public DateTime? PaidAt { get; set; }
+    public decimal RefundedAmount { get; set; }
+    public DateTime? RefundedAt { get; set; }
     public string? Note { get; set; }
     public long? OrderCode { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

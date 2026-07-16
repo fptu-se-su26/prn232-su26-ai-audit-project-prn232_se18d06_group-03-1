@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -12,6 +12,7 @@ import { createCustomerReview, getBookingReviews, hasReviewed } from "@/features
 import type { ReviewResponse } from "@/features/review/reviewService";
 import StarRatingInput from "@/features/review/components/StarRatingInput";
 import ReviewCard from "@/features/review/components/ReviewCard";
+import BookingCancellationCard from "@/features/booking/components/BookingCancellationCard";
 
 const statusLabels: Record<string, string> = {
   Pending: "Chờ duyệt",
@@ -151,6 +152,7 @@ export default function CustomerBookingDetailPage() {
   if (!booking) return <p className="text-sm text-red-600">Không tìm thấy booking.</p>;
   const checkInReport = inspectionReports.find((report) => report.type === "CheckIn");
   const checkOutReport = inspectionReports.find((report) => report.type === "CheckOut");
+  const damageDisputeUrl = `/customer/disputes?bookingId=${booking.id}&reportType=Damage&description=${encodeURIComponent("Tôi không đồng ý với biên bản check-out và yêu cầu kiểm tra lại.")}`;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -169,6 +171,12 @@ export default function CustomerBookingDetailPage() {
           </span>
         </div>
       </section>
+
+      {booking.status === "Pending" && (
+        <Card className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Chủ xe có 24 giờ để duyệt yêu cầu. Nếu không phản hồi trước <strong>{formatDateTime(new Date(new Date(booking.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString())}</strong>, hệ thống sẽ tự động từ chối booking.
+        </Card>
+      )}
 
       {checkInReport && (booking.status === "DepositPaid" || booking.status === "Confirmed") && (
         <Card className="space-y-4 rounded-md border-2 border-cyan-200 bg-cyan-50 p-5">
@@ -222,9 +230,17 @@ export default function CustomerBookingDetailPage() {
               </a>
             ))}
           </div>
-          <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
-            <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
-          </Button>
+          <p className="text-sm text-slate-600">Nếu thông tin hoặc hình ảnh có sai sót, hãy mở tranh chấp trước khi xác nhận hoàn tất.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
+              <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
+            </Button>
+            <Link to={damageDisputeUrl}>
+              <Button type="button" variant="secondary" className="border-red-200 text-red-700 hover:bg-red-50">
+                <ShieldAlert className="h-4 w-4" /> Có sai sót / Mở tranh chấp
+              </Button>
+            </Link>
+          </div>
         </Card>
       )}
 
@@ -236,6 +252,11 @@ export default function CustomerBookingDetailPage() {
             <span className="font-semibold text-slate-900">{formatCurrency(booking.depositAmount)}</span>{" "}
             qua PayOS để xác nhận đặt xe.
           </p>
+          {booking.paymentDueAt && (
+            <p className="text-sm font-medium text-amber-700">
+              Hạn thanh toán: {new Date(booking.paymentDueAt).toLocaleString("vi-VN")}. Quá hạn booking sẽ tự hủy.
+            </p>
+          )}
           <Button
             variant="primary"
             onClick={async () => {
@@ -255,6 +276,8 @@ export default function CustomerBookingDetailPage() {
           </Button>
         </Card>
       )}
+
+      <BookingCancellationCard booking={booking} onCancelled={setBooking} />
 
       <Card className="space-y-4 rounded-md p-5">
         <h2 className="text-lg font-bold text-slate-950">Thông tin thuê xe</h2>
@@ -315,7 +338,7 @@ export default function CustomerBookingDetailPage() {
             </div>
           )}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600">Phí nền tảng</span>
+            <span className="text-slate-600">Phí nền tảng (đã gồm trong tổng)</span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.platformFee)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
@@ -324,6 +347,10 @@ export default function CustomerBookingDetailPage() {
               Tiền cọc
             </span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.depositAmount)}</span>
+          </div>
+          <div className="flex items-start justify-between gap-4 rounded-md bg-amber-50 px-3 py-2 text-sm">
+            <span className="text-amber-800">Còn lại trả cho chủ xe khi nhận xe</span>
+            <span className="shrink-0 font-semibold text-amber-900">{formatCurrency(Math.max(booking.totalAmount - booking.depositAmount, 0))}</span>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-2">
             <span className="flex items-center gap-1 font-semibold text-slate-900">
@@ -402,6 +429,7 @@ export default function CustomerBookingDetailPage() {
           ))}
         </div>
       </Card>
+
     </div>
   );
 }

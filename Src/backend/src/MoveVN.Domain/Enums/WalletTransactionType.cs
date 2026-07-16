@@ -5,6 +5,8 @@ public static class WalletTransactionType
     // Money IN
     public const string TopUp = "TopUp";
     public const string BookingEarning = "BookingEarning";
+    public const string DisputeCompensation = "DisputeCompensation";
+    public const string PlatformFeeRevenue = "PlatformFeeRevenue";
     public const string Refund = "Refund";
     public const string PayoutReversal = "PayoutReversal";
     public const string AdminAdjust = "AdminAdjust";
@@ -14,4 +16,5 @@ public static class WalletTransactionType
     public const string Withdrawal = "Withdrawal";
     public const string Penalty = "Penalty";
     public const string PlatformFee = "PlatformFee";
+    public const string BookingEarningReversal = "BookingEarningReversal";
 }

@@ -299,9 +299,10 @@ export default function VehicleDetailPage() {
             <p className="mt-2 text-2xl font-bold text-brand-700">
               {displayPrice.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span>
             </p>
+            <p className="mt-1 text-xs text-emerald-700">Giá đã bao gồm phí nền tảng.</p>
             <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-              <span className="font-semibold text-slate-700">Thế chấp: </span>
-              {vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}
+              <span className="font-semibold text-slate-700">Tiền cọc tối thiểu: </span>
+              {Math.max(20, vehicle.depositPercent || 0)}%
             </div>
             <div className="mt-3 flex items-center gap-2">
               {vehicle.vehicleType === "Car" ? (

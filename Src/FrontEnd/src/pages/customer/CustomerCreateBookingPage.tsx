@@ -79,12 +79,12 @@ export default function CustomerCreateBookingPage() {
     const discPct = getDiscountPercent(totalDays);
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
-    const fee = Math.round(afterDisc * 10 / 100);
-    const deposit = vehicle.depositPercent > 0
-      ? Math.round(afterDisc * vehicle.depositPercent / 100)
-      : 0;
-    const total = afterDisc + fee;
-    return { base, discPct, discAmt, fee, deposit, total };
+    const total = afterDisc;
+    const fee = Math.round(total * 10 / 100);
+    const depositPercent = Math.max(20, vehicle.depositPercent || 0);
+    const deposit = Math.round(total * depositPercent / 100);
+    const remaining = Math.max(total - deposit, 0);
+    return { base, discPct, discAmt, fee, deposit, depositPercent, remaining, total };
   }, [vehicle, totalDays]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -269,15 +269,19 @@ export default function CustomerCreateBookingPage() {
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-slate-600">Phí nền tảng (10%)</span>
+                <span className="text-slate-600">Phí nền tảng (10%, đã gồm trong giá)</span>
                 <span className="font-medium text-slate-900">{formatCurrency(pricePreview.fee)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
                 <span className="flex items-center gap-1 text-slate-600">
                   <CreditCard className="h-3.5 w-3.5 text-brand-700" />
-                  Tiền cọc
+                  Tiền cọc ({pricePreview.depositPercent}%)
                 </span>
                 <span className="font-medium text-slate-900">{formatCurrency(pricePreview.deposit)}</span>
+              </div>
+              <div className="flex items-start justify-between gap-4 rounded-md bg-amber-50 px-3 py-2 text-sm">
+                <span className="text-amber-800">Còn lại trả cho chủ xe khi nhận xe</span>
+                <span className="shrink-0 font-semibold text-amber-900">{formatCurrency(pricePreview.remaining)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
                 <span className="flex items-center gap-1 font-semibold text-slate-900">

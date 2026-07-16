@@ -36,13 +36,18 @@ import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { showToast } from "@/components/common/toastStore";
+import { useSearchParams } from "react-router-dom";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 }
 
+function isCreditTransaction(type: string) {
+  return ["TopUp", "BookingEarning", "Refund", "PayoutReversal", "DisputeCompensation", "PlatformFeeRevenue"].includes(type);
+}
+
 function getTransactionIcon(type: string) {
-  if (type === "TopUp" || type === "BookingEarning" || type === "Refund" || type === "PayoutReversal") {
+  if (isCreditTransaction(type)) {
     return <ArrowDownLeft className="h-5 w-5 text-emerald-500" />;
   }
   return <ArrowUpRight className="h-5 w-5 text-rose-500" />;
@@ -54,11 +59,14 @@ function getTransactionLabel(type: string) {
     BookingEarning: "Thu nhập cho thuê",
     Refund: "Hoàn tiền",
     PayoutReversal: "Hủy rút tiền",
+    DisputeCompensation: "Bồi thường tranh chấp",
+    PlatformFeeRevenue: "Doanh thu phí nền tảng",
     AdminAdjust: "Điều chỉnh hệ thống",
     BookingPayment: "Thanh toán cọc",
     Withdrawal: "Rút tiền",
     Penalty: "Phí phạt",
     PlatformFee: "Phí nền tảng",
+    BookingEarningReversal: "Thu hồi khoản giải ngân trùng",
   };
   return map[type] || type;
 }
@@ -89,6 +97,7 @@ function getStatusText(status: string) {
 }
 
 export default function WalletPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeRole = useAuthStore((state) => state.activeRole);
   const isOwner = activeRole === "Owner";
 
@@ -101,6 +110,10 @@ export default function WalletPage() {
 
   // Tabs
   const [activeTab, setActiveTab] = useState<"transactions" | "withdrawals">("transactions");
+
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "withdrawals" && isOwner ? "withdrawals" : "transactions");
+  }, [searchParams, isOwner]);
 
   // Top Up Modal
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
@@ -361,13 +374,13 @@ export default function WalletPage() {
         {isOwner && (
           <div className="flex border-b border-slate-200 dark:border-slate-800">
             <button 
-              onClick={() => setActiveTab("transactions")}
+              onClick={() => setSearchParams({ tab: "transactions" })}
               className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 -mb-[2px] ${activeTab === "transactions" ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"}`}
             >
               Lịch sử giao dịch
             </button>
             <button 
-              onClick={() => setActiveTab("withdrawals")}
+              onClick={() => setSearchParams({ tab: "withdrawals" })}
               className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 -mb-[2px] ${activeTab === "withdrawals" ? "border-brand-600 text-brand-600" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"}`}
             >
               Yêu cầu rút tiền
@@ -392,7 +405,7 @@ export default function WalletPage() {
                 </div>
               ) : (
                 transactions.map((tx) => {
-                  const isPositive = tx.type === "TopUp" || tx.type === "BookingEarning" || tx.type === "Refund" || tx.type === "PayoutReversal";
+                  const isPositive = isCreditTransaction(tx.type);
                   return (
                     <div key={tx.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <div className="flex items-center gap-4">

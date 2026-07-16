@@ -65,7 +65,7 @@ public class VehicleService : IVehicleService
         PricingSuggestionResponse? suggestion = null;
         if (vehicle.AreaId.HasValue)
         {
-            suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken);
+            suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
         }
 
         var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
@@ -593,8 +593,8 @@ public class VehicleService : IVehicleService
 
     private static void ValidateDeposit(int depositPercent)
     {
-        if (depositPercent < 0 || depositPercent > 50)
-            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Phần trăm tiền cọc phải từ 0 đến 50%."]);
+        if (depositPercent < 20 || depositPercent > 50)
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Phần trăm tiền cọc phải từ 20 đến 50%."]);
     }
 
     private static string NormalizeVehicleType(string value)

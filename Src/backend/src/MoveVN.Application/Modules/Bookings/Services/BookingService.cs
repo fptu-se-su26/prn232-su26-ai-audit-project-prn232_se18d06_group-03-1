@@ -6,6 +6,8 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.DTOs;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
+using MoveVN.Application.Modules.Disputes.Interfaces;
+using MoveVN.Application.Modules.Disputes.Services;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Payments.Interfaces;
@@ -16,6 +18,7 @@ namespace MoveVN.Application.Modules.Bookings.Services;
 
 public class BookingService : IBookingService
 {
+    private static readonly TimeSpan DepositPaymentWindow = TimeSpan.FromHours(2);
     private readonly IBookingRepository _repo;
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepo;
@@ -24,7 +27,10 @@ public class BookingService : IBookingService
     private readonly IRedisLockService _redisLockService;
     private readonly ICustomerDriverLicenseRepository _customerLicenseRepo;
     private readonly IWalletRepository _walletRepo;
+    private readonly IPaymentRepository _paymentRepo;
+    private readonly IDisputeRepository _disputeRepository;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly IVehicleCatalogRepository _catalogRepository;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -43,7 +49,10 @@ public class BookingService : IBookingService
         IRedisLockService redisLockService,
         ICustomerDriverLicenseRepository customerLicenseRepo,
         IWalletRepository walletRepo,
-        ICloudinaryService cloudinaryService)
+        IPaymentRepository paymentRepo,
+        IDisputeRepository disputeRepository,
+        ICloudinaryService cloudinaryService,
+        IVehicleCatalogRepository catalogRepository)
     {
         _repo = repo;
         _emailSender = emailSender;
@@ -53,7 +62,10 @@ public class BookingService : IBookingService
         _redisLockService = redisLockService;
         _customerLicenseRepo = customerLicenseRepo;
         _walletRepo = walletRepo;
+        _paymentRepo = paymentRepo;
+        _disputeRepository = disputeRepository;
         _cloudinaryService = cloudinaryService;
+        _catalogRepository = catalogRepository;
     }
 
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, long customerId, CancellationToken cancellationToken = default)
@@ -124,11 +136,17 @@ public class BookingService : IBookingService
         var discountPercent = GetDiscountPercent(totalDays);
         var discountAmount = Math.Round(basePrice * discountPercent / 100, 0);
         var afterDiscount = basePrice - discountAmount;
-        var platformFee = Math.Round(afterDiscount * 10 / 100, 0);
-        var depositAmount = vehicle.DepositPercent > 0
-            ? Math.Round(afterDiscount * vehicle.DepositPercent / 100, 0)
-            : 0;
-        var totalAmount = afterDiscount + platformFee;
+        // The listed rental price already includes the platform fee. Keep the
+        // customer-facing total unchanged and only split the fee internally.
+        var totalAmount = afterDiscount;
+        var feeRule = await _catalogRepository.GetActivePlatformFeeRuleAsync(vehicle.OwnerId, DateTime.UtcNow, cancellationToken);
+        if (feeRule is null)
+            throw new ValidationException(new[] { "Chua cau hinh quy tac phi nen tang dang hoat dong." });
+        var platformFeeType = feeRule.FeeType;
+        var platformFeeValue = feeRule.FeeValue;
+        var platformFee = CalculatePlatformFee(totalAmount, platformFeeType, platformFeeValue, feeRule.MinFee, feeRule.MaxFee);
+        var effectiveDepositPercent = Math.Clamp(vehicle.DepositPercent, 20, 100);
+        var depositAmount = Math.Round(totalAmount * effectiveDepositPercent / 100, 0);
         var createdAt = DateTime.UtcNow;
         var risk = await CalculateBookingRiskAsync(
             customerId,
@@ -136,7 +154,7 @@ public class BookingService : IBookingService
             totalDays,
             totalAmount,
             depositAmount,
-            vehicle.DepositPercent > 0,
+            true,
             createdAt,
             null,
             cancellationToken);
@@ -161,8 +179,10 @@ public class BookingService : IBookingService
             RiskScore = risk.Score,
             CreatedAt = createdAt,
             UpdatedAt = createdAt,
-            PlatformFeeType = "Percentage",
-            PlatformFeeValue = 10m,
+            PlatformFeeRuleId = feeRule.Id,
+            PlatformFeeType = platformFeeType,
+            PlatformFeeValue = platformFeeValue,
+            EscrowStatus = "None",
         };
 
         await _repo.AddAsync(booking, cancellationToken);
@@ -205,12 +225,23 @@ public class BookingService : IBookingService
 
     public async Task<(List<BookingResponse> Items, int TotalCount)> GetMyBookingsAsync(long userId, BookingListRequest request, CancellationToken cancellationToken = default)
     {
+        NormalizeListRequest(request);
         return await _repo.GetByCustomerPagedAsync(userId, request, cancellationToken);
     }
 
     public async Task<(List<BookingResponse> Items, int TotalCount)> GetOwnerBookingsAsync(long ownerId, BookingListRequest request, CancellationToken cancellationToken = default)
     {
+        NormalizeListRequest(request);
         return await _repo.GetByOwnerPagedAsync(ownerId, request, cancellationToken);
+    }
+
+    private static void NormalizeListRequest(BookingListRequest request)
+    {
+        request.Page = Math.Max(request.Page, 1);
+        request.PageSize = Math.Clamp(request.PageSize, 5, 50);
+
+        if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate > request.ToDate)
+            throw new ValidationException(["Ngày bắt đầu bộ lọc không được sau ngày kết thúc."]);
     }
 
     public async Task<BookingResponse> ApproveAsync(long bookingId, long ownerId, CancellationToken cancellationToken = default)
@@ -224,12 +255,16 @@ public class BookingService : IBookingService
         if (booking.Status != "Pending")
             throw new ValidationException(new[] { "Booking không ở trạng thái chờ duyệt." });
 
+        if (booking.StartDate <= DateTime.UtcNow)
+            throw new ValidationException(["Đã đến giờ nhận xe, booking không thể được duyệt."]);
+
         var hasOverlap = await _repo.HasOverlapAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
         if (hasOverlap)
             throw new ValidationException(new[] { "Xe đã có người đặt trong khoảng thời gian này, không thể duyệt." });
 
         var oldStatus = booking.Status;
         booking.Status = "Approved";
+        booking.PaymentDueAt = new[] { DateTime.UtcNow.Add(DepositPaymentWindow), booking.StartDate }.Min();
         booking.UpdatedAt = DateTime.UtcNow;
         _repo.Update(booking);
 
@@ -325,6 +360,112 @@ public class BookingService : IBookingService
         return await MapAsync(booking, cancellationToken);
     }
 
+    public async Task<BookingCancellationQuote> GetCancellationQuoteAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
+    {
+        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new NotFoundException("Booking không tồn tại.");
+
+        if (booking.CustomerId != customerId)
+            throw new ValidationException(["Bạn không có quyền hủy booking này."]);
+
+        var paidDeposit = await GetPaidDepositAmountAsync(booking.Id, cancellationToken);
+        return BuildCancellationQuote(booking, paidDeposit, DateTime.UtcNow);
+    }
+
+    public async Task<BookingResponse> CancelByCustomerAsync(
+        long bookingId,
+        long customerId,
+        CancelBookingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var lockHandle = await _redisLockService.AcquireLockAsync(
+            $"booking:cancel:{bookingId}",
+            TimeSpan.FromSeconds(30),
+            cancellationToken);
+
+        if (lockHandle is null)
+            throw new AppException(ErrorCode.REDIS_LOCK_FAILED);
+
+        try
+        {
+            var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
+                ?? throw new NotFoundException("Booking không tồn tại.");
+
+            if (booking.CustomerId != customerId)
+                throw new ValidationException(["Bạn không có quyền hủy booking này."]);
+
+            var now = DateTime.UtcNow;
+            var paidDeposit = await GetPaidDepositAmountAsync(booking.Id, cancellationToken);
+            var quote = BuildCancellationQuote(booking, paidDeposit, now);
+            if (!quote.CanCancel)
+                throw new ValidationException([quote.PolicyMessage]);
+
+            var previousStatus = booking.Status;
+            var reason = string.IsNullOrWhiteSpace(request.Reason)
+                ? "Khách hàng chủ động hủy booking."
+                : request.Reason.Trim();
+
+            await _disputeRepository.ExecuteInTransactionAsync(async ct =>
+            {
+                await ApplyCancellationWalletSettlementAsync(booking, quote, now, ct);
+
+                booking.Status = "Cancelled";
+                booking.CancelledBy = customerId;
+                booking.CancelReason = reason;
+                booking.CancelledAt = now;
+                booking.UpdatedAt = now;
+                booking.CancellationSource = "Customer";
+                if (!quote.HasPaidDeposit)
+                    booking.CancellationPolicyTier = "UnpaidFree";
+                _repo.Update(booking);
+
+                var trustScore = await _repo.GetTrustScoreByUserIdAsync(customerId, ct);
+                if (trustScore is not null)
+                    trustScore.CancellationCount += 1;
+
+                await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+                {
+                    BookingId = booking.Id,
+                    FromStatus = previousStatus,
+                    ToStatus = "Cancelled",
+                    ChangedBy = customerId,
+                    Note = $"{reason} {quote.PolicyMessage} Hoàn cọc: {quote.RefundAmount:N0}đ; khấu trừ: {quote.ForfeitedAmount:N0}đ.",
+                    CreatedAt = now,
+                }, ct);
+
+                await _repo.SaveChangesAsync(ct);
+            }, cancellationToken);
+
+            await NotifyUserAsync(
+                booking.OwnerId,
+                booking,
+                "Khách hàng đã hủy booking",
+                $"{booking.BookingCode}: Khách đã hủy. Tiền cọc giữ lại: {quote.ForfeitedAmount:N0}đ.",
+                "owner",
+                $"/owner/bookings/{booking.Id}",
+                "BookingCancelledByCustomer",
+                cancellationToken);
+
+            await NotifyUserAsync(
+                booking.CustomerId,
+                booking,
+                "Đã hủy booking",
+                quote.HasPaidDeposit
+                    ? $"{booking.BookingCode}: Số tiền hoàn vào ví là {quote.RefundAmount:N0}đ."
+                    : $"{booking.BookingCode}: Booking đã được hủy miễn phí.",
+                "customer",
+                $"/customer/bookings/{booking.Id}",
+                "BookingCancelled",
+                cancellationToken);
+
+            return await MapAsync(booking, cancellationToken);
+        }
+        finally
+        {
+            await _redisLockService.ReleaseLockAsync(lockHandle, cancellationToken);
+        }
+    }
+
     public async Task<BookingResponse> CompleteAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
     {
         var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
@@ -354,76 +495,6 @@ public class BookingService : IBookingService
         return await MapAsync(booking, cancellationToken);
     }
 
-    public async Task<BookingResponse> ConfirmDepositAsync(long bookingId, long customerId, CancellationToken cancellationToken = default)
-    {
-        var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
-            ?? throw new NotFoundException("Booking không tồn tại.");
-
-        if (booking.CustomerId != customerId)
-            throw new ValidationException(new[] { "Bạn không có quyền xác nhận cọc cho booking này." });
-
-        if (booking.Status != "Approved")
-            throw new ValidationException(new[] { "Booking chưa được duyệt hoặc đã xác nhận cọc." });
-
-        var oldStatus = booking.Status;
-        booking.Status = "DepositPaid";
-        booking.UpdatedAt = DateTime.UtcNow;
-        _repo.Update(booking);
-
-        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
-        {
-            BookingId = booking.Id,
-            FromStatus = oldStatus,
-            ToStatus = "DepositPaid",
-            ChangedBy = customerId,
-            Note = "Khách hàng xác nhận đã chuyển cọc",
-        }, cancellationToken);
-
-        var overlapping = await _repo.GetOverlappingBookingsAsync(booking.VehicleId, booking.StartDate, booking.EndDate, booking.Id, cancellationToken);
-        foreach (var overlap in overlapping)
-        {
-            var oldOverlapStatus = overlap.Status;
-            overlap.Status = "Cancelled";
-            overlap.CancelReason = "Xe da co khach khac thanh toan coc thanh cong.";
-            overlap.CancelledAt = DateTime.UtcNow;
-            overlap.UpdatedAt = DateTime.UtcNow;
-            _repo.Update(overlap);
-
-            await _repo.AddStatusHistoryAsync(new BookingStatusHistory
-            {
-                BookingId = overlap.Id,
-                FromStatus = oldOverlapStatus,
-                ToStatus = "Cancelled",
-                ChangedBy = customerId,
-                Note = "He thong tu dong huy do trung lich",
-            }, cancellationToken);
-
-            await NotifyUserAsync(
-                overlap.CustomerId,
-                overlap,
-                "Booking bi huy do trung lich",
-                $"{overlap.BookingCode}: Xe da co nguoi khac dat coc truoc. Ban co the tim xe khac nhe.",
-                "customer",
-                $"/booking/{overlap.Id}",
-                "BookingCancelled",
-                cancellationToken);
-        }
-
-        await _repo.SaveChangesAsync(cancellationToken);
-
-        await NotifyUserAsync(
-            booking.OwnerId,
-            booking,
-            "Khach hang da xac nhan coc",
-            $"{booking.BookingCode}: Khach hang da xac nhan da chuyen coc.",
-            "owner",
-            $"/owner/bookings/{booking.Id}",
-            "BookingDepositConfirmed",
-            cancellationToken);
-
-        return await MapAsync(booking, cancellationToken);
-    }
-
     public async Task<BookingResponse> OwnerCompleteAsync(long bookingId, long ownerId, CancellationToken cancellationToken = default)
     {
         var booking = await _repo.GetByIdAsync(bookingId, cancellationToken)
@@ -432,53 +503,44 @@ public class BookingService : IBookingService
         if (booking.OwnerId != ownerId)
             throw new ValidationException(new[] { "Ban khong co quyen hoan thanh booking nay." });
 
-        if (booking.Status != "DepositPaid" && booking.Status != "InProgress")
-            throw new ValidationException(new[] { "Chi co the hoan thanh booking da thanh toan coc hoac dang trong chuyen." });
+        if (booking.Status != "DepositPaid" && booking.Status != "InProgress" && booking.Status != "Completed")
+            throw new ValidationException(new[] { "Chi co the hoan thanh booking da thanh toan coc, dang trong chuyen hoac da duoc khach xac nhan." });
 
-        var oldStatus = booking.Status;
-        booking.Status = "Completed";
-        booking.UpdatedAt = DateTime.UtcNow;
-        _repo.Update(booking);
+        if (await _disputeRepository.HasOpenDisputeForBookingAsync(booking.Id, cancellationToken))
+            throw new ValidationException(new[] { "Booking đang có tranh chấp. Khoản tiền cọc được giữ đến khi tranh chấp kết thúc." });
 
-        await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+        var disputePayout = await _disputeRepository.GetCompletedPlatformSettlementForBookingAsync(booking.Id, cancellationToken);
+        var refundedDeposit = await _disputeRepository.GetCompletedDepositRefundForBookingAsync(booking.Id, cancellationToken);
+        var checkOut = await _disputeRepository.GetInspectionReportAsync(booking.Id, "CheckOut", cancellationToken);
+        if (checkOut is not null
+            && DateTime.UtcNow < checkOut.CreatedAt.AddHours(48)
+            && disputePayout <= 0m
+            && refundedDeposit <= 0m)
         {
-            BookingId = booking.Id,
-            FromStatus = oldStatus,
-            ToStatus = "Completed",
-            ChangedBy = ownerId,
-            Note = "Chu xe xac nhan hoan thanh chuyen di",
-        }, cancellationToken);
-
-        var ownerEarning = booking.DepositAmount - booking.PlatformFee;
-        var ownerWallets = await _walletRepo.FindAsync(w => w.UserId == ownerId, cancellationToken);
-        var ownerWallet = ownerWallets.FirstOrDefault();
-        if (ownerWallet == null)
+            throw new ValidationException(new[] { "Khoản tiền đang được giữ trong 48 giờ sau check-out để khách có thể mở tranh chấp." });
+        }
+        if (booking.Status != "Completed")
         {
-            ownerWallet = new Wallet { UserId = ownerId, Balance = 0, TotalEarned = 0, TotalSpent = 0 };
-            await _walletRepo.AddAsync(ownerWallet, cancellationToken);
-            await _repo.SaveChangesAsync(cancellationToken);
+            var oldStatus = booking.Status;
+            booking.Status = "Completed";
+            booking.UpdatedAt = DateTime.UtcNow;
+            _repo.Update(booking);
+
+            await _repo.AddStatusHistoryAsync(new BookingStatusHistory
+            {
+                BookingId = booking.Id,
+                FromStatus = oldStatus,
+                ToStatus = "Completed",
+                ChangedBy = ownerId,
+                Note = "Chu xe xac nhan hoan thanh chuyen di",
+            }, cancellationToken);
         }
 
-        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        await _disputeRepository.ExecuteInTransactionAsync(async ct =>
         {
-            WalletId = ownerWallet.Id,
-            Type = WalletTransactionType.BookingEarning,
-            Amount = ownerEarning,
-            BalanceAfter = ownerWallet.Balance + ownerEarning,
-            ReferenceId = booking.Id,
-            IdempotencyKey = $"booking_earning_{booking.Id}",
-            Note = $"Thu nhap tu booking {booking.BookingCode} (Dat coc: {booking.DepositAmount:N0}d, Phi: {booking.PlatformFee:N0}d)",
-            Status = "Completed",
+            await ReleaseCompletedEscrowAsync(booking, disputePayout, refundedDeposit, DateTime.UtcNow, ct);
+            await _repo.SaveChangesAsync(ct);
         }, cancellationToken);
-
-        ownerWallet.Balance += ownerEarning;
-        if (ownerEarning > 0)
-            ownerWallet.TotalEarned += ownerEarning;
-        else
-            ownerWallet.TotalSpent += Math.Abs(ownerEarning);
-        _walletRepo.Update(ownerWallet);
-
-        await _repo.SaveChangesAsync(cancellationToken);
 
         await NotifyUserAsync(
             booking.CustomerId,
@@ -490,18 +552,341 @@ public class BookingService : IBookingService
             "BookingCompleted",
             cancellationToken);
 
-        var earningText = ownerEarning >= 0 ? $"+{ownerEarning:N0}d" : $"-{Math.Abs(ownerEarning):N0}d";
         await NotifyUserAsync(
             booking.OwnerId,
             booking,
             "Hoan thanh booking thanh cong",
-            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di. So du vi thay doi {earningText}.",
+            $"{booking.BookingCode}: Ban da xac nhan hoan thanh chuyen di. Tien trong escrow da duoc quyet toan.",
             "owner",
             $"/booking/{booking.Id}",
             "BookingCompleted",
             cancellationToken);
 
         return await MapAsync(booking, cancellationToken);
+    }
+
+    private async Task ReleaseCompletedEscrowAsync(
+        Booking booking,
+        decimal completedDisputePayouts,
+        decimal completedDepositRefunds,
+        DateTime settledAt,
+        CancellationToken cancellationToken)
+    {
+        if (booking.EscrowStatus == "Released"
+            || await _walletRepo.TransactionExistsAsync($"booking_escrow_owner_release_{booking.Id}", cancellationToken))
+            return;
+
+        var escrowAmount = booking.EscrowAmount > 0m ? booking.EscrowAmount : booking.DepositAmount;
+        var settlement = EscrowSettlementCalculator.ForCompletion(escrowAmount, booking.PlatformFee);
+        await CreditPlatformFeeToAdminAsync(booking, settledAt, cancellationToken, settlement.PlatformFee);
+
+        var ownerAmount = Math.Max(settlement.OwnerAmount - completedDisputePayouts - completedDepositRefunds, 0m);
+        if (ownerAmount > 0m)
+        {
+            var ownerWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == booking.OwnerId, cancellationToken)).FirstOrDefault();
+            if (ownerWallet is null)
+            {
+                ownerWallet = new Wallet { UserId = booking.OwnerId };
+                await _walletRepo.AddAsync(ownerWallet, cancellationToken);
+                await _repo.SaveChangesAsync(cancellationToken);
+            }
+
+            ownerWallet.Balance += ownerAmount;
+            ownerWallet.TotalEarned += ownerAmount;
+            ownerWallet.UpdatedAt = settledAt;
+            _walletRepo.Update(ownerWallet);
+            await _walletRepo.AddTransactionAsync(new WalletTransaction
+            {
+                WalletId = ownerWallet.Id,
+                Type = WalletTransactionType.BookingEarning,
+                Amount = ownerAmount,
+                BalanceAfter = ownerWallet.Balance,
+                ReferenceId = booking.Id,
+                IdempotencyKey = $"booking_escrow_owner_release_{booking.Id}",
+                Note = $"Quyet toan escrow booking {booking.BookingCode}",
+                Status = "Completed",
+                CreatedAt = settledAt,
+            }, cancellationToken);
+        }
+
+        booking.EscrowAmount = escrowAmount;
+        booking.EscrowStatus = "Released";
+        booking.EscrowSettledAt = settledAt;
+        _repo.Update(booking);
+    }
+
+    private async Task<decimal> GetPaidDepositAmountAsync(long bookingId, CancellationToken cancellationToken)
+    {
+        var payments = await _paymentRepo.FindAsync(
+            payment => payment.BookingId == bookingId
+                && payment.Type == "BookingDeposit"
+                && payment.Status == PaymentStatus.Paid,
+            cancellationToken);
+
+        return payments.Sum(payment => payment.Amount);
+    }
+
+    private static BookingCancellationQuote BuildCancellationQuote(Booking booking, decimal paidDeposit, DateTime now)
+    {
+        var cancellableStatuses = new[] { "Pending", "Approved", "DepositPaid", "Confirmed" };
+        var canCancel = cancellableStatuses.Contains(booking.Status) && now < booking.StartDate;
+        var calculation = BookingCancellationPolicy.Calculate(paidDeposit, booking.StartDate, now);
+        var message = canCancel
+            ? paidDeposit > 0 ? calculation.PolicyMessage : "Booking chưa thanh toán cọc nên được hủy miễn phí."
+            : now >= booking.StartDate
+                ? "Đã đến giờ nhận xe, booking không thể hủy theo chính sách thông thường."
+                : "Booking ở trạng thái hiện tại không thể hủy.";
+
+        return new BookingCancellationQuote
+        {
+            BookingId = booking.Id,
+            CanCancel = canCancel,
+            HasPaidDeposit = paidDeposit > 0,
+            PaidDepositAmount = paidDeposit,
+            RefundPercent = paidDeposit > 0 ? calculation.RefundPercent : 100,
+            RefundAmount = calculation.RefundAmount,
+            ForfeitedAmount = calculation.ForfeitedAmount,
+            HoursBeforePickup = Math.Max((booking.StartDate - now).TotalHours, 0),
+            PolicyMessage = message,
+        };
+    }
+
+    private async Task ApplyCancellationWalletSettlementAsync(
+        Booking booking,
+        BookingCancellationQuote quote,
+        DateTime cancelledAt,
+        CancellationToken cancellationToken)
+    {
+        if (!quote.HasPaidDeposit || quote.PaidDepositAmount <= 0m)
+            return;
+
+        var settlement = EscrowSettlementCalculator.ForCancellation(quote.PaidDepositAmount, quote.RefundPercent);
+        booking.CancellationRefundAmount = settlement.RefundAmount;
+        booking.CancellationForfeitedAmount = settlement.ForfeitedAmount;
+        booking.CancellationOwnerCompensation = settlement.OwnerAmount;
+        booking.CancellationPlatformFee = settlement.PlatformFee;
+        booking.CancellationPolicyTier = quote.RefundPercent switch
+        {
+            100 => "AtLeast7Days",
+            50 => "From3To7Days",
+            _ => "LessThan3Days"
+        };
+        booking.CancellationSource = "Customer";
+        booking.EscrowStatus = settlement.RefundAmount == quote.PaidDepositAmount
+            ? "Refunded"
+            : settlement.RefundAmount > 0m ? "PartiallyForfeited" : "Forfeited";
+        booking.EscrowSettledAt = cancelledAt;
+
+        var ownerEarningExists = await _walletRepo.TransactionExistsAsync($"booking_earning_{booking.Id}", cancellationToken);
+        var wasAlreadyReversed = await _walletRepo.TransactionExistsAsync($"booking_earning_reversal_{booking.Id}", cancellationToken)
+            || await _walletRepo.TransactionExistsAsync($"booking_cancel_earning_reversal_{booking.Id}", cancellationToken);
+        var legacyOwnerEarning = Math.Max(quote.PaidDepositAmount - Math.Min(booking.PlatformFee, quote.PaidDepositAmount), 0m);
+        if (legacyOwnerEarning > 0m && ownerEarningExists && !wasAlreadyReversed)
+        {
+            var ownerWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == booking.OwnerId, cancellationToken)).FirstOrDefault();
+            if (ownerWallet is not null)
+            {
+                ownerWallet.Balance -= legacyOwnerEarning;
+                ownerWallet.TotalEarned = Math.Max(ownerWallet.TotalEarned - legacyOwnerEarning, 0m);
+                ownerWallet.UpdatedAt = cancelledAt;
+                _walletRepo.Update(ownerWallet);
+                await _walletRepo.AddTransactionAsync(new WalletTransaction
+                {
+                    WalletId = ownerWallet.Id,
+                    Type = WalletTransactionType.BookingEarningReversal,
+                    Amount = -legacyOwnerEarning,
+                    BalanceAfter = ownerWallet.Balance,
+                    ReferenceId = booking.Id,
+                    IdempotencyKey = $"booking_cancel_earning_reversal_{booking.Id}",
+                    Note = $"Thu hồi khoản cọc đã cộng sớm trước khi áp dụng escrow cho booking {booking.BookingCode}",
+                    Status = "Completed",
+                    CreatedAt = cancelledAt,
+                }, cancellationToken);
+            }
+        }
+
+        if (settlement.OwnerAmount > 0m
+            && !await _walletRepo.TransactionExistsAsync($"booking_cancel_compensation_{booking.Id}", cancellationToken))
+        {
+            var ownerWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == booking.OwnerId, cancellationToken)).FirstOrDefault();
+            if (ownerWallet is null)
+            {
+                ownerWallet = new Wallet { UserId = booking.OwnerId };
+                await _walletRepo.AddAsync(ownerWallet, cancellationToken);
+                await _repo.SaveChangesAsync(cancellationToken);
+            }
+
+            ownerWallet.Balance += settlement.OwnerAmount;
+            ownerWallet.TotalEarned += settlement.OwnerAmount;
+            ownerWallet.UpdatedAt = cancelledAt;
+            _walletRepo.Update(ownerWallet);
+            await _walletRepo.AddTransactionAsync(new WalletTransaction
+            {
+                WalletId = ownerWallet.Id,
+                Type = WalletTransactionType.BookingEarning,
+                Amount = settlement.OwnerAmount,
+                BalanceAfter = ownerWallet.Balance,
+                ReferenceId = booking.Id,
+                IdempotencyKey = $"booking_cancel_compensation_{booking.Id}",
+                Note = $"Bồi hoàn do khách hủy booking {booking.BookingCode}",
+                Status = "Completed",
+                CreatedAt = cancelledAt,
+            }, cancellationToken);
+        }
+
+        if (settlement.RefundAmount > 0m
+            && !await _walletRepo.TransactionExistsAsync($"booking_cancellation_refund_{booking.Id}", cancellationToken))
+        {
+            var customerWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == booking.CustomerId, cancellationToken)).FirstOrDefault();
+            if (customerWallet is null)
+            {
+                customerWallet = new Wallet { UserId = booking.CustomerId };
+                await _walletRepo.AddAsync(customerWallet, cancellationToken);
+                await _repo.SaveChangesAsync(cancellationToken);
+            }
+
+            customerWallet.Balance += settlement.RefundAmount;
+            customerWallet.TotalSpent = Math.Max(customerWallet.TotalSpent - settlement.RefundAmount, 0m);
+            customerWallet.UpdatedAt = cancelledAt;
+            _walletRepo.Update(customerWallet);
+            await _walletRepo.AddTransactionAsync(new WalletTransaction
+            {
+                WalletId = customerWallet.Id,
+                Type = WalletTransactionType.Refund,
+                Amount = settlement.RefundAmount,
+                BalanceAfter = customerWallet.Balance,
+                ReferenceId = booking.Id,
+                IdempotencyKey = $"booking_cancellation_refund_{booking.Id}",
+                Note = $"Hoàn {quote.RefundPercent}% tiền cọc booking {booking.BookingCode}",
+                Status = "Completed",
+                CreatedAt = cancelledAt,
+            }, cancellationToken);
+        }
+
+        if (settlement.PlatformFee > 0m)
+        {
+            _ = await CreditPlatformFeeToAdminAsync(
+                booking,
+                cancelledAt,
+                cancellationToken,
+                settlement.PlatformFee,
+                $"Phí nền tảng giữ lại khi khách hủy booking {booking.BookingCode}");
+        }
+
+        var paidPayments = await _paymentRepo.FindAsync(
+            payment => payment.BookingId == booking.Id
+                && payment.Type == "BookingDeposit"
+                && payment.Status == PaymentStatus.Paid,
+            cancellationToken);
+        foreach (var payment in paidPayments)
+        {
+            payment.RefundedAmount = Math.Min(settlement.RefundAmount, payment.Amount);
+            payment.RefundedAt = payment.RefundedAmount > 0m ? cancelledAt : null;
+            if (payment.RefundedAmount == payment.Amount)
+                payment.Status = PaymentStatus.Refunded;
+            else if (payment.RefundedAmount > 0m)
+                payment.Status = PaymentStatus.PartiallyRefunded;
+            payment.Note = $"Khách hủy booking: hoàn {quote.RefundPercent}% tiền cọc.";
+            _paymentRepo.Update(payment);
+        }
+    }
+
+    private async Task<decimal> CreditPlatformFeeToAdminAsync(
+        Booking booking,
+        DateTime completedAt,
+        CancellationToken cancellationToken,
+        decimal? amountOverride = null,
+        string? note = null)
+    {
+        var feeAmount = amountOverride
+            ?? Math.Min(Math.Max(booking.PlatformFee, 0m), Math.Max(booking.DepositAmount, 0m));
+        var idempotencyKey = $"booking_platform_fee_{booking.Id}";
+        if (feeAmount <= 0m || await _walletRepo.TransactionExistsAsync(idempotencyKey, cancellationToken))
+        {
+            return 0m;
+        }
+
+        var adminId = (await _disputeRepository.GetAdminUserIdsAsync(cancellationToken)).OrderBy(id => id).FirstOrDefault();
+        if (adminId <= 0)
+        {
+            throw new ValidationException(["Khong the quyet toan phi nen tang vi chua co tai khoan Admin."]);
+        }
+
+        var adminWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == adminId, cancellationToken)).FirstOrDefault();
+        if (adminWallet is null)
+        {
+            adminWallet = new Wallet { UserId = adminId };
+            await _walletRepo.AddAsync(adminWallet, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+        }
+
+        adminWallet.Balance += feeAmount;
+        adminWallet.TotalEarned += feeAmount;
+        adminWallet.UpdatedAt = completedAt;
+        _walletRepo.Update(adminWallet);
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        {
+            WalletId = adminWallet.Id,
+            Type = WalletTransactionType.PlatformFeeRevenue,
+            Amount = feeAmount,
+            BalanceAfter = adminWallet.Balance,
+            ReferenceId = booking.Id,
+            IdempotencyKey = idempotencyKey,
+            Note = note ?? $"Phi nen tang tu booking {booking.BookingCode}",
+            Status = "Completed"
+        }, cancellationToken);
+
+        return feeAmount;
+    }
+
+    private async Task<decimal> RefundDepositToCustomerAsync(
+        Booking booking,
+        decimal completedDisputePayouts,
+        decimal completedDepositRefunds,
+        DateTime completedAt,
+        CancellationToken cancellationToken)
+    {
+        var idempotencyKey = $"booking_deposit_refund_{booking.Id}";
+        if (await _walletRepo.TransactionExistsAsync(idempotencyKey, cancellationToken))
+        {
+            return 0m;
+        }
+
+        var refundAmount = DisputeDepositCalculator.GetAvailableAmount(
+            booking.DepositAmount,
+            booking.PlatformFee,
+            completedDisputePayouts,
+            completedDepositRefunds);
+        if (refundAmount <= 0m)
+        {
+            return 0m;
+        }
+
+        var customerWallet = (await _walletRepo.FindAsync(wallet => wallet.UserId == booking.CustomerId, cancellationToken)).FirstOrDefault();
+        if (customerWallet is null)
+        {
+            customerWallet = new Wallet { UserId = booking.CustomerId };
+            await _walletRepo.AddAsync(customerWallet, cancellationToken);
+            await _repo.SaveChangesAsync(cancellationToken);
+        }
+
+        customerWallet.Balance += refundAmount;
+        customerWallet.TotalSpent = Math.Max(customerWallet.TotalSpent - refundAmount, 0m);
+        customerWallet.UpdatedAt = completedAt;
+        _walletRepo.Update(customerWallet);
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        {
+            WalletId = customerWallet.Id,
+            Type = WalletTransactionType.Refund,
+            Amount = refundAmount,
+            BalanceAfter = customerWallet.Balance,
+            ReferenceId = booking.Id,
+            IdempotencyKey = idempotencyKey,
+            Note = $"Hoan tien bao dam booking {booking.BookingCode}",
+            Status = "Completed"
+        }, cancellationToken);
+
+        return refundAmount;
     }
 
     public async Task<InspectionReportResponse> CreateCheckInReportAsync(
@@ -793,6 +1178,17 @@ public class BookingService : IBookingService
         return 0;
     }
 
+    private static decimal CalculatePlatformFee(decimal totalAmount, string feeType, decimal feeValue, decimal? minFee, decimal? maxFee)
+    {
+        var fee = feeType.Equals("Fixed", StringComparison.OrdinalIgnoreCase)
+            ? feeValue
+            : totalAmount * feeValue / 100m;
+
+        if (minFee.HasValue) fee = Math.Max(fee, minFee.Value);
+        if (maxFee.HasValue) fee = Math.Min(fee, maxFee.Value);
+        return Math.Round(Math.Clamp(fee, 0m, totalAmount), 0);
+    }
+
     private static string GenerateCode()
     {
         var now = DateTime.UtcNow;
@@ -925,6 +1321,11 @@ public class BookingService : IBookingService
             PlatformFee = b.PlatformFee,
             DepositAmount = b.DepositAmount,
             TotalAmount = b.TotalAmount,
+            EscrowAmount = b.EscrowAmount,
+            EscrowStatus = b.EscrowStatus,
+            EscrowHeldAt = b.EscrowHeldAt,
+            EscrowSettledAt = b.EscrowSettledAt,
+            PaymentDueAt = b.PaymentDueAt,
             PickupAddress = b.PickupAddress,
             ReturnAddress = b.ReturnAddress,
             CustomerNote = b.CustomerNote,
@@ -933,6 +1334,11 @@ public class BookingService : IBookingService
             RiskLevel = risk.Level,
             RiskFactors = risk.Factors,
             CancelReason = b.CancelReason,
+            CancellationPolicyTier = b.CancellationPolicyTier,
+            CancellationRefundAmount = b.CancellationRefundAmount,
+            CancellationForfeitedAmount = b.CancellationForfeitedAmount,
+            CancellationOwnerCompensation = b.CancellationOwnerCompensation,
+            CancellationPlatformFee = b.CancellationPlatformFee,
             CreatedAt = b.CreatedAt,
             UpdatedAt = b.UpdatedAt,
             StatusHistory = history,

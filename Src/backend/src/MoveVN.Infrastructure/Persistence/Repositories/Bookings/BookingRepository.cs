@@ -27,8 +27,10 @@ public class BookingRepository : IBookingRepository
     {
         var bookingOverlap = await _context.Bookings
             .AnyAsync(b => b.VehicleId == vehicleId
-                && b.Status != "Rejected"
-                && b.Status != "Cancelled"
+                && (b.Status == "Approved"
+                    || b.Status == "DepositPaid"
+                    || b.Status == "Confirmed"
+                    || b.Status == "InProgress")
                 && b.StartDate < endDate
                 && b.EndDate > startDate
                 && (!excludeBookingId.HasValue || b.Id != excludeBookingId.Value), cancellationToken);
@@ -184,8 +186,7 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings.Where(b => b.CustomerId == customerId);
 
-        if (!string.IsNullOrWhiteSpace(request.Status))
-            query = query.Where(b => b.Status == request.Status);
+        query = ApplyListFilters(query, request);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
@@ -206,6 +207,9 @@ public class BookingRepository : IBookingRepository
                 PlatformFee = b.PlatformFee,
                 DepositAmount = b.DepositAmount,
                 TotalAmount = b.TotalAmount,
+                EscrowAmount = b.EscrowAmount,
+                EscrowStatus = b.EscrowStatus,
+                PaymentDueAt = b.PaymentDueAt,
                 PickupAddress = b.PickupAddress,
                 Status = b.Status,
                 CreatedAt = b.CreatedAt,
@@ -220,8 +224,7 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings.Where(b => b.OwnerId == ownerId);
 
-        if (!string.IsNullOrWhiteSpace(request.Status))
-            query = query.Where(b => b.Status == request.Status);
+        query = ApplyListFilters(query, request);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
@@ -242,6 +245,9 @@ public class BookingRepository : IBookingRepository
                 PlatformFee = b.PlatformFee,
                 DepositAmount = b.DepositAmount,
                 TotalAmount = b.TotalAmount,
+                EscrowAmount = b.EscrowAmount,
+                EscrowStatus = b.EscrowStatus,
+                PaymentDueAt = b.PaymentDueAt,
                 PickupAddress = b.PickupAddress,
                 RiskScore = b.RiskScore,
                 Status = b.Status,
@@ -254,9 +260,55 @@ public class BookingRepository : IBookingRepository
         return (items, totalCount);
     }
 
+    private static IQueryable<Booking> ApplyListFilters(IQueryable<Booking> query, BookingListRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Status))
+            query = query.Where(b => b.Status == request.Status);
+
+        if (!string.IsNullOrWhiteSpace(request.Keyword))
+        {
+            var keyword = request.Keyword.Trim().ToLower();
+            if (long.TryParse(keyword, out var numericKeyword))
+            {
+                query = query.Where(b =>
+                    b.BookingCode.ToLower().Contains(keyword) ||
+                    b.PickupAddress.ToLower().Contains(keyword) ||
+                    b.CustomerId == numericKeyword ||
+                    b.VehicleId == numericKeyword);
+            }
+            else
+            {
+                query = query.Where(b =>
+                    b.BookingCode.ToLower().Contains(keyword) ||
+                    b.PickupAddress.ToLower().Contains(keyword));
+            }
+        }
+
+        if (request.FromDate.HasValue)
+        {
+            var fromDate = request.FromDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(b => b.EndDate >= fromDate);
+        }
+
+        if (request.ToDate.HasValue)
+        {
+            var exclusiveEnd = request.ToDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(b => b.StartDate < exclusiveEnd);
+        }
+
+        return query;
+    }
+
     public async Task<List<Booking>> GetExpiredPendingAsync(DateTime threshold, CancellationToken cancellationToken = default)
         => await _context.Bookings
             .Where(b => b.Status == "Pending" && b.CreatedAt < threshold)
+            .ToListAsync(cancellationToken);
+
+    public async Task<List<Booking>> GetExpiredApprovedAsync(DateTime now, CancellationToken cancellationToken = default)
+        => await _context.Bookings
+            .Where(b => b.Status == "Approved"
+                && ((b.PaymentDueAt.HasValue && b.PaymentDueAt <= now) || b.StartDate <= now))
+            .OrderBy(b => b.PaymentDueAt)
             .ToListAsync(cancellationToken);
 
     public async Task AddReviewAsync(Review review, CancellationToken cancellationToken = default)

@@ -21,20 +21,27 @@ public class PresenceCleanupService : BackgroundService
     {
         using var timer = new PeriodicTimer(CleanupInterval);
 
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
-            try
+            while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await CleanupAsync(stoppingToken);
+                try
+                {
+                    await CleanupAsync(stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogWarning(exception, "Presence cleanup failed.");
+                }
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogWarning(exception, "Presence cleanup failed.");
-            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Normal host shutdown.
         }
     }
 

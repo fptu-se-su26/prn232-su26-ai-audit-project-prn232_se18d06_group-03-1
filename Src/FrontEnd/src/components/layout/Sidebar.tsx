@@ -90,7 +90,23 @@ const ownerVehicleItems = [
   { to: "/owner/vehicles/motorbike", label: "Xe máy", icon: Bike },
 ];
 
+const adminWalletItems = [
+  { to: "/admin/wallets", label: "Tài khoản & giao dịch", icon: ReceiptText },
+  { to: "/admin/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark },
+];
+
+const staffWalletItems = [
+  { to: "/staff/wallets", label: "Tài khoản & giao dịch", icon: ReceiptText },
+  { to: "/staff/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark },
+];
+
 function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
+  const currentLocation = useLocation();
+  const [targetPath, targetQuery] = to.split("?");
+  const queryIsActive = targetQuery
+    ? currentLocation.pathname === targetPath && [...new URLSearchParams(targetQuery)].every(([key, value]) => new URLSearchParams(currentLocation.search).get(key) === value)
+    : null;
+
   return (
     <NavLink
       to={to}
@@ -99,7 +115,7 @@ function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label:
         [
           "flex h-10 items-center rounded-md text-sm font-medium transition-colors",
           collapsed ? "justify-center" : "gap-3 px-3",
-          isActive ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+          (queryIsActive ?? isActive) ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
         ].join(" ")
       }
       title={collapsed ? label : undefined}
@@ -132,6 +148,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const [staffModerationOpen, setStaffModerationOpen] = useState(isStaffModerationPath);
   const isOwnerVehiclePath = ownerVehicleItems.some((item) => location.pathname.startsWith(item.to));
   const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
+  const walletItems = primaryRole === "Admin" ? adminWalletItems : staffWalletItems;
+  const isWalletPath = walletItems.some((item) => location.pathname.startsWith(item.to));
+  const [walletOpen, setWalletOpen] = useState(isWalletPath);
 
   useEffect(() => {
     if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
@@ -139,7 +158,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     if (isAdminModerationPath) setAdminModerationOpen(true);
     if (isStaffModerationPath) setStaffModerationOpen(true);
     if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath]);
+    if (isWalletPath) setWalletOpen(true);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isWalletPath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -161,13 +181,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
-    mainItems.push({ to: "/admin/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark });
-    mainItems.push({ to: "/admin/wallets", label: "Quản lý ví", icon: Wallet });
-  }
-
-  if (primaryRole === "Staff") {
-    mainItems.push({ to: "/staff/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark });
-    mainItems.push({ to: "/staff/wallets", label: "Quản lý ví", icon: Wallet });
   }
 
   if (primaryRole === "Owner") {
@@ -187,8 +200,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     {
       heading: "Ví tiền",
       items: [
-        { to: "/account/wallet", label: "Ví của tôi", icon: Wallet },
-        { to: "/account/bank", label: "Ngân hàng", icon: Landmark },
+        { to: "/account/bank", label: "Tài khoản ngân hàng", icon: Landmark },
+        { to: "/account/wallet?tab=transactions", label: "Lịch sử giao dịch", icon: ReceiptText },
+        ...(primaryRole === "Owner" ? [{ to: "/account/wallet?tab=withdrawals", label: "Yêu cầu rút tiền", icon: Wallet }] : []),
       ],
     },
     {
@@ -263,6 +277,53 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           {!isOwnerVerificationSection && items.map((item) => (
             <NavItem key={item.to} end={item.to === dashboardPath} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
           ))}
+
+          {(primaryRole === "Admin" || primaryRole === "Staff") && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletOpen(true);
+                  navigate(walletItems[0].to);
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isWalletPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Ví tiền"
+              >
+                <Wallet className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Ví tiền</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => { event.stopPropagation(); setWalletOpen((prev) => !prev); }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setWalletOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở mục ví tiền"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${walletOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && walletOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {walletItems.map((item) => <NavItem key={item.to} collapsed={collapsed} {...item} />)}
+                </div>
+              )}
+            </>
+          )}
 
           {primaryRole === "Admin" && !isOwnerVerificationSection && (
             <>

@@ -1183,7 +1183,7 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
               </div>
               <div>
                 <span className="text-xs font-medium text-slate-400">Thế chấp</span>
-                <p className="mt-1 font-medium text-slate-800">{vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}</p>
+                <p className="mt-1 font-medium text-slate-800">{Math.max(20, vehicle.depositPercent || 0)}%</p>
               </div>
               <div>
                 <span className="text-xs font-medium text-slate-400">Tỉnh/Thành phố</span>

@@ -203,12 +203,26 @@ public class BookingsController : BaseApiController
     }
 
     [Authorize(Roles = "Customer")]
-    [HttpPut("{id:long}/confirm-deposit")]
-    public async Task<ActionResult<ApiResponse<BookingResponse>>> ConfirmDeposit(long id, CancellationToken cancellationToken)
+    [HttpGet("{id:long}/cancellation-quote")]
+    public async Task<ActionResult<ApiResponse<BookingCancellationQuote>>> GetCancellationQuote(
+        long id,
+        CancellationToken cancellationToken)
     {
         var customerId = _currentUser.UserId!.Value;
-        var result = await _bookingService.ConfirmDepositAsync(id, customerId, cancellationToken);
-        return Success(result, "Xac nhan coc thanh cong.");
+        var result = await _bookingService.GetCancellationQuoteAsync(id, customerId, cancellationToken);
+        return Success(result);
+    }
+
+    [Authorize(Roles = "Customer")]
+    [HttpPost("{id:long}/cancel")]
+    public async Task<ActionResult<ApiResponse<BookingResponse>>> CancelByCustomer(
+        long id,
+        CancelBookingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var customerId = _currentUser.UserId!.Value;
+        var result = await _bookingService.CancelByCustomerAsync(id, customerId, request, cancellationToken);
+        return Success(result, "Đã hủy booking và xử lý tiền cọc theo chính sách.");
     }
 
     [Authorize(Roles = "Customer")]

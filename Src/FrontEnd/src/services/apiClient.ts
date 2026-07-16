@@ -113,3 +113,11 @@ export async function requestJson<T>(path: string) {
   const res = await apiClient.get<T>(path);
   return res.data;
 }
+
+export function getApiErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof AxiosError) {
+    const payload = error.response?.data as Partial<ApiResponse<unknown>> | undefined;
+    return payload?.errors?.filter(Boolean).join(" ") || payload?.message || fallback;
+  }
+  return fallback;
+}

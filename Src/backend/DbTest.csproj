@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="DbTest.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="src\MoveVN.Infrastructure\MoveVN.Infrastructure.csproj" />
+    <ProjectReference Include="src\MoveVN.Domain\MoveVN.Domain.csproj" />
+    <ProjectReference Include="src\MoveVN.Application\MoveVN.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
+  </ItemGroup>
+</Project>

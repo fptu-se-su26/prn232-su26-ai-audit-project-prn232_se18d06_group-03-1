@@ -88,7 +88,7 @@ export default function OwnerVehicleEditPage() {
   const [fixedPricePerDay, setFixedPricePerDay] = useState("");
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
-  const [depositPercent, setDepositPercent] = useState(0);
+  const [depositPercent, setDepositPercent] = useState(20);
   const [saving, setSaving] = useState<string | null>(null);
 
   const provinces = useMemo(() => [...new Set(areas.map((area) => area.province))].sort(), [areas]);
@@ -127,7 +127,7 @@ export default function OwnerVehicleEditPage() {
       setFixedPricePerDay((pricingData?.fixedPricePerDay ?? vehicleData.fixedPricePerDay ?? vehicleData.pricePerDay).toString());
       setAutoMinPrice((pricingData?.autoMinPrice ?? vehicleData.autoMinPrice ?? "").toString());
       setAutoMaxPrice((pricingData?.autoMaxPrice ?? vehicleData.autoMaxPrice ?? "").toString());
-      setDepositPercent(vehicleData.depositPercent ?? 0);
+      setDepositPercent(Math.max(20, vehicleData.depositPercent ?? 20));
     } catch {
       setError("Không thể tải thông tin xe.");
     } finally {
@@ -154,7 +154,7 @@ export default function OwnerVehicleEditPage() {
   }
 
   function isDepositValid() {
-    return depositPercent >= 0 && depositPercent <= 50;
+    return depositPercent >= 20 && depositPercent <= 50;
   }
 
   function toggleFeature(featureId: number) {
@@ -407,7 +407,14 @@ export default function OwnerVehicleEditPage() {
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
                           {pricing.suggestion.hasSuggestion ? (
-                            <>Giá gợi ý: <span className="font-semibold">{pricing.suggestion.suggestedMinPrice?.toLocaleString("vi-VN")}đ</span> – <span className="font-semibold">{pricing.suggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}đ</span>/ngày</>
+                            <>
+                              Giá gợi ý: <span className="font-semibold">{pricing.suggestion.suggestedMinPrice?.toLocaleString("vi-VN")}đ</span> – <span className="font-semibold">{pricing.suggestion.suggestedMaxPrice?.toLocaleString("vi-VN")}đ</span>/ngày
+                              {pricing.suggestion.dynamicSuggestedPrice != null && (
+                                <span className="mt-2 inline-flex items-center rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">
+                                  Giá đề xuất: {pricing.suggestion.dynamicSuggestedPrice.toLocaleString("vi-VN")}đ
+                                </span>
+                              )}
+                            </>
                           ) : "Chưa có khung giá gợi ý."}
                         </div>
                       </div>
@@ -459,12 +466,12 @@ export default function OwnerVehicleEditPage() {
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">Chọn 0% nếu không yêu cầu cọc, tối đa 50%.</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Tiền cọc tối thiểu 20%, tối đa 50%.</span>
                   </span>
                   <div className="flex items-center gap-3">
                     <input
                       type="range"
-                      min={0}
+                      min={20}
                       max={50}
                       step={5}
                       value={depositPercent}
@@ -474,7 +481,7 @@ export default function OwnerVehicleEditPage() {
                     <span className="min-w-[3rem] text-sm font-semibold text-slate-900">{depositPercent}%</span>
                   </div>
                 </label>
-                {!isDepositValid() && <p className="text-sm text-red-600">Phần trăm tiền cọc phải từ 0 đến 50%.</p>}
+                {!isDepositValid() && <p className="text-sm text-red-600">Phần trăm tiền cọc phải từ 20 đến 50%.</p>}
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { CalendarCheck, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { CalendarCheck, Eye } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -6,6 +6,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
 import { getMyBookings } from "@/features/booking/bookingService";
 import type { BookingResponse, BookingListRequest } from "@/features/booking/types";
+import { BookingListFilters, BookingPagination, type BookingFilters } from "@/features/booking/components/BookingListControls";
 
 const PAGE_SIZE = 10;
 
@@ -33,11 +34,17 @@ const statusColors: Record<string, string> = {
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
-  { value: "Pending", label: "Chờ duyệt" },
+  { value: "Pending", label: "Chờ thanh toán" },
+  { value: "DepositPaid", label: "Đã đặt cọc" },
   { value: "Approved", label: "Đã duyệt" },
+  { value: "Confirmed", label: "Đã xác nhận" },
+  { value: "InProgress", label: "Đang nhận xe" },
+  { value: "Completed", label: "Hoàn thành" },
   { value: "Rejected", label: "Đã từ chối" },
   { value: "Cancelled", label: "Đã hủy" },
 ];
+
+const emptyFilters: BookingFilters = { status: "", keyword: "", fromDate: "", toDate: "" };
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -53,14 +60,18 @@ export default function CustomerBookingListPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [draftFilters, setDraftFilters] = useState<BookingFilters>(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState<BookingFilters>(emptyFilters);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async (p: number, status: string) => {
+  const load = useCallback(async (p: number, filters: BookingFilters) => {
     setIsLoading(true);
     try {
       const params: BookingListRequest = { page: p, pageSize: PAGE_SIZE };
-      if (status) params.status = status;
+      if (filters.status) params.status = filters.status;
+      if (filters.keyword.trim()) params.keyword = filters.keyword.trim();
+      if (filters.fromDate) params.fromDate = filters.fromDate;
+      if (filters.toDate) params.toDate = filters.toDate;
       const result = await getMyBookings(params);
       setItems(result.items);
       setTotalCount(result.totalCount);
@@ -68,17 +79,30 @@ export default function CustomerBookingListPage() {
       setTotalPages(Math.ceil(result.totalCount / PAGE_SIZE));
     } catch {
       setItems([]);
+      setTotalCount(0);
+      setTotalPages(0);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(1, statusFilter); }, [load, statusFilter]);
+  useEffect(() => { void load(1, appliedFilters); }, [load, appliedFilters]);
 
   function goToPage(p: number) {
     if (p < 1 || p > totalPages) return;
     setPage(p);
-    void load(p, statusFilter);
+    void load(p, appliedFilters);
+  }
+
+  function applyFilters() {
+    setPage(1);
+    setAppliedFilters({ ...draftFilters });
+  }
+
+  function clearFilters() {
+    setPage(1);
+    setDraftFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
   }
 
   return (
@@ -89,21 +113,15 @@ export default function CustomerBookingListPage() {
         <p className="mt-2 max-w-2xl text-sm text-slate-600">Theo dõi các chuyến đi và trạng thái đặt xe của bạn.</p>
       </section>
 
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="h-8 appearance-none rounded-md border border-slate-300 bg-white px-3 pr-8 text-sm text-slate-700"
-          >
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronLeft className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 -rotate-90 text-slate-400" />
-        </div>
-        <span className="text-sm text-slate-500">{totalCount} kết quả</span>
-      </div>
+      <BookingListFilters
+        value={draftFilters}
+        statusOptions={statusOptions}
+        resultCount={totalCount}
+        searchPlaceholder="Mã booking, địa chỉ, ID xe..."
+        onChange={setDraftFilters}
+        onApply={applyFilters}
+        onClear={clearFilters}
+      />
 
       {isLoading ? (
         <LoadingSpinner />
@@ -148,21 +166,7 @@ export default function CustomerBookingListPage() {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button type="button" onClick={() => goToPage(page - 1)} disabled={page <= 1}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
-          ><ChevronLeft className="h-4 w-4" /></button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button key={p} type="button" onClick={() => goToPage(p)}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors ${p === page ? "bg-brand-700 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"}`}
-            >{p}</button>
-          ))}
-          <button type="button" onClick={() => goToPage(page + 1)} disabled={page >= totalPages}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
-          ><ChevronRight className="h-4 w-4" /></button>
-        </div>
-      )}
+      <BookingPagination page={page} totalPages={totalPages} onPageChange={goToPage} />
     </div>
   );
 }
