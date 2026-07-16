@@ -39,7 +39,8 @@ const statusConfig: Record<string, { dot: string; bg: string; text: string; labe
   Deleted: { dot: "bg-slate-400", bg: "bg-slate-100", text: "text-slate-600", label: "Đã xóa" },
 };
 
-const allRoles = ["Admin", "Staff", "Owner", "Customer"];
+const editableRoles = ["Staff", "Owner", "Customer"];
+const AdminRoleIcon = roleIcons.Admin;
 
 export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -129,7 +130,7 @@ export default function AdminUserDetailPage() {
   }
 
   async function handleToggleRole(role: string, assigned: boolean) {
-    if (!user) return;
+    if (!user || role === "Admin") return;
     setRoleUpdating(role);
     setError(null);
     try {
@@ -362,7 +363,17 @@ export default function AdminUserDetailPage() {
               </div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {allRoles.map((role) => {
+              {user.roles.includes("Admin") && (
+                <div className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center ${roleColors.Admin.activeBg} ${roleColors.Admin.text} ${roleColors.Admin.border}`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${roleColors.Admin.bg}`}>
+                    <AdminRoleIcon className="h-5 w-5" />
+                  </div>
+                  <span className="text-sm font-medium">{roleLabels.Admin}</span>
+                  <CheckCircle className="absolute right-2 top-2 h-4 w-4 text-current" />
+                  <span className="text-[10px] font-medium opacity-80">Do hệ thống quản lý</span>
+                </div>
+              )}
+              {editableRoles.map((role) => {
                 const assigned = user.roles.includes(role as UserRole);
                 const colors = roleColors[role];
                 const Icon = roleIcons[role];

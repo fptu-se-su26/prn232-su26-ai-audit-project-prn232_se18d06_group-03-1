@@ -9,7 +9,9 @@ import type {
   UpdateUserRoleRequest,
   UpdateUserStatusRequest,
   CreateStaffRequest,
+  CreateCustomerRequest,
   CreateOwnerRequest,
+  OwnerOcrPreview,
   PagedResult,
   AdminLoginSession,
 } from "@/features/admin/types";
@@ -56,7 +58,26 @@ export async function createStaff(request: CreateStaffRequest) {
   return res.data;
 }
 
-export async function createOwner(request: CreateOwnerRequest) {
-  const res = await apiClient.post<ApiResponse<unknown>>(endpoints.admin.createOwner, request);
+export async function createCustomer(request: CreateCustomerRequest) {
+  const res = await apiClient.post<ApiResponse<unknown>>(endpoints.admin.createCustomer, request);
   return res.data;
+}
+
+export async function createOwner(request: CreateOwnerRequest) {
+  const formData = new FormData();
+  Object.entries(request).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) formData.append(key, value instanceof File ? value : String(value));
+  });
+  const res = await apiClient.post<ApiResponse<unknown>>(endpoints.admin.createOwner, formData);
+  return res.data;
+}
+
+export async function previewOwnerOcr(fullName: string, nationalIdFrontImage?: File | null, driverLicenseFrontImage?: File | null) {
+  const formData = new FormData();
+  formData.append("fullName", fullName);
+  if (nationalIdFrontImage) formData.append("nationalIdFrontImage", nationalIdFrontImage);
+  if (driverLicenseFrontImage) formData.append("driverLicenseFrontImage", driverLicenseFrontImage);
+  const res = await apiClient.post<ApiResponse<OwnerOcrPreview>>(endpoints.admin.previewOwnerOcr, formData);
+  if (!res.data.data) throw new Error("OCR response is empty.");
+  return res.data.data;
 }

@@ -102,17 +102,54 @@ export type CreateStaffRequest = {
   department?: string | null;
 };
 
+export type CreateCustomerRequest = {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+};
+
 export type CreateOwnerRequest = {
   fullName: string;
   email: string;
   phone: string;
   password: string;
   confirmPassword: string;
-  nationalId?: string | null;
-  nationalIdVerified: boolean;
-  bankName?: string | null;
-  bankAccountNumber?: string | null;
-  bankAccountHolderName?: string | null;
+  useOcr: boolean;
+  nationalId: string;
+  dateOfBirth?: string | null;
+  address?: string | null;
+  nationalIdFrontImage: File;
+  driverLicenseNumber: string;
+  driverLicenseClass: string;
+  driverLicenseVehicleType: "Car" | "Motorbike";
+  driverLicenseFrontImage: File;
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountHolderName: string;
+};
+
+export type OwnerOcrPreview = {
+  nationalId?: {
+    success: boolean;
+    nationalId?: string | null;
+    fullName?: string | null;
+    dateOfBirth?: string | null;
+    address?: string | null;
+    confidence?: number | null;
+    recommendation?: string | null;
+    flags: string[];
+  } | null;
+  driverLicense?: {
+    success: boolean;
+    fullName?: string | null;
+    driverLicenseNumber?: string | null;
+    licenseClass?: string | null;
+    confidence?: number | null;
+    recommendation?: string | null;
+    flags: string[];
+  } | null;
 };
 
 export type PagedResult<T> = {

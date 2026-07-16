@@ -6,12 +6,15 @@ import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import FormField from "@/components/common/FormField";
+import PasswordField from "@/components/common/PasswordField";
 import UserStatusToggle from "@/components/common/UserStatusToggle";
 import useClickOutside from "@/hooks/useClickOutside";
 import { getAdminUsers, updateUserStatus, createStaff } from "@/features/admin/services/adminUserService";
 import type { AdminUserListItem, AdminUserListParams } from "@/features/admin/types";
 import { usePresenceStore } from "@/features/presence/usePresence";
 import { getApiErrorMessage } from "@/services/apiClient";
+import CreateCustomerModal from "@/features/admin/components/CreateCustomerModal";
+import CreateOwnerModal from "@/features/admin/components/CreateOwnerModal";
 
 const PAGE_SIZE = 10;
 
@@ -212,6 +215,10 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
     navigate(`/admin/users/${userId}`);
   }
 
+  function handleCreated() {
+    void loadUsers(page, keyword, sortBy, statusFilter, onlineFilter);
+  }
+
   async function handleToggleStatus(user: AdminUserListItem) {
     const newStatus = user.status === "Active" ? "Suspended" : "Active";
     await updateUserStatus(user.userId, { status: newStatus });
@@ -298,7 +305,7 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
         </div>
         <Button onClick={() => setCreateModalOpen(true)}>
           <Plus className="h-4 w-4" />
-          Thêm nhân viên
+          {roleFilter === "Owner" ? "Thêm chủ xe" : roleFilter === "Customer" ? "Thêm khách hàng" : "Thêm nhân viên"}
         </Button>
       </div>
 
@@ -591,7 +598,15 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
         </div>
       </Modal>
 
-      <Modal isOpen={createModalOpen} title="Thêm nhân viên mới" onClose={() => setCreateModalOpen(false)}>
+      {roleFilter === "Customer" && (
+        <CreateCustomerModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} onCreated={handleCreated} />
+      )}
+
+      {roleFilter === "Owner" && (
+        <CreateOwnerModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} onCreated={handleCreated} />
+      )}
+
+      {roleFilter === "Staff" && <Modal isOpen={createModalOpen} title="Thêm nhân viên mới" onClose={() => setCreateModalOpen(false)}>
         <div className="space-y-4">
           <FormField
             label="Họ và tên"
@@ -606,16 +621,14 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
             onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
             placeholder="Nhập email"
           />
-          <FormField
+          <PasswordField
             label="Mật khẩu"
-            type="password"
             value={createForm.password}
             onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
             placeholder="Nhập mật khẩu"
           />
-          <FormField
+          <PasswordField
             label="Xác nhận mật khẩu"
-            type="password"
             value={createForm.confirmPassword}
             onChange={(e) => setCreateForm({ ...createForm, confirmPassword: e.target.value })}
             placeholder="Nhập lại mật khẩu"
@@ -641,7 +654,7 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
             </Button>
           </div>
         </div>
-      </Modal>
+      </Modal>}
     </div>
   );
 }

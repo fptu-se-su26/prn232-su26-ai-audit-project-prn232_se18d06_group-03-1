@@ -42,6 +42,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode STAFF_CREATE_FORBIDDEN = new("ADMIN_2001", "Chỉ admin mới có thể tạo tài khoản nhân viên.", HttpStatusCode.Forbidden);
     public static readonly ErrorCode STAFF_EMAIL_EXISTED = new("ADMIN_2002", "Email nhân viên đã tồn tại.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode ADMIN_SEED_FAILED = new("ADMIN_2003", "Khởi tạo tài khoản admin thất bại.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode ADMIN_ROLE_IMMUTABLE = new("ADMIN_2004", "Vai trò Admin do hệ thống quản lý và không thể gán hoặc gỡ bỏ.", HttpStatusCode.Forbidden);
 
     public static readonly ErrorCode GOOGLE_AUTH_FAILED = new("AUTH_1040", "Xác thực Google thất bại.", HttpStatusCode.Unauthorized);
 

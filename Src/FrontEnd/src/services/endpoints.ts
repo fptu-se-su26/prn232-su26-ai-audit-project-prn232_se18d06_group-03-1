@@ -35,7 +35,9 @@ export const endpoints = {
     nationalIdVerifications: "/api/admin/national-id-verifications",
     dashboardStats: "/api/admin/dashboard/stats",
     createStaff: "/api/admin/staff",
+    createCustomer: "/api/admin/customers",
     createOwner: "/api/admin/owners",
+    previewOwnerOcr: "/api/admin/owners/ocr-preview",
   },
   vehicles: {
     my: "/api/vehicles/my",

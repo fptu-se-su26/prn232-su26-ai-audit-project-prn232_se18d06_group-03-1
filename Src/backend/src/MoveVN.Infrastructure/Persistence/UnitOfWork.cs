@@ -2,6 +2,7 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Domain.Common;
 using MoveVN.Infrastructure.Persistence.Repositories;
 using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 
 namespace MoveVN.Infrastructure.Persistence;
 
@@ -30,5 +31,22 @@ public class UnitOfWork : IUnitOfWork
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

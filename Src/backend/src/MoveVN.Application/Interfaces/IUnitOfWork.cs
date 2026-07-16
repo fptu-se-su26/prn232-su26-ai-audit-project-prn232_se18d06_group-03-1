@@ -4,4 +4,5 @@ public interface IUnitOfWork : IDisposable
 {
     IGenericRepository<T> Repository<T>() where T : MoveVN.Domain.Common.BaseEntity;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default);
 }
