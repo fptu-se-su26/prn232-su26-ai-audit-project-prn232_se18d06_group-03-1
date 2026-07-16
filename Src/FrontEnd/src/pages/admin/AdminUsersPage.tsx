@@ -1,10 +1,11 @@
 import { ChevronDown, ChevronLeft, ChevronRight, Search, SlidersHorizontal, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import useClickOutside from "@/hooks/useClickOutside";
 import { getAdminUsers } from "@/features/admin/services/adminUserService";
-import type { AdminUserListItem } from "@/features/admin/types";
+import type { AdminUserListItem, AdminUserListParams } from "@/features/admin/types";
 import { usePresenceStore } from "@/features/presence/usePresence";
 
 const PAGE_SIZE = 10;
@@ -96,7 +97,7 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number | boolean | undefined> = {
+      const params: AdminUserListParams = {
         page: p,
         pageSize: PAGE_SIZE,
         keyword: kw || undefined,
@@ -105,7 +106,7 @@ export default function AdminUsersPage() {
         status: status || undefined,
         isOnline: online === "online" ? true : online === "offline" ? false : undefined,
       };
-      const result = await getAdminUsers(params as any);
+      const result = await getAdminUsers(params);
       setUsers(result.items);
       setTotalCount(result.totalCount);
       setPage(result.page);
@@ -323,7 +324,9 @@ export default function AdminUsersPage() {
               {visibleUsers.map((user) => (
                 <tr key={user.userId} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{user.fullName}</div>
+                    <Link className="font-medium text-slate-900 hover:text-brand-700 hover:underline" to={`/admin/users/${user.userId}`}>
+                      {user.fullName}
+                    </Link>
                     <div className="text-xs text-slate-500">{user.email}</div>
                     {user.phone && <div className="text-xs text-slate-400">{user.phone}</div>}
                   </td>

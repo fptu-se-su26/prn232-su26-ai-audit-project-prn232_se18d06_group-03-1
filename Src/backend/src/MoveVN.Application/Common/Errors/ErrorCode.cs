@@ -27,6 +27,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode EMAIL_NOT_VERIFIED = new("AUTH_1003", "Email chưa được xác thực.", HttpStatusCode.Forbidden);
     public static readonly ErrorCode USER_NOT_FOUND = new("AUTH_1004", "Không tìm thấy người dùng.", HttpStatusCode.NotFound);
     public static readonly ErrorCode USER_SUSPENDED = new("AUTH_1005", "Tài khoản đã bị khoá.", HttpStatusCode.Forbidden);
+    public static readonly ErrorCode USER_DELETED = new("AUTH_1008", "Tài khoản đã bị xóa.", HttpStatusCode.Forbidden);
     public static readonly ErrorCode INVALID_ROLE = new("AUTH_1006", "Vai trò không hợp lệ.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode PHONE_EXISTED = new("AUTH_1007", "Số điện thoại đã tồn tại.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OTP_RATE_LIMITED = new("AUTH_1010", "Quá nhiều yêu cầu OTP. Vui lòng thử lại sau.", HttpStatusCode.TooManyRequests);

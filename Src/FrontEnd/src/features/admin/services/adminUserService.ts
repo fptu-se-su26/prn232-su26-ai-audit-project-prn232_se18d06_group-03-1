@@ -11,6 +11,7 @@ import type {
   CreateStaffRequest,
   CreateOwnerRequest,
   PagedResult,
+  AdminLoginSession,
 } from "@/features/admin/types";
 
 export async function getAdminUsers(params: AdminUserListParams) {
@@ -39,6 +40,15 @@ export async function updateUserRole(id: number, request: UpdateUserRoleRequest)
 export async function updateUserStatus(id: number, request: UpdateUserStatusRequest) {
   const res = await apiClient.patch<ApiResponse<null>>(endpoints.admin.userStatus(id), request);
   return res.data;
+}
+
+export async function getAdminUserSessions(id: number) {
+  const res = await apiClient.get<ApiResponse<AdminLoginSession[]>>(endpoints.admin.userSessions(id));
+  return res.data.data ?? [];
+}
+
+export async function revokeAdminUserSession(userId: number, sessionId: string) {
+  await apiClient.delete(`${endpoints.admin.userSessions(userId)}/${encodeURIComponent(sessionId)}`);
 }
 
 export async function createStaff(request: CreateStaffRequest) {

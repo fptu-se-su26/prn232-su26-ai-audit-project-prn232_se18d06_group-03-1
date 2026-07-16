@@ -210,6 +210,11 @@ public class AuthService : IAuthService
                 throw new AppException(ErrorCode.USER_SUSPENDED);
             }
 
+            if (user.Status == UserStatus.Deleted.ToString())
+            {
+                throw new AppException(ErrorCode.USER_DELETED);
+            }
+
             user.ExternalId ??= googleUser.Sub;
             user.AuthProvider ??= "Google";
             user.AvatarUrl ??= googleUser.Picture;
@@ -408,6 +413,11 @@ public class AuthService : IAuthService
         if (user.Status == UserStatus.Suspended.ToString())
         {
             throw new AppException(ErrorCode.USER_SUSPENDED);
+        }
+
+        if (user.Status == UserStatus.Deleted.ToString())
+        {
+            throw new AppException(ErrorCode.USER_DELETED);
         }
 
         if (!user.IsEmailVerified)

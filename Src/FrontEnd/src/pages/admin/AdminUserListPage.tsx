@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Plus, Power, Search, SlidersHorizontal, Trash2, UsersRound } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, Plus, Power, Search, SlidersHorizontal, Trash2, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -9,8 +9,9 @@ import FormField from "@/components/common/FormField";
 import UserStatusToggle from "@/components/common/UserStatusToggle";
 import useClickOutside from "@/hooks/useClickOutside";
 import { getAdminUsers, updateUserStatus, createStaff } from "@/features/admin/services/adminUserService";
-import type { AdminUserListItem } from "@/features/admin/types";
+import type { AdminUserListItem, AdminUserListParams } from "@/features/admin/types";
 import { usePresenceStore } from "@/features/presence/usePresence";
+import { getApiErrorMessage } from "@/services/apiClient";
 
 const PAGE_SIZE = 10;
 
@@ -35,6 +36,13 @@ const statusLabels: Record<string, { bg: string; text: string; label: string }> 
   Pending: { bg: "bg-amber-100", text: "text-amber-700", label: "Chờ duyệt" },
   Suspended: { bg: "bg-red-100", text: "text-red-700", label: "Đã khóa" },
   Deleted: { bg: "bg-slate-200", text: "text-slate-600", label: "Đã xóa" },
+};
+
+const statusDescriptions: Record<string, string> = {
+  Active: "Có thể đăng nhập",
+  Pending: "Chờ xác minh email",
+  Suspended: "Bị khóa đăng nhập",
+  Deleted: "Đã xóa mềm",
 };
 
 function FilterDropdown({ value, label, options, onChange }: { value: string; label: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
@@ -75,60 +83,6 @@ function FilterDropdown({ value, label, options, onChange }: { value: string; la
               {opt.label}
             </button>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ActionDropdown({ user, onView, onSoftDelete, onRestore }: {
-  user: AdminUserListItem;
-  onView: () => void;
-  onSoftDelete: () => void;
-  onRestore: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false));
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
-      {open && (
-        <div className="dropdown-scrollbar absolute right-0 top-full z-20 mt-1 w-48 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-          <button
-            type="button"
-            onClick={() => { onView(); setOpen(false); }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-700"
-          >
-            <Eye className="h-4 w-4" />
-            Xem chi tiết
-          </button>
-          {user.status === "Deleted" ? (
-            <button
-              type="button"
-              onClick={() => { onRestore(); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-emerald-700 hover:bg-emerald-50"
-            >
-              <Power className="h-4 w-4" />
-              Khôi phục
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => { onSoftDelete(); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-              Xóa
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -181,7 +135,7 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
     setIsLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number | boolean | undefined> = {
+      const params: AdminUserListParams = {
         page: p,
         pageSize: PAGE_SIZE,
         keyword: kw || undefined,
@@ -190,7 +144,7 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
         status: status || undefined,
         isOnline: online === "online" ? true : online === "offline" ? false : undefined,
       };
-      const result = await getAdminUsers(params as any);
+      const result = await getAdminUsers(params);
       setUsers(result.items);
       setTotalCount(result.totalCount);
       setPage(result.page);
@@ -261,7 +215,7 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
   async function handleToggleStatus(user: AdminUserListItem) {
     const newStatus = user.status === "Active" ? "Suspended" : "Active";
     await updateUserStatus(user.userId, { status: newStatus });
-    void loadUsers(page, keyword, sortBy, statusFilter, onlineFilter);
+    setUsers((items) => items.map((item) => item.userId === user.userId ? { ...item, status: newStatus } : item));
   }
 
   async function handleConfirmAction() {
@@ -270,8 +224,8 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
     try {
       const newStatus = confirmModal.action === "delete" ? "Deleted" : "Active";
       await updateUserStatus(confirmModal.user.userId, { status: newStatus });
+      setUsers((items) => items.map((item) => item.userId === confirmModal.user.userId ? { ...item, status: newStatus } : item));
       setConfirmModal(null);
-      void loadUsers(page, keyword, sortBy, statusFilter, onlineFilter);
     } catch {
       setError("Thao tác thất bại, vui lòng thử lại.");
     } finally {
@@ -299,8 +253,8 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
       setCreateModalOpen(false);
       setCreateForm({ fullName: "", email: "", password: "", confirmPassword: "", employeeCode: "", department: "" });
       void loadUsers(page, keyword, sortBy, statusFilter, onlineFilter);
-    } catch (err: any) {
-      setCreateError(err?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.");
+    } catch (err: unknown) {
+      setCreateError(getApiErrorMessage(err, "Có lỗi xảy ra, vui lòng thử lại."));
     } finally {
       setCreateLoading(false);
     }
@@ -441,10 +395,10 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
               <tr>
                 <th className="px-4 py-3">Người dùng</th>
                 {showRoleColumn && <th className="px-4 py-3">Vai trò</th>}
-                <th className="px-4 py-3">Trạng thái</th>
+                <th className="px-4 py-3">Tài khoản</th>
                 <th className="px-4 py-3">Hoạt động</th>
                 <th className="px-4 py-3">Ngày tạo</th>
-                <th className="px-4 py-3 text-right">Thao tác</th>
+                <th className="w-28 px-4 py-3 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -478,11 +432,21 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
                     </td>
                   )}
                   <td className="px-4 py-3">
-                    <UserStatusToggle
-                      isActive={user.status === "Active"}
-                      userName={user.fullName}
-                      onToggle={() => void handleToggleStatus(user)}
-                    />
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className={`inline-flex rounded px-2 py-1 text-xs font-medium ${statusLabels[user.status]?.bg ?? "bg-slate-100"} ${statusLabels[user.status]?.text ?? "text-slate-600"}`}>
+                          {statusLabels[user.status]?.label ?? user.status}
+                        </span>
+                        <p className="mt-1 text-xs text-slate-400">{statusDescriptions[user.status] ?? "Không xác định"}</p>
+                      </div>
+                      {(user.status === "Active" || user.status === "Suspended") && (
+                        <UserStatusToggle
+                          isActive={user.status === "Active"}
+                          userName={user.fullName}
+                          onToggle={() => handleToggleStatus(user)}
+                        />
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -500,13 +464,42 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
                   <td className="px-4 py-3 text-slate-600">
                     {new Date(user.createdAt).toLocaleDateString("vi-VN")}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <ActionDropdown
-                      user={user}
-                      onView={() => handleViewUser(user.userId)}
-                      onSoftDelete={() => setConfirmModal({ user, action: "delete" })}
-                      onRestore={() => setConfirmModal({ user, action: "restore" })}
-                    />
+                  <td className="w-28 px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                      <Button
+                        aria-label="Xem chi tiết"
+                        className="w-8 px-0 text-blue-600 hover:bg-transparent hover:text-blue-800"
+                        onClick={() => handleViewUser(user.userId)}
+                        size="sm"
+                        title="Xem chi tiết"
+                        variant="ghost"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {user.status === "Deleted" ? (
+                        <Button
+                          aria-label="Khôi phục tài khoản"
+                          className="w-8 px-0 text-emerald-600 hover:bg-transparent hover:text-emerald-800"
+                          onClick={() => setConfirmModal({ user, action: "restore" })}
+                          size="sm"
+                          title="Khôi phục tài khoản"
+                          variant="ghost"
+                        >
+                          <Power className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          aria-label="Xóa tài khoản"
+                          className="w-8 px-0 text-red-500 hover:bg-transparent hover:text-red-700"
+                          onClick={() => setConfirmModal({ user, action: "delete" })}
+                          size="sm"
+                          title="Xóa tài khoản"
+                          variant="ghost"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

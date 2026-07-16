@@ -84,6 +84,15 @@ export type UpdateUserStatusRequest = {
   status: string;
 };
 
+export type AdminLoginSession = {
+  sessionId: string;
+  deviceType?: string | null;
+  ipAddress?: string | null;
+  signedInAt: string;
+  expiresAt: string;
+  isActive: boolean;
+};
+
 export type CreateStaffRequest = {
   fullName: string;
   email: string;

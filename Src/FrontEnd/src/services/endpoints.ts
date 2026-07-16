@@ -18,6 +18,7 @@ export const endpoints = {
     userById: (id: number) => `/api/admin/users/${id}`,
     userRoles: (id: number) => `/api/admin/users/${id}/roles`,
     userStatus: (id: number) => `/api/admin/users/${id}/status`,
+    userSessions: (id: number) => `/api/admin/users/${id}/sessions`,
     vehicles: "/api/admin/vehicles",
     vehicleModerationOverview: "/api/admin/vehicles/moderation-overview",
     vehicleBrands: "/api/admin/vehicle-brands",

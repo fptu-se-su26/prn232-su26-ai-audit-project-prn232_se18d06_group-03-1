@@ -1,4 +1,4 @@
-import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, IdCard, Mail, Phone, Shield, Star, User, XCircle } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, IdCard, Laptop, Mail, Monitor, Phone, Shield, Smartphone, Star, User, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -7,8 +7,9 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import FormField from "@/components/common/FormField";
 import UserStatusToggle from "@/components/common/UserStatusToggle";
-import { getAdminUserById, updateAdminUser, updateUserRole, updateUserStatus } from "@/features/admin/services/adminUserService";
-import type { AdminUserDetail } from "@/features/admin/types";
+import { getAdminUserById, getAdminUserSessions, revokeAdminUserSession, updateAdminUser, updateUserRole, updateUserStatus } from "@/features/admin/services/adminUserService";
+import type { AdminLoginSession, AdminUserDetail } from "@/features/admin/types";
+import type { UserRole } from "@/features/auth/types";
 
 const roleLabels: Record<string, string> = {
   Admin: "Quản trị",
@@ -53,6 +54,11 @@ export default function AdminUserDetailPage() {
   const [saving, setSaving] = useState(false);
   const [statusModal, setStatusModal] = useState<{ action: "suspend" | "activate" | "delete" | "restore" } | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [sessions, setSessions] = useState<AdminLoginSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState("");
+  const [roleUpdating, setRoleUpdating] = useState("");
+  const [revokingSessionId, setRevokingSessionId] = useState("");
 
   const loadUser = useCallback(async () => {
     if (!id) return;
@@ -75,6 +81,23 @@ export default function AdminUserDetailPage() {
   useEffect(() => {
     void loadUser();
   }, [loadUser]);
+
+  const loadSessions = useCallback(async () => {
+    if (!id) return;
+    setSessionsLoading(true);
+    setSessionsError("");
+    try {
+      setSessions(await getAdminUserSessions(Number(id)));
+    } catch {
+      setSessionsError("Không thể tải các phiên đăng nhập.");
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadSessions();
+  }, [loadSessions]);
 
   function openEditModal() {
     if (!user) return;
@@ -107,11 +130,35 @@ export default function AdminUserDetailPage() {
 
   async function handleToggleRole(role: string, assigned: boolean) {
     if (!user) return;
+    setRoleUpdating(role);
+    setError(null);
     try {
       await updateUserRole(user.userId, { role, assigned });
-      void loadUser();
+      setUser((current) => {
+        if (!current) return current;
+        const nextRoles = assigned
+          ? [...new Set([...current.roles, role as UserRole])]
+          : current.roles.filter((item) => item !== role);
+        return { ...current, roles: nextRoles };
+      });
     } catch {
       setError("Không thể cập nhật vai trò.");
+    } finally {
+      setRoleUpdating("");
+    }
+  }
+
+  async function handleRevokeSession(sessionId: string) {
+    if (!user || !window.confirm("Đăng xuất phiên này khỏi tài khoản?")) return;
+    setRevokingSessionId(sessionId);
+    setSessionsError("");
+    try {
+      await revokeAdminUserSession(user.userId, sessionId);
+      setSessions((items) => items.map((item) => item.sessionId === sessionId ? { ...item, isActive: false } : item));
+    } catch {
+      setSessionsError("Không thể thu hồi phiên đăng nhập.");
+    } finally {
+      setRevokingSessionId("");
     }
   }
 
@@ -269,7 +316,7 @@ export default function AdminUserDetailPage() {
                 <UserStatusToggle
                   isActive={user.status === "Active"}
                   userName={user.fullName}
-                  onToggle={() => handleToggleStatus(user)}
+                  onToggle={() => setStatusModal({ action: user.status === "Active" ? "suspend" : "activate" })}
                 />
               </div>
               <div className="mt-3 flex gap-2">
@@ -316,7 +363,7 @@ export default function AdminUserDetailPage() {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {allRoles.map((role) => {
-                const assigned = user.roles.includes(role as any);
+                const assigned = user.roles.includes(role as UserRole);
                 const colors = roleColors[role];
                 const Icon = roleIcons[role];
                 return (
@@ -324,6 +371,7 @@ export default function AdminUserDetailPage() {
                     key={role}
                     type="button"
                     onClick={() => handleToggleRole(role, !assigned)}
+                    disabled={Boolean(roleUpdating)}
                     className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
                       assigned
                         ? `${colors.activeBg} ${colors.text} ${colors.border}`
@@ -341,10 +389,65 @@ export default function AdminUserDetailPage() {
                         <CheckCircle className="h-4 w-4 text-current" />
                       </div>
                     )}
+                    {roleUpdating === role && <span className="absolute inset-x-0 bottom-1 text-[10px] font-medium">Đang lưu...</span>}
                   </button>
                 );
               })}
             </div>
+          </div>
+
+          {/* Login sessions */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                  <Monitor className="h-5 w-5 text-blue-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Phiên đăng nhập</h3>
+                  <p className="text-sm text-slate-500">Thiết bị đã đăng nhập và trạng thái phiên hiện tại.</p>
+                </div>
+              </div>
+              <Button disabled={sessionsLoading} onClick={loadSessions} size="sm" variant="ghost">Làm mới</Button>
+            </div>
+
+            {sessionsError && <div className="px-6 pt-4"><Alert variant="error">{sessionsError}</Alert></div>}
+            {sessionsLoading ? (
+              <div className="flex justify-center py-10"><LoadingSpinner className="h-5 w-5" /></div>
+            ) : sessions.length === 0 ? (
+              <p className="px-6 py-8 text-center text-sm text-slate-500">Chưa có dữ liệu phiên đăng nhập hợp lệ.</p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {sessions.map((session) => {
+                  const device = describeSessionDevice(session.deviceType);
+                  const DeviceIcon = device.mobile ? Smartphone : Laptop;
+                  return (
+                    <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center" key={session.sessionId}>
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-100">
+                          <DeviceIcon className="h-4 w-4 text-slate-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-slate-900">{device.label}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${session.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                              {session.isActive ? "Đang hoạt động" : "Đã hết phiên"}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-slate-500">IP: {session.ipAddress || "Không xác định"}</p>
+                          <p className="mt-0.5 text-xs text-slate-400">Đăng nhập lúc {formatSessionDate(session.signedInAt)}</p>
+                        </div>
+                      </div>
+                      {session.isActive && (
+                        <Button isLoading={revokingSessionId === session.sessionId} onClick={() => handleRevokeSession(session.sessionId)} size="sm" variant="secondary">
+                          Đăng xuất
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Profiles & Verification */}
@@ -509,10 +612,6 @@ export default function AdminUserDetailPage() {
   );
 }
 
-function handleToggleStatus(user: AdminUserDetail) {
-  // This is handled via the status modal buttons instead
-}
-
 function VerificationItem({ icon, label, verified, extra }: { icon: React.ReactNode; label: string; verified: boolean; extra?: string }) {
   return (
     <div className="flex items-center gap-3">
@@ -539,4 +638,22 @@ function InfoItem({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-medium text-slate-700">{value}</p>
     </div>
   );
+}
+
+function describeSessionDevice(userAgent?: string | null) {
+  if (!userAgent) return { label: "Thiết bị không xác định", mobile: false };
+  const mobile = /Android|iPhone|iPad|Mobile/i.test(userAgent);
+  const browser = /Edg\//.test(userAgent) ? "Microsoft Edge"
+    : /Chrome\//.test(userAgent) ? "Google Chrome"
+      : /Firefox\//.test(userAgent) ? "Mozilla Firefox"
+        : /Safari\//.test(userAgent) ? "Safari" : "Trình duyệt";
+  const os = /Windows/i.test(userAgent) ? "Windows"
+    : /Android/i.test(userAgent) ? "Android"
+      : /iPhone|iPad|Mac OS/i.test(userAgent) ? "Apple"
+        : /Linux/i.test(userAgent) ? "Linux" : "thiết bị không xác định";
+  return { label: `${browser} trên ${os}`, mobile };
+}
+
+function formatSessionDate(value: string) {
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
