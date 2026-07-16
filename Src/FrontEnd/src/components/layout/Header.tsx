@@ -61,12 +61,14 @@ export default function Header() {
               onClick={() => setOpen((prev) => !prev)}
               className={`hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors sm:flex ${open ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-slate-100"}`}
             >
-              <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-brand-700 text-xs font-semibold text-white">
-                {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span>{initials}</span>
-                )}
+              <span className="relative inline-flex shrink-0">
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-brand-700 text-xs font-semibold text-white">
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </span>
                 {selfOnline && (
                   <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
                 )}

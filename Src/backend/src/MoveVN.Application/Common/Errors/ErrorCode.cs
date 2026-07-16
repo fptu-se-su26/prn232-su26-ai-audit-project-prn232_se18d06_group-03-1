@@ -113,6 +113,8 @@ public sealed class ErrorCode
     public static readonly ErrorCode BLOCKED_DATE_NOT_FOUND = new("VEHICLE_9007", "Không tìm thấy ngày chặn.", HttpStatusCode.NotFound);
     public static readonly ErrorCode VEHICLE_DOCUMENT_VERIFICATION_PENDING = new("VEHICLE_9008", "Đã có yêu cầu xác thực giấy tờ xe đang chờ duyệt.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode VEHICLE_DOCUMENT_UPLOAD_LOCKED = new("VEHICLE_9009", "Tải lên giấy tờ xe tạm thời bị khoá.", HttpStatusCode.TooManyRequests);
+    public static readonly ErrorCode VEHICLE_DELETE_ACTIVE_BOOKINGS = new("VEHICLE_9010", "Không thể xóa xe đang có lịch đặt.", HttpStatusCode.Conflict);
+    public static readonly ErrorCode VEHICLE_DELETE_APPROVED = new("VEHICLE_9011", "Hãy ẩn xe trước khi xóa.", HttpStatusCode.BadRequest);
 
     public static readonly ErrorCode BOOKING_NOT_FOUND = new("BOOK_10001", "Không tìm thấy booking.", HttpStatusCode.NotFound);
     public static readonly ErrorCode BOOKING_DATES_INVALID = new("BOOK_10002", "Ngày trả phải sau ngày nhận.", HttpStatusCode.BadRequest);

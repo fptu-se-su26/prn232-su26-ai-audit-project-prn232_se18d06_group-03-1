@@ -160,7 +160,7 @@ public class NationalIdReviewService : INationalIdReviewService
                 verificationRequestId = requestId,
                 documentType = "NationalId",
                 status,
-                targetPath = "/account/verification/national-id",
+                targetPath = "/account/verification/cccd",
                 action
             }),
             Channel = "InApp"

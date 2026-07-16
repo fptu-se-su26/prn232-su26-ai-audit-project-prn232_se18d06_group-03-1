@@ -1,17 +1,21 @@
-import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, BadgeInfo, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock, CalendarOff, Plus, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock, CalendarOff, Plus, Trash2, Loader2, ChevronLeft, ChevronRight, BadgeInfo } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getVehicleById, toggleVehicleStatus, uploadVehicleDocument, getBlockedDates, createBlockedDate, deleteBlockedDate } from "@/features/vehicles/services/vehicleService";
+import { getVehicleById, toggleVehicleStatus, uploadVehicleDocument, getBlockedDates, createBlockedDate, deleteBlockedDate, deleteVehicle } from "@/features/vehicles/services/vehicleService";
+import { getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
 import type { VehicleResponse } from "@/features/vehicles/types";
 import type { BlockedDateResponse } from "@/features/vehicles/services/vehicleService";
+import type { BusyPeriod } from "@/features/vehicles/types";
 import ActiveToggle from "@/components/common/ActiveToggle";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import Button from "@/components/common/Button";
 import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
-import VehicleLocationMap from "@/features/locations/components/VehicleLocationMap";
 import { getVehicleErrorMessage } from "@/features/vehicles/vehicleDisplay";
+import MapWithPin from "@/features/locations/components/MapWithPin";
+
+const MONTHS = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
 
 function splitAreaName(areaName: string | null) {
   if (!areaName) return { province: "-", ward: "-" };
@@ -154,6 +158,7 @@ export default function OwnerVehicleDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [blockedDates, setBlockedDates] = useState<BlockedDateResponse[]>([]);
   const [blockedDatesLoading, setBlockedDatesLoading] = useState(false);
+  const [busyPeriods, setBusyPeriods] = useState<BusyPeriod[]>([]);
   const [showAddBlocked, setShowAddBlocked] = useState(false);
   const [newDateFrom, setNewDateFrom] = useState("");
   const [newDateTo, setNewDateTo] = useState("");
@@ -164,6 +169,10 @@ export default function OwnerVehicleDetailPage() {
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -177,6 +186,9 @@ export default function OwnerVehicleDetailPage() {
           .then(setBlockedDates)
           .catch(() => {})
           .finally(() => setBlockedDatesLoading(false));
+        getVehicleAvailability(Number(id))
+          .then((data) => setBusyPeriods(data?.busyPeriods ?? []))
+          .catch(() => {});
       })
       .catch(() => setError("Không thể tải thông tin xe."))
       .finally(() => setIsLoading(false));
@@ -219,6 +231,21 @@ export default function OwnerVehicleDetailPage() {
     await toggleVehicleStatus(vehicle.id);
     const updated = await getVehicleById(vehicle.id);
     setVehicle(updated);
+  };
+
+  const handleDeleteDetail = async () => {
+    if (!vehicle) return;
+    setDeleting(true);
+    try {
+      await deleteVehicle(vehicle.id);
+      showToast({ type: "success", title: "Đã xóa", message: "Xe đã được xóa thành công." });
+      navigate("/owner/vehicles");
+    } catch (err: any) {
+      showToast({ type: "error", title: "Lỗi", message: err?.response?.data?.message || "Không thể xóa xe." });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const currentDocument = vehicle?.documents.find((doc) => doc.isCurrent) ?? vehicle?.documents[0];
@@ -299,6 +326,11 @@ export default function OwnerVehicleDetailPage() {
           <button type="button" onClick={() => navigate(`/owner/vehicles/${vehicle.id}/edit`)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white shadow-sm transition-all hover:bg-brand-800 hover:shadow-md" title="Sửa xe">
             <Pencil className="h-4 w-4" />
           </button>
+          {vehicle.status !== "Approved" && (
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 shadow-sm transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500" title="Xóa xe">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -316,13 +348,13 @@ export default function OwnerVehicleDetailPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <div className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-900/5">
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                <Car className="h-3.5 w-3.5 text-slate-500" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50">
+                  <Car className="h-3.5 w-3.5 text-brand-600" />
+                </div>
+                <h2 className="text-sm font-bold text-slate-900">Thông tin xe</h2>
               </div>
-              <h2 className="text-sm font-semibold text-slate-900">Thông tin xe</h2>
-            </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div className="col-span-2 sm:col-span-1">
                 <label className="block text-xs font-medium text-slate-400">Biển số</label>
@@ -350,90 +382,23 @@ export default function OwnerVehicleDetailPage() {
                 </div>
               )}
             </div>
-          </div>
-
-          {vehicle.features.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                  <BadgeInfo className="h-3.5 w-3.5 text-slate-500" />
-                </div>
-                <h2 className="text-sm font-semibold text-slate-900">Tính năng</h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {vehicle.features.map((f) => (
-                  <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">
-                    <CheckCircle className="h-3 w-3" /> {f.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Blocked Dates */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                  <CalendarOff className="h-3.5 w-3.5 text-slate-500" />
-                </div>
-                <h2 className="text-sm font-semibold text-slate-900">Lịch chặn</h2>
-              </div>
-              {!showAddBlocked && (
-                <button type="button" onClick={() => setShowAddBlocked(true)} className="inline-flex items-center gap-1 rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">
-                  <Plus className="h-3.5 w-3.5" /> Chặn ngày
-                </button>
-              )}
-            </div>
-
-            {showAddBlocked && (
-              <div className="mb-4 rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Từ ngày</label>
-                    <input type="date" value={newDateFrom} onChange={(e) => setNewDateFrom(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
+            {vehicle.features.length > 0 && (
+              <>
+                <hr className="my-4 border-slate-100" />
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
+                    <BadgeInfo className="h-3 w-3 text-slate-500" />
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Đến ngày</label>
-                    <input type="date" value={newDateTo} onChange={(e) => setNewDateTo(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
-                  </div>
+                  <span className="text-xs font-semibold text-slate-900">Tính năng ({vehicle.features.length})</span>
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Lý do (không bắt buộc)</label>
-                  <input type="text" value={newReason} onChange={(e) => setNewReason(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" placeholder="VD: Bảo dưỡng, đi chơi..." />
+                <div className="flex flex-wrap gap-2">
+                  {vehicle.features.map((f) => (
+                    <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+                      <CheckCircle className="h-3 w-3" /> {f.name}
+                    </span>
+                  ))}
                 </div>
-                <div className="flex gap-2">
-                  <Button type="button" variant="secondary" size="sm" onClick={() => { setShowAddBlocked(false); setNewDateFrom(""); setNewDateTo(""); setNewReason(""); }}>Hủy</Button>
-                  <Button type="button" size="sm" onClick={handleAddBlockedDate} disabled={savingBlocked || !newDateFrom || !newDateTo}>
-                    {savingBlocked ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang lưu...</> : "Lưu"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {blockedDatesLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : blockedDates.length === 0 ? (
-              <p className="text-sm text-slate-400">Chưa có ngày chặn nào.</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {blockedDates.map((bd) => (
-                  <div key={bd.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-800">
-                        {new Date(bd.startDate).toLocaleDateString("vi-VN")} - {new Date(bd.endDate).toLocaleDateString("vi-VN")}
-                      </p>
-                      {bd.reason && <p className="mt-0.5 text-xs text-slate-500">{bd.reason}</p>}
-                    </div>
-                    <button type="button" onClick={() => handleDeleteBlockedDate(bd.id)} className="ml-2 shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              </>
             )}
           </div>
 
@@ -446,7 +411,7 @@ export default function OwnerVehicleDetailPage() {
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2 text-slate-800">
-                <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
                 <span>{vehicle.address}</span>
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -464,24 +429,172 @@ export default function OwnerVehicleDetailPage() {
                 Mở Google Maps
               </a>
               {vehicle.latitude != null && vehicle.longitude != null && (
-                <VehicleLocationMap
-                  latitude={vehicle.latitude}
-                  longitude={vehicle.longitude}
-                  title={`${vehicle.brandName} ${vehicle.modelName}`}
+                <MapWithPin
+                  latitude={Number(vehicle.latitude)}
+                  longitude={Number(vehicle.longitude)}
                   address={vehicle.address}
-                  googleMapsUrl={googleMapsUrl}
+                  className="h-60 w-full rounded-xl z-0"
                 />
               )}
             </div>
           </div>
 
-          {vehicle.images.length > 0 && (
+          {showAddBlocked && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50">
+                  <Plus className="h-3.5 w-3.5 text-brand-600" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Chặn ngày mới</h2>
+                <button type="button" onClick={() => { setShowAddBlocked(false); setNewDateFrom(""); setNewDateTo(""); setNewReason(""); }} className="ml-auto text-xs text-slate-400 hover:text-slate-600">✕</button>
+              </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Từ</label>
+                    <input type="date" value={newDateFrom} onChange={(e) => setNewDateFrom(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Đến</label>
+                    <input type="date" value={newDateTo} onChange={(e) => setNewDateTo(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Lý do (không bắt buộc)</label>
+                  <input type="text" value={newReason} onChange={(e) => setNewReason(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" placeholder="VD: Bảo dưỡng, đi chơi..." />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" size="sm" onClick={() => { setShowAddBlocked(false); setNewDateFrom(""); setNewDateTo(""); setNewReason(""); }}>Hủy</Button>
+                  <Button type="button" size="sm" onClick={handleAddBlockedDate} disabled={savingBlocked || !newDateFrom || !newDateTo}>
+                    {savingBlocked ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang lưu...</> : "Xác nhận chặn"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+                  <CalendarOff className="h-3.5 w-3.5 text-slate-500" />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-900">Các ngày đã chặn</h2>
+              </div>
+              {!showAddBlocked && (
+                <button type="button" onClick={() => setShowAddBlocked(true)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                  <Plus className="h-3.5 w-3.5" /> Thêm ngày
+                </button>
+              )}
+            </div>
+
+            <div className="mb-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <button type="button" onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear((y) => y - 1); } else setCalMonth((m) => m - 1); }} className="rounded p-0.5 text-slate-400 hover:bg-slate-200"><ChevronLeft className="h-3.5 w-3.5" /></button>
+                <span className="text-xs font-semibold text-slate-700">{MONTHS[calMonth]} {calYear}</span>
+                <button type="button" onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear((y) => y + 1); } else setCalMonth((m) => m + 1); }} className="rounded p-0.5 text-slate-400 hover:bg-slate-200"><ChevronRight className="h-3.5 w-3.5" /></button>
+              </div>
+              <div className="grid grid-cols-7 gap-0.5 text-center">
+                {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((d) => (
+                  <div key={d} className="text-[10px] font-medium text-slate-400 py-1">{d}</div>
+                ))}
+                {(() => {
+                  const firstDay = new Date(calYear, calMonth, 1).getDay();
+                  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const blockedSet = new Set(blockedDates.flatMap((bd) => {
+                    const dates: string[] = [];
+                    const start = bd.startDate.slice(0, 10);
+                    const end = bd.endDate.slice(0, 10);
+                    let [y, m, d] = start.split("-").map(Number);
+                    const endStr = end;
+                    while (true) {
+                      const dateStr = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                      dates.push(dateStr);
+                      if (dateStr >= endStr) break;
+                      d++;
+                      const daysInMonth = new Date(y, m, 0).getDate();
+                      if (d > daysInMonth) { d = 1; m++; if (m > 12) { m = 1; y++; } }
+                    }
+                    return dates;
+                  }));
+                  const bookedSet = new Set(busyPeriods.filter((bp) => bp.type === "booking").flatMap((bp) => {
+                    const dates: string[] = [];
+                    const start = bp.startDate.slice(0, 10);
+                    const end = bp.endDate.slice(0, 10);
+                    let [y, m, d] = start.split("-").map(Number);
+                    const endStr = end;
+                    while (true) {
+                      const dateStr = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                      dates.push(dateStr);
+                      if (dateStr >= endStr) break;
+                      d++;
+                      const daysInMonth = new Date(y, m, 0).getDate();
+                      if (d > daysInMonth) { d = 1; m++; if (m > 12) { m = 1; y++; } }
+                    }
+                    return dates;
+                  }));
+                  const cells: React.ReactNode[] = [];
+                  for (let i = 0; i < firstDay; i++) cells.push(<div key={`e-${i}`} />);
+                  for (let d = 1; d <= daysInMonth; d++) {
+                    const date = new Date(Date.UTC(calYear, calMonth, d));
+                    const dateStr = date.toISOString().slice(0, 10);
+                    const isBlocked = blockedSet.has(dateStr);
+                    const isBooked = bookedSet.has(dateStr);
+                    const isPast = dateStr < todayStr;
+                    let cls = "text-slate-600";
+                    if (isBlocked) cls = "bg-red-100 text-red-700 font-semibold";
+                    else if (isBooked) cls = "bg-amber-100 text-amber-700 font-semibold";
+                    else if (isPast) cls = "text-slate-300";
+                    cells.push(
+                      <div key={d} className={`flex items-center justify-center h-6 text-[11px] rounded ${cls}`}>
+                        {d}
+                      </div>
+                    );
+                  }
+                  return cells;
+                })()}
+              </div>
+              <div className="flex items-center gap-4 mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500">
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-red-100 border border-red-200" /> Đã chặn</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-amber-100 border border-amber-200" /> Đã đặt</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-slate-100 border border-slate-200" /> Còn trống</span>
+              </div>
+            </div>
+
+            {blockedDatesLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : blockedDates.length === 0 ? (
+              <p className="text-sm text-slate-400">Chưa có ngày chặn nào.</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {blockedDates.map((bd) => (
+                  <div key={bd.id} className="relative flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3 pl-4 hover:border-slate-200 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800">
+                        {new Date(bd.startDate).toLocaleDateString("vi-VN")} - {new Date(bd.endDate).toLocaleDateString("vi-VN")}
+                      </p>
+                      {bd.reason && <p className="mt-0.5 text-xs text-slate-400">{bd.reason}</p>}
+                    </div>
+                    <button type="button" onClick={() => handleDeleteBlockedDate(bd.id)} className="shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors" title="Bỏ chặn">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {vehicle.images.length > 0 && (
+            <div className="rounded-xl border border-slate-100 bg-[#FAFAFA] p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
                   <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
                 </div>
-                <h2 className="text-sm font-semibold text-slate-900">Hình ảnh ({vehicle.images.length})</h2>
+                <h2 className="text-sm font-semibold text-slate-800">Hình ảnh ({vehicle.images.length})</h2>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {vehicle.images.map((img, index) => (
@@ -503,69 +616,78 @@ export default function OwnerVehicleDetailPage() {
           )}
         </div>
 
-        <div className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-900 mb-3">Giá thuê</h2>
-            <p className="text-2xl font-bold text-brand-700">{vehicle.pricePerDay.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span></p>
-            <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-              <span className="font-semibold text-slate-700">Thế chấp: </span>
-              {Math.max(20, vehicle.depositPercent || 0)}%
+        <div className="space-y-5 lg:sticky lg:top-5 lg:self-start">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-brand-900/5">
+            <h2 className="text-sm font-bold text-slate-900 mb-3">Giá thuê</h2>
+            <p className="text-2xl font-bold text-brand-700">{displayPrice.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span></p>
+            <hr className="my-3 border-slate-100" />
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Thế chấp</span>
+                <span className="font-medium text-slate-700">{vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Loại xe</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                  {vehicle.vehicleType === "Car" ? <Car className="h-3 w-3" /> : <Bike className="h-3 w-3" />}
+                  {vehicle.vehicleType === "Car" ? "Ô tô" : "Xe máy"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Năm sản xuất</span>
+                <span className="font-medium text-slate-700">{vehicle.year}</span>
+              </div>
             </div>
             {vehicle.pricingMode === "Auto" ? (
-              <>
               <div className="mt-3 rounded-lg bg-violet-50 p-3 text-xs text-violet-800">
                 <div className="font-semibold">Giá tự động</div>
                 <div className="mt-1">Khung owner đặt: {formatVnd(vehicle.autoMinPrice)} - {formatVnd(vehicle.autoMaxPrice)}/ngày</div>
                 <div className="mt-1 text-violet-600">Base gợi ý: {formatVnd(vehicle.suggestedBasePrice)} | Gợi ý: {formatVnd(vehicle.suggestedMinPrice)} - {formatVnd(vehicle.suggestedMaxPrice)}</div>
               </div>
-              <div className="hidden">
-                <div className="font-semibold">GiÃ¡ tá»± Ä‘á»™ng</div>
-                <div className="mt-1">Khung owner Ä‘áº·t: {formatVnd(vehicle.autoMinPrice)} - {formatVnd(vehicle.autoMaxPrice)}/ngÃ y</div>
-                <div className="mt-1 text-violet-600">Base gá»£i Ã½: {formatVnd(vehicle.suggestedBasePrice)} | Gá»£i Ã½: {formatVnd(vehicle.suggestedMinPrice)} - {formatVnd(vehicle.suggestedMaxPrice)}</div>
-              </div>
-              </>
             ) : (
-              <>
               <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
                 Giá cố định: {formatVnd(vehicle.fixedPricePerDay ?? vehicle.pricePerDay)}/ngày
               </div>
-              <div className="hidden">
-                GiÃ¡ cá»‘ Ä‘á»‹nh: {formatVnd(vehicle.fixedPricePerDay ?? vehicle.pricePerDay)}/ngÃ y
-              </div>
-              </>
             )}
-            <div className="mt-3 flex items-center gap-2">
-              {vehicle.vehicleType === "Car" ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"><Car className="h-3 w-3" /> Ô tô</span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700"><Bike className="h-3 w-3" /> Xe máy</span>
-              )}
-              <span className="text-xs text-slate-400">{vehicle.year}</span>
-            </div>
           </div>
 
           {currentDocument && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
                   <FileText className="h-3.5 w-3.5 text-slate-500" />
                 </div>
                 <h2 className="text-sm font-semibold text-slate-900">Giấy tờ xe</h2>
               </div>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).bg} ${(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).dot}`} />
                   {(docStatusConfig[currentDocument.verificationStatus] ?? docStatusConfig.Pending).label}
                 </span>
-                <button type="button" onClick={() => openPreview(documentImages, Math.max(0, documentImages.findIndex((image) => image.url === currentDocument.fileUrl)))} className="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100">
+                <button type="button" onClick={() => openPreview(documentImages, Math.max(0, documentImages.findIndex((image) => image.url === currentDocument.fileUrl)))} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50">
                   <Eye className="h-3.5 w-3.5" /> Xem cavet
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs">
-                <div><span className="text-slate-400">Biển số OCR</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrLicensePlate ?? "-"}</p></div>
-                <div><span className="text-slate-400">Hãng OCR</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrBrand ?? "-"}</p></div>
-                <div><span className="text-slate-400">Dòng xe OCR</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrModel ?? "-"}</p></div>
-                <div><span className="text-slate-400">Độ tin cậy</span><p className="mt-0.5 font-medium text-slate-800">{currentDocument.ocrConfidence ?? "-"}</p></div>
+              <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Biển số OCR</span>
+                  <span className="font-medium text-slate-800">{currentDocument.ocrLicensePlate ?? "-"}</span>
+                </div>
+                <hr className="border-slate-200" />
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Hãng</span>
+                  <span className="font-medium text-slate-800">{currentDocument.ocrBrand ?? "-"}</span>
+                </div>
+                <hr className="border-slate-200" />
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Dòng xe</span>
+                  <span className="font-medium text-slate-800">{currentDocument.ocrModel ?? "-"}</span>
+                </div>
+                <hr className="border-slate-200" />
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Độ tin cậy</span>
+                  <span className="font-medium text-slate-800">{currentDocument.ocrConfidence ?? "-"}</span>
+                </div>
               </div>
               {currentDocument.verificationStatus !== "Verified" && currentDocument.decisionReason && (
                 <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 p-3">
@@ -660,6 +782,29 @@ export default function OwnerVehicleDetailPage() {
         onIndexChange={setPreviewIndex}
         onClose={() => setPreviewImages([])}
       />
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Xóa xe</h3>
+                <p className="text-xs text-slate-500">Hành động này không thể hoàn tác.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Hủy</button>
+              <button type="button" onClick={handleDeleteDetail} disabled={deleting} className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deleting ? "Đang xóa..." : "Xóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

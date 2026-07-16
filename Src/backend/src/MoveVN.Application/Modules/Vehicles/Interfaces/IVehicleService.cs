@@ -12,4 +12,5 @@ public interface IVehicleService
     Task<VehicleResponse> UploadDocumentAsync(long id, long ownerId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
     Task<VehicleResponse> UpdateAsync(long id, long ownerId, UpdateVehicleRequest request, CancellationToken cancellationToken = default);
     Task ToggleStatusAsync(long id, long ownerId, CancellationToken cancellationToken = default);
+    Task DeleteVehicleAsync(long id, long ownerId, CancellationToken cancellationToken = default);
 }

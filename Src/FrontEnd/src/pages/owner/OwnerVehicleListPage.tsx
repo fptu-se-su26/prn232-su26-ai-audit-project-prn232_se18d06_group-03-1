@@ -227,9 +227,11 @@ export default function OwnerVehicleListPage() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
-          <p className="mt-3 text-sm text-red-600">{error}</p>
-          <button type="button" onClick={() => void load(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined)} className="mt-3 rounded-md bg-brand-700 px-4 py-2 text-sm text-white hover:bg-brand-800">Thử lại</button>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+          </div>
+          <p className="mt-4 text-sm text-red-600">{error}</p>
+          <button type="button" onClick={() => void load(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined)} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800 hover:shadow-md">Thử lại</button>
         </div>
       </div>
     );
