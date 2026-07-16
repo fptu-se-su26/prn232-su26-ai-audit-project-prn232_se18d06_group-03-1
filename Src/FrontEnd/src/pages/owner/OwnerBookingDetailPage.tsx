@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Camera, Check, ClipboardCheck, DollarSign, MapPin, TicketPercent, CreditCard, X, Star } from "lucide-react";
+import { ArrowLeft, CalendarDays, Camera, Check, ClipboardCheck, DollarSign, MapPin, TicketPercent, CreditCard, X, Star, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -202,6 +202,9 @@ export default function OwnerBookingDetailPage() {
           <span className="mt-2">
             <RiskScoreBadge score={booking.riskScore} />
           </span>
+          <Link to={`/chat/booking/${booking.id}`} className="mt-2">
+            <Button variant="secondary" size="sm"><MessageSquare className="h-4 w-4" /> Tin nhan</Button>
+          </Link>
         </div>
       </section>
 

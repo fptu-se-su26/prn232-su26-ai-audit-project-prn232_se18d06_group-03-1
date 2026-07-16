@@ -6,6 +6,8 @@ using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Auth.Services;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Bookings.Services;
+using MoveVN.Application.Modules.Chats.Interfaces;
+using MoveVN.Application.Modules.Chats.Services;
 using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
 using MoveVN.Application.Modules.Disputes.Interfaces;
@@ -91,6 +93,7 @@ public static class DependencyInjection
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
         services.AddScoped<IBookingRiskScorer, RuleBasedBookingRiskScorer>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IChatService, ChatService>();
         services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPaymentService, MoveVN.Application.Modules.Payments.Services.PaymentService>();
         services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IWalletService, MoveVN.Application.Modules.Wallets.Services.WalletService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();

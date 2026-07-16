@@ -48,6 +48,7 @@ import BookingNewPage from "@/pages/booking/BookingNewPage";
 import BookingListPage from "@/pages/booking/BookingListPage";
 import BookingManagePage from "@/pages/booking/BookingManagePage";
 import BookingDetailPage from "@/pages/booking/BookingDetailPage";
+import ChatPage from "@/pages/chat/ChatPage";
 import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPage";
 import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
@@ -128,6 +129,11 @@ export default function AppRoutes() {
           <Route path="/change-password" element={<Navigate to="/account/security/password" replace />} />
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
+
+          <Route element={<RoleRoute roles={["Customer", "Owner"]} />}>
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/chat/booking/:bookingId" element={<ChatPage />} />
+          </Route>
 
           <Route element={<RoleRoute roles={["Customer"]} />}>
             <Route path="/customer" element={<CustomerHomePage />} />

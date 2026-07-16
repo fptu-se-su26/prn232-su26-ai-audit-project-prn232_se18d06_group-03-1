@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star, ShieldAlert } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -164,11 +164,14 @@ export default function CustomerBookingDetailPage() {
 
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Customer</p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Booking {booking.bookingCode}</h1>
           <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${statusColors[booking.status] ?? "bg-slate-100 text-slate-700"}`}>
             {statusLabels[booking.status] ?? booking.status}
           </span>
+          <Link to={`/chat/booking/${booking.id}`} className="mt-2">
+            <Button variant="secondary" size="sm"><MessageSquare className="h-4 w-4" /> Tin nhan</Button>
+          </Link>
         </div>
       </section>
 
