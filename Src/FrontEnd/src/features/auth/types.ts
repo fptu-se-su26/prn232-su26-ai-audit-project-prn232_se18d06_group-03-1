@@ -10,6 +10,7 @@ export type AuthToken = {
   accessTokenExpiresAt: string;
   refreshToken: string;
   refreshTokenExpiresAt: string;
+  sessionId: string;
 };
 
 export type AuthUser = {

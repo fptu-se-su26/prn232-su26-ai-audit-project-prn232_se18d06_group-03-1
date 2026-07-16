@@ -221,8 +221,10 @@ public class AuthService : IAuthService
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.GoogleLogin, null, null, cancellationToken: cancellationToken);
-        return await CreateAuthResponseAsync(user, cancellationToken);
+        var sessionId = Guid.NewGuid().ToString("N");
+        var response = await CreateAuthResponseAsync(user, sessionId, request.UserAgent, request.IpAddress, cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.GoogleLogin, request.IpAddress, request.UserAgent, sessionId, cancellationToken: cancellationToken);
+        return response;
     }
 
     private record GoogleUserInfo
@@ -238,7 +240,7 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
         if (user is null || user.PasswordHash is null || !_passwordHasherService.Verify(user.PasswordHash, request.Password))
         {
-            await _activityLogger.LogAsync(null, request.Email, AuthEventType.LoginFailed, null, null, cancellationToken: cancellationToken);
+            await _activityLogger.LogAsync(null, request.Email, AuthEventType.LoginFailed, request.IpAddress, request.UserAgent, cancellationToken: cancellationToken);
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
@@ -250,8 +252,10 @@ public class AuthService : IAuthService
         _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.LoginSucceeded, null, null, cancellationToken: cancellationToken);
-        return await CreateAuthResponseAsync(user, cancellationToken);
+        var sessionId = Guid.NewGuid().ToString("N");
+        var response = await CreateAuthResponseAsync(user, sessionId, request.UserAgent, request.IpAddress, cancellationToken);
+        await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.LoginSucceeded, request.IpAddress, request.UserAgent, sessionId, cancellationToken: cancellationToken);
+        return response;
     }
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
@@ -263,7 +267,15 @@ public class AuthService : IAuthService
         EnsureCanLogin(user);
         oldToken.RevokedAt = DateTime.UtcNow;
 
-        return await CreateAuthResponseAsync(user, cancellationToken);
+        var sessionId = string.IsNullOrWhiteSpace(oldToken.SessionId)
+            ? Guid.NewGuid().ToString("N")
+            : oldToken.SessionId;
+        return await CreateAuthResponseAsync(
+            user,
+            sessionId,
+            oldToken.DeviceInfo ?? request.UserAgent,
+            oldToken.IpAddress ?? request.IpAddress,
+            cancellationToken);
     }
 
     public async Task LogoutAsync(LogoutRequest request, CancellationToken cancellationToken = default)
@@ -357,33 +369,31 @@ public class AuthService : IAuthService
         return await MapUserAsync(user, cancellationToken);
     }
 
-    private async Task<AuthResponse> CreateAuthResponseAsync(User user, CancellationToken cancellationToken)
+    private async Task<AuthResponse> CreateAuthResponseAsync(
+        User user,
+        string sessionId,
+        string? userAgent,
+        string? ipAddress,
+        CancellationToken cancellationToken)
     {
         var roles = await _roleRepository.GetUserRoleNamesAsync(user.Id, cancellationToken);
-        var refreshToken = await _refreshTokenService.CreateAsync(user.Id, null, cancellationToken);
+        var refreshToken = await _refreshTokenService.CreateAsync(user.Id, userAgent, sessionId, ipAddress, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var userResponse = _mapper.Map<AuthUserResponse>(user);
         userResponse.Roles = roles;
 
+        var token = _jwtTokenService.GenerateToken(user.Id, user.Email, roles, refreshToken.PlainToken, refreshToken.Entity.ExpiresAt);
+        token.SessionId = sessionId;
+        refreshToken.Entity.AccessTokenJti = token.AccessTokenJti;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _tokenSessionService.StoreAsync(userResponse, token, cancellationToken);
+
         return new AuthResponse
         {
-            Token = await CreateTokenResponseAsync(user, roles, refreshToken.PlainToken, refreshToken.Entity.ExpiresAt, userResponse, cancellationToken),
+            Token = token,
             User = userResponse
         };
-    }
-
-    private async Task<TokenResponse> CreateTokenResponseAsync(
-        User user,
-        IList<string> roles,
-        string refreshToken,
-        DateTime refreshTokenExpiresAt,
-        AuthUserResponse userResponse,
-        CancellationToken cancellationToken)
-    {
-        var token = _jwtTokenService.GenerateToken(user.Id, user.Email, roles, refreshToken, refreshTokenExpiresAt);
-        await _tokenSessionService.StoreAsync(userResponse, token, cancellationToken);
-        return token;
     }
 
     private async Task<AuthUserResponse> MapUserAsync(User user, CancellationToken cancellationToken)

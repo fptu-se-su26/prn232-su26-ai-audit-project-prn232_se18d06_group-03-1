@@ -18,7 +18,7 @@ public class RefreshTokenService : IRefreshTokenService
         _passwordHasherService = passwordHasherService;
     }
 
-    public async Task<(string PlainToken, RefreshToken Entity)> CreateAsync(long userId, string? deviceInfo, CancellationToken cancellationToken = default)
+    public async Task<(string PlainToken, RefreshToken Entity)> CreateAsync(long userId, string? deviceInfo, string sessionId, string? ipAddress, CancellationToken cancellationToken = default)
     {
         var plainToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var entity = new RefreshToken
@@ -26,6 +26,8 @@ public class RefreshTokenService : IRefreshTokenService
             UserId = userId,
             TokenHash = _passwordHasherService.Sha256(plainToken),
             DeviceInfo = deviceInfo,
+            SessionId = sessionId,
+            IpAddress = ipAddress,
             ExpiresAt = DateTime.UtcNow.AddDays(30),
             CreatedAt = DateTime.UtcNow
         };

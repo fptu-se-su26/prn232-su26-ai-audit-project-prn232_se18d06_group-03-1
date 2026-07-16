@@ -31,6 +31,7 @@ function readStoredSession(): AuthSession {
       accessTokenExpiresAt: "",
       refreshToken: "",
       refreshTokenExpiresAt: "",
+      sessionId: "",
     },
     user: null,
   };

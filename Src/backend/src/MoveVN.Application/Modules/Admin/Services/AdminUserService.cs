@@ -65,6 +65,159 @@ public class AdminUserService : IAdminUserService
         };
     }
 
+    public async Task<AdminUserDetailDto?> GetUserByIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user == null) return null;
+
+        var roleNames = await _roleRepository.GetUserRoleNamesAsync(userId, cancellationToken);
+        var presence = await _presenceService.GetOnlineStatusAsync(userId, cancellationToken);
+        var customerProfile = await _userRepository.GetCustomerProfileByUserIdAsync(userId, cancellationToken);
+        var ownerProfile = await _userRepository.GetOwnerProfileByUserIdAsync(userId, cancellationToken);
+        var verificationRequests = await _userRepository.GetVerificationRequestsByUserIdAsync(userId, cancellationToken);
+
+        StaffProfileDto? staffProfile = null;
+        if (roleNames.Contains("Staff"))
+        {
+            var staff = await _userRepository.GetStaffProfileByUserIdAsync(userId, cancellationToken);
+            if (staff != null)
+            {
+                staffProfile = new StaffProfileDto
+                {
+                    EmployeeCode = staff.EmployeeCode,
+                    Department = staff.Department
+                };
+            }
+        }
+
+        return new AdminUserDetailDto
+        {
+            UserId = user.Id,
+            FullName = user.FullName,
+            Email = user.Email,
+            Phone = user.Phone,
+            AvatarUrl = user.AvatarUrl,
+            Status = user.Status,
+            IsEmailVerified = user.IsEmailVerified,
+            IsOnline = presence?.IsOnline ?? false,
+            LastSeenAt = presence?.LastSeenAt ?? user.LastSeenAt,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt,
+            Roles = roleNames.ToList(),
+            CustomerProfile = customerProfile != null ? new CustomerProfileDto
+            {
+                DateOfBirth = customerProfile.DateOfBirth,
+                Address = customerProfile.Address,
+                NationalIdMasked = customerProfile.NationalIdMasked,
+                NationalIdVerified = customerProfile.NationalIdVerified,
+                DriverLicenseVerified = customerProfile.DriverLicenseVerified,
+                PreferredVehicleType = customerProfile.PreferredVehicleType
+            } : null,
+            OwnerProfile = ownerProfile != null ? new OwnerProfileDto
+            {
+                Tier = ownerProfile.Tier,
+                CommissionRate = ownerProfile.CommissionRate,
+                TotalTrips = ownerProfile.TotalTrips,
+                AverageRating = ownerProfile.AverageRating,
+                IsVerified = ownerProfile.IsVerified,
+                VerifiedAt = ownerProfile.VerifiedAt,
+                BankName = ownerProfile.BankName,
+                BankAccountHolderName = ownerProfile.BankAccountHolderName
+            } : null,
+            StaffProfile = staffProfile,
+            VerificationHistory = verificationRequests.Select(v => new VerificationHistoryDto
+            {
+                Id = v.Id,
+                Type = v.Type,
+                Status = v.Status,
+                Confidence = v.Confidence,
+                RejectionReason = v.RejectionReason,
+                CreatedAt = v.CreatedAt,
+                ReviewedAt = v.ReviewedAt
+            }).ToList()
+        };
+    }
+
+    public async Task UpdateUserAsync(long userId, AdminUpdateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        user.FullName = request.FullName.Trim();
+        user.Phone = request.Phone?.Trim();
+        user.AvatarUrl = request.AvatarUrl;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateUserRoleAsync(long userId, UpdateUserRoleRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        if (!Enum.TryParse<UserRoleType>(request.Role, ignoreCase: true, out var roleType))
+        {
+            throw new AppException(ErrorCode.INVALID_ROLE);
+        }
+
+        var role = await _roleRepository.GetByNameAsync(roleType, cancellationToken)
+            ?? throw new AppException(ErrorCode.INVALID_ROLE);
+
+        if (request.Assigned)
+        {
+            var existingRoles = await _roleRepository.GetUserRoleNamesAsync(userId, cancellationToken);
+            if (existingRoles.Contains(request.Role, StringComparer.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await _roleRepository.AddUserRoleAsync(new UserRole
+            {
+                UserId = userId,
+                RoleId = role.Id,
+                AssignedAt = DateTime.UtcNow
+            }, cancellationToken);
+        }
+        else
+        {
+            var existingRoles = await _roleRepository.GetUserRoleNamesAsync(userId, cancellationToken);
+            if (!existingRoles.Contains(request.Role, StringComparer.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (existingRoles.Count <= 1)
+            {
+                throw new AppException(ErrorCode.VALIDATION_ERROR);
+            }
+
+            await _roleRepository.RemoveUserRoleAsync(userId, role.Id, cancellationToken);
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateUserStatusAsync(long userId, UpdateUserStatusRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        if (!Enum.TryParse<UserStatus>(request.Status, ignoreCase: true, out var status))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR);
+        }
+
+        user.Status = status.ToString();
+        user.UpdatedAt = DateTime.UtcNow;
+
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<AuthUserResponse> CreateOwnerAsync(AdminCreateOwnerRequest request, CancellationToken cancellationToken = default)
     {
         if (request.Password != request.ConfirmPassword)

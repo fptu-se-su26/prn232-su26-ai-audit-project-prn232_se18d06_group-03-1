@@ -34,4 +34,15 @@ public class RoleRepository : IRoleRepository
     {
         await _context.UserRoles.AddAsync(userRole, cancellationToken);
     }
+
+    public async Task RemoveUserRoleAsync(long userId, int roleId, CancellationToken cancellationToken = default)
+    {
+        var userRole = await _context.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId, cancellationToken);
+
+        if (userRole != null)
+        {
+            _context.UserRoles.Remove(userRole);
+        }
+    }
 }

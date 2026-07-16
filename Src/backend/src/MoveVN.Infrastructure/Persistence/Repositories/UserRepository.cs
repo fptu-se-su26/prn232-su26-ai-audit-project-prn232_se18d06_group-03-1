@@ -59,6 +59,11 @@ public class UserRepository : IUserRepository
         await _context.StaffProfiles.AddAsync(profile, cancellationToken);
     }
 
+    public Task<StaffProfile?> GetStaffProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.StaffProfiles.FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+    }
+
     public void Update(User user)
     {
         _context.Users.Update(user);
@@ -132,6 +137,15 @@ public class UserRepository : IUserRepository
             .Where(x => x.UserId == userId && x.Type == "NationalId")
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<List<VerificationRequest>> GetVerificationRequestsByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return _context.VerificationRequests
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.DeletedAt == null)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<(List<NationalIdVerificationListItem> Items, int TotalCount)> GetNationalIdVerificationsPagedAsync(

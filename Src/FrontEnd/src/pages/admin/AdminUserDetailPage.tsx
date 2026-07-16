@@ -1,0 +1,542 @@
+import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, IdCard, Mail, Phone, Shield, Star, User, XCircle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import Alert from "@/components/common/Alert";
+import Button from "@/components/common/Button";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import Modal from "@/components/common/Modal";
+import FormField from "@/components/common/FormField";
+import UserStatusToggle from "@/components/common/UserStatusToggle";
+import { getAdminUserById, updateAdminUser, updateUserRole, updateUserStatus } from "@/features/admin/services/adminUserService";
+import type { AdminUserDetail } from "@/features/admin/types";
+
+const roleLabels: Record<string, string> = {
+  Admin: "Quản trị",
+  Staff: "Nhân viên",
+  Owner: "Chủ xe",
+  Customer: "Khách hàng",
+};
+
+const roleIcons: Record<string, typeof Shield> = {
+  Admin: Shield,
+  Staff: Briefcase,
+  Owner: CreditCard,
+  Customer: User,
+};
+
+const roleColors: Record<string, { bg: string; text: string; border: string; activeBg: string }> = {
+  Admin: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", activeBg: "bg-purple-100" },
+  Staff: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", activeBg: "bg-blue-100" },
+  Owner: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", activeBg: "bg-orange-100" },
+  Customer: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", activeBg: "bg-emerald-100" },
+};
+
+const statusConfig: Record<string, { dot: string; bg: string; text: string; label: string }> = {
+  Active: { dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700", label: "Hoạt động" },
+  Pending: { dot: "bg-amber-500", bg: "bg-amber-50", text: "text-amber-700", label: "Chờ duyệt" },
+  Suspended: { dot: "bg-red-500", bg: "bg-red-50", text: "text-red-700", label: "Đã khóa" },
+  Deleted: { dot: "bg-slate-400", bg: "bg-slate-100", text: "text-slate-600", label: "Đã xóa" },
+};
+
+const allRoles = ["Admin", "Staff", "Owner", "Customer"];
+
+export default function AdminUserDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AdminUserDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [statusModal, setStatusModal] = useState<{ action: "suspend" | "activate" | "delete" | "restore" } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const loadUser = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getAdminUserById(Number(id));
+      if (!data) {
+        setError("Không tìm thấy người dùng.");
+      } else {
+        setUser(data);
+      }
+    } catch {
+      setError("Không thể tải thông tin người dùng.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadUser();
+  }, [loadUser]);
+
+  function openEditModal() {
+    if (!user) return;
+    setEditName(user.fullName);
+    setEditPhone(user.phone ?? "");
+    setEditError("");
+    setEditModalOpen(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!user || !editName.trim()) {
+      setEditError("Họ tên không được để trống.");
+      return;
+    }
+    setSaving(true);
+    setEditError("");
+    try {
+      await updateAdminUser(user.userId, {
+        fullName: editName.trim(),
+        phone: editPhone.trim() || null,
+      });
+      setEditModalOpen(false);
+      void loadUser();
+    } catch {
+      setEditError("Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleRole(role: string, assigned: boolean) {
+    if (!user) return;
+    try {
+      await updateUserRole(user.userId, { role, assigned });
+      void loadUser();
+    } catch {
+      setError("Không thể cập nhật vai trò.");
+    }
+  }
+
+  async function handleStatusAction() {
+    if (!user || !statusModal) return;
+    setStatusLoading(true);
+    try {
+      let newStatus: string;
+      switch (statusModal.action) {
+        case "suspend": newStatus = "Suspended"; break;
+        case "activate": newStatus = "Active"; break;
+        case "delete": newStatus = "Deleted"; break;
+        case "restore": newStatus = "Active"; break;
+        default: return;
+      }
+      await updateUserStatus(user.userId, { status: newStatus });
+      setStatusModal(null);
+      void loadUser();
+    } catch {
+      setError("Thao tác thất bại, vui lòng thử lại.");
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <LoadingSpinner className="h-6 w-6" />
+      </div>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="error">{error}</Alert>
+        <Button variant="secondary" onClick={() => navigate("/admin/users")}>
+          Quay lại
+        </Button>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const status = statusConfig[user.status] ?? { dot: "bg-slate-400", bg: "bg-slate-100", text: "text-slate-700", label: user.status };
+  const hasProfile = user.customerProfile || user.ownerProfile || user.staffProfile;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1">
+          <h1 className="text-xl font-semibold text-slate-900">Chi tiết người dùng</h1>
+          <p className="mt-0.5 text-sm text-slate-500">Quản lý thông tin và vai trò tài khoản.</p>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left column - Profile card */}
+        <div className="lg:col-span-1">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            {/* Avatar & Name */}
+            <div className="px-6 pt-6 pb-4 text-center">
+              <div className="relative inline-block">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover ring-4 ring-white shadow" />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-2xl font-bold text-white ring-4 ring-white shadow">
+                    {user.fullName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className={`absolute bottom-0 right-0 h-5 w-5 rounded-full border-2 border-white ${status.dot}`} />
+              </div>
+              <h2 className="mt-3 text-lg font-semibold text-slate-900">{user.fullName}</h2>
+              <p className="text-sm text-slate-500">{user.email}</p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status.bg} ${status.text}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+                  {status.label}
+                </span>
+                {user.isOnline && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Online
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Info list */}
+            <div className="border-t border-slate-100 px-6 py-4 space-y-3">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                  <Mail className="h-4 w-4 text-slate-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-400">Email</p>
+                  <p className="truncate text-slate-700">{user.email}</p>
+                </div>
+                {user.isEmailVerified ? (
+                  <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-slate-300 shrink-0" />
+                )}
+              </div>
+
+              {user.phone && (
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                    <Phone className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-400">Điện thoại</p>
+                    <p className="text-slate-700">{user.phone}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                  <Calendar className="h-4 w-4 text-slate-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-400">Ngày tạo</p>
+                  <p className="text-slate-700">{new Date(user.createdAt).toLocaleDateString("vi-VN")}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                  <User className="h-4 w-4 text-slate-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-400">ID</p>
+                  <p className="text-slate-700 font-mono text-xs">{user.userId}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="border-t border-slate-100 px-6 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-slate-400">Trạng thái</span>
+                <UserStatusToggle
+                  isActive={user.status === "Active"}
+                  userName={user.fullName}
+                  onToggle={() => handleToggleStatus(user)}
+                />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button variant="secondary" size="sm" className="flex-1" onClick={openEditModal}>
+                  Chỉnh sửa
+                </Button>
+                {user.status === "Active" && (
+                  <Button variant="secondary" size="sm" className="flex-1 text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => setStatusModal({ action: "suspend" })}>
+                    Khóa
+                  </Button>
+                )}
+                {user.status === "Suspended" && (
+                  <Button variant="secondary" size="sm" className="flex-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => setStatusModal({ action: "activate" })}>
+                    Mở khóa
+                  </Button>
+                )}
+                {user.status === "Deleted" && (
+                  <Button variant="secondary" size="sm" className="flex-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => setStatusModal({ action: "restore" })}>
+                    Khôi phục
+                  </Button>
+                )}
+                {user.status !== "Deleted" && (
+                  <Button variant="secondary" size="sm" className="text-red-600 border-red-300 hover:bg-red-50" onClick={() => setStatusModal({ action: "delete" })}>
+                    Xóa
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Roles */}
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
+                <Shield className="h-5 w-5 text-brand-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Vai trò</h3>
+                <p className="text-sm text-slate-500">Chủ xe có thể đồng thời là khách hàng hoặc nhân viên.</p>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {allRoles.map((role) => {
+                const assigned = user.roles.includes(role as any);
+                const colors = roleColors[role];
+                const Icon = roleIcons[role];
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => handleToggleRole(role, !assigned)}
+                    className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
+                      assigned
+                        ? `${colors.activeBg} ${colors.text} ${colors.border}`
+                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                      assigned ? colors.bg : "bg-slate-100 group-hover:bg-slate-200"
+                    }`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm font-medium">{roleLabels[role]}</span>
+                    {assigned && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="h-4 w-4 text-current" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Profiles & Verification */}
+          {hasProfile && (
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
+                  <BadgeCheck className="h-5 w-5 text-brand-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Hồ sơ & Xác minh</h3>
+                  <p className="text-sm text-slate-500">Thông tin xác minh danh tính và hồ sơ.</p>
+                </div>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {/* Customer Profile */}
+                {user.customerProfile && (
+                  <div className="px-6 py-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <User className="h-4 w-4 text-emerald-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">Khách hàng</h4>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <VerificationItem
+                        icon={<IdCard className="h-4 w-4" />}
+                        label="CCCD"
+                        verified={user.customerProfile.nationalIdVerified}
+                        extra={user.customerProfile.nationalIdMasked}
+                      />
+                      <VerificationItem
+                        icon={<CreditCard className="h-4 w-4" />}
+                        label="GPLX"
+                        verified={user.customerProfile.driverLicenseVerified}
+                      />
+                      {user.customerProfile.dateOfBirth && (
+                        <InfoItem label="Ngày sinh" value={user.customerProfile.dateOfBirth} />
+                      )}
+                      {user.customerProfile.address && (
+                        <InfoItem label="Địa chỉ" value={user.customerProfile.address} />
+                      )}
+                      {user.customerProfile.preferredVehicleType && (
+                        <InfoItem label="Loại xe ưa thích" value={user.customerProfile.preferredVehicleType} />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Owner Profile */}
+                {user.ownerProfile && (
+                  <div className="px-6 py-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CreditCard className="h-4 w-4 text-orange-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">Chủ xe</h4>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <VerificationItem
+                        icon={<BadgeCheck className="h-4 w-4" />}
+                        label="Xác minh"
+                        verified={user.ownerProfile.isVerified}
+                        extra={user.ownerProfile.verifiedAt ? new Date(user.ownerProfile.verifiedAt).toLocaleDateString("vi-VN") : undefined}
+                      />
+                      <InfoItem label="Hạng" value={user.ownerProfile.tier} />
+                      <InfoItem label="Số chuyến" value={String(user.ownerProfile.totalTrips)} />
+                      {user.ownerProfile.averageRating != null && (
+                        <div className="flex items-center gap-2">
+                          <Star className="h-4 w-4 text-amber-400" />
+                          <div>
+                            <p className="text-xs text-slate-400">Đánh giá</p>
+                            <p className="text-sm font-medium text-slate-700">{user.ownerProfile.averageRating.toFixed(1)} / 5.0</p>
+                          </div>
+                        </div>
+                      )}
+                      {user.ownerProfile.bankName && (
+                        <InfoItem label="Ngân hàng" value={user.ownerProfile.bankName} />
+                      )}
+                      {user.ownerProfile.bankAccountHolderName && (
+                        <InfoItem label="Chủ tài khoản" value={user.ownerProfile.bankAccountHolderName} />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Staff Profile */}
+                {user.staffProfile && (
+                  <div className="px-6 py-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Briefcase className="h-4 w-4 text-blue-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">Nhân viên</h4>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <InfoItem label="Mã nhân viên" value={user.staffProfile.employeeCode} />
+                      {user.staffProfile.department && (
+                        <InfoItem label="Bộ phận" value={user.staffProfile.department} />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Edit Modal */}
+      <Modal isOpen={editModalOpen} title="Chỉnh sửa thông tin" onClose={() => setEditModalOpen(false)}>
+        <div className="space-y-4">
+          <FormField
+            label="Họ và tên"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder="Nhập họ tên"
+          />
+          <FormField
+            label="Số điện thoại"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            placeholder="Nhập số điện thoại"
+          />
+          {editError && <p className="text-xs font-medium text-rose-600">{editError}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setEditModalOpen(false)}>Hủy</Button>
+            <Button isLoading={saving} onClick={handleSaveEdit}>Lưu</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Status Modal */}
+      <Modal
+        isOpen={!!statusModal}
+        title={
+          statusModal?.action === "delete" ? "Xác nhận xóa mềm" :
+          statusModal?.action === "restore" ? "Xác nhận khôi phục" :
+          statusModal?.action === "suspend" ? "Xác nhận khóa tài khoản" :
+          "Xác nhận mở khóa"
+        }
+        onClose={() => setStatusModal(null)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            {statusModal?.action === "delete" && "Tài khoản sẽ không thể đăng nhập nhưng dữ liệu vẫn được giữ."}
+            {statusModal?.action === "restore" && "Tài khoản sẽ trở lại trạng thái hoạt động."}
+            {statusModal?.action === "suspend" && "Tài khoản sẽ bị khóa và không thể đăng nhập."}
+            {statusModal?.action === "activate" && "Tài khoản sẽ được mở khóa và có thể đăng nhập lại."}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setStatusModal(null)}>Hủy</Button>
+            <Button
+              isLoading={statusLoading}
+              onClick={handleStatusAction}
+              className={statusModal?.action === "delete" || statusModal?.action === "suspend" ? "bg-red-600 hover:bg-red-700" : ""}
+            >
+              {statusModal?.action === "delete" && "Xóa"}
+              {statusModal?.action === "restore" && "Khôi phục"}
+              {statusModal?.action === "suspend" && "Khóa tài khoản"}
+              {statusModal?.action === "activate" && "Mở khóa"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function handleToggleStatus(user: AdminUserDetail) {
+  // This is handled via the status modal buttons instead
+}
+
+function VerificationItem({ icon, label, verified, extra }: { icon: React.ReactNode; label: string; verified: boolean; extra?: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${verified ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs text-slate-400">{label}</p>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-sm font-medium ${verified ? "text-emerald-700" : "text-slate-500"}`}>
+            {verified ? "Đã xác minh" : "Chưa xác minh"}
+          </span>
+          {extra && <span className="text-xs text-slate-400">({extra})</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-slate-400">{label}</p>
+      <p className="text-sm font-medium text-slate-700">{value}</p>
+    </div>
+  );
+}

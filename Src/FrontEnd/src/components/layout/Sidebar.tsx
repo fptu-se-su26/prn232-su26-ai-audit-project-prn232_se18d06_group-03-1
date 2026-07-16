@@ -27,6 +27,7 @@ import {
   ReceiptText,
   Scale,
   ShieldCheck,
+  UserCog,
   UserPlus,
   UserRound,
   UsersRound,
@@ -100,6 +101,12 @@ const staffWalletItems = [
   { to: "/staff/withdrawals", label: "Yêu cầu rút tiền", icon: Landmark },
 ];
 
+const adminUserManagementItems = [
+  { to: "/admin/users/customers", label: "Khách hàng", icon: UserRound },
+  { to: "/admin/users/owners", label: "Chủ xe", icon: Car },
+  { to: "/admin/users/staffs", label: "Nhân viên", icon: ClipboardList },
+];
+
 function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
   const currentLocation = useLocation();
   const [targetPath, targetQuery] = to.split("?");
@@ -148,6 +155,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const [staffModerationOpen, setStaffModerationOpen] = useState(isStaffModerationPath);
   const isOwnerVehiclePath = ownerVehicleItems.some((item) => location.pathname.startsWith(item.to));
   const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
+  const isAdminUserMgmtPath = location.pathname === "/admin/users" || location.pathname.startsWith("/admin/users/");
+  const [adminUserMgmtOpen, setAdminUserMgmtOpen] = useState(isAdminUserMgmtPath);
   const walletItems = primaryRole === "Admin" ? adminWalletItems : staffWalletItems;
   const isWalletPath = walletItems.some((item) => location.pathname.startsWith(item.to));
   const [walletOpen, setWalletOpen] = useState(isWalletPath);
@@ -158,8 +167,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     if (isAdminModerationPath) setAdminModerationOpen(true);
     if (isStaffModerationPath) setStaffModerationOpen(true);
     if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
+    if (isAdminUserMgmtPath) setAdminUserMgmtOpen(true);
     if (isWalletPath) setWalletOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isWalletPath]);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isWalletPath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -177,10 +187,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Staff") {
     mainItems.push({ to: "/staff/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
-  }
-
-  if (primaryRole === "Admin") {
-    mainItems.push({ to: "/admin/users", label: "Người dùng", icon: UsersRound });
   }
 
   if (primaryRole === "Owner") {
@@ -320,6 +326,58 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               {!collapsed && walletOpen && (
                 <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
                   {walletItems.map((item) => <NavItem key={item.to} collapsed={collapsed} {...item} />)}
+                </div>
+              )}
+            </>
+          )}
+
+          {primaryRole === "Admin" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminUserMgmtOpen(true);
+                  navigate("/admin/users");
+                }}
+                className={[
+                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isAdminUserMgmtPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                ].join(" ")}
+                title="Người dùng"
+              >
+                <UserCog className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Người dùng</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setAdminUserMgmtOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setAdminUserMgmtOpen((prev) => !prev);
+                        }
+                      }}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Mở quản lý người dùng"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${adminUserMgmtOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && adminUserMgmtOpen && (
+                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                  {adminUserManagementItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
                 </div>
               )}
             </>

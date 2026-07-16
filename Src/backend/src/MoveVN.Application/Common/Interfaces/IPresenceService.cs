@@ -6,4 +6,11 @@ public interface IPresenceService
     Task RefreshOnlineAsync(long userId, CancellationToken cancellationToken = default);
     Task MarkOfflineAsync(long userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<long, bool>> GetOnlineStatusesAsync(IEnumerable<long> userIds, CancellationToken cancellationToken = default);
+    Task<PresenceStatus?> GetOnlineStatusAsync(long userId, CancellationToken cancellationToken = default);
+}
+
+public class PresenceStatus
+{
+    public bool IsOnline { get; set; }
+    public DateTime? LastSeenAt { get; set; }
 }

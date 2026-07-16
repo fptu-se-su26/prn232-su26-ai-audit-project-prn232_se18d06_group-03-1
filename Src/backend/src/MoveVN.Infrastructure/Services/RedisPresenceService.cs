@@ -126,6 +126,30 @@ public class RedisPresenceService : IPresenceService
         return statuses;
     }
 
+    public async Task<PresenceStatus?> GetOnlineStatusAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        if (!IsConfigured())
+        {
+            return null;
+        }
+
+        try
+        {
+            var result = await SendCommandAsync(["GET", RedisKeys.Online(userId)], cancellationToken);
+            if (result.ValueKind == JsonValueKind.Null)
+            {
+                return new PresenceStatus { IsOnline = false };
+            }
+
+            return new PresenceStatus { IsOnline = true };
+        }
+        catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
+        {
+            _logger.LogWarning(exception, "Upstash Redis is unavailable. Falling back to database presence.");
+            return null;
+        }
+    }
+
     private bool IsConfigured()
     {
         return !string.IsNullOrWhiteSpace(_configuration["UPSTASH_REDIS_REST_URL"])

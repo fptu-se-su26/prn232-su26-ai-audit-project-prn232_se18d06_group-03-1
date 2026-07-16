@@ -121,6 +121,7 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<MongoDbContext>();
             services.AddSingleton<MongoIndexInitializer>();
             services.AddSingleton<MongoMigrationRunner>();
+            services.AddScoped<ILoginSessionService, LoginSessionService>();
 
             foreach (var migrationType in typeof(IMongoMigration).Assembly.GetTypes()
                 .Where(type => typeof(IMongoMigration).IsAssignableFrom(type)

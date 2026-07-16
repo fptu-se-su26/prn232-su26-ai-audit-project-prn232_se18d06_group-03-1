@@ -40,6 +40,7 @@ public class AuthController : BaseApiController
     [HttpPost("google-login")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> GoogleLogin(GoogleLoginRequest request, CancellationToken cancellationToken)
     {
+        PopulateClientInfo(request);
         var result = await _authService.GoogleLoginAsync(request, cancellationToken);
         return Success(result, "Google login successful.");
     }
@@ -47,6 +48,7 @@ public class AuthController : BaseApiController
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
+        PopulateClientInfo(request);
         var result = await _authService.LoginAsync(request, cancellationToken);
         return Success(result, "Logged in successfully.");
     }
@@ -54,6 +56,8 @@ public class AuthController : BaseApiController
     [HttpPost("refresh-token")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
+        request.IpAddress = GetClientIpAddress();
+        request.UserAgent = Request.Headers.UserAgent.ToString();
         var result = await _authService.RefreshTokenAsync(request, cancellationToken);
         return Success(result, "Token refreshed successfully.");
     }
@@ -101,5 +105,25 @@ public class AuthController : BaseApiController
     {
         var result = await _authService.GetCurrentUserAsync(cancellationToken);
         return Success(result);
+    }
+
+    private void PopulateClientInfo(LoginRequest request)
+    {
+        request.IpAddress = GetClientIpAddress();
+        request.UserAgent = Request.Headers.UserAgent.ToString();
+    }
+
+    private void PopulateClientInfo(GoogleLoginRequest request)
+    {
+        request.IpAddress = GetClientIpAddress();
+        request.UserAgent = Request.Headers.UserAgent.ToString();
+    }
+
+    private string? GetClientIpAddress()
+    {
+        var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        return string.IsNullOrWhiteSpace(forwardedFor)
+            ? HttpContext.Connection.RemoteIpAddress?.ToString()
+            : forwardedFor.Split(',')[0].Trim();
     }
 }

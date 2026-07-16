@@ -26,6 +26,7 @@ public class AuthActivityLogger : IAuthActivityLogger
         AuthEventType eventType,
         string? ipAddress,
         string? userAgent,
+        string? sessionId = null,
         object? metadata = null,
         CancellationToken cancellationToken = default)
     {
@@ -35,8 +36,7 @@ public class AuthActivityLogger : IAuthActivityLogger
             return Task.CompletedTask;
         }
 
-        _ = LogCoreAsync(context, userId, email, eventType, ipAddress, userAgent, metadata);
-        return Task.CompletedTask;
+        return LogCoreAsync(context, userId, email, eventType, ipAddress, userAgent, sessionId, metadata, cancellationToken);
     }
 
     private async Task LogCoreAsync(
@@ -46,13 +46,16 @@ public class AuthActivityLogger : IAuthActivityLogger
         AuthEventType eventType,
         string? ipAddress,
         string? userAgent,
-        object? metadata)
+        string? sessionId,
+        object? metadata,
+        CancellationToken cancellationToken)
     {
         try
         {
             await context.UserActivityLogs.InsertOneAsync(new UserActivityLogDocument
             {
                 UserId = userId?.ToString(),
+                SessionId = sessionId ?? string.Empty,
                 Event = eventType.ToString(),
                 IpAddress = ipAddress,
                 DeviceType = userAgent,
@@ -60,7 +63,7 @@ public class AuthActivityLogger : IAuthActivityLogger
                     ? null
                     : BsonDocument.Parse(JsonSerializer.Serialize(metadata)),
                 Timestamp = DateTime.UtcNow
-            });
+            }, cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {

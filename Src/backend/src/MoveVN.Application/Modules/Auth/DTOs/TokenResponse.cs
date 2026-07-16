@@ -7,4 +7,5 @@ public class TokenResponse
     public DateTime AccessTokenExpiresAt { get; set; }
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime RefreshTokenExpiresAt { get; set; }
+    public string SessionId { get; set; } = string.Empty;
 }

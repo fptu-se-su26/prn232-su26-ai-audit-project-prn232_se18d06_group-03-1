@@ -11,9 +11,13 @@ export const endpoints = {
     resetPassword: "/api/auth/reset-password",
     changePassword: "/api/auth/change-password",
     me: "/api/auth/me",
+    sessions: "/api/auth/sessions",
   },
   admin: {
     users: "/api/admin/users",
+    userById: (id: number) => `/api/admin/users/${id}`,
+    userRoles: (id: number) => `/api/admin/users/${id}/roles`,
+    userStatus: (id: number) => `/api/admin/users/${id}/status`,
     vehicles: "/api/admin/vehicles",
     vehicleModerationOverview: "/api/admin/vehicles/moderation-overview",
     vehicleBrands: "/api/admin/vehicle-brands",
@@ -29,6 +33,8 @@ export const endpoints = {
     driverLicenseVerifications: "/api/admin/driver-license-verifications",
     nationalIdVerifications: "/api/admin/national-id-verifications",
     dashboardStats: "/api/admin/dashboard/stats",
+    createStaff: "/api/admin/staff",
+    createOwner: "/api/admin/owners",
   },
   vehicles: {
     my: "/api/vehicles/my",

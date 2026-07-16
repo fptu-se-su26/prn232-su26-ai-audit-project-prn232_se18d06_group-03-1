@@ -6,9 +6,14 @@ import ProfilePage from "@/pages/account/ProfilePage";
 import VerificationOverviewPage from "@/pages/account/VerificationOverviewPage";
 import ChangePasswordPage from "@/pages/account/ChangePasswordPage";
 import LogoutPage from "@/pages/account/LogoutPage";
+import LoginSessionsPage from "@/pages/account/LoginSessionsPage";
 import UnderDevelopment from "@/components/common/UnderDevelopment";
 import AdminHomePage from "@/pages/admin/AdminHomePage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminCustomerListPage from "@/pages/admin/AdminCustomerListPage";
+import AdminOwnerListPage from "@/pages/admin/AdminOwnerListPage";
+import AdminStaffListPage from "@/pages/admin/AdminStaffListPage";
+import AdminUserDetailPage from "@/pages/admin/AdminUserDetailPage";
 import AdminModerationDashboardPage from "@/pages/admin/AdminModerationDashboardPage";
 import AdminVehicleCatalogPage from "@/pages/admin/AdminVehicleCatalogPage";
 import AdminVehicleBrandsPage from "@/pages/admin/AdminVehicleBrandsPage";
@@ -119,7 +124,7 @@ export default function AppRoutes() {
           <Route path="/account/verification/national-id" element={<Navigate to="/account/verification/cccd" replace />} />
           <Route path="/account/security/password" element={<ChangePasswordPage />} />
           <Route path="/account/wallet" element={<WalletPage />} />
-          <Route path="/account/security/sessions" element={<UnderDevelopment />} />
+          <Route path="/account/security/sessions" element={<LoginSessionsPage />} />
           <Route path="/change-password" element={<Navigate to="/account/security/password" replace />} />
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
@@ -174,6 +179,10 @@ export default function AppRoutes() {
             <Route path="/admin" element={<AdminHomePage />} />
             <Route path="/admin/moderation" element={<AdminModerationDashboardPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/users/customers" element={<AdminCustomerListPage />} />
+            <Route path="/admin/users/owners" element={<AdminOwnerListPage />} />
+            <Route path="/admin/users/staffs" element={<AdminStaffListPage />} />
+            <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
             <Route path="/admin/vehicles" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicles/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-documents" element={<AdminVehiclesPage />} />

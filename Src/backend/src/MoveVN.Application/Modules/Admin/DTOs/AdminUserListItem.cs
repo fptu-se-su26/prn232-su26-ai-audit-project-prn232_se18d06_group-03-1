@@ -6,6 +6,7 @@ public class AdminUserListItem
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public string? AvatarUrl { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsOnline { get; set; }
     public DateTime? LastSeenAt { get; set; }

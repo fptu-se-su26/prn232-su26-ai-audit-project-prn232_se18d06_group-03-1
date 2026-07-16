@@ -15,6 +15,7 @@ public interface IUserRepository
     Task AddCustomerProfileAsync(CustomerProfile profile, CancellationToken cancellationToken = default);
     Task AddOwnerProfileAsync(OwnerProfile profile, CancellationToken cancellationToken = default);
     Task AddStaffProfileAsync(StaffProfile profile, CancellationToken cancellationToken = default);
+    Task<StaffProfile?> GetStaffProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     void Update(User user);
 
     Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
@@ -31,6 +32,7 @@ public interface IUserRepository
     void UpdateVerificationRequest(VerificationRequest request);
     Task<VerificationRequest?> GetVerificationRequestByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetLatestNationalIdVerificationByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<List<VerificationRequest>> GetVerificationRequestsByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<(List<NationalIdVerificationListItem> Items, int TotalCount)> GetNationalIdVerificationsPagedAsync(string? status, string? keyword, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<NationalIdVerificationDetailDto?> GetNationalIdVerificationDetailAsync(long id, CancellationToken cancellationToken = default);
     Task<(List<AdminUserListItem> Items, int TotalCount)> GetAdminUserListAsync(string? keyword, string? sortBy, string? role, string? status, bool? isOnline, int page, int pageSize, CancellationToken cancellationToken = default);

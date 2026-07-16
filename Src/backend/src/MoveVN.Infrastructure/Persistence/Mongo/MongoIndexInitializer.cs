@@ -34,9 +34,10 @@ public class MongoIndexInitializer
             new CreateIndexModel<PushTokenDocument>(Builders<PushTokenDocument>.IndexKeys.Ascending(x => x.LastUsedAt), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) })
         ], cancellationToken);
 
-        await _context.UserActivityLogs.Indexes.CreateOneAsync(
+        await _context.UserActivityLogs.Indexes.CreateManyAsync([
             new CreateIndexModel<UserActivityLogDocument>(Builders<UserActivityLogDocument>.IndexKeys.Ascending(x => x.Timestamp), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) }),
-            cancellationToken: cancellationToken);
+            new CreateIndexModel<UserActivityLogDocument>(Builders<UserActivityLogDocument>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.SessionId).Descending(x => x.Timestamp))
+        ], cancellationToken: cancellationToken);
 
         await _context.SearchLogs.Indexes.CreateOneAsync(
             new CreateIndexModel<SearchLogDocument>(Builders<SearchLogDocument>.IndexKeys.Ascending(x => x.Timestamp), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(30) }),

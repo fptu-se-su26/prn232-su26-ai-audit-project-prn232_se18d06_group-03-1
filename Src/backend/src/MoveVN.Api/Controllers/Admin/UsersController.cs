@@ -31,4 +31,47 @@ public class UsersController : BaseApiController
         var result = await _adminUserService.GetUsersAsync(keyword, sortBy, role, status, isOnline, page, pageSize, cancellationToken);
         return Success(result);
     }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiResponse<AdminUserDetailDto>>> GetUserById(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _adminUserService.GetUserByIdAsync(id, cancellationToken);
+        if (result == null)
+        {
+            return NotFound(Application.Common.Models.ApiResponse<AdminUserDetailDto>.Failed("404", "Không tìm thấy người dùng."));
+        }
+        return Success(result);
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateUser(
+        long id,
+        AdminUpdateUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await _adminUserService.UpdateUserAsync(id, request, cancellationToken);
+        return Success<object>(null, "Cập nhật thông tin người dùng thành công.");
+    }
+
+    [HttpPatch("{id:long}/roles")]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateUserRole(
+        long id,
+        UpdateUserRoleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await _adminUserService.UpdateUserRoleAsync(id, request, cancellationToken);
+        return Success<object>(null, "Cập nhật vai trò thành công.");
+    }
+
+    [HttpPatch("{id:long}/status")]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateUserStatus(
+        long id,
+        UpdateUserStatusRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await _adminUserService.UpdateUserStatusAsync(id, request, cancellationToken);
+        return Success<object>(null, "Cập nhật trạng thái thành công.");
+    }
 }
