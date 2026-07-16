@@ -18,6 +18,9 @@ public class NotificationRepository : INotificationRepository
     public Task<Notification?> GetByUserAsync(long id, long userId, CancellationToken cancellationToken = default)
         => _context.Notifications.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
 
+    public Task<NotificationPreference?> GetPreferenceByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+        => _context.NotificationPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+
     public async Task AddAsync(Notification notification, CancellationToken cancellationToken = default)
     {
         await _context.Notifications.AddAsync(notification, cancellationToken);

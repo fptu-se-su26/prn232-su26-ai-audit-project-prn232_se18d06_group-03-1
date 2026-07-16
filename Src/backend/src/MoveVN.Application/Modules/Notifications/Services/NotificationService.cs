@@ -18,17 +18,20 @@ public class NotificationService : INotificationService
     private readonly IUserRepository _userRepository;
     private readonly INotificationRepository _notificationRepository;
     private readonly INotificationRealtimeDispatcher _realtimeDispatcher;
+    private readonly IEmailSender _emailSender;
 
     public NotificationService(
         ICurrentUserContext currentUserContext,
         IUserRepository userRepository,
         INotificationRepository notificationRepository,
-        INotificationRealtimeDispatcher realtimeDispatcher)
+        INotificationRealtimeDispatcher realtimeDispatcher,
+        IEmailSender emailSender)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
         _realtimeDispatcher = realtimeDispatcher;
+        _emailSender = emailSender;
     }
 
     public async Task<PagedResult<NotificationResponse>> GetMineAsync(bool? unreadOnly, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -136,6 +139,7 @@ public class NotificationService : INotificationService
 
         var response = Map(notification);
         await _realtimeDispatcher.SendCreatedAsync(user.Id, response, await GetUnreadCountAsync(user.Id, cancellationToken), cancellationToken);
+        await SendEmailNotificationIfAllowedAsync(user, notification, cancellationToken);
         return response;
     }
 
@@ -147,6 +151,27 @@ public class NotificationService : INotificationService
 
     private async Task<int> GetUnreadCountAsync(long userId, CancellationToken cancellationToken)
         => await _notificationRepository.Notifications.CountAsync(x => x.UserId == userId && !x.IsRead, cancellationToken);
+
+    private async Task SendEmailNotificationIfAllowedAsync(User user, Notification notification, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(user.Email))
+        {
+            return;
+        }
+
+        var preference = await _notificationRepository.GetPreferenceByUserIdAsync(user.Id, cancellationToken);
+        if (preference is { EmailEnabled: false })
+        {
+            return;
+        }
+
+        await _emailSender.SendNotificationAsync(
+            user.Email,
+            user.FullName,
+            notification.Title,
+            notification.Body,
+            cancellationToken);
+    }
 
     private static NotificationResponse Map(Notification notification)
         => new()
