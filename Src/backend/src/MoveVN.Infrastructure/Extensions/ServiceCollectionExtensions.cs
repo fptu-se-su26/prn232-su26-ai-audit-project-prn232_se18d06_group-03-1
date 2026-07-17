@@ -2,6 +2,7 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Bookings.Interfaces;
+using MoveVN.Application.Modules.Chats.Interfaces;
 using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Disputes.Interfaces;
@@ -13,6 +14,7 @@ using MoveVN.Infrastructure.Persistence.Mongo;
 using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 using MoveVN.Infrastructure.Persistence.Repositories;
 using MoveVN.Infrastructure.Persistence.Repositories.Bookings;
+using MoveVN.Infrastructure.Persistence.Repositories.Chats;
 using MoveVN.Infrastructure.Persistence.Repositories.Disputes;
 using MoveVN.Infrastructure.Persistence.Repositories.SupportTickets;
 using MoveVN.Infrastructure.Services;
@@ -122,6 +124,7 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<MongoIndexInitializer>();
             services.AddSingleton<MongoMigrationRunner>();
             services.AddScoped<ILoginSessionService, LoginSessionService>();
+            services.AddScoped<IChatRepository, ChatRepository>();
 
             foreach (var migrationType in typeof(IMongoMigration).Assembly.GetTypes()
                 .Where(type => typeof(IMongoMigration).IsAssignableFrom(type)

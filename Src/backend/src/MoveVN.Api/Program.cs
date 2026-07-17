@@ -50,6 +50,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddScoped<INotificationRealtimeDispatcher, SignalRNotificationRealtimeDispatcher>();
+builder.Services.AddScoped<IChatRealtimeDispatcher, SignalRChatRealtimeDispatcher>();
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
@@ -138,7 +139,9 @@ builder.Services
                 var path = context.HttpContext.Request.Path;
 
                 if (!string.IsNullOrWhiteSpace(accessToken)
-                    && (path.StartsWithSegments("/hubs/presence") || path.StartsWithSegments("/hubs/notifications")))
+                    && (path.StartsWithSegments("/hubs/presence")
+                        || path.StartsWithSegments("/hubs/notifications")
+                        || path.StartsWithSegments("/hubs/chat")))
                 {
                     context.Token = accessToken;
                 }
@@ -193,6 +196,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PresenceHub>("/hubs/presence");
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
 

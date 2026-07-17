@@ -113,6 +113,13 @@ export const endpoints = {
     status: (id: number) => `/api/support-tickets/${id}/status`,
     uploadAttachment: "/api/support-tickets/attachments",
   },
+  chats: {
+    rooms: "/api/chats/rooms",
+    roomById: (id: string) => `/api/chats/rooms/${id}`,
+    roomByBooking: (bookingId: number) => `/api/chats/rooms/booking/${bookingId}`,
+    messages: (roomId: string) => `/api/chats/rooms/${roomId}/messages`,
+    read: (roomId: string) => `/api/chats/rooms/${roomId}/read`,
+  },
   disputes: {
     base: "/api/disputes",
     uploadEvidenceImages: "/api/disputes/evidence-images",
