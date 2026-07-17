@@ -144,7 +144,7 @@ export default function LoginPage() {
         </div>
 
         <Button
-          className="mt-1 h-12 w-full rounded-xl bg-gradient-to-r from-[#5b00ff] to-[#8c18ff] text-base shadow-lg shadow-brand-700/25 hover:from-[#4b00dd] hover:to-[#7a0df0]"
+          className="mt-1 h-12 w-full text-base shadow-xl shadow-brand-600/20"
           disabled={!canSubmit}
           isLoading={isSubmitting}
           size="lg"

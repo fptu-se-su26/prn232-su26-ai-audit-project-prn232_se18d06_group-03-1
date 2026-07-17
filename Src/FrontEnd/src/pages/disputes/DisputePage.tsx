@@ -377,9 +377,9 @@ export default function DisputePage() {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-6">
         <section>
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">{role}</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-950">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          <p className="text-sm font-bold uppercase tracking-[0.14em] text-brand-700">{role}</p>
+          <h1 className="mt-2 max-w-full truncate bg-gradient-to-r from-slate-950 via-brand-800 to-fuchsia-700 bg-clip-text text-3xl font-bold text-transparent">{title}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-700">
             Theo dõi tranh chấp booking, bằng chứng và các phán quyết xử lý.
           </p>
         </section>
@@ -423,38 +423,51 @@ export default function DisputePage() {
         ) : items.length === 0 ? (
           <EmptyState title="Chưa có tranh chấp" description="Các hồ sơ phù hợp bộ lọc sẽ xuất hiện tại đây." />
         ) : (
-          <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+          <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+            <table className="w-full table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[18%]" />
+                <col className="w-[14%]" />
+                <col className="w-[38%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+              </colgroup>
+              <thead className="border-b border-slate-200 bg-gradient-to-r from-brand-50 via-white to-sky-50 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-700">
                 <tr>
-                  <th className="px-4 py-3">Booking</th>
-                  <th className="px-4 py-3">Người mở</th>
-                  <th className="px-4 py-3">Nội dung</th>
-                  <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-4 py-3">Staff</th>
-                  <th className="px-4 py-3" />
+                  <th className="whitespace-nowrap px-3 py-3">Booking</th>
+                  <th className="whitespace-nowrap px-3 py-3">Người mở</th>
+                  <th className="whitespace-nowrap px-3 py-3">Nội dung</th>
+                  <th className="whitespace-nowrap px-3 py-3">Trạng thái</th>
+                  <th className="whitespace-nowrap px-3 py-3">Staff</th>
+                  <th className="whitespace-nowrap px-3 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {items.map((item) => (
                   <tr key={item.id} className="transition-colors hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-slate-950">{item.bookingCode}</p>
-                      <p className="text-xs text-slate-500">#{item.id} · {formatDateTime(item.createdAt)}</p>
+                    <td className="px-3 py-3 align-top">
+                      <p className="truncate font-medium text-slate-950">{item.bookingCode}</p>
+                      <p className="truncate text-xs text-slate-500">#{item.id} · {formatDateTime(item.createdAt)}</p>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{item.openedByName}</td>
-                    <td className="min-w-72 px-4 py-3">
+                    <td className="px-3 py-3 align-top text-slate-700">
+                      <p className="line-clamp-2">{item.openedByName}</p>
+                    </td>
+                    <td className="px-3 py-3 align-top">
                       <p className="line-clamp-2 text-slate-700">{item.description}</p>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusColors[item.status] ?? "bg-slate-50 text-slate-600 ring-slate-200"}`}>
+                    <td className="px-3 py-3 align-top">
+                      <span className={`inline-flex max-w-full whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusColors[item.status] ?? "bg-slate-50 text-slate-600 ring-slate-200"}`}>
                         {statusLabels[item.status] ?? item.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{item.assignedStaffName ?? "Chưa nhận"}</td>
-                    <td className="px-4 py-3">
-                      <Button variant="ghost" size="sm" onClick={() => void openDetail(item.id)}>
-                        <Eye className="h-4 w-4" /> Chi tiết
+                    <td className="px-3 py-3 align-top text-slate-700">
+                      <p className="line-clamp-2">{item.assignedStaffName ?? "Chưa nhận"}</p>
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <Button variant="ghost" size="sm" className="px-2" onClick={() => void openDetail(item.id)}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">Chi tiết</span>
                       </Button>
                     </td>
                   </tr>

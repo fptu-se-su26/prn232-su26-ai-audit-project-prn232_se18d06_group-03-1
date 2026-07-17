@@ -16,12 +16,17 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8fafc;
-  color: #18181b;
+  background: #f3f6fb;
+  color: #0f172a;
+}
+
+::selection {
+  background: rgba(154, 53, 255, 0.2);
+  color: #101820;
 }
 
 .dropdown-scrollbar {
-  scrollbar-color: #7e22ce #f3e8ff;
+  scrollbar-color: #9a35ff #f0e7ff;
   scrollbar-width: thin;
 }
 
@@ -30,17 +35,17 @@ body {
 }
 
 .dropdown-scrollbar::-webkit-scrollbar-track {
-  background: #f3e8ff;
+  background: #f0e7ff;
   border-radius: 999px;
 }
 
 .dropdown-scrollbar::-webkit-scrollbar-thumb {
-  background: #7e22ce;
+  background: #9a35ff;
   border-radius: 999px;
 }
 
 .dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #6b21a8;
+  background: #8118f5;
 }
 
 .hide-scrollbar {
@@ -53,7 +58,7 @@ body {
 }
 
 .popup-scrollbar {
-  scrollbar-color: #7e22ce #f3e8ff;
+  scrollbar-color: #9a35ff #f0e7ff;
   scrollbar-width: thin;
 }
 
@@ -62,21 +67,21 @@ body {
 }
 
 .popup-scrollbar::-webkit-scrollbar-track {
-  background: #f3e8ff;
+  background: #f0e7ff;
   border-radius: 999px;
 }
 
 .popup-scrollbar::-webkit-scrollbar-thumb {
-  background: #7e22ce;
+  background: #9a35ff;
   border-radius: 999px;
 }
 
 .popup-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #6b21a8;
+  background: #8118f5;
 }
 
 .sidebar-scrollbar {
-  scrollbar-color: rgba(122, 31, 242, 0.32) transparent;
+  scrollbar-color: rgba(154, 53, 255, 0.28) transparent;
   scrollbar-width: thin;
 }
 
@@ -89,12 +94,12 @@ body {
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(122, 31, 242, 0.32);
+  background: rgba(154, 53, 255, 0.28);
   border-radius: 999px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(101, 23, 201, 0.5);
+  background: rgba(129, 24, 245, 0.46);
 }
 
 /* Premium Animations & Effects for HomePage */
@@ -129,11 +134,11 @@ body {
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 25px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 16px 40px rgba(129, 24, 245, 0.16);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #a78bfa 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #8118f5 0%, #d946ef 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
