@@ -405,7 +405,7 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
                 <th className="px-4 py-3">Tài khoản</th>
                 <th className="px-4 py-3">Hoạt động</th>
                 <th className="px-4 py-3">Ngày tạo</th>
-                <th className="w-28 px-4 py-3 text-center">Thao tác</th>
+                <th className="w-32 px-4 py-3 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -471,39 +471,39 @@ export default function AdminUserListPage({ title, subtitle, roleFilter, showRol
                   <td className="px-4 py-3 text-slate-600">
                     {new Date(user.createdAt).toLocaleDateString("vi-VN")}
                   </td>
-                  <td className="w-28 px-4 py-3 text-center">
+                  <td className="w-32 px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2 whitespace-nowrap">
                       <Button
                         aria-label="Xem chi tiết"
-                        className="w-8 px-0 text-blue-600 hover:bg-transparent hover:text-blue-800"
+                        className="h-10 w-10 px-0 text-blue-600 hover:bg-blue-50 hover:text-blue-800"
                         onClick={() => handleViewUser(user.userId)}
                         size="sm"
                         title="Xem chi tiết"
                         variant="ghost"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-5 w-5" />
                       </Button>
                       {user.status === "Deleted" ? (
                         <Button
                           aria-label="Khôi phục tài khoản"
-                          className="w-8 px-0 text-emerald-600 hover:bg-transparent hover:text-emerald-800"
+                          className="h-10 w-10 px-0 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800"
                           onClick={() => setConfirmModal({ user, action: "restore" })}
                           size="sm"
                           title="Khôi phục tài khoản"
                           variant="ghost"
                         >
-                          <Power className="h-4 w-4" />
+                          <Power className="h-5 w-5" />
                         </Button>
                       ) : (
                         <Button
                           aria-label="Xóa tài khoản"
-                          className="w-8 px-0 text-red-500 hover:bg-transparent hover:text-red-700"
+                          className="h-10 w-10 px-0 text-red-500 hover:bg-red-50 hover:text-red-700"
                           onClick={() => setConfirmModal({ user, action: "delete" })}
                           size="sm"
                           title="Xóa tài khoản"
                           variant="ghost"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
                       )}
                     </div>
