@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AlertCircle, CheckCircle2, Info, TriangleAlert } from "lucide-react";
+import { cn } from "@/utils/cn";
 
 type AlertVariant = "info" | "success" | "warning" | "error";
 
@@ -27,7 +28,7 @@ export default function Alert({ children, title, variant = "info" }: AlertProps)
   const Icon = icons[variant];
 
   return (
-    <div className={["flex gap-3 rounded-md border px-4 py-3 text-sm", styles[variant]].join(" ")} role="alert">
+    <div className={cn("flex gap-3 rounded-md border px-4 py-3 text-sm shadow-sm shadow-slate-950/5", styles[variant])} role="alert">
       <Icon className="mt-0.5 h-4 w-4 flex-none" />
       <div>
         {title ? <div className="font-semibold">{title}</div> : null}

@@ -30,7 +30,6 @@ const navItems = [
 export default function PublicLayout() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
-  const activeRole = useAuthStore((state) => state.activeRole);
   const [darkMode, setDarkMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -66,11 +65,11 @@ export default function PublicLayout() {
       <div className="flex min-h-screen flex-col bg-white text-slate-900 transition-colors duration-300 dark:bg-black dark:text-gray-100">
         <nav className="sticky top-0 z-40 border-b border-slate-100 bg-white/95 backdrop-blur-md transition-colors duration-300 dark:border-neutral-900 dark:bg-black/95">
           <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            <Link to="/" className="flex items-center" aria-label="MoveVN">
+            <Link to="/" className="flex shrink-0 items-center" aria-label="MoveVN">
               <img
                 src={darkMode ? logoDark : logoLight}
                 alt="MoveVN"
-                className="h-10 w-auto object-contain"
+                className="h-16 w-auto object-contain sm:h-[4.5rem]"
               />
             </Link>
 
@@ -170,7 +169,7 @@ export default function PublicLayout() {
               ) : (
                 <Link
                   to="/login"
-                  className="inline-flex h-11 items-center rounded-full bg-brand-600 px-5 text-sm font-bold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700"
+                  className="inline-flex h-11 items-center rounded-full bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 px-5 text-sm font-bold text-white shadow-lg shadow-brand-600/20 transition hover:from-brand-700 hover:via-brand-600 hover:to-fuchsia-600"
                 >
                   Đăng nhập
                 </Link>
@@ -218,7 +217,7 @@ export default function PublicLayout() {
                   <Link
                     to={dashboardPath}
                     onClick={() => setMenuOpen(false)}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white hover:bg-brand-700"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 text-sm font-bold text-white hover:from-brand-700 hover:via-brand-600 hover:to-fuchsia-600"
                   >
                     Khu vực của tôi
                   </Link>
@@ -226,7 +225,7 @@ export default function PublicLayout() {
                   <Link
                     to="/login"
                     onClick={() => setMenuOpen(false)}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white hover:bg-brand-700"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 text-sm font-bold text-white hover:from-brand-700 hover:via-brand-600 hover:to-fuchsia-600"
                   >
                     Đăng nhập
                   </Link>
@@ -249,7 +248,7 @@ export default function PublicLayout() {
               <img
                 src={darkMode ? logoDark : logoLight}
                 alt="MoveVN"
-                className="h-10 w-auto object-contain"
+                className="h-16 w-auto object-contain"
               />
               <p className="mt-4 text-sm leading-6">
                 Nền tảng thuê xe giúp kết nối khách hàng và chủ xe minh bạch, nhanh gọn.

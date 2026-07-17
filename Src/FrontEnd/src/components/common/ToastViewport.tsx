@@ -1,5 +1,6 @@
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { useToastStore, type ToastType } from "@/components/common/toastStore";
+import { cn } from "@/utils/cn";
 
 const styles: Record<ToastType, string> = {
   success: "border-emerald-200 bg-white text-emerald-900",
@@ -24,7 +25,7 @@ export default function ToastViewport() {
         return (
           <div
             key={toast.id}
-            className={["flex gap-3 rounded-md border p-4 shadow-lg shadow-slate-200/70", styles[toast.type]].join(" ")}
+            className={cn("flex gap-3 rounded-md border p-4 shadow-xl shadow-slate-950/10", styles[toast.type])}
           >
             <Icon className="mt-0.5 h-5 w-5 flex-none" />
             <div className="min-w-0 flex-1">

@@ -30,7 +30,6 @@ import {
   UserCog,
   UserPlus,
   UserRound,
-  UsersRound,
   Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -107,6 +106,36 @@ const adminUserManagementItems = [
   { to: "/admin/users/staffs", label: "Nhân viên", icon: ClipboardList },
 ];
 
+const navBaseClass = "flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-150";
+const navActiveClass = "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200";
+const navInactiveClass = "text-slate-700 hover:bg-slate-50 hover:text-slate-950";
+const nestedNavClass = "ml-4 space-y-1 border-l border-brand-100 pl-2";
+const expandButtonClass = "inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700";
+const sectionToneClasses = {
+  amber: {
+    dot: "bg-amber-500 shadow-amber-500/30",
+    text: "text-amber-700",
+  },
+  brand: {
+    dot: "bg-brand-500 shadow-brand-500/30",
+    text: "text-brand-700",
+  },
+  emerald: {
+    dot: "bg-emerald-500 shadow-emerald-500/30",
+    text: "text-emerald-700",
+  },
+  rose: {
+    dot: "bg-rose-500 shadow-rose-500/30",
+    text: "text-rose-700",
+  },
+  sky: {
+    dot: "bg-sky-500 shadow-sky-500/30",
+    text: "text-sky-700",
+  },
+} as const;
+
+type SectionTone = keyof typeof sectionToneClasses;
+
 function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
   const currentLocation = useLocation();
   const [targetPath, targetQuery] = to.split("?");
@@ -120,9 +149,9 @@ function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label:
       end={end}
       className={({ isActive }) =>
         [
-          "flex h-10 items-center rounded-md text-sm font-medium transition-colors",
+          navBaseClass,
           collapsed ? "justify-center" : "gap-3 px-3",
-          (queryIsActive ?? isActive) ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+          (queryIsActive ?? isActive) ? navActiveClass : navInactiveClass,
         ].join(" ")
       }
       title={collapsed ? label : undefined}
@@ -131,10 +160,6 @@ function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label:
       {!collapsed && label}
     </NavLink>
   );
-}
-
-function SectionHeading({ children, collapsed }: { children: React.ReactNode; collapsed: boolean }) {
-  return collapsed ? null : <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{children}</span>;
 }
 
 export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -199,14 +224,20 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   const profileGroups = [
     {
+      key: "account",
       heading: "Tài khoản",
+      icon: UserRound,
+      tone: "brand",
       items: [
         { to: "/account", label: "Tổng quan", icon: LayoutDashboard },
         { to: "/account/profile", label: "Hồ sơ cá nhân", icon: UserRound },
       ],
     },
     {
+      key: "wallet",
       heading: "Ví tiền",
+      icon: Wallet,
+      tone: "emerald",
       items: [
         { to: "/account/bank", label: "Tài khoản ngân hàng", icon: Landmark },
         { to: "/account/wallet?tab=transactions", label: "Lịch sử giao dịch", icon: ReceiptText },
@@ -214,7 +245,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
       ],
     },
     {
+      key: "verification",
       heading: "Xác minh",
+      icon: ShieldCheck,
+      tone: "sky",
       items: [
         { to: "/account/verification", label: "Tổng quan xác minh", icon: ShieldCheck },
         { to: "/account/verification/cccd", label: "CCCD / CMND", icon: IdCard },
@@ -222,14 +256,20 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
       ],
     },
     {
+      key: "security",
       heading: "Bảo mật",
+      icon: KeyRound,
+      tone: "amber",
       items: [
         { to: "/account/security/password", label: "Mật khẩu", icon: KeyRound },
         { to: "/account/security/sessions", label: "Phiên đăng nhập", icon: Monitor },
       ],
     },
     {
+      key: "system",
       heading: "Hệ thống",
+      icon: Home,
+      tone: "rose",
       items: [
         { to: "/", label: "Về trang chủ", icon: Home },
         { to: "/logout", label: "Đăng xuất", icon: LogOut },
@@ -237,48 +277,86 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     },
   ];
 
+  const activeProfileGroupKey = profileGroups.find((group) =>
+    group.items.some((item) => location.pathname === item.to.split("?")[0])
+  )?.key;
+  const [profileGroupsOpen, setProfileGroupsOpen] = useState<Record<string, boolean>>({});
+  const isProfileGroupOpen = (key: string) => profileGroupsOpen[key] ?? key === activeProfileGroupKey;
+
   const isBecomeOwnerPage = location.pathname.startsWith("/become-owner");
   const isOwnerVerificationSection = isAccountSection || isBecomeOwnerPage;
 
-  let items = isOwnerVerificationSection ? [] : mainItems;
+  const items = isOwnerVerificationSection ? [] : mainItems;
 
   const backItem = isOwnerVerificationSection
     ? { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: ArrowLeftFromLine }
     : null;
   const dashboardPath = getDashboardPath([primaryRole]);
 
+  useEffect(() => {
+    if (activeProfileGroupKey) {
+      setProfileGroupsOpen((prev) => (prev[activeProfileGroupKey] ? prev : { ...prev, [activeProfileGroupKey]: true }));
+    }
+  }, [activeProfileGroupKey]);
+
   return (
     <aside
-      className={`hidden border-r border-slate-200 bg-white transition-all duration-200 md:sticky md:top-14 md:flex md:h-[calc(100vh-3.5rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
+      className={`hidden border-r border-slate-200 bg-gradient-to-b from-white via-white to-brand-50/20 shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-200 md:sticky md:top-16 md:flex md:h-[calc(100vh-4rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
     >
       <nav className="flex min-h-0 flex-1 flex-col p-3">
-        <div className="sidebar-scrollbar -mr-2 min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden pr-2 pb-3">
+        <div className="sidebar-scrollbar -mr-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto overflow-x-hidden pr-2 pb-3">
           {isOwnerVerificationSection && (
             <>
               <NavItem end collapsed={collapsed} to={backItem!.to} label={backItem!.label} icon={backItem!.icon} />
 
-              {!collapsed && (
-                <div className="mt-2 space-y-4">
-                  {profileGroups.map((group) => (
-                    <div key={group.heading}>
-                      <SectionHeading collapsed={false}>{group.heading}</SectionHeading>
-                      <div className="mt-1 space-y-0.5">
-                        {group.items.map((item) => (
-                          <NavItem key={item.to} end collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="mt-2 space-y-1.5">
+                {profileGroups.map((group) => {
+                  const GroupIcon = group.icon;
+                  const toneClass = sectionToneClasses[group.tone as SectionTone];
+                  const groupIsOpen = isProfileGroupOpen(group.key);
+                  const groupIsActive = group.key === activeProfileGroupKey;
 
-              {collapsed && (
-                <div className="mt-2 space-y-0.5">
-                  {profileGroups.flatMap((g) => g.items).map((item) => (
-                    <NavItem key={item.to} end collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
-                  ))}
-                </div>
-              )}
+                  return (
+                    <div key={group.key}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (collapsed) {
+                            navigate(group.items[0].to);
+                            return;
+                          }
+                          setProfileGroupsOpen((prev) => ({ ...prev, [group.key]: !groupIsOpen }));
+                        }}
+                        className={[
+                          navBaseClass,
+                          "w-full",
+                          collapsed ? "justify-center" : "gap-3 px-3",
+                          groupIsActive ? navActiveClass : navInactiveClass,
+                        ].join(" ")}
+                        title={group.heading}
+                      >
+                        <GroupIcon className={`h-4 w-4 shrink-0 ${groupIsActive ? "" : toneClass.text}`} />
+                        {!collapsed && (
+                          <>
+                            <span className="min-w-0 flex-1 truncate text-left">{group.heading}</span>
+                            <span className={expandButtonClass} aria-hidden="true">
+                              <ChevronDown className={`h-4 w-4 transition-transform ${groupIsOpen ? "rotate-180" : ""}`} />
+                            </span>
+                          </>
+                        )}
+                      </button>
+
+                      {!collapsed && groupIsOpen && (
+                        <div className={nestedNavClass}>
+                          {group.items.map((item) => (
+                            <NavItem key={item.to} end collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
 
@@ -296,9 +374,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate(walletItems[0].to);
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isWalletPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isWalletPath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Ví tiền"
               >
@@ -317,7 +396,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setWalletOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở mục ví tiền"
                     >
                       <ChevronDown className={`h-4 w-4 transition-transform ${walletOpen ? "rotate-180" : ""}`} />
@@ -326,7 +405,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && walletOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {walletItems.map((item) => <NavItem key={item.to} collapsed={collapsed} {...item} />)}
                 </div>
               )}
@@ -343,9 +422,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate("/admin/users");
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isAdminUserMgmtPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isAdminUserMgmtPath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Người dùng"
               >
@@ -367,7 +447,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setAdminUserMgmtOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở quản lý người dùng"
                     >
                       <ChevronDown className={`h-4 w-4 transition-transform ${adminUserMgmtOpen ? "rotate-180" : ""}`} />
@@ -376,7 +456,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && adminUserMgmtOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {adminUserManagementItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
@@ -395,9 +475,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate("/admin/moderation");
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isAdminModerationPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isAdminModerationPath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Giám sát kiểm duyệt"
               >
@@ -419,7 +500,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setAdminModerationOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở giám sát kiểm duyệt"
                     >
                       <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${adminModerationOpen ? "rotate-180" : ""}`} />
@@ -428,7 +509,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && adminModerationOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {adminModerationItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
@@ -447,9 +528,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate("/staff/moderation");
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isStaffModerationPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isStaffModerationPath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Kiểm duyệt"
               >
@@ -471,7 +553,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setStaffModerationOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở kiểm duyệt"
                     >
                       <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${staffModerationOpen ? "rotate-180" : ""}`} />
@@ -480,7 +562,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && staffModerationOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {staffModerationItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
@@ -499,9 +581,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate("/owner/vehicles");
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isOwnerVehiclePath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isOwnerVehiclePath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Quản lý xe"
               >
@@ -523,7 +606,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setOwnerVehicleOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở danh mục xe"
                     >
                       <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${ownerVehicleOpen ? "rotate-180" : ""}`} />
@@ -532,7 +615,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && ownerVehicleOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {ownerVehicleItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
@@ -551,9 +634,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate("/admin/vehicle-catalog");
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isVehicleCatalogPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isVehicleCatalogPath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Phương tiện"
               >
@@ -575,7 +659,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setVehicleCatalogOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở danh mục phương tiện"
                     >
                       <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${vehicleCatalogOpen ? "rotate-180" : ""}`} />
@@ -584,7 +668,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && vehicleCatalogOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {vehicleCatalogItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
@@ -599,9 +683,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   navigate("/admin/pricing-regions");
                 }}
                 className={[
-                  "flex h-10 w-full items-center rounded-md text-sm font-medium transition-colors",
+                  navBaseClass,
+                  "w-full",
                   collapsed ? "justify-center" : "gap-3 px-3",
-                  isVehiclePricingPath ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                  isVehiclePricingPath ? navActiveClass : navInactiveClass,
                 ].join(" ")}
                 title="Giá xe"
               >
@@ -623,7 +708,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                           setVehiclePricingOpen((prev) => !prev);
                         }
                       }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      className={expandButtonClass}
                       aria-label="Mở danh mục giá xe"
                     >
                       <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${vehiclePricingOpen ? "rotate-180" : ""}`} />
@@ -632,7 +717,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 )}
               </button>
               {!collapsed && vehiclePricingOpen && (
-                <div className="ml-4 space-y-1 border-l border-slate-200 pl-2">
+                <div className={nestedNavClass}>
                   {vehiclePricingItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
@@ -642,11 +727,11 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           )}
         </div>
 
-        <div className="shrink-0 border-t border-slate-100 bg-white pt-2">
+        <div className="shrink-0 border-t border-brand-100/70 bg-white/80 pt-2 backdrop-blur">
           <button
             type="button"
             onClick={onToggle}
-            className="flex h-8 w-full items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="flex h-8 w-full items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>

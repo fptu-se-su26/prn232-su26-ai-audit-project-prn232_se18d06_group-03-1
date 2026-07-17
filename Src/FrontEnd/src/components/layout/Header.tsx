@@ -46,11 +46,11 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="flex h-14 items-center">
-        <div className="flex w-56 shrink-0 items-center px-4">
+    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-950/5 backdrop-blur">
+      <div className="flex h-16 items-center">
+        <div className="flex w-60 shrink-0 items-center px-4">
           <Link to="/" className="flex items-center">
-            <img alt={APP_NAME} className="h-[4.5rem] w-auto" src={logoUrl} />
+            <img alt={APP_NAME} className="h-14 w-auto object-contain" src={logoUrl} />
           </Link>
         </div>
 
@@ -59,7 +59,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setOpen((prev) => !prev)}
-              className={`hidden items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors sm:flex ${open ? "bg-brand-100 text-brand-700" : "text-slate-600 hover:bg-slate-100"}`}
+              className={`hidden h-10 items-center gap-2 rounded-md border px-2.5 text-sm transition-colors sm:flex ${open ? "border-brand-200 bg-brand-50 text-brand-700" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950"}`}
             >
               <span className="relative inline-flex shrink-0">
                 <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-brand-700 text-xs font-semibold text-white">
@@ -78,7 +78,7 @@ export default function Header() {
             </button>
 
             {open && (
-              <div className="absolute right-0 top-full mt-1 w-56 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10">
                 <Link
                   to="/account"
                   onClick={() => setOpen(false)}

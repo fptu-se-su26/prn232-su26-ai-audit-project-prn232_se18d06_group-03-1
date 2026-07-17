@@ -1,32 +1,25 @@
-import { CalendarCheck, ChevronLeft, ChevronRight, Eye, ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "@/components/common/Button";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import EmptyState from "@/components/common/EmptyState";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import SectionPanel from "@/components/dashboard/SectionPanel";
+import StatusBadge from "@/components/dashboard/StatusBadge";
 import { getMyBookings } from "@/features/booking/bookingService";
-import type { BookingResponse, BookingListRequest } from "@/features/booking/types";
+import type { BookingListRequest, BookingResponse } from "@/features/booking/types";
 
 const PAGE_SIZE = 10;
 
 const statusLabels: Record<string, string> = {
-  Pending: "Chờ duyệt",
   Approved: "Đã duyệt",
-  Rejected: "Đã từ chối",
   Cancelled: "Đã hủy",
+  Completed: "Hoàn thành",
   Confirmed: "Đã xác nhận",
   InProgress: "Đang nhận xe",
-  Completed: "Hoàn thành",
-};
-
-const statusColors: Record<string, string> = {
-  Pending: "bg-amber-100 text-amber-700",
-  Approved: "bg-blue-100 text-blue-700",
-  Rejected: "bg-red-100 text-red-700",
-  Cancelled: "bg-slate-100 text-slate-600",
-  Confirmed: "bg-green-100 text-green-700",
-  InProgress: "bg-cyan-100 text-cyan-700",
-  Completed: "bg-emerald-100 text-emerald-700",
+  Pending: "Chờ duyệt",
+  Rejected: "Đã từ chối",
 };
 
 const statusOptions = [
@@ -38,12 +31,20 @@ const statusOptions = [
 ];
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`;
+  const date = new Date(dateStr);
+  return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
 }
 
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("vi-VN").format(n) + "đ";
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value) + "đ";
+}
+
+function getStatusTone(status: string) {
+  if (status === "Completed") return "emerald" as const;
+  if (["Approved", "Confirmed", "InProgress"].includes(status)) return "blue" as const;
+  if (status === "Pending") return "amber" as const;
+  if (["Rejected", "Cancelled"].includes(status)) return "rose" as const;
+  return "slate" as const;
 }
 
 export default function BookingListPage() {
@@ -54,10 +55,10 @@ export default function BookingListPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async (p: number, status: string) => {
+  const load = useCallback(async (nextPage: number, status: string) => {
     setIsLoading(true);
     try {
-      const params: BookingListRequest = { page: p, pageSize: PAGE_SIZE };
+      const params: BookingListRequest = { page: nextPage, pageSize: PAGE_SIZE };
       if (status) params.status = status;
       const result = await getMyBookings(params);
       setItems(result.items);
@@ -66,61 +67,72 @@ export default function BookingListPage() {
       setTotalPages(Math.ceil(result.totalCount / PAGE_SIZE));
     } catch {
       setItems([]);
+      setTotalCount(0);
+      setTotalPages(0);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(1, statusFilter); }, [load, statusFilter]);
+  useEffect(() => {
+    void load(1, statusFilter);
+  }, [load, statusFilter]);
 
-  function goToPage(p: number) {
-    if (p < 1 || p > totalPages) return;
-    setPage(p);
-    void load(p, statusFilter);
+  function goToPage(nextPage: number) {
+    if (nextPage < 1 || nextPage > totalPages) return;
+    setPage(nextPage);
+    void load(nextPage, statusFilter);
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid gap-6">
-        <section className="border-b border-slate-100 pb-4 dark:border-neutral-800 flex flex-wrap justify-between items-end gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">Customer Dashboard</p>
-            <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Lịch sử thuê xe</h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">Theo dõi các chuyến đi và trạng thái đặt xe của bạn.</p>
-          </div>
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      <DashboardHeader
+        eyebrow="Booking history"
+        title="Lịch sử thuê xe"
+        description="Theo dõi các booking của bạn theo trạng thái và mở chi tiết khi cần kiểm tra lịch trình."
+        actions={
           <Link to="/customer">
-            <Button variant="secondary" className="text-xs font-semibold border border-slate-200 inline-flex items-center gap-1.5 px-3 py-1.5 h-9 rounded-lg">
-              <ArrowLeft className="h-4 w-4" /> Quay lại Dashboard
+            <Button variant="secondary">
+              <ArrowLeft className="h-4 w-4" />
+              Về dashboard
             </Button>
           </Link>
-        </section>
+        }
+      />
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="h-9 appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-8 text-sm font-medium text-slate-700 outline-none transition hover:border-slate-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-300"
-              >
-                {statusOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronLeft className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 -rotate-90 text-slate-400" />
-            </div>
-            <span className="text-xs font-medium text-slate-400 dark:text-gray-500">{totalCount} kết quả</span>
-          </div>
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value);
+              setPage(1);
+            }}
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="text-sm text-slate-500">{totalCount} kết quả</span>
         </div>
+      </div>
 
+      <SectionPanel title="Danh sách booking" description="Các booking được sắp theo dữ liệu API hiện tại." contentClassName="p-0">
         {isLoading ? (
-          <div className="flex min-h-[200px] items-center justify-center"><LoadingSpinner /></div>
+          <div className="flex min-h-[320px] items-center justify-center">
+            <LoadingSpinner />
+          </div>
         ) : items.length === 0 ? (
-          <EmptyState title="Chưa có booking nào" description="Bạn chưa đặt xe lần nào." />
+          <div className="p-5">
+            <EmptyState title="Chưa có booking nào" description="Bạn chưa đặt xe lần nào." />
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-150 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-150 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:bg-neutral-900 dark:text-gray-400">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Xe</th>
@@ -128,25 +140,37 @@ export default function BookingListPage() {
                   <th className="px-5 py-4">Ngày trả</th>
                   <th className="px-5 py-4">Tổng tiền</th>
                   <th className="px-5 py-4">Trạng thái</th>
-                  <th className="px-5 py-4 text-right" />
+                  <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-neutral-900">
+              <tbody className="divide-y divide-slate-100">
                 {items.map((item) => (
-                  <tr key={item.id} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-neutral-900/50">
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-900 dark:text-white">{item.bookingCode}</td>
-                    <td className="px-5 py-4 font-medium text-slate-700 dark:text-gray-300">{item.vehicleName ?? `Xe #${item.vehicleId}`}</td>
-                    <td className="px-5 py-4 text-slate-600 dark:text-gray-400">{formatDate(item.startDate)}</td>
-                    <td className="px-5 py-4 text-slate-600 dark:text-gray-400">{formatDate(item.endDate)}</td>
-                    <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{formatCurrency(item.totalAmount)}</td>
+                  <tr key={item.id} className="transition hover:bg-slate-50/70">
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950">{item.bookingCode}</td>
                     <td className="px-5 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${statusColors[item.status] ?? "bg-slate-100 text-slate-700"}`}>
-                        {statusLabels[item.status] ?? item.status}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        {item.vehicleImage ? (
+                          <img src={item.vehicleImage} alt={item.vehicleName ?? "Xe"} className="h-10 w-14 rounded-md object-cover" />
+                        ) : (
+                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500">
+                            <CalendarCheck className="h-4 w-4" />
+                          </span>
+                        )}
+                        <span className="font-semibold text-slate-950">{item.vehicleName ?? `Xe #${item.vehicleId}`}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">{formatDate(item.startDate)}</td>
+                    <td className="px-5 py-4 text-slate-600">{formatDate(item.endDate)}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-950">{formatCurrency(item.totalAmount)}</td>
+                    <td className="px-5 py-4">
+                      <StatusBadge tone={getStatusTone(item.status)}>{statusLabels[item.status] ?? item.status}</StatusBadge>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <Link to={`/booking/${item.id}`}>
-                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1.5"><Eye className="h-4 w-4" /> Chi tiết</Button>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                          Chi tiết
+                        </Button>
                       </Link>
                     </td>
                   </tr>
@@ -155,23 +179,31 @@ export default function BookingListPage() {
             </table>
           </div>
         )}
+      </SectionPanel>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <button type="button" onClick={() => goToPage(page - 1)} disabled={page <= 1}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-900"
-            ><ChevronLeft className="h-4 w-4" /></button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button key={p} type="button" onClick={() => goToPage(p)}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold transition-colors ${p === page ? "bg-brand-600 text-white shadow-md shadow-brand-600/20" : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-900"}`}
-              >{p}</button>
-            ))}
-            <button type="button" onClick={() => goToPage(page + 1)} disabled={page >= totalPages}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-900"
-            ><ChevronRight className="h-4 w-4" /></button>
-          </div>
-        )}
-      </div>
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => goToPage(page - 1)}
+            disabled={page <= 1}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="min-w-24 text-center text-sm font-semibold text-slate-700">
+            {page}/{totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => goToPage(page + 1)}
+            disabled={page >= totalPages}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

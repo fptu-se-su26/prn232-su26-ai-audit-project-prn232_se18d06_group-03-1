@@ -7,14 +7,16 @@ import {
   ShieldCheck,
   Car,
   Bike,
-  Compass,
   ArrowUpRight,
   Star
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
 import type { VehicleListItemResponse } from "@/features/vehicles/types";
-import heroBg from "@/assets/hero-bg.jpg";
+import heroBg from "@/assets/hero-movevn-light.png";
+import heroAirportTransfer from "@/assets/hero-airport-transfer.png";
+import heroCoastalSuv from "@/assets/hero-coastal-suv.png";
+import heroMistyScooters from "@/assets/hero-misty-scooters.png";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 const steps = [
@@ -113,14 +115,30 @@ const guides = [
   }
 ];
 
+const heroSlides = [
+  { src: heroBg, position: "object-[62%_center]" },
+  { src: heroCoastalSuv, position: "object-[70%_center]" },
+  { src: heroMistyScooters, position: "object-[70%_center]" },
+  { src: heroAirportTransfer, position: "object-[72%_center]" },
+];
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [searchTab, setSearchTab] = useState<"car" | "motorbike">("car");
   const [searchLoc, setSearchLoc] = useState("TP. Hồ Chí Minh");
-  const [vehicleFilter, setVehicleFilter] = useState<"all" | "car" | "motorbike">("all");
+  const [vehicleFilter] = useState<"all" | "car" | "motorbike">("all");
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
 
   const [vehicles, setVehicles] = useState<VehicleListItemResponse[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveHeroIndex((index) => (index + 1) % heroSlides.length);
+    }, 10000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setLoadingVehicles(true);
@@ -143,102 +161,140 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Hero Section - Redesigned with Dynamic Background Image and Elegant Overlays */}
-      <section 
-        className="relative min-h-[780px] lg:min-h-[900px] py-32 flex items-center bg-cover text-white overflow-hidden animate-gradient-bg"
-        style={{ backgroundImage: `url(${heroBg})`, backgroundPosition: '30% center' }}
-      >
-        {/* Animated dynamic gradient background to replace the static solid feel */}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 via-purple-950/20 to-transparent z-0" />
-        
-        {/* Soft, modern radial color flares matching premium UI styles */}
-        <div className="absolute -left-10 top-1/4 h-[500px] w-[500px] rounded-full bg-brand-500/20 blur-[120px] pointer-events-none animate-pulse-glow" />
-        <div className="absolute right-10 bottom-1/4 h-[400px] w-[400px] rounded-full bg-indigo-500/15 blur-[100px] pointer-events-none" />
+      {/* Hero Section */}
+      <section className="relative isolate min-h-[760px] overflow-hidden bg-white text-slate-950 lg:min-h-[860px]">
+        {heroSlides.map((slide, index) => (
+          <img
+            key={slide.src}
+            src={slide.src}
+            alt=""
+            className={`absolute inset-0 h-full w-full object-cover ${slide.position} transition-opacity duration-1000 ease-out ${
+              index === activeHeroIndex ? "opacity-100" : "opacity-0"
+            }`}
+            aria-hidden="true"
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/92 to-white/18" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(147,51,234,0.14),transparent_34%),radial-gradient(circle_at_42%_88%,rgba(34,211,238,0.12),transparent_30%)]" />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
-          <div className="max-w-3xl">
-            {/* Tagline styling with refined text-shadow and premium typography structure */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[11px] font-semibold tracking-wider text-brand-300 backdrop-blur-md mb-6 uppercase shadow-lg shadow-black/20 animate-float">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-ping" />
-              Nền tảng thuê xe tự lái hàng đầu
+        <div className="relative z-10 mx-auto flex min-h-[760px] w-full max-w-7xl items-center px-4 py-24 sm:px-6 lg:min-h-[860px] lg:px-8">
+          <div className="w-full max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-md border border-brand-200 bg-white/80 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-lg shadow-brand-500/10 backdrop-blur">
+              <CarFront className="h-4 w-4" />
+              Đặt xe siêu nhanh
             </div>
 
-            <h1 className="text-[44px] font-extrabold uppercase leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-[76px] drop-shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
-              CHỌN CHIẾC XE.<br />
-              <span className="italic font-light lowercase text-brand-400 normal-case bg-gradient-to-r from-brand-300 via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
-                bắt đầu hành trình
-              </span><br />
-              CỦA RIÊNG BẠN.
+            <h1 className="mt-8 max-w-3xl text-5xl font-black leading-[1.05] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+              Đặt xe trong vài phút
+              <span className="mt-2 block bg-gradient-to-r from-brand-700 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
+                nhận xe cực dễ dàng
+              </span>
             </h1>
-            
-            <p className="mt-6 max-w-lg text-sm leading-relaxed text-slate-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-              Tìm và thuê chiếc xe phù hợp theo cách của bạn. MoveVN kết nối các chủ xe uy tín cùng quy trình an toàn, bảo đảm nhất.
+
+            <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
+              Tìm xe, xác nhận chủ xe và hoàn tất đặt chỗ nhanh chóng chỉ với vài thao tác trên MOVEVN.
             </p>
 
-            {/* Glassmorphism Horizontal Search Bar Widget */}
-            <div className="mt-10 w-full max-w-3xl bg-slate-950/60 backdrop-blur-xl border border-white/20 p-3.5 flex flex-col md:flex-row items-center gap-3.5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.6)]">
-              {/* Vehicle Type Toggles - Sliding indicators simulation */}
-              <div className="relative flex bg-slate-900/90 p-1 border border-white/10 shrink-0 w-full md:w-auto rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setSearchTab("car")}
-                  className={`relative z-10 flex-1 md:flex-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-lg ${
-                    searchTab === "car"
-                      ? "bg-brand-600 text-white shadow-lg shadow-brand-600/40"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Ô tô
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSearchTab("motorbike")}
-                  className={`relative z-10 flex-1 md:flex-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-lg ${
-                    searchTab === "motorbike"
-                      ? "bg-brand-600 text-white shadow-lg shadow-brand-600/40"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Xe máy
-                </button>
-              </div>
-
-              {/* Location Input */}
-              <div className="relative flex-1 w-full">
-                <MapPin className="absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-brand-400" />
-                <input
-                  type="text"
-                  value={searchLoc}
-                  onChange={(e) => setSearchLoc(e.target.value)}
-                  placeholder="Nhập địa điểm, thành phố..."
-                  className="h-12 w-full border border-white/10 bg-slate-900/50 pl-12 pr-4 text-sm font-medium text-white placeholder-slate-500 outline-none focus:border-brand-500/70 focus:bg-slate-900/70 transition-all rounded-xl focus:ring-2 focus:ring-brand-500/20"
-                />
-              </div>
-
-              {/* Search Action Button */}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={handleSearch}
-                className="w-full md:w-auto h-12 bg-gradient-to-r from-brand-600 via-indigo-600 to-indigo-700 hover:from-brand-700 hover:to-indigo-800 text-white px-8 text-xs font-bold uppercase tracking-widest transition-all shrink-0 rounded-xl shadow-lg shadow-brand-600/30 active:scale-95 duration-300 hover:shadow-indigo-600/25"
+                className="inline-flex h-12 items-center justify-center gap-3 rounded-md bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 px-7 text-sm font-bold text-white shadow-xl shadow-brand-600/25 transition hover:from-brand-700 hover:via-violet-700 hover:to-fuchsia-600 active:scale-[0.99]"
               >
-                TÌM XE
+                Bắt đầu đặt xe
+                <ArrowRight className="h-5 w-5" />
               </button>
+              <Link
+                to="#process"
+                className="inline-flex h-12 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white/80 px-6 text-sm font-bold text-slate-800 shadow-sm backdrop-blur transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+              >
+                Tìm hiểu thêm
+              </Link>
             </div>
 
-            {/* Trust Points */}
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-500 shadow-md shadow-brand-500/40 animate-pulse" />
-                <span>500+ Xe có sẵn</span>
+            <div className="mt-8 w-full max-w-3xl rounded-md border border-white/80 bg-white/75 p-3 shadow-2xl shadow-brand-950/10 backdrop-blur-xl">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="grid grid-cols-2 gap-1 rounded-md border border-slate-200 bg-slate-50 p-1 md:w-48">
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab("car")}
+                    className={`h-11 rounded-md text-xs font-bold uppercase tracking-[0.12em] transition ${
+                      searchTab === "car"
+                        ? "bg-gradient-to-r from-brand-600 to-fuchsia-500 text-white shadow-lg shadow-brand-500/25"
+                        : "text-slate-500 hover:bg-white hover:text-slate-900"
+                    }`}
+                  >
+                    Ô tô
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab("motorbike")}
+                    className={`h-11 rounded-md text-xs font-bold uppercase tracking-[0.12em] transition ${
+                      searchTab === "motorbike"
+                        ? "bg-gradient-to-r from-brand-600 to-fuchsia-500 text-white shadow-lg shadow-brand-500/25"
+                        : "text-slate-500 hover:bg-white hover:text-slate-900"
+                    }`}
+                  >
+                    Xe máy
+                  </button>
+                </div>
+
+                <div className="relative min-w-0 flex-1">
+                  <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-600" />
+                  <input
+                    type="text"
+                    value={searchLoc}
+                    onChange={(event) => setSearchLoc(event.target.value)}
+                    placeholder="Nhập địa điểm, thành phố..."
+                    className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="h-12 shrink-0 rounded-md bg-slate-950 px-7 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-slate-950/15 transition hover:bg-brand-700 active:scale-[0.99]"
+                >
+                  Tìm xe
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-500 shadow-md shadow-brand-500/40 animate-pulse" />
-                <span>Xác minh chủ xe</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-500 shadow-md shadow-brand-500/40 animate-pulse" />
-                <span>Đặt xe nhanh chóng</span>
-              </div>
+            </div>
+
+            <div className="mt-8 grid max-w-3xl gap-3 rounded-md border border-white/70 bg-white/60 p-3 shadow-xl shadow-brand-950/5 backdrop-blur md:grid-cols-4">
+              {[
+                { icon: CheckCircle2, title: "Nhanh chóng", text: "Đặt xe chỉ trong vài phút" },
+                { icon: MapPin, title: "Thuận tiện", text: "Nhận xe mọi lúc, mọi nơi" },
+                { icon: ShieldCheck, title: "Minh bạch", text: "Hợp đồng điện tử an toàn" },
+                { icon: CarFront, title: "Hỗ trợ 24/7", text: "Đồng hành trong mọi chuyến đi" },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.title} className="flex items-start gap-3 rounded-md p-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold text-slate-950">{item.title}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-600">{item.text}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 flex items-center gap-2">
+              {heroSlides.map((slide, index) => (
+                <button
+                  key={slide.src}
+                  type="button"
+                  onClick={() => setActiveHeroIndex(index)}
+                  className={`h-2.5 rounded-full transition-all ${
+                    index === activeHeroIndex ? "w-9 bg-brand-600 shadow-md shadow-brand-600/30" : "w-2.5 bg-slate-300 hover:bg-brand-300"
+                  }`}
+                  aria-current={index === activeHeroIndex ? "true" : undefined}
+                  aria-label={`Chọn ảnh banner ${index + 1}`}
+                />
+              ))}
             </div>
           </div>
         </div>
