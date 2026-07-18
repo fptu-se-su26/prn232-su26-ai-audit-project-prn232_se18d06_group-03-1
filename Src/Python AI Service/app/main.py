@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import health, driver_license, vehicle_document, face
+from app.api import health, driver_license, vehicle_document, face, pricing
 from app.core.config import settings
 from app.core.logging import setup_logging
 
@@ -26,6 +26,7 @@ app.include_router(health.router)
 app.include_router(driver_license.router)
 app.include_router(vehicle_document.router)
 app.include_router(face.router)
+app.include_router(pricing.router)
 
 @app.get("/")
 def read_root():

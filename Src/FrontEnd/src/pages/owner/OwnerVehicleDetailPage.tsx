@@ -1,9 +1,9 @@
-import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock, CalendarOff, Plus, Trash2, Loader2, ChevronLeft, ChevronRight, BadgeInfo } from "lucide-react";
+import { ArrowLeft, Car, Bike, Pencil, AlertCircle, UploadCloud, MapPin, Gauge, FileText, Image as ImageIcon, CheckCircle, XCircle, Eye, Clock, CalendarOff, Plus, Trash2, Loader2, ChevronLeft, ChevronRight, BadgeInfo, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getVehicleById, toggleVehicleStatus, uploadVehicleDocument, getBlockedDates, createBlockedDate, deleteBlockedDate, deleteVehicle } from "@/features/vehicles/services/vehicleService";
+import { getVehicleById, getVehiclePricing, toggleVehicleStatus, uploadVehicleDocument, getBlockedDates, createBlockedDate, deleteBlockedDate, deleteVehicle } from "@/features/vehicles/services/vehicleService";
 import { getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
-import type { VehicleResponse } from "@/features/vehicles/types";
+import type { VehicleResponse, VehiclePricingResponse } from "@/features/vehicles/types";
 import type { BlockedDateResponse } from "@/features/vehicles/services/vehicleService";
 import type { BusyPeriod } from "@/features/vehicles/types";
 import ActiveToggle from "@/components/common/ActiveToggle";
@@ -173,6 +173,7 @@ export default function OwnerVehicleDetailPage() {
   const [calYear, setCalYear] = useState(() => new Date().getFullYear());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pricing, setPricing] = useState<VehiclePricingResponse | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -193,6 +194,11 @@ export default function OwnerVehicleDetailPage() {
       .catch(() => setError("Không thể tải thông tin xe."))
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!vehicle?.id) return;
+    getVehiclePricing(vehicle.id).then(setPricing).catch(() => {});
+  }, [vehicle?.id]);
 
   async function handleAddBlockedDate() {
     if (!vehicle || !newDateFrom || !newDateTo) return;
@@ -620,6 +626,30 @@ export default function OwnerVehicleDetailPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-brand-900/5">
             <h2 className="text-sm font-bold text-slate-900 mb-3">Giá thuê</h2>
             <p className="text-2xl font-bold text-brand-700">{displayPrice.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span></p>
+            {pricing?.suggestion?.dynamicSuggestedPrice != null && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">
+                  <Sparkles className="h-3 w-3" />
+                  Giá đề xuất: {pricing.suggestion.dynamicSuggestedPrice.toLocaleString("vi-VN")}đ
+                </span>
+                {pricing.suggestion.dynamicPricingMultiplier != null && pricing.suggestion.dynamicPricingMultiplier !== 1 && (
+                  <span className="text-[11px] font-medium text-slate-400">x{pricing.suggestion.dynamicPricingMultiplier}</span>
+                )}
+              </div>
+            )}
+            {pricing?.suggestion?.dynamicPricingAppliedRules && pricing.suggestion.dynamicPricingAppliedRules.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {pricing.suggestion.dynamicIsWeekend && (
+                  <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">+10% Cuối tuần</span>
+                )}
+                {pricing.suggestion.dynamicIsHoliday && (
+                  <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 ring-1 ring-red-200">+30% Lễ</span>
+                )}
+                {pricing.suggestion.dynamicIsLowVacancy && (
+                  <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 ring-1 ring-orange-200">+10% Ít xe trống</span>
+                )}
+              </div>
+            )}
             <hr className="my-3 border-slate-100" />
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
