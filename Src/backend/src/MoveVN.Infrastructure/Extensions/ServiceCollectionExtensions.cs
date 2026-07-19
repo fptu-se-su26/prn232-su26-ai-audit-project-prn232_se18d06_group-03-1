@@ -8,6 +8,7 @@ using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Disputes.Interfaces;
 using MoveVN.Application.Modules.Locations.Interfaces;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
+using MoveVN.Application.Modules.SystemConfigs.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
 using MoveVN.Infrastructure.Persistence.Mongo;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString, npgsqlOptions =>
                 npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+        services.AddMemoryCache();
 
         services
             .AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -64,6 +66,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<ISystemConfigService, SystemConfigService>();
         services.AddHttpClient("UpstashRedis", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(3);

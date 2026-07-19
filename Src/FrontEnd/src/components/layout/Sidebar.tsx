@@ -26,6 +26,7 @@ import {
   Percent,
   ReceiptText,
   Scale,
+  Settings,
   ShieldCheck,
   UserCog,
   UserPlus,
@@ -199,6 +200,10 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
   ];
+
+  if (primaryRole === "Admin") {
+    mainItems.push({ to: "/admin/system-config", label: "Cấu hình hệ thống", icon: Settings });
+  }
 
   if (primaryRole === "Customer") {
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });

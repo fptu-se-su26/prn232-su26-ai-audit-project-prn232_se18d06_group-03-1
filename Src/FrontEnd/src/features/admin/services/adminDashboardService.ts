@@ -9,6 +9,40 @@ export interface DashboardStats {
   totalDeposit: number;
   pendingWithdrawalAmount: number;
   pendingWithdrawalCount: number;
+  totalBookings: number;
+  pendingBookings: number;
+  activeBookings: number;
+  todayBookings: number;
+  monthlyRevenue: number;
+  monthlyBookingValue: number;
+  totalUsers: number;
+  activeUsers: number;
+  onlineUsers: number;
+  totalVehicles: number;
+  approvedVehicles: number;
+  pendingVehicles: number;
+  openDisputes: number;
+  totalDisputes: number;
+  disputeRate: number;
+  supportTicketsOpen: number;
+  unreadNotifications: number;
+  bookingStatusBreakdown: Array<{
+    status: string;
+    count: number;
+  }>;
+  vehicleStatusBreakdown: Array<{
+    status: string;
+    count: number;
+  }>;
+  bookingTrend: Array<{
+    date: string;
+    count: number;
+  }>;
+  revenueTrend: Array<{
+    month: string;
+    revenue: number;
+    bookingValue: number;
+  }>;
   recentBookings: Array<{
     id: number;
     bookingCode: string;

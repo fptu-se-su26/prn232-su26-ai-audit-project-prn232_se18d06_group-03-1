@@ -29,6 +29,7 @@ import AdminAreasPage from "@/pages/admin/AdminAreasPage";
 import AdminVehicleModelPricingsPage from "@/pages/admin/AdminVehicleModelPricingsPage";
 import AdminPricingRulesPage from "@/pages/admin/AdminPricingRulesPage";
 import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
+import AdminSystemConfigPage from "@/pages/admin/AdminSystemConfigPage";
 import AdminVehiclesPage from "@/pages/admin/AdminVehiclesPage";
 import AdminWithdrawalsPage from "@/pages/admin/AdminWithdrawalsPage";
 import AdminWalletsPage from "@/pages/admin/AdminWalletsPage";
@@ -210,6 +211,7 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-model-pricings" element={<AdminVehicleModelPricingsPage />} />
             <Route path="/admin/pricing-rules" element={<AdminPricingRulesPage />} />
             <Route path="/admin/platform-fee-rules" element={<AdminPlatformFeeRulesPage />} />
+            <Route path="/admin/system-config" element={<AdminSystemConfigPage />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/admin/wallets" element={<AdminWalletsPage />} />
           </Route>
