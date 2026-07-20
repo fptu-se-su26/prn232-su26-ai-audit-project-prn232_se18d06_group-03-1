@@ -1,4 +1,4 @@
-import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star, CalendarDays, ChevronLeft, ChevronRight, User, Clock } from "lucide-react";
+import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star, CalendarDays, ChevronLeft, ChevronRight, User, Clock, ExternalLink } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getPublicVehicleById, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
@@ -450,6 +450,16 @@ export default function VehicleDetailPage() {
                 <h2 className="text-sm font-semibold text-slate-900">Vị trí</h2>
               </div>
               <p className="mb-3 text-sm text-slate-700">{vehicle.address}</p>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vehicle.address)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                Mở Google Maps
+                <ExternalLink className="h-3 w-3 text-slate-400" />
+              </a>
               <MapWithPin
                 latitude={Number(vehicle.latitude)}
                 longitude={Number(vehicle.longitude)}
