@@ -146,5 +146,8 @@ export const endpoints = {
     markRead: (id: number) => `/api/notifications/${id}/read`,
     markAllRead: "/api/notifications/read-all",
   },
+  publicCmsPages: {
+    bySlug: (slug: string) => `/api/cms-pages/${slug}`,
+  },
   swaggerJson: "/swagger/v1/swagger.json",
 };

@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     public DbSet<Area> Area => Set<Area>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CmsPage> CmsPages => Set<CmsPage>();
     public DbSet<BlockedDate> BlockedDates => Set<BlockedDate>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingStatusHistory> BookingStatusHistory => Set<BookingStatusHistory>();

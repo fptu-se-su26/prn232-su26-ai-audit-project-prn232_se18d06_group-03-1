@@ -8,6 +8,8 @@ using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Bookings.Services;
 using MoveVN.Application.Modules.Chats.Interfaces;
 using MoveVN.Application.Modules.Chats.Services;
+using MoveVN.Application.Modules.CmsPages.Interfaces;
+using MoveVN.Application.Modules.CmsPages.Services;
 using MoveVN.Application.Modules.DriverLicenseClasses.Interfaces;
 using MoveVN.Application.Modules.DriverLicenseClasses.Services;
 using MoveVN.Application.Modules.Disputes.Interfaces;
@@ -103,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<IWithdrawalService, WithdrawalService>();
         services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IAdminWalletService, MoveVN.Application.Modules.Wallets.Services.AdminWalletService>();
         services.AddScoped<IDisputeService, DisputeService>();
+        services.AddScoped<ICmsPageService, CmsPageService>();
 
         return services;
     }
