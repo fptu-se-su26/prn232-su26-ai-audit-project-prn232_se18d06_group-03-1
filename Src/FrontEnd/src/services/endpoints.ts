@@ -57,6 +57,9 @@ export const endpoints = {
     vehicleModerationOverview: "/api/staff/vehicles/moderation-overview",
     driverLicenseVerifications: "/api/staff/driver-license-verifications",
     nationalIdVerifications: "/api/staff/national-id-verifications",
+    users: "/api/staff/users",
+    userById: (id: number) => `/api/staff/users/${id}`,
+    userSessions: (id: number) => `/api/staff/users/${id}/sessions`,
   },
   driverLicenses: {
     me: "/api/driver-licenses/me",

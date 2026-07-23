@@ -45,6 +45,22 @@ def test_license_plate_match_is_exact_after_normalization() -> None:
     assert service._matches_license_plate("59X1-12345", "59X1-54321") is False
 
 
+def test_car_registration_plate_is_not_confused_with_date_text() -> None:
+    service = VehicleRegistrationService()
+    text = "\n".join(
+        [
+            "Biển số đăng ký",
+            "KL kéo theo(Towed mass): kg",
+            "Hội An, ngày 06 tháng 12 năm 2024",
+            "(Number Plate)",
+            "TRƯỞNG CA THÀNH PHÓ",
+            "92A-415.41(T)",
+        ]
+    )
+
+    assert service._extract_plate(text) == "92A-41541"
+
+
 def test_clear_model_mismatch_is_rejected() -> None:
     service = VehicleRegistrationService()
 

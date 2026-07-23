@@ -81,6 +81,9 @@ import StaffSupportTicketDetailPage from "@/pages/staff/StaffSupportTicketDetail
 import StaffSupportTicketListPage from "@/pages/staff/StaffSupportTicketListPage";
 import StaffVehiclesPage from "@/pages/staff/StaffVehiclesPage";
 import StaffModerationDashboardPage from "@/pages/staff/StaffModerationDashboardPage";
+import StaffCustomerListPage from "@/pages/staff/StaffCustomerListPage";
+import StaffOwnerListPage from "@/pages/staff/StaffOwnerListPage";
+import StaffUserDetailPage from "@/pages/staff/StaffUserDetailPage";
 import GuestRoute from "@/routes/GuestRoute";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RoleRoute from "@/routes/RoleRoute";
@@ -164,6 +167,9 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Staff"]} />}>
             <Route path="/staff" element={<StaffHomePage />} />
+            <Route path="/staff/users/customers" element={<StaffCustomerListPage />} />
+            <Route path="/staff/users/owners" element={<StaffOwnerListPage />} />
+            <Route path="/staff/users/:id" element={<StaffUserDetailPage />} />
             <Route path="/staff/bookings/:id" element={<BookingDetailPage />} />
             <Route path="/staff/moderation" element={<StaffModerationDashboardPage />} />
             <Route path="/staff/vehicles" element={<StaffVehiclesPage />} />

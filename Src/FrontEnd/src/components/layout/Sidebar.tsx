@@ -106,6 +106,11 @@ const adminUserManagementItems = [
   { to: "/admin/users/staffs", label: "Nhân viên", icon: ClipboardList },
 ];
 
+const staffUserManagementItems = [
+  { to: "/staff/users/customers", label: "Khách hàng", icon: UserRound },
+  { to: "/staff/users/owners", label: "Chủ xe", icon: Car },
+];
+
 const navBaseClass = "flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-150";
 const navActiveClass = "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200";
 const navInactiveClass = "text-slate-700 hover:bg-slate-50 hover:text-slate-950";
@@ -182,6 +187,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const [ownerVehicleOpen, setOwnerVehicleOpen] = useState(isOwnerVehiclePath);
   const isAdminUserMgmtPath = location.pathname === "/admin/users" || location.pathname.startsWith("/admin/users/");
   const [adminUserMgmtOpen, setAdminUserMgmtOpen] = useState(isAdminUserMgmtPath);
+  const isStaffUserMgmtPath = location.pathname === "/staff/users" || location.pathname.startsWith("/staff/users/");
+  const [staffUserMgmtOpen, setStaffUserMgmtOpen] = useState(isStaffUserMgmtPath);
   const walletItems = primaryRole === "Admin" ? adminWalletItems : staffWalletItems;
   const isWalletPath = walletItems.some((item) => location.pathname.startsWith(item.to));
   const [walletOpen, setWalletOpen] = useState(isWalletPath);
@@ -193,8 +200,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     if (isStaffModerationPath) setStaffModerationOpen(true);
     if (isOwnerVehiclePath) setOwnerVehicleOpen(true);
     if (isAdminUserMgmtPath) setAdminUserMgmtOpen(true);
+    if (isStaffUserMgmtPath) setStaffUserMgmtOpen(true);
     if (isWalletPath) setWalletOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isWalletPath]);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isStaffUserMgmtPath, isWalletPath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -564,6 +572,59 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               {!collapsed && staffModerationOpen && (
                 <div className={nestedNavClass}>
                   {staffModerationItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {primaryRole === "Staff" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setStaffUserMgmtOpen(true);
+                  navigate("/staff/users/customers");
+                }}
+                className={[
+                  navBaseClass,
+                  "w-full",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isStaffUserMgmtPath ? navActiveClass : navInactiveClass,
+                ].join(" ")}
+                title="Người dùng"
+              >
+                <UserCog className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Người dùng</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setStaffUserMgmtOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setStaffUserMgmtOpen((prev) => !prev);
+                        }
+                      }}
+                      className={expandButtonClass}
+                      aria-label="Mở quản lý người dùng"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${staffUserMgmtOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && staffUserMgmtOpen && (
+                <div className={nestedNavClass}>
+                  {staffUserManagementItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
                   ))}
                 </div>

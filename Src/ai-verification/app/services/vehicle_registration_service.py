@@ -212,7 +212,7 @@ class VehicleRegistrationService:
         return None
 
     def _extract_plate_from_text(self, text: str) -> str | None:
-        compact_text = re.sub(r"[^A-Z0-9]", "", text.upper())
+        compact_text = normalize_license_plate(text)
 
         motorbike_match = re.search(r"([0-9]{2}[A-Z][0-9][0-9]{5})", compact_text)
         if motorbike_match:
