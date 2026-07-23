@@ -7,11 +7,16 @@ import PasswordField from "@/components/common/PasswordField";
 import { createCustomer } from "@/features/admin/services/adminUserService";
 import { getApiErrorMessage } from "@/services/apiClient";
 
-type Props = { isOpen: boolean; onClose: () => void; onCreated: () => void };
+type Props = {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+  createCustomerFn?: typeof createCustomer;
+};
 
 const emptyForm = { fullName: "", email: "", phone: "", password: "", confirmPassword: "" };
 
-export default function CreateCustomerModal({ isOpen, onClose, onCreated }: Props) {
+export default function CreateCustomerModal({ isOpen, onClose, onCreated, createCustomerFn }: Props) {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +29,7 @@ export default function CreateCustomerModal({ isOpen, onClose, onCreated }: Prop
     if (form.password !== form.confirmPassword) { setError("Mật khẩu xác nhận không khớp."); return; }
     setLoading(true);
     try {
-      await createCustomer({ ...form, fullName: form.fullName.trim(), email: form.email.trim(), phone: form.phone.trim() });
+      await (createCustomerFn ?? createCustomer)({ ...form, fullName: form.fullName.trim(), email: form.email.trim(), phone: form.phone.trim() });
       setForm(emptyForm);
       onCreated();
       onClose();

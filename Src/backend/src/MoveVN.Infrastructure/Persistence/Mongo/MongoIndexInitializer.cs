@@ -81,5 +81,11 @@ public class MongoIndexInitializer
             new CreateIndexModel<DemandSnapshotDocument>(Builders<DemandSnapshotDocument>.IndexKeys.Ascending(x => x.AreaId).Ascending(x => x.Date)),
             new CreateIndexModel<DemandSnapshotDocument>(Builders<DemandSnapshotDocument>.IndexKeys.Ascending(x => x.CreatedAt), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(90) })
         ], cancellationToken);
+
+        await _context.UserManagementAuditLogs.Indexes.CreateManyAsync([
+            new CreateIndexModel<UserManagementAuditLogDocument>(Builders<UserManagementAuditLogDocument>.IndexKeys.Ascending(x => x.TargetUserId).Descending(x => x.Timestamp)),
+            new CreateIndexModel<UserManagementAuditLogDocument>(Builders<UserManagementAuditLogDocument>.IndexKeys.Ascending(x => x.ActorId).Descending(x => x.Timestamp)),
+            new CreateIndexModel<UserManagementAuditLogDocument>(Builders<UserManagementAuditLogDocument>.IndexKeys.Ascending(x => x.Timestamp), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(365) })
+        ], cancellationToken);
     }
 }

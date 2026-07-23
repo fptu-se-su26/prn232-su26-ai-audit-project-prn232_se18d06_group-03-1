@@ -8,6 +8,7 @@ using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Disputes.Interfaces;
 using MoveVN.Application.Modules.Locations.Interfaces;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
+using MoveVN.Application.Modules.UserManagementAuditLog.Interfaces;
 using MoveVN.Infrastructure.Identity;
 using MoveVN.Infrastructure.Persistence;
 using MoveVN.Infrastructure.Persistence.Mongo;
@@ -62,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IUserManagementAuditLogService, UserManagementAuditLogService>();
         services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddHttpClient("UpstashRedis", client =>

@@ -4,6 +4,7 @@ using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Application.Modules.Auth.DTOs;
 using MoveVN.Application.Modules.Auth.Interfaces;
+using MoveVN.Application.Modules.UserManagementAuditLog.Interfaces;
 
 namespace MoveVN.Api.Controllers.Staff;
 
@@ -13,12 +14,39 @@ public class StaffUserSessionsController : BaseApiController
 {
     private readonly ILoginSessionService _sessionService;
     private readonly IAdminUserService _adminUserService;
+    private readonly IUserManagementAuditLogService _auditLog;
+    private readonly ICurrentUserContext _currentUser;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private string? _cachedActorName;
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase) { "Owner", "Customer" };
 
-    public StaffUserSessionsController(ILoginSessionService sessionService, IAdminUserService adminUserService)
+    public StaffUserSessionsController(
+        ILoginSessionService sessionService,
+        IAdminUserService adminUserService,
+        IUserManagementAuditLogService auditLog,
+        ICurrentUserContext currentUser,
+        IHttpContextAccessor httpContextAccessor)
     {
         _sessionService = sessionService;
         _adminUserService = adminUserService;
+        _auditLog = auditLog;
+        _currentUser = currentUser;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private string GetClientIp()
+    {
+        return _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "";
+    }
+
+    private async Task<string> GetActorNameAsync(CancellationToken ct)
+    {
+        if (_cachedActorName != null) return _cachedActorName;
+        var actorId = _currentUser.UserId;
+        if (actorId == null) return "Unknown";
+        var actor = await _adminUserService.GetUserByIdAsync(actorId.Value, ct);
+        _cachedActorName = actor?.FullName ?? "Unknown";
+        return _cachedActorName;
     }
 
     [HttpGet]
@@ -61,6 +89,12 @@ public class StaffUserSessionsController : BaseApiController
         }
 
         await _sessionService.RevokeAsync(userId, sessionId, cancellationToken);
+
+        await _auditLog.LogAsync(
+            _currentUser.UserId ?? 0, await GetActorNameAsync(cancellationToken), "Staff",
+            "RevokeSession", userId, user.FullName,
+            null, sessionId, GetClientIp(), cancellationToken);
+
         return Success<object>(null, "Phiên đăng nhập đã được thu hồi.");
     }
 }

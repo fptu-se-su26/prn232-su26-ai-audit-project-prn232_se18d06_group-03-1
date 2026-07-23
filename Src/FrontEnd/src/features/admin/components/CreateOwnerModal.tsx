@@ -10,7 +10,13 @@ import AddressTextAutocomplete from "@/features/locations/components/AddressText
 import { VIETNAM_BANKS } from "@/features/owner/data/banks";
 import { getApiErrorMessage } from "@/services/apiClient";
 
-type Props = { isOpen: boolean; onClose: () => void; onCreated: () => void };
+type Props = {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+  createOwnerFn?: typeof createOwner;
+  previewOwnerOcrFn?: typeof previewOwnerOcr;
+};
 type VehicleType = "Car" | "Motorbike";
 
 const initialForm = {
@@ -31,7 +37,7 @@ function FileField({ label, required, onChange }: { label: string; required?: bo
   );
 }
 
-export default function CreateOwnerModal({ isOpen, onClose, onCreated }: Props) {
+export default function CreateOwnerModal({ isOpen, onClose, onCreated, createOwnerFn, previewOwnerOcrFn }: Props) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialForm);
   const [nationalFront, setNationalFront] = useState<File | null>(null);
@@ -65,7 +71,7 @@ export default function CreateOwnerModal({ isOpen, onClose, onCreated }: Props) 
     if (!nationalFront && !licenseFront) { setError("Vui lòng chọn ảnh CCCD hoặc GPLX trước khi chạy OCR."); return; }
     setError(""); setNotice(""); setOcrLoading(true);
     try {
-      const result = await previewOwnerOcr(form.fullName, nationalFront, licenseFront);
+      const result = await (previewOwnerOcrFn ?? previewOwnerOcr)(form.fullName, nationalFront, licenseFront);
       setForm((current) => ({
         ...current,
         fullName: result.nationalId?.fullName || result.driverLicense?.fullName || current.fullName,
@@ -85,7 +91,7 @@ export default function CreateOwnerModal({ isOpen, onClose, onCreated }: Props) 
     if (!nationalFront || !licenseFront) return;
     setError(""); setLoading(true);
     try {
-      await createOwner({
+      await (createOwnerFn ?? createOwner)({
         ...form,
         fullName: form.fullName.trim(), email: form.email.trim(), phone: form.phone.trim(),
         dateOfBirth: form.dateOfBirth || null, address: form.address.trim() || null,

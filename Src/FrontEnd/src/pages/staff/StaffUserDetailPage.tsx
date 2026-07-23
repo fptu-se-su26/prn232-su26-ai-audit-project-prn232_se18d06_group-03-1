@@ -1,13 +1,15 @@
-import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, IdCard, Laptop, Mail, Monitor, Phone, Smartphone, Star, User, XCircle } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, Eye, History, IdCard, Laptop, Mail, Monitor, Phone, Shield, Smartphone, Star, User, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
+import FormField from "@/components/common/FormField";
 import UserStatusToggle from "@/components/common/UserStatusToggle";
-import { getStaffUserById, getStaffUserSessions, revokeStaffUserSession, updateStaffUserStatus } from "@/features/staff/services/staffUserService";
-import type { AdminLoginSession, AdminUserDetail } from "@/features/admin/types";
+import { getStaffUserById, getStaffUserSessions, getStaffUserAuditLogs, revokeStaffUserSession, updateStaffUser, updateStaffUserRole, updateStaffUserStatus } from "@/features/staff/services/staffUserService";
+import type { AdminLoginSession, AdminUserDetail, UserManagementAuditLogItem } from "@/features/admin/types";
+import type { UserRole } from "@/features/auth/types";
 
 const roleLabels: Record<string, string> = {
   Admin: "Quản trị",
@@ -15,6 +17,22 @@ const roleLabels: Record<string, string> = {
   Owner: "Chủ xe",
   Customer: "Khách hàng",
 };
+
+const roleIcons: Record<string, typeof Shield> = {
+  Admin: Shield,
+  Staff: Briefcase,
+  Owner: CreditCard,
+  Customer: User,
+};
+
+const roleColors: Record<string, { bg: string; text: string; border: string; activeBg: string }> = {
+  Admin: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", activeBg: "bg-purple-100" },
+  Staff: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", activeBg: "bg-blue-100" },
+  Owner: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", activeBg: "bg-orange-100" },
+  Customer: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", activeBg: "bg-emerald-100" },
+};
+
+const editableRoles = ["Owner", "Customer"];
 
 const statusConfig: Record<string, { dot: string; bg: string; text: string; label: string }> = {
   Active: { dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700", label: "Hoạt động" },
@@ -29,13 +47,22 @@ export default function StaffUserDetailPage() {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [statusModal, setStatusModal] = useState<{ action: "suspend" | "activate" | "delete" | "restore" } | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [sessions, setSessions] = useState<AdminLoginSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState("");
+  const [roleUpdating, setRoleUpdating] = useState("");
   const [revokingSessionId, setRevokingSessionId] = useState("");
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<UserManagementAuditLogItem[]>([]);
+  const [auditLogsModalOpen, setAuditLogsModalOpen] = useState(false);
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false);
 
   const loadUser = useCallback(async () => {
     if (!id) return;
@@ -75,6 +102,67 @@ export default function StaffUserDetailPage() {
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
+
+  const loadAuditLogs = useCallback(async () => {
+    if (!id) return;
+    setAuditLogsLoading(true);
+    try {
+      setAuditLogs(await getStaffUserAuditLogs(Number(id)));
+    } catch {
+      // silently fail
+    } finally {
+      setAuditLogsLoading(false);
+    }
+  }, [id]);
+
+  function openEditModal() {
+    if (!user) return;
+    setEditName(user.fullName);
+    setEditPhone(user.phone ?? "");
+    setEditError("");
+    setEditModalOpen(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!user || !editName.trim()) {
+      setEditError("Họ tên không được để trống.");
+      return;
+    }
+    setSaving(true);
+    setEditError("");
+    try {
+      await updateStaffUser(user.userId, {
+        fullName: editName.trim(),
+        phone: editPhone.trim() || null,
+      });
+      setEditModalOpen(false);
+      void loadUser();
+    } catch {
+      setEditError("Có lỗi xảy ra, vui lòng thử lại.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleRole(role: string, assigned: boolean) {
+    if (!user) return;
+    setRoleUpdating(role);
+    setError(null);
+    try {
+      await updateStaffUserRole(user.userId, { role, assigned });
+      setUser((current) => {
+        if (!current) return current;
+        const nextRoles = assigned
+          ? [...new Set([...current.roles, role as UserRole])]
+          : current.roles.filter((item) => item !== role);
+        return { ...current, roles: nextRoles };
+      });
+    } catch {
+      setError("Không thể cập nhật vai trò.");
+    } finally {
+      setRoleUpdating("");
+    }
+  }
 
   async function handleRevokeSession(sessionId: string) {
     if (!user || !window.confirm("Đăng xuất phiên này khỏi tài khoản?")) return;
@@ -149,15 +237,15 @@ export default function StaffUserDetailPage() {
         </button>
         <div className="flex-1">
           <h1 className="text-xl font-semibold text-slate-900">Chi tiết người dùng</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Xem thông tin tài khoản người dùng.</p>
+          <p className="mt-0.5 text-sm text-slate-500">Quản lý thông tin và vai trò tài khoản.</p>
         </div>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column - Profile card */}
-        <div className="lg:col-span-1">
+        {/* Left column - Profile card + Audit Log */}
+        <div className="lg:col-span-1 space-y-6">
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
             {/* Avatar & Name */}
             <div className="px-6 pt-6 pb-4 text-center">
@@ -248,6 +336,9 @@ export default function StaffUserDetailPage() {
                 />
               </div>
               <div className="mt-3 flex gap-2">
+                <Button variant="secondary" size="sm" className="flex-1" onClick={openEditModal}>
+                  Chỉnh sửa
+                </Button>
                 {user.status === "Active" && (
                   <Button variant="secondary" size="sm" className="flex-1 text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => setStatusModal({ action: "suspend" })}>
                     Khóa
@@ -271,6 +362,22 @@ export default function StaffUserDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Audit Log - Left column */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <button type="button" onClick={() => { void loadAuditLogs().then(() => setAuditLogsModalOpen(true)); }} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+                  <History className="h-4 w-4 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Lịch sử thay đổi</h3>
+                  <p className="text-xs text-slate-500">Xem ai đã thay đổi tài khoản.</p>
+                </div>
+              </div>
+              <Eye className="h-4 w-4 text-slate-400" />
+            </button>
+          </div>
         </div>
 
         {/* Right column */}
@@ -278,17 +385,66 @@ export default function StaffUserDetailPage() {
           {/* Roles */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100">
+                <Shield className="h-5 w-5 text-brand-600" />
+              </div>
               <div>
                 <h3 className="text-base font-semibold text-slate-900">Vai trò</h3>
-                <p className="text-sm text-slate-500">Các vai trò hiện tại của người dùng.</p>
+                <p className="text-sm text-slate-500">Chỉ quản lý được Owner và Customer.</p>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {user.roles.map((role) => (
-                <span key={role} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700">
-                  {roleLabels[role] ?? role}
-                </span>
-              ))}
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {user.roles.includes("Admin") && (
+                <div className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center ${roleColors.Admin.activeBg} ${roleColors.Admin.text} ${roleColors.Admin.border}`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${roleColors.Admin.bg}`}>
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <span className="text-sm font-medium">{roleLabels.Admin}</span>
+                  <CheckCircle className="absolute right-2 top-2 h-4 w-4 text-current" />
+                  <span className="text-[10px] font-medium opacity-80">Do hệ thống quản lý</span>
+                </div>
+              )}
+              {user.roles.includes("Staff") && (
+                <div className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center ${roleColors.Staff.activeBg} ${roleColors.Staff.text} ${roleColors.Staff.border}`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${roleColors.Staff.bg}`}>
+                    <Briefcase className="h-5 w-5" />
+                  </div>
+                  <span className="text-sm font-medium">{roleLabels.Staff}</span>
+                  <CheckCircle className="absolute right-2 top-2 h-4 w-4 text-current" />
+                  <span className="text-[10px] font-medium opacity-80">Nhân viên</span>
+                </div>
+              )}
+              {editableRoles.map((role) => {
+                const assigned = user.roles.includes(role as UserRole);
+                const colors = roleColors[role];
+                const Icon = roleIcons[role];
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => handleToggleRole(role, !assigned)}
+                    disabled={Boolean(roleUpdating)}
+                    className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all ${
+                      assigned
+                        ? `${colors.activeBg} ${colors.text} ${colors.border}`
+                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                      assigned ? colors.bg : "bg-slate-100 group-hover:bg-slate-200"
+                    }`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm font-medium">{roleLabels[role]}</span>
+                    {assigned && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="h-4 w-4 text-current" />
+                      </div>
+                    )}
+                    {roleUpdating === role && <span className="absolute inset-x-0 bottom-1 text-[10px] font-medium">Đang lưu...</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -344,7 +500,6 @@ export default function StaffUserDetailPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {/* Customer Profile */}
                 {user.customerProfile && (
                   <div className="px-6 py-5">
                     <div className="flex items-center gap-2 mb-4">
@@ -376,7 +531,6 @@ export default function StaffUserDetailPage() {
                   </div>
                 )}
 
-                {/* Owner Profile */}
                 {user.ownerProfile && (
                   <div className="px-6 py-5">
                     <div className="flex items-center gap-2 mb-4">
@@ -411,7 +565,6 @@ export default function StaffUserDetailPage() {
                   </div>
                 )}
 
-                {/* Staff Profile */}
                 {user.staffProfile && (
                   <div className="px-6 py-5">
                     <div className="flex items-center gap-2 mb-4">
@@ -431,6 +584,29 @@ export default function StaffUserDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Modal isOpen={editModalOpen} title="Chỉnh sửa thông tin" onClose={() => setEditModalOpen(false)}>
+        <div className="space-y-4">
+          <FormField
+            label="Họ và tên"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder="Nhập họ tên"
+          />
+          <FormField
+            label="Số điện thoại"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            placeholder="Nhập số điện thoại"
+          />
+          {editError && <p className="text-xs font-medium text-rose-600">{editError}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setEditModalOpen(false)}>Hủy</Button>
+            <Button isLoading={saving} onClick={handleSaveEdit}>Lưu</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Status Modal */}
       <Modal
@@ -472,6 +648,52 @@ export default function StaffUserDetailPage() {
           {sessions.map((session) => (
             <SessionItem key={session.sessionId} session={session} revokingSessionId={revokingSessionId} onRevoke={handleRevokeSession} />
           ))}
+        </div>
+      </Modal>
+
+      {/* Audit Log Modal */}
+      <Modal isOpen={auditLogsModalOpen} title="Lịch sử thay đổi" onClose={() => setAuditLogsModalOpen(false)} className="max-w-2xl">
+        <div className="space-y-4">
+          {auditLogsLoading ? (
+            <div className="flex justify-center py-10"><LoadingSpinner className="h-5 w-5" /></div>
+          ) : auditLogs.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-500">Chưa có lịch sử thay đổi.</p>
+          ) : (
+            <div className="relative space-y-0">
+              {auditLogs.map((log, idx) => (
+                <div key={log.id ?? idx} className="relative flex gap-4 pb-6 pl-8">
+                  {idx < auditLogs.length - 1 && (
+                    <div className="absolute left-[11px] top-5 bottom-0 w-0.5 bg-slate-200" />
+                  )}
+                  <div className="absolute left-[5px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-brand-400 bg-white" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-slate-900">{log.action === "AssignRole" ? `Phân vai trò: ${log.newValue ?? ""}` :
+                        log.action === "RemoveRole" ? `Gỡ vai trò: ${log.newValue ?? ""}` :
+                        log.action === "update_user_info" ? "Cập nhật thông tin" :
+                        log.action === "CreateUser" ? `Tạo tài khoản (${log.newValue ?? ""})` :
+                        log.action === "create_user" ? "Tạo người dùng" : log.action}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Thực hiện bởi <span className="font-medium text-slate-700">{log.actorName}</span>
+                      {log.actorRole === "Staff" ? " (Nhân viên)" : log.actorRole === "Admin" ? " (Quản trị)" : ""}
+                    </p>
+                    {log.oldValue && log.newValue && (
+                      <p className="mt-1 text-xs text-slate-400 break-words">
+                        <span className="line-through text-red-400">{log.oldValue}</span>
+                        {" → "}
+                        <span className="text-emerald-600">{log.newValue}</span>
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(log.timestamp))}
+                      {log.ipAddress && ` · IP: ${log.ipAddress}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
     </div>

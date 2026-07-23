@@ -7,7 +7,7 @@ using MoveVN.Application.Modules.Auth.DTOs;
 
 namespace MoveVN.Api.Controllers.Admin;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 [Route("api/admin/owners")]
 public class OwnersController : BaseApiController
 {
@@ -18,6 +18,7 @@ public class OwnersController : BaseApiController
         _adminUserService = adminUserService;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<AuthUserResponse>>> CreateOwner(
         [FromForm] AdminCreateOwnerForm request,
@@ -46,6 +47,7 @@ public class OwnersController : BaseApiController
         return Success(result, "Owner account created successfully.");
     }
 
+    [Authorize(Roles = "Admin,Staff")]
     [HttpPost("ocr-preview")]
     public async Task<ActionResult<ApiResponse<AdminOwnerOcrPreviewResponse>>> PreviewOcr(
         [FromForm] AdminOwnerOcrPreviewForm request,

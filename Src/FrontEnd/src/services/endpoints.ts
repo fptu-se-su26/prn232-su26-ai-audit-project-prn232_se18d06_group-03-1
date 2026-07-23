@@ -16,6 +16,7 @@ export const endpoints = {
   admin: {
     users: "/api/admin/users",
     userById: (id: number) => `/api/admin/users/${id}`,
+    userLogs: (id: number) => `/api/admin/users/${id}/logs`,
     userRoles: (id: number) => `/api/admin/users/${id}/roles`,
     userStatus: (id: number) => `/api/admin/users/${id}/status`,
     userSessions: (id: number) => `/api/admin/users/${id}/sessions`,
@@ -59,6 +60,7 @@ export const endpoints = {
     nationalIdVerifications: "/api/staff/national-id-verifications",
     users: "/api/staff/users",
     userById: (id: number) => `/api/staff/users/${id}`,
+    userLogs: (id: number) => `/api/staff/users/${id}/logs`,
     userSessions: (id: number) => `/api/staff/users/${id}/sessions`,
   },
   driverLicenses: {

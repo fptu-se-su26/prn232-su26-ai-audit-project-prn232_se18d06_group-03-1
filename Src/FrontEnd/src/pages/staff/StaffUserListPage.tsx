@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronLeft, ChevronRight, Eye, Power, Search, SlidersHorizontal, Trash2, UsersRound } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eye, Plus, Power, Search, SlidersHorizontal, Trash2, UsersRound } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -7,9 +7,11 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import UserStatusToggle from "@/components/common/UserStatusToggle";
 import useClickOutside from "@/hooks/useClickOutside";
-import { getStaffUsers, updateStaffUserStatus } from "@/features/staff/services/staffUserService";
+import { getStaffUsers, updateStaffUserStatus, createStaffCustomer, createStaffOwner } from "@/features/staff/services/staffUserService";
 import type { AdminUserListItem, AdminUserListParams } from "@/features/admin/types";
 import { usePresenceStore } from "@/features/presence/usePresence";
+import CreateCustomerModal from "@/features/admin/components/CreateCustomerModal";
+import CreateOwnerModal from "@/features/admin/components/CreateOwnerModal";
 
 const PAGE_SIZE = 10;
 
@@ -117,6 +119,7 @@ export default function StaffUserListPage({ title, subtitle, roleFilter, showRol
   const searchRef = useRef<HTMLInputElement>(null);
   const [confirmModal, setConfirmModal] = useState<{ user: AdminUserListItem; action: "delete" | "restore" } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const loadUsers = useCallback(async (p: number, kw: string, sort: string, status: string, online: string) => {
     setIsLoading(true);
@@ -199,6 +202,10 @@ export default function StaffUserListPage({ title, subtitle, roleFilter, showRol
     navigate(`/staff/users/${userId}`);
   }
 
+  function handleCreated() {
+    void loadUsers(page, keyword, sortBy, statusFilter, onlineFilter);
+  }
+
   async function handleToggleStatus(user: AdminUserListItem) {
     const newStatus = user.status === "Active" ? "Suspended" : "Active";
     await updateStaffUserStatus(user.userId, { status: newStatus });
@@ -256,6 +263,10 @@ export default function StaffUserListPage({ title, subtitle, roleFilter, showRol
           <h1 className="text-2xl font-semibold text-slate-950">{title}</h1>
           <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
         </div>
+        <Button onClick={() => setCreateModalOpen(true)}>
+          <Plus className="h-4 w-4" />
+          {roleFilter === "Owner" ? "Thêm chủ xe" : "Thêm khách hàng"}
+        </Button>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
@@ -545,6 +556,13 @@ export default function StaffUserListPage({ title, subtitle, roleFilter, showRol
           </div>
         </div>
       </Modal>
+
+      {roleFilter === "Customer" && (
+        <CreateCustomerModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} onCreated={handleCreated} createCustomerFn={createStaffCustomer} />
+      )}
+      {roleFilter === "Owner" && (
+        <CreateOwnerModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} onCreated={handleCreated} createOwnerFn={createStaffOwner} />
+      )}
     </div>
   );
 }

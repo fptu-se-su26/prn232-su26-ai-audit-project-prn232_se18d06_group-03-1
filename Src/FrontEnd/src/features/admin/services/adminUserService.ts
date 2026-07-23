@@ -14,6 +14,7 @@ import type {
   OwnerOcrPreview,
   PagedResult,
   AdminLoginSession,
+  UserManagementAuditLogItem,
 } from "@/features/admin/types";
 
 export async function getAdminUsers(params: AdminUserListParams) {
@@ -80,4 +81,9 @@ export async function previewOwnerOcr(fullName: string, nationalIdFrontImage?: F
   const res = await apiClient.post<ApiResponse<OwnerOcrPreview>>(endpoints.admin.previewOwnerOcr, formData);
   if (!res.data.data) throw new Error("OCR response is empty.");
   return res.data.data;
+}
+
+export async function getAdminUserAuditLogs(id: number) {
+  const res = await apiClient.get<ApiResponse<UserManagementAuditLogItem[]>>(endpoints.admin.userLogs(id));
+  return res.data.data ?? [];
 }

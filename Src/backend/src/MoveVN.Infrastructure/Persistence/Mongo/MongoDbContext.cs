@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MoveVN.Domain.Documents;
+using MoveVN.Domain.Documents;
 using MoveVN.Infrastructure.Persistence.Mongo.Migrations;
 
 namespace MoveVN.Infrastructure.Persistence.Mongo;
@@ -30,5 +31,6 @@ public class MongoDbContext
     public IMongoCollection<NationalIdVerificationLogDocument> NationalIdVerificationLogs => _database.GetCollection<NationalIdVerificationLogDocument>("national_id_verification_logs");
     public IMongoCollection<UserActivityLogDocument> UserActivityLogs => _database.GetCollection<UserActivityLogDocument>("user_activity_logs");
     public IMongoCollection<SearchLogDocument> SearchLogs => _database.GetCollection<SearchLogDocument>("search_logs");
+    public IMongoCollection<UserManagementAuditLogDocument> UserManagementAuditLogs => _database.GetCollection<UserManagementAuditLogDocument>("user_management_audit_logs");
     public IMongoCollection<MongoMigrationHistory> MigrationHistory => _database.GetCollection<MongoMigrationHistory>("mongo_migrations");
 }

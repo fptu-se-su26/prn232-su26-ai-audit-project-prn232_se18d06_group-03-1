@@ -159,3 +159,14 @@ export type PagedResult<T> = {
   pageSize: number;
   totalPages: number;
 };
+
+export type UserManagementAuditLogItem = {
+  id?: string;
+  actorName: string;
+  actorRole: string;
+  action: string;
+  oldValue: string | null;
+  newValue: string | null;
+  ipAddress: string | null;
+  timestamp: string;
+};

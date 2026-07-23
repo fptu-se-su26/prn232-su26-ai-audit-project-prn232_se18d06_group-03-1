@@ -1,4 +1,4 @@
-import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, IdCard, Laptop, Mail, Monitor, Phone, Shield, Smartphone, Star, User, XCircle } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Briefcase, Calendar, CheckCircle, CreditCard, Eye, History, IdCard, Laptop, Mail, Monitor, Phone, Shield, Smartphone, Star, User, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -7,8 +7,8 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
 import FormField from "@/components/common/FormField";
 import UserStatusToggle from "@/components/common/UserStatusToggle";
-import { getAdminUserById, getAdminUserSessions, revokeAdminUserSession, updateAdminUser, updateUserRole, updateUserStatus } from "@/features/admin/services/adminUserService";
-import type { AdminLoginSession, AdminUserDetail } from "@/features/admin/types";
+import { getAdminUserById, getAdminUserAuditLogs, getAdminUserSessions, revokeAdminUserSession, updateAdminUser, updateUserRole, updateUserStatus } from "@/features/admin/services/adminUserService";
+import type { AdminLoginSession, AdminUserDetail, UserManagementAuditLogItem } from "@/features/admin/types";
 import type { UserRole } from "@/features/auth/types";
 
 const roleLabels: Record<string, string> = {
@@ -61,6 +61,9 @@ export default function AdminUserDetailPage() {
   const [roleUpdating, setRoleUpdating] = useState("");
   const [revokingSessionId, setRevokingSessionId] = useState("");
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<UserManagementAuditLogItem[]>([]);
+  const [auditLogsModalOpen, setAuditLogsModalOpen] = useState(false);
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false);
 
   const loadUser = useCallback(async () => {
     if (!id) return;
@@ -100,6 +103,18 @@ export default function AdminUserDetailPage() {
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
+
+  const loadAuditLogs = useCallback(async () => {
+    if (!id) return;
+    setAuditLogsLoading(true);
+    try {
+      setAuditLogs(await getAdminUserAuditLogs(Number(id)));
+    } catch {
+      // silently fail
+    } finally {
+      setAuditLogsLoading(false);
+    }
+  }, [id]);
 
   function openEditModal() {
     if (!user) return;
@@ -230,8 +245,8 @@ export default function AdminUserDetailPage() {
       {error && <Alert variant="error">{error}</Alert>}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column - Profile card */}
-        <div className="lg:col-span-1">
+        {/* Left column - Profile card + Audit Log */}
+        <div className="lg:col-span-1 space-y-6">
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
             {/* Avatar & Name */}
             <div className="px-6 pt-6 pb-4 text-center">
@@ -347,6 +362,22 @@ export default function AdminUserDetailPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Audit Log - Left column */}
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <button type="button" onClick={() => { void loadAuditLogs().then(() => setAuditLogsModalOpen(true)); }} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+                  <History className="h-4 w-4 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Lịch sử thay đổi</h3>
+                  <p className="text-xs text-slate-500">Xem ai đã thay đổi tài khoản.</p>
+                </div>
+              </div>
+              <Eye className="h-4 w-4 text-slate-400" />
+            </button>
           </div>
         </div>
 
@@ -611,6 +642,51 @@ export default function AdminUserDetailPage() {
           {sessions.map((session) => (
             <SessionItem key={session.sessionId} session={session} revokingSessionId={revokingSessionId} onRevoke={handleRevokeSession} />
           ))}
+        </div>
+      </Modal>
+
+      {/* Audit Log Modal */}
+      <Modal isOpen={auditLogsModalOpen} title="Lịch sử thay đổi" onClose={() => setAuditLogsModalOpen(false)} className="max-w-2xl">
+        <div className="space-y-4">
+          {auditLogsLoading ? (
+            <div className="flex justify-center py-10"><LoadingSpinner className="h-5 w-5" /></div>
+          ) : auditLogs.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-500">Chưa có lịch sử thay đổi.</p>
+          ) : (
+            <div className="relative space-y-0">
+              {auditLogs.map((log, idx) => (
+                <div key={log.id ?? idx} className="relative flex gap-4 pb-6 pl-8">
+                  {idx < auditLogs.length - 1 && (
+                    <div className="absolute left-[11px] top-5 bottom-0 w-0.5 bg-slate-200" />
+                  )}
+                  <div className="absolute left-[5px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-brand-400 bg-white" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-slate-900">{log.action === "AssignRole" ? `Phân vai trò: ${log.newValue ?? ""}` :
+                        log.action === "RemoveRole" ? `Gỡ vai trò: ${log.newValue ?? ""}` :
+                        log.action === "update_user_info" ? "Cập nhật thông tin" :
+                        log.action === "CreateUser" ? `Tạo tài khoản (${log.newValue ?? ""})` : log.action}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Thực hiện bởi <span className="font-medium text-slate-700">{log.actorName}</span>
+                      {log.actorRole === "Staff" ? " (Nhân viên)" : log.actorRole === "Admin" ? " (Quản trị)" : ""}
+                    </p>
+                    {log.oldValue && log.newValue && (
+                      <p className="mt-1 text-xs text-slate-400 break-words">
+                        <span className="line-through text-red-400">{log.oldValue}</span>
+                        {" → "}
+                        <span className="text-emerald-600">{log.newValue}</span>
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(log.timestamp))}
+                      {log.ipAddress && ` · IP: ${log.ipAddress}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
     </div>
