@@ -1,6 +1,6 @@
 import { ArrowLeft, BarChart3, Car, Check, ChevronDown, ClipboardList, Eye, FileBadge, FileText, Gauge, Image as ImageIcon, MapPin, Search, ShieldAlert, SlidersHorizontal, X, CheckCircle, AlertCircle, Clock, XCircle } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -587,6 +587,7 @@ function StaffModerationOverview({ overview, mode, onSelectChartStatus }: { over
 
 function VehicleModerationList({ role, mode }: { role: Role; mode?: ModerationMode }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const defaults = getModeDefaults(mode);
   const [items, setItems] = useState<VehicleModerationListItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -984,7 +985,7 @@ function VehicleModerationList({ role, mode }: { role: Role; mode?: ModerationMo
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => navigate(`${getModePath(role, mode)}/${item.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50">
+                      <button type="button" onClick={() => navigate(`${getModePath(role, mode)}/${item.id}`, { state: { from: location.pathname } })} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50">
                         <Eye className="h-3.5 w-3.5" /> Xem
                       </button>
                       {showListingActions && item.status === "Pending" && canApproveListing && (
@@ -1003,7 +1004,7 @@ function VehicleModerationList({ role, mode }: { role: Role; mode?: ModerationMo
                             <AlertCircle className="h-3.5 w-3.5" /> Chưa đủ điều kiện
                           </button>
                           {role === "admin" && (
-                            <button type="button" onClick={() => navigate(`${getModePath(role, mode)}/${item.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100">
+                            <button type="button" onClick={() => navigate(`${getModePath(role, mode)}/${item.id}`, { state: { from: location.pathname } })} className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100">
                               <ShieldAlert className="h-3.5 w-3.5" /> Can thiệp
                             </button>
                           )}
@@ -1062,6 +1063,8 @@ function VehicleModerationList({ role, mode }: { role: Role; mode?: ModerationMo
 
 function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: ModerationMode; id: number }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = (location.state as { from?: string } | null)?.from ?? getModePath(role, mode);
   const [vehicle, setVehicle] = useState<VehicleModerationDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
@@ -1120,7 +1123,7 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
         const tm = mode ? modeTheme[mode] : modeTheme.undefined;
         return (
         <div className={"flex items-center gap-3 rounded-xl border p-4 shadow-sm bg-gradient-to-r " + tm.gradient + " " + tm.border}>
-        <button type="button" onClick={() => navigate(getModePath(role, mode))} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
+        <button type="button" onClick={() => navigate(backTo)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex-1 min-w-0">

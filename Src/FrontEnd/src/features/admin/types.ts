@@ -170,3 +170,92 @@ export type UserManagementAuditLogItem = {
   ipAddress: string | null;
   timestamp: string;
 };
+
+export type AdminPostStatsResponse = {
+  totalVehicles: number;
+  pendingListings: number;
+  approvedListings: number;
+  rejectedListings: number;
+  totalOwners: number;
+  vehicleTypeChart: { label: string; value: number }[];
+  monthlyPostStats: { month: string; count: number }[];
+  recentPosts: AdminPostRecentItem[];
+};
+
+export type AdminPostRecentItem = {
+  id: number;
+  ownerName: string;
+  vehicleType: string;
+  brandName: string;
+  modelName: string;
+  licensePlate: string;
+  pricePerDay: number;
+  status: string;
+  createdAt: string;
+};
+
+export type AdminOwnerListItem = {
+  userId: number;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  isVerified: boolean;
+  totalVehicles: number;
+  carCount: number;
+  motorbikeCount: number;
+};
+
+export type AdminOwnerVehicleListItem = {
+  id: number;
+  ownerFullName: string;
+  vehicleType: string;
+  brandName: string;
+  modelName: string;
+  variantName: string;
+  year: number;
+  licensePlate: string;
+  pricePerDay: number;
+  status: string;
+  featuredImage: string | null;
+  createdAt: string;
+};
+
+export type CreateAdminVehicleRequest = {
+  ownerId: number;
+  brandId: number;
+  modelId: number;
+  variantId?: number | null;
+  vehicleType: string;
+  year: number;
+  licensePlate: string;
+  odometerKm?: number | null;
+  description?: string | null;
+  address: string;
+  areaId?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  pricePerDay: number;
+  depositPercent: number;
+  pricingMode?: string | null;
+  fixedPricePerDay?: number | null;
+  autoMinPrice?: number | null;
+  autoMaxPrice?: number | null;
+  featureIds: number[];
+  imageUrls: string[];
+  featuredImageIndex?: number | null;
+  documentFileUrl?: string | null;
+};
+
+export type AdminVehicleOcrPreviewResponse = {
+  success: boolean;
+  licensePlate?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  engineNumber?: string | null;
+  chassisNumber?: string | null;
+  confidence?: number | null;
+  recommendation?: string | null;
+  flags: string[];
+  message?: string | null;
+};

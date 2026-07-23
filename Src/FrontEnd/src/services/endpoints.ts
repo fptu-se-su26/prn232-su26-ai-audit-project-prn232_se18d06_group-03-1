@@ -39,6 +39,11 @@ export const endpoints = {
     createCustomer: "/api/admin/customers",
     createOwner: "/api/admin/owners",
     previewOwnerOcr: "/api/admin/owners/ocr-preview",
+    postStats: "/api/admin/posts/stats",
+    postOcrPreview: "/api/admin/posts/ocr-preview",
+    postCreateVehicle: "/api/admin/posts/vehicles",
+    postOwners: "/api/admin/posts/owners",
+    postOwnerVehicles: (ownerId: number) => `/api/admin/posts/owners/${ownerId}/vehicles`,
   },
   vehicles: {
     my: "/api/vehicles/my",

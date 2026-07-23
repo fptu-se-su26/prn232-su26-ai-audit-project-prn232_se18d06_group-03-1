@@ -74,6 +74,11 @@ public interface IVehicleCatalogRepository
     Task<List<CatalogAreaResponse>> GetCatalogAreasAsync(string? province, int? pricingRegionId, CancellationToken cancellationToken = default);
     Task<List<CatalogPricingRegionResponse>> GetCatalogPricingRegionsAsync(CancellationToken cancellationToken = default);
 
+    IQueryable<OwnerProfile> OwnerProfiles { get; }
+    IQueryable<User> Users { get; }
+
+    Task<bool> OwnerExistsAsync(long ownerId, CancellationToken cancellationToken = default);
+
     void Add<T>(T entity) where T : class;
     void Remove<T>(T entity) where T : class;
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

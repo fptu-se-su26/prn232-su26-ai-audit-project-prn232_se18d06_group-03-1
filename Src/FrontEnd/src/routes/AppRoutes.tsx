@@ -32,6 +32,9 @@ import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
 import AdminVehiclesPage from "@/pages/admin/AdminVehiclesPage";
 import AdminWithdrawalsPage from "@/pages/admin/AdminWithdrawalsPage";
 import AdminWalletsPage from "@/pages/admin/AdminWalletsPage";
+import AdminPostDashboardPage from "@/pages/admin/AdminPostDashboardPage";
+import AdminOwnerVehiclesPage from "@/pages/admin/AdminOwnerVehiclesPage";
+import AdminOwnerVehicleListPage from "@/pages/admin/AdminOwnerVehicleListPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import OwnerRegisterPage from "@/pages/auth/OwnerRegisterPage";
@@ -204,6 +207,9 @@ export default function AppRoutes() {
             <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
             <Route path="/admin/national-id-verifications" element={<AdminNationalIdVerificationsPage />} />
             <Route path="/admin/disputes" element={<DisputePage />} />
+            <Route path="/admin/posts" element={<AdminPostDashboardPage />} />
+            <Route path="/admin/posts/owners" element={<AdminOwnerVehiclesPage />} />
+            <Route path="/admin/posts/owners/:ownerId" element={<AdminOwnerVehicleListPage />} />
             <Route path="/admin/vehicle-catalog" element={<AdminVehicleCatalogPage />} />
             <Route path="/admin/vehicle-brands" element={<AdminVehicleBrandsPage />} />
             <Route path="/admin/vehicle-models" element={<AdminVehicleModelsPage />} />

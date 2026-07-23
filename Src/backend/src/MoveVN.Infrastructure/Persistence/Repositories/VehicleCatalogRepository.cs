@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
+using MoveVN.Application.Modules.Admin.DTOs;
 using MoveVN.Application.Modules.PricingRules.DTOs;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Domain.Entities;
@@ -35,6 +36,13 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<PlatformFeeRule> PlatformFeeRules => _context.PlatformFeeRules.AsQueryable();
     public IQueryable<BlockedDate> BlockedDates => _context.BlockedDates.AsQueryable();
     public IQueryable<Booking> Bookings => _context.Bookings.AsQueryable();
+
+    public IQueryable<OwnerProfile> OwnerProfiles => _context.OwnerProfiles.AsQueryable();
+
+    public IQueryable<User> Users => _context.Users.AsQueryable();
+
+    public Task<bool> OwnerExistsAsync(long ownerId, CancellationToken cancellationToken = default)
+        => _context.OwnerProfiles.AnyAsync(op => op.UserId == ownerId, cancellationToken);
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);

@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IAdminPostManagementService, AdminPostManagementService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IOwnerApplicationService, OwnerApplicationService>();
         services.AddScoped<IStaffOwnerApplicationService, StaffOwnerApplicationService>();

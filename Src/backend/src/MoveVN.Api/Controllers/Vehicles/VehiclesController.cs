@@ -10,7 +10,7 @@ using MoveVN.Application.Modules.Vehicles.Interfaces;
 
 namespace MoveVN.Api.Controllers.Vehicles;
 
-[Authorize(Roles = "Owner")]
+  [Authorize(Roles = "Owner,Admin")]
 [Route("api/vehicles")]
 public class VehiclesController : BaseApiController
 {
@@ -56,6 +56,7 @@ public class VehiclesController : BaseApiController
         return Success(result);
     }
 
+  
     [HttpGet("pricing/suggestion")]
     public async Task<ActionResult<ApiResponse<PricingSuggestionResponse>>> GetPricingSuggestion(
         [FromQuery] int modelId,

@@ -1,6 +1,7 @@
 import {
   ArrowLeftFromLine,
   BadgeDollarSign,
+  BarChart3,
   Bike,
   Building2,
   CalendarCheck,
@@ -75,6 +76,11 @@ const adminModerationItems = [
   { to: "/admin/driver-license-verifications", label: "Xác minh GPLX", icon: FileBadge },
   { to: "/admin/national-id-verifications", label: "Xác minh CCCD", icon: IdCard },
   { to: "/admin/disputes", label: "Tranh chấp", icon: Scale },
+];
+
+const adminPostMgmtItems = [
+  { to: "/admin/posts", label: "Thống kê tin", icon: BarChart3, end: true },
+  { to: "/admin/posts/owners", label: "Xe của chủ xe", icon: Car },
 ];
 
 const staffModerationItems = [
@@ -192,6 +198,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const walletItems = primaryRole === "Admin" ? adminWalletItems : staffWalletItems;
   const isWalletPath = walletItems.some((item) => location.pathname.startsWith(item.to));
   const [walletOpen, setWalletOpen] = useState(isWalletPath);
+  const isPostMgmtPath = location.pathname.startsWith("/admin/posts");
+  const [postMgmtOpen, setPostMgmtOpen] = useState(isPostMgmtPath);
 
   useEffect(() => {
     if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
@@ -202,7 +210,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     if (isAdminUserMgmtPath) setAdminUserMgmtOpen(true);
     if (isStaffUserMgmtPath) setStaffUserMgmtOpen(true);
     if (isWalletPath) setWalletOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isStaffUserMgmtPath, isWalletPath]);
+    if (isPostMgmtPath) setPostMgmtOpen(true);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isStaffUserMgmtPath, isWalletPath, isPostMgmtPath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -526,6 +535,59 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
             </>
           )}
 
+          {primaryRole === "Admin" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setPostMgmtOpen(true);
+                  navigate("/admin/posts");
+                }}
+                className={[
+                  navBaseClass,
+                  "w-full",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isPostMgmtPath ? navActiveClass : navInactiveClass,
+                ].join(" ")}
+                title="Quản lý tin"
+              >
+                <ClipboardList className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Quản lý tin</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPostMgmtOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setPostMgmtOpen((prev) => !prev);
+                        }
+                      }}
+                      className={expandButtonClass}
+                      aria-label="Mở quản lý tin"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${postMgmtOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && postMgmtOpen && (
+                <div className={nestedNavClass}>
+                  {adminPostMgmtItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} end={(item as any).end} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
           {primaryRole === "Staff" && !isOwnerVerificationSection && (
             <>
               {!collapsed && <span className="my-1 block border-t border-slate-100" />}
@@ -564,7 +626,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                       className={expandButtonClass}
                       aria-label="Mở kiểm duyệt"
                     >
-                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${staffModerationOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 transition-transform ${staffModerationOpen ? "rotate-180" : ""}`} />
                     </span>
                   </>
                 )}
