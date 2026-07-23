@@ -19,6 +19,7 @@ public interface IUserRepository
     void Update(User user);
 
     Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<CustomerProfile?> GetByNationalIdHashAsync(string hash, CancellationToken cancellationToken = default);
     void UpdateCustomerProfile(CustomerProfile profile);
     Task<OwnerProfile?> GetOwnerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     void UpdateOwnerProfile(OwnerProfile profile);

@@ -15,6 +15,10 @@ public class CmsPagesController : BaseApiController
         _service = service;
     }
 
+    [HttpGet("navigation")]
+    public async Task<ActionResult<ApiResponse<List<CmsPageNavigationItem>>>> GetNavigation(CancellationToken cancellationToken = default)
+        => Success(await _service.GetNavigationAsync(cancellationToken));
+
     [HttpGet("{slug}")]
     public async Task<ActionResult<ApiResponse<CmsPageResponse?>>> GetBySlug(string slug, CancellationToken cancellationToken = default)
         => Success(await _service.GetBySlugAsync(slug, cancellationToken));

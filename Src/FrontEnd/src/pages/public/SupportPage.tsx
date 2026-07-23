@@ -44,9 +44,9 @@ export default function SupportPage() {
           <p className="text-sm sm:text-base font-black uppercase tracking-[0.25em] text-brand-600 dark:text-brand-400">
             Hỗ trợ
           </p>
-          <h1 className="mt-4 text-4xl font-black uppercase tracking-tight sm:text-5xl">
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-[56px]">
             Cần giúp đỡ với{" "}
-            <span className="italic lowercase text-brand-600 dark:text-brand-400">
+            <span className="bg-gradient-to-r from-brand-700 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
               việc thuê xe
             </span>
             ?

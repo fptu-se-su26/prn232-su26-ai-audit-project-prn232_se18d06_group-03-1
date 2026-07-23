@@ -184,7 +184,7 @@ export default function HomePage() {
               Đặt xe siêu nhanh
             </div>
 
-            <h1 className="mt-8 max-w-3xl text-5xl font-black leading-[1.05] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+            <h1 className="mt-8 max-w-3xl text-4xl font-black leading-[1.1] tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-[56px]">
               Đặt xe trong vài phút
               <span className="mt-2 block bg-gradient-to-r from-brand-700 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
                 nhận xe cực dễ dàng

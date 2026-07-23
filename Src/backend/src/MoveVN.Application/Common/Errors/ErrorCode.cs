@@ -69,6 +69,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode OWNER_FILE_INVALID = new("OWNER_6010", "Tệp không hợp lệ. Chỉ chấp nhận ảnh JPG/PNG/WebP dưới 5MB.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OWNER_NATIONAL_ID_ALREADY_VERIFIED = new("OWNER_6011", "CCCD đã được xác thực.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OWNER_VERIFICATION_REQUEST_FAILED = new("OWNER_6012", "Xử lý yêu cầu xác thực thất bại.", HttpStatusCode.InternalServerError);
+    public static readonly ErrorCode OWNER_NATIONAL_ID_DUPLICATED = new("OWNER_6016", "CCCD này đã được đăng ký cho tài khoản khác.", HttpStatusCode.Conflict);
     public static readonly ErrorCode OWNER_VERIFICATION_PROCESSING = new("OWNER_6013", "Yêu cầu xác thực CCCD đang được xử lý. Vui lòng đợi.", HttpStatusCode.Conflict);
     public static readonly ErrorCode OWNER_NATIONAL_ID_VERIFICATION_NOT_FOUND = new("OWNER_6014", "Không tìm thấy yêu cầu xác thực CCCD.", HttpStatusCode.NotFound);
     public static readonly ErrorCode OWNER_NATIONAL_ID_REVIEW_INVALID_STATE = new("OWNER_6015", "Yêu cầu xác thực CCCD không ở trạng thái chờ duyệt.", HttpStatusCode.BadRequest);

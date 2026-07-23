@@ -23,6 +23,7 @@ import AdminMotorbikeVariantsPage from "@/pages/admin/AdminMotorbikeVariantsPage
 import AdminDriverLicenseClassesPage from "@/pages/admin/AdminDriverLicenseClassesPage";
 import AdminDriverLicenseVerificationsPage from "@/pages/admin/AdminDriverLicenseVerificationsPage";
 import AdminNationalIdVerificationsPage from "@/pages/admin/AdminNationalIdVerificationsPage";
+import AdminCmsPagesPage from "@/pages/admin/AdminCmsPagesPage";
 import AdminVehicleFeaturesPage from "@/pages/admin/AdminVehicleFeaturesPage";
 import AdminPricingRegionsPage from "@/pages/admin/AdminPricingRegionsPage";
 import AdminAreasPage from "@/pages/admin/AdminAreasPage";
@@ -69,9 +70,8 @@ import AboutPage from "@/pages/public/AboutPage";
 import ForOwnersPage from "@/pages/public/ForOwnersPage";
 import HomePage from "@/pages/public/HomePage";
 import HowItWorksPage from "@/pages/public/HowItWorksPage";
-import PrivacyPage from "@/pages/public/PrivacyPage";
+import PolicyPage from "@/pages/public/PolicyPage";
 import SupportPage from "@/pages/public/SupportPage";
-import TermsPage from "@/pages/public/TermsPage";
 import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
@@ -96,8 +96,9 @@ export default function AppRoutes() {
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/for-owners" element={<ForOwnersPage />} />
         <Route path="/support" element={<SupportPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/privacy" element={<Navigate to="/policies/privacy-policy" replace />} />
+        <Route path="/terms" element={<Navigate to="/policies/terms-of-service" replace />} />
+        <Route path="/policies/:slug" element={<PolicyPage />} />
         <Route path="/booking/new" element={<BookingNewPage />} />
         <Route path="/booking/list" element={<BookingListPage />} />
         <Route path="/booking/manage" element={<BookingManagePage />} />
@@ -195,6 +196,7 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-documents/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
+            <Route path="/admin/cms-pages" element={<AdminCmsPagesPage />} />
             <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
             <Route path="/admin/national-id-verifications" element={<AdminNationalIdVerificationsPage />} />
             <Route path="/admin/disputes" element={<DisputePage />} />

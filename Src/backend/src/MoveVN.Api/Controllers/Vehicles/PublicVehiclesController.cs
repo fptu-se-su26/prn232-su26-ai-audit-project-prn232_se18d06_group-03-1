@@ -79,4 +79,13 @@ public class PublicVehiclesController : BaseApiController
         var result = await _publicVehicleService.GetVehicleDetailAsync(id, cancellationToken);
         return Success(result);
     }
+
+    [HttpGet("{id}/images")]
+    public async Task<ActionResult<ApiResponse<List<VehicleImageResponse>>>> GetVehicleImages(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _publicVehicleService.GetVehicleImagesAsync(id, cancellationToken);
+        return Success(result);
+    }
 }

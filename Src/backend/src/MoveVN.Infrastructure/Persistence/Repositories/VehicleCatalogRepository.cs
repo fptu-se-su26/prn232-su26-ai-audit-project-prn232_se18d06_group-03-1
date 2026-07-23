@@ -38,16 +38,16 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public IQueryable<CmsPage> CmsPages => _context.CmsPages.AsQueryable();
 
     public Task<VehicleBrand?> GetVehicleBrandByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.VehicleBrand.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.VehicleBrand.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<VehicleModel?> GetVehicleModelByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.VehicleModel.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.VehicleModel.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<VehicleModelVariant?> GetVehicleModelVariantByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.VehicleModelVariant.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.VehicleModelVariant.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<DriverLicenseClass?> GetDriverLicenseClassByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.DriverLicenseClasses.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.DriverLicenseClasses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public async Task<IReadOnlyCollection<string>> GetAllowedVehicleTypesForDriverLicenseClassesAsync(
         IReadOnlyCollection<string> licenseClassCodes,
@@ -105,13 +105,13 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         => _context.VehicleFeature.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<Area?> GetAreaByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.Area.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.Area.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<PricingRegion?> GetPricingRegionByIdAsync(int id, CancellationToken cancellationToken = default)
-        => _context.PricingRegion.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.PricingRegion.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<VehiclePricing?> GetVehiclePricingByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default)
-        => _context.VehiclePricing.FirstOrDefaultAsync(x => x.VehicleId == vehicleId, cancellationToken);
+        => _context.VehiclePricing.AsNoTracking().FirstOrDefaultAsync(x => x.VehicleId == vehicleId, cancellationToken);
 
     public Task<VehicleModelPricing?> GetVehicleModelPricingByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleModelPricing.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -136,10 +136,19 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<Vehicle?> GetVehicleByIdAsync(long id, CancellationToken cancellationToken = default)
-        => _context.Vehicles.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+    public Task<Vehicle?> GetVehicleWithDetailsByIdAsync(long id, CancellationToken cancellationToken = default)
+        => _context.Vehicles
+            .Include(v => v.Brand)
+            .Include(v => v.Model)
+            .Include(v => v.Variant)
+            .Include(v => v.Area)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
 
     public Task<Vehicle?> GetVehicleByIdAndOwnerIdAsync(long id, long ownerId, CancellationToken cancellationToken = default)
-        => _context.Vehicles.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, cancellationToken);
+        => _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, cancellationToken);
 
     public Task<bool> VehicleBrandExistsAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.AnyAsync(x => x.Id == id, cancellationToken);
@@ -263,15 +272,15 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     }
 
     public Task<List<VehicleImageResponse>> GetVehicleImageResponsesAsync(long vehicleId, CancellationToken cancellationToken = default)
-        => _context.VehicleImages.Where(img => img.VehicleId == vehicleId).OrderBy(img => img.SortOrder)
+        => _context.VehicleImages.AsNoTracking().Where(img => img.VehicleId == vehicleId).OrderBy(img => img.SortOrder)
             .Select(img => new VehicleImageResponse { Id = img.Id, ImageUrl = img.ImageUrl, IsPrimary = img.IsPrimary, SortOrder = img.SortOrder })
             .ToListAsync(cancellationToken);
 
-    public async Task<List<VehicleFeatureResponse>> GetVehicleFeatureResponsesAsync(long vehicleId, CancellationToken cancellationToken = default)
-    {
-        var featureIds = await _context.VehicleFeatureMapping.Where(fm => fm.VehicleId == vehicleId).Select(fm => fm.FeatureId).ToListAsync(cancellationToken);
-        return await _context.VehicleFeature.Where(f => featureIds.Contains(f.Id)).Select(f => new VehicleFeatureResponse { Id = f.Id, Name = f.Name }).ToListAsync(cancellationToken);
-    }
+    public Task<List<VehicleFeatureResponse>> GetVehicleFeatureResponsesAsync(long vehicleId, CancellationToken cancellationToken = default)
+        => _context.VehicleFeatureMapping.AsNoTracking()
+            .Where(fm => fm.VehicleId == vehicleId)
+            .Join(_context.VehicleFeature.AsNoTracking(), fm => fm.FeatureId, f => f.Id, (fm, f) => new VehicleFeatureResponse { Id = f.Id, Name = f.Name })
+            .ToListAsync(cancellationToken);
 
     public Task<List<VehicleDocument>> GetVehicleDocumentsAsync(long vehicleId, bool includeDeleted = false, CancellationToken cancellationToken = default)
         => _context.VehicleDocuments

@@ -18,9 +18,18 @@ public class CmsPageService : ICmsPageService
         _repository = repository;
     }
 
+    public async Task<List<CmsPageNavigationItem>> GetNavigationAsync(CancellationToken cancellationToken = default)
+    {
+        return await _repository.CmsPages
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.Id)
+            .Select(x => new CmsPageNavigationItem { Slug = x.Slug, Title = x.Title })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<CmsPageResponse>> GetAllAsync(string? keyword, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = _repository.CmsPages;
+        var query = _repository.CmsPages.Where(x => x.IsActive);
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {

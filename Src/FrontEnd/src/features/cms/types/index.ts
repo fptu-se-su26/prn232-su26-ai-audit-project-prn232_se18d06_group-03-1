@@ -7,3 +7,8 @@ export type CmsPageResponse = {
   isActive: boolean;
   updatedAt: string;
 };
+
+export type CmsPageNavigationItem = {
+  slug: string;
+  title: string;
+};

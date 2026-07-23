@@ -38,6 +38,8 @@ export const endpoints = {
     createCustomer: "/api/admin/customers",
     createOwner: "/api/admin/owners",
     previewOwnerOcr: "/api/admin/owners/ocr-preview",
+    cmsPages: "/api/admin/cms-pages",
+    cmsPageById: (id: number) => `/api/admin/cms-pages/${id}`,
   },
   vehicles: {
     my: "/api/vehicles/my",
@@ -79,6 +81,7 @@ export const endpoints = {
     list: "/api/public/vehicles",
     byId: (id: number) => `/api/public/vehicles/${id}`,
     availability: (id: number) => `/api/public/vehicles/${id}/availability`,
+    images: (id: number) => `/api/public/vehicles/${id}/images`,
   },
   bookings: {
     base: "/api/bookings",
@@ -147,6 +150,7 @@ export const endpoints = {
     markAllRead: "/api/notifications/read-all",
   },
   publicCmsPages: {
+    navigation: "/api/cms-pages/navigation",
     bySlug: (slug: string) => `/api/cms-pages/${slug}`,
   },
   swaggerJson: "/swagger/v1/swagger.json",

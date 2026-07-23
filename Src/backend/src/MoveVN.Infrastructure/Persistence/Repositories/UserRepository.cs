@@ -18,7 +18,7 @@ public class UserRepository : IUserRepository
 
     public Task<User?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        return _context.Users.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        return _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
@@ -72,6 +72,11 @@ public class UserRepository : IUserRepository
     public Task<CustomerProfile?> GetCustomerProfileByUserIdAsync(long userId, CancellationToken cancellationToken = default)
     {
         return _context.CustomerProfiles.FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
+    }
+
+    public Task<CustomerProfile?> GetByNationalIdHashAsync(string hash, CancellationToken cancellationToken = default)
+    {
+        return _context.CustomerProfiles.FirstOrDefaultAsync(x => x.NationalIdHash == hash, cancellationToken);
     }
 
     public void UpdateCustomerProfile(CustomerProfile profile)

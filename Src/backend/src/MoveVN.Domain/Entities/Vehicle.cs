@@ -31,5 +31,10 @@ public class Vehicle
     public DateTime? ApprovedAt { get; set; }
     public string? RejectionReason { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public VehicleBrand Brand { get; set; } = null!;
+    public VehicleModel Model { get; set; } = null!;
+    public VehicleModelVariant? Variant { get; set; }
+    public Area? Area { get; set; }
 }
 

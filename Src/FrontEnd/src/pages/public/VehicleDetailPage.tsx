@@ -1,8 +1,8 @@
 import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star, CalendarDays, ChevronLeft, ChevronRight, User, Clock, ExternalLink } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getPublicVehicleById, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
-import type { VehicleResponse, BusyPeriod } from "@/features/vehicles/types";
+import { getPublicVehicleById, getPublicVehicleImages, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
+import type { VehicleResponse, VehicleImageResponse, BusyPeriod } from "@/features/vehicles/types";
 import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
@@ -182,6 +182,8 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [vehicleImages, setVehicleImages] = useState<VehicleImageResponse[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(true);
   const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
@@ -200,6 +202,15 @@ export default function VehicleDetailPage() {
       .finally(() => setIsLoading(false));
     getVehicleReviews(Number(id)).then(setReviews).catch(() => {});
     getVehicleAvailability(Number(id)).then((d) => d && setBusyPeriods(d.busyPeriods)).catch(() => {});
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    setImagesLoading(true);
+    getPublicVehicleImages(Number(id))
+      .then(setVehicleImages)
+      .catch(() => {})
+      .finally(() => setImagesLoading(false));
   }, [id]);
 
   const busySet = useMemo(() => {
@@ -296,7 +307,7 @@ export default function VehicleDetailPage() {
   }
 
   const displayPrice = vehicle.currentPricePerDay ?? vehicle.pricePerDay;
-  const vehicleImages = vehicle.images.map((img, idx) => ({
+  const previewItems = vehicleImages.map((img, idx) => ({
     url: img.imageUrl,
     label: img.isPrimary ? "Ảnh chính" : `Ảnh ${idx + 1}`,
   }));
@@ -342,20 +353,22 @@ export default function VehicleDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
-          {vehicle.images.length > 0 ? (
+          {imagesLoading && vehicleImages.length === 0 ? (
+            <Skeleton className="aspect-[16/9] w-full rounded-xl" />
+          ) : vehicleImages.length > 0 ? (
             <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
-                onClick={() => openPreview(vehicleImages, 0)}
+                onClick={() => openPreview(previewItems, 0)}
                 className="col-span-4 overflow-hidden rounded-xl bg-slate-100"
               >
-                <img src={vehicle.images[0].imageUrl} alt="" className="aspect-[16/9] w-full object-cover transition-transform duration-300 hover:scale-105" />
+                <img src={vehicleImages[0].imageUrl} alt="" className="aspect-[16/9] w-full object-cover transition-transform duration-300 hover:scale-105" />
               </button>
-              {vehicle.images.slice(1, 5).map((img, idx) => (
+              {vehicleImages.slice(1, 5).map((img, idx) => (
                 <button
                   key={img.id}
                   type="button"
-                  onClick={() => openPreview(vehicleImages, idx + 1)}
+                  onClick={() => openPreview(previewItems, idx + 1)}
                   className="overflow-hidden rounded-lg bg-slate-100"
                 >
                   <img src={img.imageUrl} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-300 hover:scale-105" />
@@ -561,20 +574,20 @@ export default function VehicleDetailPage() {
             )}
           </div>
 
-          {vehicle.images.length > 1 && (
+          {vehicleImages.length > 1 && (
             <div className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="mb-3 flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
                   <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
                 </div>
-                <h2 className="text-sm font-semibold text-slate-900">Tất cả ảnh ({vehicle.images.length})</h2>
+                <h2 className="text-sm font-semibold text-slate-900">Tất cả ảnh ({vehicleImages.length})</h2>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {vehicle.images.map((img, idx) => (
+                {vehicleImages.map((img, idx) => (
                   <button
                     key={img.id}
                     type="button"
-                    onClick={() => openPreview(vehicleImages, idx)}
+                    onClick={() => openPreview(previewItems, idx)}
                     className="overflow-hidden rounded-lg bg-slate-100"
                   >
                     <img src={img.imageUrl} alt="" className="aspect-square w-full object-cover transition-transform duration-300 hover:scale-105" />
