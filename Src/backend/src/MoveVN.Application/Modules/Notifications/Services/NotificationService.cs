@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
@@ -14,24 +15,30 @@ namespace MoveVN.Application.Modules.Notifications.Services;
 public class NotificationService : INotificationService
 {
     private const int MaxPageSize = 50;
+    private static readonly HashSet<string> ValidChannels = new(StringComparer.OrdinalIgnoreCase) { "InApp", "Email", "Both" };
+    private static readonly HashSet<string> ValidTargetTypes = new(StringComparer.OrdinalIgnoreCase) { "All", "ByRole", "ByUser" };
+    private static readonly HashSet<string> ValidRoles = new(StringComparer.OrdinalIgnoreCase) { "Customer", "Owner", "Staff", "Admin" };
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IUserRepository _userRepository;
     private readonly INotificationRepository _notificationRepository;
     private readonly INotificationRealtimeDispatcher _realtimeDispatcher;
     private readonly IEmailSender _emailSender;
+    private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _scopeFactory;
 
     public NotificationService(
         ICurrentUserContext currentUserContext,
         IUserRepository userRepository,
         INotificationRepository notificationRepository,
         INotificationRealtimeDispatcher realtimeDispatcher,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
         _realtimeDispatcher = realtimeDispatcher;
         _emailSender = emailSender;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<PagedResult<NotificationResponse>> GetMineAsync(bool? unreadOnly, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -141,6 +148,106 @@ public class NotificationService : INotificationService
         await _realtimeDispatcher.SendCreatedAsync(user.Id, response, await GetUnreadCountAsync(user.Id, cancellationToken), cancellationToken);
         await SendEmailNotificationIfAllowedAsync(user, notification, cancellationToken);
         return response;
+    }
+
+    public async Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request, CancellationToken cancellationToken = default)
+    {
+        var title = request.Title.Trim();
+        var body = request.Body.Trim();
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(body))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Tiêu đề và nội dung thông báo không được để trống."]);
+        }
+
+        var channel = ValidChannels.Contains(request.Channel) ? request.Channel : "InApp";
+        var targetType = ValidTargetTypes.Contains(request.TargetType) ? request.TargetType : "All";
+        var sendInApp = channel is "InApp" or "Both";
+        var sendEmail = channel is "Email" or "Both";
+
+        List<User> targetUsers = targetType switch
+        {
+            "ByRole" when request.TargetRoles.Count > 0 =>
+                await _userRepository.GetUsersByRoleAsync(
+                    request.TargetRoles.Where(r => ValidRoles.Contains(r)),
+                    cancellationToken),
+            "ByUser" when request.TargetUserIds.Count > 0 =>
+                await _userRepository.GetUsersByIdsAsync(request.TargetUserIds, cancellationToken),
+            _ => await _userRepository.GetAllActiveUsersAsync(cancellationToken)
+        };
+
+        var result = new BroadcastNotificationResponse { TotalTargeted = targetUsers.Count };
+        var now = DateTime.UtcNow;
+
+        var emailTargets = new List<(string Email, string FullName, long UserId)>();
+
+        foreach (var user in targetUsers)
+        {
+            try
+            {
+                if (sendInApp)
+                {
+                    var notification = new Notification
+                    {
+                        UserId = user.Id,
+                        Type = "Broadcast",
+                        Title = title,
+                        Body = body,
+                        Channel = "InApp",
+                        IsRead = false,
+                        SentAt = now,
+                        CreatedAt = now
+                    };
+                    await _notificationRepository.AddAsync(notification, cancellationToken);
+                    await _notificationRepository.SaveChangesAsync(cancellationToken);
+                    var unread = await GetUnreadCountAsync(user.Id, cancellationToken);
+                    await _realtimeDispatcher.SendCreatedAsync(user.Id, Map(notification), unread, cancellationToken);
+                }
+
+                if (sendEmail && !string.IsNullOrWhiteSpace(user.Email))
+                {
+                    var preference = await _notificationRepository.GetPreferenceByUserIdAsync(user.Id, cancellationToken);
+                    if (preference is not { EmailEnabled: false })
+                    {
+                        emailTargets.Add((user.Email, user.FullName, user.Id));
+                    }
+                }
+
+                result.SuccessCount++;
+            }
+            catch (Exception ex)
+            {
+                result.FailedCount++;
+                result.Errors.Add($"UserId={user.Id}: {ex.Message}");
+            }
+        }
+
+        if (emailTargets.Count > 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
+                var semaphore = new SemaphoreSlim(10);
+                var tasks = emailTargets.Select(async target =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        await emailSender.SendNotificationAsync(target.Email, target.FullName, title, body, CancellationToken.None);
+                    }
+                    catch
+                    {
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+                await Task.WhenAll(tasks);
+            });
+        }
+
+        return result;
     }
 
     private long GetCurrentUserId()

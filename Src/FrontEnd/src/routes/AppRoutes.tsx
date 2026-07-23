@@ -32,6 +32,7 @@ import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
 import AdminVehiclesPage from "@/pages/admin/AdminVehiclesPage";
 import AdminWithdrawalsPage from "@/pages/admin/AdminWithdrawalsPage";
 import AdminWalletsPage from "@/pages/admin/AdminWalletsPage";
+import AdminBroadcastNotificationPage from "@/pages/admin/AdminBroadcastNotificationPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import OwnerRegisterPage from "@/pages/auth/OwnerRegisterPage";
@@ -179,6 +180,7 @@ export default function AppRoutes() {
             <Route path="/staff/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
             <Route path="/staff/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/staff/wallets" element={<AdminWalletsPage />} />
+            <Route path="/staff/broadcast" element={<AdminBroadcastNotificationPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
@@ -212,6 +214,7 @@ export default function AppRoutes() {
             <Route path="/admin/platform-fee-rules" element={<AdminPlatformFeeRulesPage />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/admin/wallets" element={<AdminWalletsPage />} />
+            <Route path="/admin/broadcast" element={<AdminBroadcastNotificationPage />} />
           </Route>
         </Route>
       </Route>

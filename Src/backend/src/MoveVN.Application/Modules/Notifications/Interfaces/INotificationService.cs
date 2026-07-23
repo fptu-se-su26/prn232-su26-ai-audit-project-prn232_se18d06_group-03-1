@@ -10,4 +10,6 @@ public interface INotificationService
     Task<NotificationResponse> MarkAsReadAsync(long id, CancellationToken cancellationToken = default);
     Task<MarkAllNotificationsReadResponse> MarkAllAsReadAsync(CancellationToken cancellationToken = default);
     Task<NotificationResponse> CreateAsync(CreateNotificationRequest request, CancellationToken cancellationToken = default);
+    Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request, CancellationToken cancellationToken = default);
 }
+

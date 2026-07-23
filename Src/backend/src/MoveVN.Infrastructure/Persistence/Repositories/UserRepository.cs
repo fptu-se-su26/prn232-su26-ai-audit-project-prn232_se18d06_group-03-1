@@ -444,4 +444,30 @@ public class UserRepository : IUserRepository
             SubmittedAt = x.SubmittedAt
         }).ToList();
     }
+
+    public async Task<List<User>> GetUsersByRoleAsync(IEnumerable<string> roles, CancellationToken cancellationToken = default)
+    {
+        var roleList = roles.Select(r => r.ToLowerInvariant()).ToList();
+        return await (
+            from user in _context.Users
+            join userRole in _context.UserRoles on user.Id equals userRole.UserId
+            join role in _context.Roles on userRole.RoleId equals role.Id
+            where roleList.Contains(role.Name.ToLower())
+            select user)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<User>> GetAllActiveUsersAsync(CancellationToken cancellationToken = default)
+        => await _context.Users.ToListAsync(cancellationToken);
+
+    public async Task<List<User>> GetUsersByIdsAsync(IEnumerable<long> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _context.Users
+            .Where(u => idList.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+    }
 }
+
+
