@@ -25,6 +25,8 @@ public class VehicleResponse
     public string? PricingRegionCode { get; set; }
     public decimal PricePerDay { get; set; }
     public int DepositPercent { get; set; }
+    public bool SecurityRequiresDeposit { get; set; }
+    public decimal SecurityDepositAmount { get; set; }
     public string? PricingMode { get; set; }
     public decimal? FixedPricePerDay { get; set; }
     public decimal? AutoMinPrice { get; set; }

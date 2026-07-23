@@ -216,6 +216,8 @@ public class VehicleModerationService : IVehicleModerationService
             PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
             DepositPercent = vehicle.DepositPercent,
+            SecurityRequiresDeposit = vehicle.SecurityRequiresDeposit,
+            SecurityDepositAmount = vehicle.SecurityDepositAmount,
             Status = vehicle.Status,
             RejectionReason = vehicle.RejectionReason,
             FeaturedImage = images.FirstOrDefault(image => image.IsPrimary)?.ImageUrl,

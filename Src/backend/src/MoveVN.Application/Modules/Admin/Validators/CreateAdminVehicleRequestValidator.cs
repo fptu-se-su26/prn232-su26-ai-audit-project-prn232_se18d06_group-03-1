@@ -17,6 +17,8 @@ public class CreateAdminVehicleRequestValidator : AbstractValidator<CreateAdminV
         RuleFor(x => x.Address).NotEmpty().MaximumLength(500);
         RuleFor(x => x.PricePerDay).GreaterThan(0);
         RuleFor(x => x.DepositPercent).InclusiveBetween(20, 50);
+        RuleFor(x => x.SecurityDepositAmount).GreaterThan(0).When(x => x.SecurityRequiresDeposit)
+            .WithMessage("Số tiền thế chấp phải lớn hơn 0.");
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.OdometerKm).GreaterThanOrEqualTo(0).When(x => x.OdometerKm.HasValue);
         RuleFor(x => x.PricingMode).Must(m => m == null || m == "Fixed" || m == "Auto")

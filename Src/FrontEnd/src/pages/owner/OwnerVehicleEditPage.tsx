@@ -89,6 +89,8 @@ export default function OwnerVehicleEditPage() {
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
   const [depositPercent, setDepositPercent] = useState(20);
+  const [securityRequiresDeposit, setSecurityRequiresDeposit] = useState(false);
+  const [securityDepositAmount, setSecurityDepositAmount] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
 
   const provinces = useMemo(() => [...new Set(areas.map((area) => area.province))].sort(), [areas]);
@@ -128,6 +130,8 @@ export default function OwnerVehicleEditPage() {
       setAutoMinPrice((pricingData?.autoMinPrice ?? vehicleData.autoMinPrice ?? "").toString());
       setAutoMaxPrice((pricingData?.autoMaxPrice ?? vehicleData.autoMaxPrice ?? "").toString());
       setDepositPercent(Math.max(20, vehicleData.depositPercent ?? 20));
+      setSecurityRequiresDeposit(vehicleData.securityRequiresDeposit ?? false);
+      setSecurityDepositAmount(vehicleData.securityDepositAmount ? String(vehicleData.securityDepositAmount) : "");
     } catch {
       setError("Không thể tải thông tin xe.");
     } finally {
@@ -157,6 +161,10 @@ export default function OwnerVehicleEditPage() {
     return depositPercent >= 20 && depositPercent <= 50;
   }
 
+  function isCollateralValid() {
+    return !securityRequiresDeposit || (Number(securityDepositAmount) > 0);
+  }
+
   function toggleFeature(featureId: number) {
     setSelectedFeatureIds((prev) => prev.includes(featureId) ? prev.filter((f) => f !== featureId) : [...prev, featureId]);
   }
@@ -173,7 +181,7 @@ export default function OwnerVehicleEditPage() {
   }
 
   async function handleSaveInfo() {
-    if (!vehicle || !id || !isDepositValid()) return;
+    if (!vehicle || !id || !isDepositValid() || !isCollateralValid()) return;
     setSaving("info");
     setError(null);
     try {
@@ -188,6 +196,8 @@ export default function OwnerVehicleEditPage() {
         longitude,
         pricePerDay: vehicle.pricePerDay,
         depositPercent,
+        securityRequiresDeposit,
+        securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
         featureIds: selectedFeatureIds,
       });
       await loadData();
@@ -199,7 +209,7 @@ export default function OwnerVehicleEditPage() {
   }
 
   async function handleSaveFeatures() {
-    if (!vehicle || !id || !isDepositValid()) return;
+    if (!vehicle || !id || !isDepositValid() || !isCollateralValid()) return;
     setSaving("features");
     setError(null);
     try {
@@ -214,6 +224,8 @@ export default function OwnerVehicleEditPage() {
         longitude,
         pricePerDay: vehicle.pricePerDay,
         depositPercent,
+        securityRequiresDeposit,
+        securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
         featureIds: selectedFeatureIds,
       });
       await loadData();
@@ -225,7 +237,7 @@ export default function OwnerVehicleEditPage() {
   }
 
   async function handleSavePricing() {
-    if (!vehicle || !id || !isPricingValid() || !isDepositValid()) return;
+    if (!vehicle || !id || !isPricingValid() || !isDepositValid() || !isCollateralValid()) return;
     setSaving("pricing");
     setError(null);
     try {
@@ -240,6 +252,8 @@ export default function OwnerVehicleEditPage() {
         longitude,
         pricePerDay: vehicle.pricePerDay,
         depositPercent,
+        securityRequiresDeposit,
+        securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
         featureIds: selectedFeatureIds,
       });
       const updated = await updateVehiclePricing(Number(id), {
@@ -462,11 +476,11 @@ export default function OwnerVehicleEditPage() {
                     <span className="block text-sm font-medium text-slate-700">Tiền cọc (%)
                       {depositPercent > 0 && (
                         <span className="ml-2 text-xs font-normal text-slate-400">
-                          (= {depositPercent}% tổng tiền thuê)
+                          (= {depositPercent}% tổng tiền thuê, khách trả trước khi nhận xe)
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">Tiền cọc tối thiểu 20%, tối đa 50%.</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Phần trăm tiền thuê khách phải trả trước. Tối thiểu 20%, tối đa 50%.</span>
                   </span>
                   <div className="flex items-center gap-3">
                     <input
@@ -482,6 +496,37 @@ export default function OwnerVehicleEditPage() {
                   </div>
                 </label>
                 {!isDepositValid() && <p className="text-sm text-red-600">Phần trăm tiền cọc phải từ 20 đến 50%.</p>}
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={securityRequiresDeposit}
+                    onChange={(e) => {
+                      setSecurityRequiresDeposit(e.target.checked);
+                      if (!e.target.checked) setSecurityDepositAmount("");
+                    }}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">Yêu cầu thế chấp</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Khách đặt một khoản tiền cọc giữ lại làm bảo hiểm. Hoàn lại khi trả xe đúng tình trạng.</span>
+                  </span>
+                </label>
+                {securityRequiresDeposit && (
+                  <div className="mt-3 space-y-1">
+                    <label className="block text-sm font-medium text-slate-700">Số tiền thế chấp (VNĐ)</label>
+                    <input
+                      type="number"
+                      value={securityDepositAmount}
+                      onChange={(e) => setSecurityDepositAmount(e.target.value)}
+                      min={0}
+                      placeholder="VD: 2000000"
+                      className="h-10 w-full rounded-lg border border-slate-300 px-3 pr-12 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
+                )}
+                {securityRequiresDeposit && !isCollateralValid() && <p className="mt-1 text-sm text-red-600">Số tiền thế chấp phải lớn hơn 0.</p>}
               </div>
             </div>
           )}
@@ -519,7 +564,7 @@ export default function OwnerVehicleEditPage() {
               </button>
             )}
             {step === 3 && (
-              <button type="button" onClick={handleSavePricing} disabled={saving === "pricing" || !isPricingValid() || !isDepositValid()} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={handleSavePricing} disabled={saving === "pricing" || !isPricingValid() || !isDepositValid() || !isCollateralValid()} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed">
                 {saving === "pricing" ? "Đang lưu..." : <><Save className="h-4 w-4" /> Lưu giá & địa chỉ</>}
               </button>
             )}

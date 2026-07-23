@@ -237,6 +237,8 @@ export type CreateAdminVehicleRequest = {
   longitude?: number | null;
   pricePerDay: number;
   depositPercent: number;
+  securityRequiresDeposit: boolean;
+  securityDepositAmount: number;
   pricingMode?: string | null;
   fixedPricePerDay?: number | null;
   autoMinPrice?: number | null;

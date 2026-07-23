@@ -8,6 +8,8 @@ export type VehicleListItemResponse = {
   licensePlate: string;
   pricePerDay: number;
   depositPercent: number;
+  securityRequiresDeposit: boolean;
+  securityDepositAmount: number;
   areaName: string | null;
   pricingMode: "Fixed" | "Auto" | null;
   status: string;
@@ -74,6 +76,8 @@ export type VehicleResponse = {
   pricingRegionCode: string | null;
   pricePerDay: number;
   depositPercent: number;
+  securityRequiresDeposit: boolean;
+  securityDepositAmount: number;
   pricingMode: "Fixed" | "Auto" | null;
   fixedPricePerDay: number | null;
   autoMinPrice: number | null;
@@ -106,6 +110,8 @@ export type CreateVehicleRequest = {
   longitude?: number | null;
   pricePerDay: number;
   depositPercent: number;
+  securityRequiresDeposit: boolean;
+  securityDepositAmount: number;
   pricingMode?: "Fixed" | "Auto" | null;
   fixedPricePerDay?: number | null;
   autoMinPrice?: number | null;
@@ -127,6 +133,8 @@ export type UpdateVehicleRequest = {
   longitude?: number | null;
   pricePerDay: number;
   depositPercent: number;
+  securityRequiresDeposit: boolean;
+  securityDepositAmount: number;
   featureIds: number[];
 };
 

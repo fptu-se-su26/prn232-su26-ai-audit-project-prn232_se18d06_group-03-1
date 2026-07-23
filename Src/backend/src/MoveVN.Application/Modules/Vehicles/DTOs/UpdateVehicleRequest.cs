@@ -12,5 +12,7 @@ public class UpdateVehicleRequest
     public decimal? Longitude { get; set; }
     public decimal PricePerDay { get; set; }
     public int DepositPercent { get; set; }
+    public bool SecurityRequiresDeposit { get; set; }
+    public decimal SecurityDepositAmount { get; set; }
     public List<int> FeatureIds { get; set; } = [];
 }

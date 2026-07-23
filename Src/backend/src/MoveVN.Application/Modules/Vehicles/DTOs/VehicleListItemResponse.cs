@@ -11,6 +11,8 @@ public class VehicleListItemResponse
     public string LicensePlate { get; set; } = string.Empty;
     public decimal PricePerDay { get; set; }
     public int DepositPercent { get; set; }
+    public bool SecurityRequiresDeposit { get; set; }
+    public decimal SecurityDepositAmount { get; set; }
     public string? AreaName { get; set; }
     public string? PricingMode { get; set; }
     public string Status { get; set; } = string.Empty;

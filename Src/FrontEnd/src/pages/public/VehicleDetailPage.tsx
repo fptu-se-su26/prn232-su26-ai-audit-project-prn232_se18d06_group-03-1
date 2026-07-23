@@ -505,9 +505,17 @@ export default function VehicleDetailPage() {
               </p>
             </div>
             <p className="mt-1 text-xs text-emerald-700">Giá đã bao gồm phí nền tảng.</p>
-            <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-              <span className="font-semibold text-slate-700">Thế chấp: </span>
-              {vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}
+            <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
+              <div>
+                <span className="font-semibold text-slate-700">Tiền cọc: </span>
+                {vehicle.depositPercent > 0 ? `${vehicle.depositPercent}% tổng tiền thuê` : "Không yêu cầu"}
+              </div>
+              {vehicle.securityRequiresDeposit && (
+                <div>
+                  <span className="font-semibold text-slate-700">Thế chấp: </span>
+                  {vehicle.securityDepositAmount > 0 ? `${vehicle.securityDepositAmount.toLocaleString("vi-VN")} VNĐ` : "Không yêu cầu"}
+                </div>
+              )}
             </div>
 
             <hr className="my-4 border-slate-100" />

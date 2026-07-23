@@ -97,6 +97,8 @@ public class VehicleService : IVehicleService
             PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
             DepositPercent = vehicle.DepositPercent,
+            SecurityRequiresDeposit = vehicle.SecurityRequiresDeposit,
+            SecurityDepositAmount = vehicle.SecurityDepositAmount,
             PricingMode = pricing?.PricingMode,
             FixedPricePerDay = pricing?.FixedPricePerDay,
             AutoMinPrice = pricing?.AutoMinPrice,
@@ -149,7 +151,7 @@ public class VehicleService : IVehicleService
         }
 
         await ValidateFeaturesAsync(request.FeatureIds, request.VehicleType, cancellationToken);
-        ValidateDeposit(request.DepositPercent);
+        ValidateDeposit(request.DepositPercent, request.SecurityRequiresDeposit, request.SecurityDepositAmount);
 
         var pricingRequest = BuildPricingRequest(request);
         var vehicleForValidation = new Vehicle
@@ -177,6 +179,8 @@ public class VehicleService : IVehicleService
             Longitude = request.Longitude,
             PricePerDay = currentPrice,
             DepositPercent = request.DepositPercent,
+            SecurityRequiresDeposit = request.SecurityRequiresDeposit,
+            SecurityDepositAmount = request.SecurityRequiresDeposit ? request.SecurityDepositAmount : 0,
             Status = VehicleStatus.Pending,
             CreatedAt = DateTime.UtcNow,
         };
@@ -318,8 +322,10 @@ public class VehicleService : IVehicleService
         vehicle.AreaId = request.AreaId;
         vehicle.Latitude = request.Latitude;
         vehicle.Longitude = request.Longitude;
-        ValidateDeposit(request.DepositPercent);
+        ValidateDeposit(request.DepositPercent, request.SecurityRequiresDeposit, request.SecurityDepositAmount);
         vehicle.DepositPercent = request.DepositPercent;
+        vehicle.SecurityRequiresDeposit = request.SecurityRequiresDeposit;
+        vehicle.SecurityDepositAmount = request.SecurityRequiresDeposit ? request.SecurityDepositAmount : 0;
 
         if (request.AreaId.HasValue)
         {
@@ -615,10 +621,12 @@ public class VehicleService : IVehicleService
             throw new AppException(ErrorCode.VEHICLE_FEATURE_NOT_FOUND);
     }
 
-    private static void ValidateDeposit(int depositPercent)
+    private static void ValidateDeposit(int depositPercent, bool securityRequiresDeposit, decimal securityDepositAmount)
     {
         if (depositPercent < 20 || depositPercent > 50)
             throw new AppException(ErrorCode.VALIDATION_ERROR, ["Phần trăm tiền cọc phải từ 20 đến 50%."]);
+        if (securityRequiresDeposit && securityDepositAmount <= 0)
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Số tiền thế chấp phải lớn hơn 0."]);
     }
 
     private static string NormalizeVehicleType(string value)

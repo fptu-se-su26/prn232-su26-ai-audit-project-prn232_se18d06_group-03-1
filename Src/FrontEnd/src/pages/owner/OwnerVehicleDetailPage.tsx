@@ -623,9 +623,15 @@ export default function OwnerVehicleDetailPage() {
             <hr className="my-3 border-slate-100" />
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Thế chấp</span>
-                <span className="font-medium text-slate-700">{vehicle.depositPercent > 0 ? `${vehicle.depositPercent}%` : "Không yêu cầu"}</span>
+                <span className="text-slate-500">Tiền cọc</span>
+                <span className="font-medium text-slate-700">{vehicle.depositPercent > 0 ? `${vehicle.depositPercent}% tổng tiền thuê` : "Không yêu cầu"}</span>
               </div>
+              {vehicle.securityRequiresDeposit && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Thế chấp</span>
+                  <span className="font-medium text-slate-700">{vehicle.securityDepositAmount > 0 ? `${vehicle.securityDepositAmount.toLocaleString("vi-VN")} VNĐ` : "Không yêu cầu"}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Loại xe</span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">

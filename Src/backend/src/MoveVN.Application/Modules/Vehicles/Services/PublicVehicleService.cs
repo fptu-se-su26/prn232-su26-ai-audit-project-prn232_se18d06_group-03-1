@@ -98,6 +98,8 @@ public class PublicVehicleService : IPublicVehicleService
             PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
             DepositPercent = vehicle.DepositPercent,
+            SecurityRequiresDeposit = vehicle.SecurityRequiresDeposit,
+            SecurityDepositAmount = vehicle.SecurityDepositAmount,
             PricingMode = pricing?.PricingMode,
             FixedPricePerDay = pricing?.FixedPricePerDay,
             AutoMinPrice = pricing?.AutoMinPrice,

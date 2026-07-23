@@ -47,6 +47,8 @@ export default function OwnerVehicleAddPage() {
   const [autoMinPrice, setAutoMinPrice] = useState("");
   const [autoMaxPrice, setAutoMaxPrice] = useState("");
   const [depositPercent, setDepositPercent] = useState(20);
+  const [securityRequiresDeposit, setSecurityRequiresDeposit] = useState(false);
+  const [securityDepositAmount, setSecurityDepositAmount] = useState("");
 
   const [features, setFeatures] = useState<CatalogFeature[]>([]);
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]);
@@ -135,6 +137,10 @@ export default function OwnerVehicleAddPage() {
     return depositPercent >= 20 && depositPercent <= 50;
   }
 
+  function isCollateralValid() {
+    return !securityRequiresDeposit || (Number(securityDepositAmount) > 0);
+  }
+
   function handleProvinceChange(value: string) {
     setSelectedProvince(value);
     setAreaId(null);
@@ -177,7 +183,7 @@ export default function OwnerVehicleAddPage() {
       case 0: return vehicleType !== "";
       case 1: return brandId != null && modelId != null;
       case 2: return year.trim() !== "" && licensePlate.trim() !== "";
-      case 3: return address.trim() !== "" && isPricingValid() && isDepositValid();
+      case 3: return address.trim() !== "" && isPricingValid() && isDepositValid() && isCollateralValid();
       case 4: return true;
       case 5: return imageUrls.length > 0;
       case 6: return true;
@@ -247,6 +253,8 @@ export default function OwnerVehicleAddPage() {
         longitude,
         pricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : Number(autoMinPrice),
         depositPercent,
+        securityRequiresDeposit,
+        securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
         pricingMode,
         fixedPricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : null,
         autoMinPrice: pricingMode === "Auto" ? Number(autoMinPrice) : null,
@@ -459,11 +467,11 @@ export default function OwnerVehicleAddPage() {
                     <span className="block text-sm font-medium text-slate-700">Tiền cọc (%)
                       {depositPercent > 0 && (
                         <span className="ml-2 text-xs font-normal text-slate-400">
-                          (= {depositPercent}% tổng tiền thuê)
+                          (= {depositPercent}% tổng tiền thuê, khách trả trước khi nhận xe)
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">Tiền cọc tối thiểu 20%, tối đa 50%.</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Phần trăm tiền thuê khách phải trả trước. Tối thiểu 20%, tối đa 50%.</span>
                   </span>
                   <div className="flex items-center gap-3">
                     <input
@@ -479,6 +487,37 @@ export default function OwnerVehicleAddPage() {
                   </div>
                 </label>
                 {!isDepositValid() && <p className="text-sm text-red-600">Phần trăm tiền cọc phải từ 20 đến 50%.</p>}
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={securityRequiresDeposit}
+                    onChange={(e) => {
+                      setSecurityRequiresDeposit(e.target.checked);
+                      if (!e.target.checked) setSecurityDepositAmount("");
+                    }}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">Yêu cầu thế chấp</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Khách đặt một khoản tiền cọc giữ lại làm bảo hiểm. Hoàn lại khi trả xe đúng tình trạng.</span>
+                  </span>
+                </label>
+                {securityRequiresDeposit && (
+                  <div className="mt-3 space-y-1">
+                    <label className="block text-sm font-medium text-slate-700">Số tiền thế chấp (VNĐ)</label>
+                    <input
+                      type="number"
+                      value={securityDepositAmount}
+                      onChange={(e) => setSecurityDepositAmount(e.target.value)}
+                      min={0}
+                      placeholder="VD: 2000000"
+                      className="h-10 w-full rounded-lg border border-slate-300 px-3 pr-12 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
+                )}
+                {securityRequiresDeposit && !isCollateralValid() && <p className="mt-1 text-sm text-red-600">Số tiền thế chấp phải lớn hơn 0.</p>}
               </div>
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-slate-700">Mô tả thêm</label>
@@ -548,7 +587,12 @@ export default function OwnerVehicleAddPage() {
                   <div className="text-slate-500">Dòng xe:</div><div className="font-medium text-slate-900">{models.find((m) => m.id === modelId)?.name}</div>
                   <div className="text-slate-500">Biển số:</div><div className="font-medium text-slate-900">{licensePlate}</div>
                   <div className="text-slate-500">Giá thuê:</div><div className="font-medium text-slate-900">{pricingMode === "Fixed" ? Number(pricePerDay).toLocaleString("vi-VN") : `${Number(autoMinPrice).toLocaleString("vi-VN")} - ${Number(autoMaxPrice).toLocaleString("vi-VN")}`}đ/ngày</div>
-                  <div className="text-slate-500">Tiền cọc:</div><div className="font-medium text-slate-900">{depositPercent > 0 ? `${depositPercent}%` : "Không yêu cầu"}</div>
+                  <div className="text-slate-500">Tiền cọc:</div><div className="font-medium text-slate-900">{depositPercent > 0 ? `${depositPercent}% tổng tiền thuê` : "Không yêu cầu"}</div>
+                  {securityRequiresDeposit && (
+                    <>
+                      <div className="text-slate-500">Thế chấp:</div><div className="font-medium text-slate-900">{Number(securityDepositAmount).toLocaleString("vi-VN")} VNĐ</div>
+                    </>
+                  )}
                 </div>
               </div>
               <input ref={docInputRef} type="file" accept="image/*" onChange={handleDocUpload} className="hidden" />

@@ -29,6 +29,8 @@ export default function CreateVehicleModal({ ownerId, ownerName, onClose, onCrea
   const [autoMinPrice, setAutoMinPrice] = useState<string>("");
   const [autoMaxPrice, setAutoMaxPrice] = useState<string>("");
   const [depositPercent, setDepositPercent] = useState(20);
+  const [securityRequiresDeposit, setSecurityRequiresDeposit] = useState(false);
+  const [securityDepositAmount, setSecurityDepositAmount] = useState("");
   const [pricingSuggestion, setPricingSuggestion] = useState<PricingSuggestionResponse | null>(null);
 
   const [featureIds, setFeatureIds] = useState<number[]>([]);
@@ -130,6 +132,10 @@ export default function CreateVehicleModal({ ownerId, ownerName, onClose, onCrea
     return depositPercent >= 20 && depositPercent <= 50;
   }
 
+  function isCollateralValid() {
+    return !securityRequiresDeposit || (Number(securityDepositAmount) > 0);
+  }
+
   function handleProvinceChange(val: string) {
     setSelectedProvince(val);
     setAreaId(null);
@@ -200,6 +206,10 @@ export default function CreateVehicleModal({ ownerId, ownerName, onClose, onCrea
       setError("Tiền cọc phải từ 20% đến 50%.");
       return;
     }
+    if (!isCollateralValid()) {
+      setError("Số tiền thế chấp phải lớn hơn 0.");
+      return;
+    }
     if (imageUrls.length === 0) {
       setError("Vui lòng thêm ít nhất 1 hình ảnh.");
       return;
@@ -215,7 +225,10 @@ export default function CreateVehicleModal({ ownerId, ownerName, onClose, onCrea
         latitude: latitude || undefined,
         longitude: longitude || undefined,
         pricePerDay: pricingMode === "Fixed" ? Number(pricePerDay) : Number(autoMinPrice),
-        depositPercent, featureIds, imageUrls,
+        depositPercent,
+        securityRequiresDeposit,
+        securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
+        featureIds, imageUrls,
         featuredImageIndex: imageUrls.length > 0 ? featuredImageIndex : undefined,
         documentFileUrl: documentFileUrl || undefined,
       };
@@ -462,11 +475,11 @@ export default function CreateVehicleModal({ ownerId, ownerName, onClose, onCrea
                 <span className="block text-sm font-semibold text-slate-800">Tiền cọc (%)
                   {depositPercent > 0 && (
                     <span className="ml-2 text-xs font-normal text-slate-400">
-                      (= {depositPercent}% tổng tiền thuê)
+                      (= {depositPercent}% tổng tiền thuê, khách trả trước khi nhận xe)
                     </span>
                   )}
                 </span>
-                <span className="mt-0.5 block text-xs text-slate-500">Tiền cọc tối thiểu 20%, tối đa 50%.</span>
+                <span className="mt-0.5 block text-xs text-slate-500">Phần trăm tiền thuê khách phải trả trước. Tối thiểu 20%, tối đa 50%.</span>
               </span>
               <div className="flex items-center gap-3">
                 <input
@@ -482,6 +495,42 @@ export default function CreateVehicleModal({ ownerId, ownerName, onClose, onCrea
               </div>
             </label>
             {!isDepositValid() && <p className="text-sm text-red-600">Phần trăm tiền cọc phải từ 20 đến 50%.</p>}
+          </div>
+
+          {/* Collateral */}
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={securityRequiresDeposit}
+                onChange={(e) => {
+                  setSecurityRequiresDeposit(e.target.checked);
+                  if (!e.target.checked) setSecurityDepositAmount("");
+                }}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">Yêu cầu thế chấp</span>
+                <span className="mt-0.5 block text-xs text-slate-500">Khách đặt một khoản tiền cọc giữ lại làm bảo hiểm. Hoàn lại khi trả xe đúng tình trạng.</span>
+              </span>
+            </label>
+            {securityRequiresDeposit && (
+              <div className="mt-3 space-y-1">
+                <label className="block text-sm font-semibold text-slate-800">Số tiền thế chấp (VNĐ)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={securityDepositAmount}
+                    onChange={(e) => setSecurityDepositAmount(e.target.value)}
+                    min={0}
+                    placeholder="VD: 2000000"
+                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 pr-16 text-sm text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">VNĐ</span>
+                </div>
+              </div>
+            )}
+            {securityRequiresDeposit && !isCollateralValid() && <p className="mt-1 text-sm text-red-600">Số tiền thế chấp phải lớn hơn 0.</p>}
           </div>
 
           {/* Features */}

@@ -822,6 +822,8 @@ CREATE TABLE "Vehicles" (
     longitude numeric,
     price_per_day numeric NOT NULL,
     deposit_percent integer NOT NULL DEFAULT 0,
+    security_deposit_amount numeric(15,2) NOT NULL DEFAULT 0,
+    security_requires_deposit boolean NOT NULL DEFAULT false,
     status text NOT NULL,
     approved_by bigint,
     approved_at timestamp with time zone,
