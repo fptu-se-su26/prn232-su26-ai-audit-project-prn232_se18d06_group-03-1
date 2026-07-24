@@ -1,12 +1,12 @@
 import { ArrowLeft, CalendarDays, Camera, Check, Clock, ClipboardCheck, DollarSign, MapPin, TicketPercent, CreditCard, X, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { getBookingById, approveBooking, rejectBooking, ownerCompleteBooking, createCheckInReport, getInspectionReports } from "@/features/booking/bookingService";
-import { createPaymentLink } from "@/features/payments/services/paymentService";
+import { createPaymentLink, checkPaymentStatus } from "@/features/payments/services/paymentService";
 import type { BookingResponse, InspectionReportResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
@@ -52,6 +52,7 @@ function formatCurrency(n: number) {
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const user = useAuthStore((state) => state.user);
   const primaryRole = user?.roles[0] ?? "Customer";
   const [booking, setBooking] = useState<BookingResponse | null>(null);
@@ -64,6 +65,7 @@ export default function BookingDetailPage() {
   const [damageNoted, setDamageNoted] = useState(false);
   const [damageDescription, setDamageDescription] = useState("");
   const [checkInImages, setCheckInImages] = useState<File[]>([]);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -85,6 +87,86 @@ export default function BookingDetailPage() {
   }, [id, user]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const orderCodeStr = searchParams.get("orderCode");
+    const status = searchParams.get("status");
+    const cancel = searchParams.get("cancel");
+
+    if (orderCodeStr && !isVerifyingPayment) {
+      const orderCode = Number(orderCodeStr);
+      let cancelled = false;
+      let attempt = 0;
+      const maxAttempts = 10;
+      const intervalMs = 3000;
+
+      const cleanup = () => {
+        setIsVerifyingPayment(false);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("orderCode");
+        newParams.delete("status");
+        newParams.delete("cancel");
+        newParams.delete("id");
+        newParams.delete("code");
+        setSearchParams(newParams, { replace: true });
+      };
+
+      const handleVerifyPayment = async () => {
+        setIsVerifyingPayment(true);
+        showToast({ type: "info", title: "Xác nhận", message: "Đang kiểm tra kết quả thanh toán từ PayOS..." });
+        try {
+          const poll = async (): Promise<void> => {
+            if (cancelled) return;
+            attempt++;
+            try {
+              const res = await checkPaymentStatus(orderCode);
+              if (res.isConfirmed) {
+                showToast({ type: "success", title: "Thành công", message: "Thanh toán cọc thành công!" });
+                void load();
+                cleanup();
+                return;
+              }
+              if (res.status === "Cancelled" || cancel === "true" || status === "CANCELLED") {
+                showToast({ type: "info", title: "Thông báo", message: "Giao dịch thanh toán đã bị hủy." });
+                void load();
+                cleanup();
+                return;
+              }
+              if (res.status === "Expired" || res.status === "Failed") {
+                showToast({ type: "info", title: "Thông báo", message: "Giao dịch đã hết hạn hoặc thất bại." });
+                void load();
+                cleanup();
+                return;
+              }
+              if (attempt >= maxAttempts) {
+                showToast({ type: "info", title: "Hết thời gian", message: "Không nhận được xác nhận. Vui lòng kiểm tra lại sau." });
+                void load();
+                cleanup();
+                return;
+              }
+              setTimeout(poll, intervalMs);
+            } catch {
+              if (attempt >= maxAttempts) {
+                showToast({ type: "error", title: "Lỗi", message: "Không thể kiểm tra trạng thái thanh toán." });
+                cleanup();
+                return;
+              }
+              setTimeout(poll, intervalMs);
+            }
+          };
+
+          await poll();
+        } catch {
+          showToast({ type: "error", title: "Lỗi", message: "Không thể kiểm tra trạng thái thanh toán." });
+          cleanup();
+        }
+      };
+
+      void handleVerifyPayment();
+
+      return () => { cancelled = true; };
+    }
+  }, [searchParams, setSearchParams, load, isVerifyingPayment]);
 
   async function handleApprove() {
     if (!booking || isProcessing) return;

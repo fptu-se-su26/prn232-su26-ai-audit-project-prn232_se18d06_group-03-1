@@ -374,28 +374,47 @@ export default function AdminWalletsPage() {
                     detail.transactions.map((tx) => {
                       const isPositive = tx.type === "TopUp" || tx.type === "BookingEarning" || tx.type === "Refund" || tx.type === "PayoutReversal" || tx.type === "DisputeCompensation" || tx.type === "PlatformFeeRevenue";
                       return (
-                        <div key={tx.id} className="p-4 flex justify-between items-center hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors text-xs sm:text-sm">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-900 dark:text-white">{getTransactionLabel(tx.type)}</span>
-                              <span className="text-[10px] text-slate-400">•</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">ID: #{tx.id}</span>
+                        <div key={tx.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors text-xs sm:text-sm">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                  {isPositive ? 'THU' : 'CHI'}
+                                </span>
+                                <span className="font-bold text-slate-900 dark:text-white">{getTransactionLabel(tx.type)}</span>
+                                <span className="text-[10px] text-slate-400">•</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">#{tx.id}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-slate-400 text-[10px] flex-wrap">
+                                <Calendar className="w-3 h-3 shrink-0" />
+                                <span>{new Date(tx.createdAt).toLocaleString('vi-VN')}</span>
+                                <span className="text-slate-300">|</span>
+                                <span className="text-slate-500">SD sau: <strong className="text-slate-700">{formatCurrency(tx.balanceAfter)}</strong></span>
+                                {tx.referenceId && (
+                                  <>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="text-slate-500">Ref: <strong className="text-slate-700">#{tx.referenceId}</strong></span>
+                                  </>
+                                )}
+                                {tx.status && tx.status !== "Completed" && (
+                                  <>
+                                    <span className="text-slate-300">|</span>
+                                    <span className={`font-bold ${tx.status === "Pending" ? "text-amber-600" : "text-rose-600"}`}>{tx.status}</span>
+                                  </>
+                                )}
+                                {tx.note && (
+                                  <>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="italic text-slate-500 truncate max-w-[200px]" title={tx.note}>{tx.note}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-slate-400 text-[10px]">
-                              <Calendar className="w-3 h-3" />
-                              <span>{new Date(tx.createdAt).toLocaleString('vi-VN')}</span>
-                              {tx.note && (
-                                <>
-                                  <span>•</span>
-                                  <span className="italic max-w-[300px] truncate">{tx.note}</span>
-                                </>
-                              )}
+                            <div className="text-right shrink-0 ml-4">
+                              <p className={`font-bold text-[13px] ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                {isPositive ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
+                              </p>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className={`font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                              {isPositive ? '+' : '-'}{formatCurrency(tx.amount)}
-                            </p>
                           </div>
                         </div>
                       );

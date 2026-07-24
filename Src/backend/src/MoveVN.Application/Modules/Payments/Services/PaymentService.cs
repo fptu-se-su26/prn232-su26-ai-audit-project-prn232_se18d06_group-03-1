@@ -3,6 +3,7 @@ using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.Interfaces;
+using MoveVN.Application.Modules.Disputes.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Payments.DTOs;
@@ -23,6 +24,7 @@ public class PaymentService : IPaymentService
     private readonly ILogger<PaymentService> _logger;
     private readonly IRedisLockService _lockService;
     private readonly INotificationService _notificationService;
+    private readonly IDisputeRepository _disputeRepository;
 
     public PaymentService(
         IPaymentRepository paymentRepo,
@@ -32,7 +34,8 @@ public class PaymentService : IPaymentService
         IUnitOfWork unitOfWork,
         ILogger<PaymentService> logger,
         IRedisLockService lockService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IDisputeRepository disputeRepository)
     {
         _paymentRepo = paymentRepo;
         _walletRepo = walletRepo;
@@ -42,6 +45,7 @@ public class PaymentService : IPaymentService
         _logger = logger;
         _lockService = lockService;
         _notificationService = notificationService;
+        _disputeRepository = disputeRepository;
     }
 
     public async Task<CreatePaymentLinkResponse> CreatePaymentLinkAsync(long bookingId, long customerId, string? returnUrl = null, CancellationToken cancellationToken = default)
@@ -73,7 +77,7 @@ public class PaymentService : IPaymentService
             try 
             {
                 var payOsInfo = await _payOsService.GetPaymentLinkInfoAsync(orderCode);
-                if (payOsInfo.Status == "PENDING")
+                if (string.Equals(payOsInfo.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
                 {
                     // It's still valid, we just create a new link with the same order code (not possible, so we just return the existing if we had it, but we don't store checkoutUrl).
                     // Best practice: Cancel the old one and create a new one, or just generate a new order code.
@@ -280,12 +284,14 @@ public class PaymentService : IPaymentService
             _walletRepo.Update(customerWallet);
 
             // 3. Update Booking Status
+            var settledAt = DateTime.UtcNow;
             var oldStatus = booking.Status;
             booking.Status = "DepositPaid";
             booking.EscrowAmount = data.Amount;
-            booking.EscrowStatus = "Held";
-            booking.EscrowHeldAt = DateTime.UtcNow;
-            booking.UpdatedAt = DateTime.UtcNow;
+            booking.EscrowStatus = "Released";
+            booking.EscrowHeldAt = settledAt;
+            booking.EscrowSettledAt = settledAt;
+            booking.UpdatedAt = settledAt;
             _bookingRepo.Update(booking);
 
             await _bookingRepo.AddStatusHistoryAsync(new BookingStatusHistory
@@ -296,6 +302,73 @@ public class PaymentService : IPaymentService
                 ChangedBy = payment.PayerId, 
                 Note = "Hệ thống xác nhận đã nhận cọc qua PayOS",
             }, cancellationToken);
+
+            // 4. Immediate settlement: platform fee → admin, remaining → owner
+            var depositAmount = data.Amount;
+            var platformFee = Math.Min(Math.Max(booking.PlatformFee, 0m), depositAmount);
+            var ownerAmount = Math.Max(depositAmount - platformFee, 0m);
+
+            // Credit platform fee to admin
+            if (platformFee > 0m)
+            {
+                var adminId = (await _disputeRepository.GetAdminUserIdsAsync(cancellationToken)).OrderBy(id => id).FirstOrDefault();
+                if (adminId > 0)
+                {
+                    var adminWallet = (await _walletRepo.FindAsync(w => w.UserId == adminId, cancellationToken)).FirstOrDefault();
+                    if (adminWallet is null)
+                    {
+                        adminWallet = new Wallet { UserId = adminId };
+                        await _walletRepo.AddAsync(adminWallet, cancellationToken);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+
+                    adminWallet.Balance += platformFee;
+                    adminWallet.TotalEarned += platformFee;
+                    adminWallet.UpdatedAt = settledAt;
+                    _walletRepo.Update(adminWallet);
+                    await _walletRepo.AddTransactionAsync(new WalletTransaction
+                    {
+                        WalletId = adminWallet.Id,
+                        Type = WalletTransactionType.PlatformFeeRevenue,
+                        Amount = platformFee,
+                        BalanceAfter = adminWallet.Balance,
+                        ReferenceId = booking.Id,
+                        IdempotencyKey = $"booking_platform_fee_{booking.Id}",
+                        Note = $"Phí nền tảng từ booking {booking.BookingCode}: {platformFee:N0}đ",
+                        Status = "Completed",
+                        CreatedAt = settledAt,
+                    }, cancellationToken);
+                }
+            }
+
+            // Credit remaining to owner
+            if (ownerAmount > 0m)
+            {
+                var ownerWallet = (await _walletRepo.FindAsync(w => w.UserId == booking.OwnerId, cancellationToken)).FirstOrDefault();
+                if (ownerWallet is null)
+                {
+                    ownerWallet = new Wallet { UserId = booking.OwnerId };
+                    await _walletRepo.AddAsync(ownerWallet, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+
+                ownerWallet.Balance += ownerAmount;
+                ownerWallet.TotalEarned += ownerAmount;
+                ownerWallet.UpdatedAt = settledAt;
+                _walletRepo.Update(ownerWallet);
+                await _walletRepo.AddTransactionAsync(new WalletTransaction
+                {
+                    WalletId = ownerWallet.Id,
+                    Type = WalletTransactionType.BookingEarning,
+                    Amount = ownerAmount,
+                    BalanceAfter = ownerWallet.Balance,
+                    ReferenceId = booking.Id,
+                    IdempotencyKey = $"booking_escrow_owner_release_{booking.Id}",
+                    Note = $"Thu nhập từ booking {booking.BookingCode}: +{ownerAmount:N0}đ (Phí nền tảng: {platformFee:N0}đ)",
+                    Status = "Completed",
+                    CreatedAt = settledAt,
+                }, cancellationToken);
+            }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -445,6 +518,119 @@ public class PaymentService : IPaymentService
             payOsResponse.QrCode,
             orderCode,
             payOsResponse.PaymentLinkId
+        );
+    }
+
+    // ──────────────────────────────────────────────
+    //  POLLING: Kiểm tra trạng thái thanh toán từ PayOS
+    //  (Thay thế webhook khi dev local không có ngrok)
+    // ──────────────────────────────────────────────
+    public async Task<PaymentStatusResponse> CheckPaymentStatusAsync(long orderCode, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("CheckPaymentStatus called for OrderCode={OrderCode}", orderCode);
+
+        // 1. Tìm payment trong DB
+        var payments = await _paymentRepo.FindAsync(p => p.OrderCode == orderCode, cancellationToken);
+        var payment = payments.FirstOrDefault();
+
+        if (payment == null)
+        {
+            _logger.LogWarning("CheckPaymentStatus: Payment not found for OrderCode={OrderCode}", orderCode);
+            return new PaymentStatusResponse(orderCode, "NotFound", 0, 0, false, "Không tìm thấy giao dịch.");
+        }
+
+        _logger.LogInformation("CheckPaymentStatus: Payment #{PaymentId} Status={Status} for OrderCode={OrderCode}", payment.Id, payment.Status, orderCode);
+
+        // 2. Nếu đã xử lý rồi (Paid, Failed, Cancelled...) → trả về luôn
+        if (payment.Status != PaymentStatus.Pending)
+        {
+            return new PaymentStatusResponse(
+                orderCode,
+                payment.Status,
+                payment.Amount,
+                payment.Status == PaymentStatus.Paid ? payment.Amount : 0,
+                payment.Status == PaymentStatus.Paid,
+                payment.Status == PaymentStatus.Paid
+                    ? "Thanh toán đã được xác nhận."
+                    : $"Trạng thái giao dịch: {payment.Status}."
+            );
+        }
+
+        // 3. Gọi PayOS kiểm tra trạng thái thực tế
+        PaymentLinkInfo payOsInfo;
+        try
+        {
+            payOsInfo = await _payOsService.GetPaymentLinkInfoAsync(orderCode);
+            _logger.LogInformation("CheckPaymentStatus: PayOS returned Status={PayOsStatus}, AmountPaid={AmountPaid} for OrderCode={OrderCode}",
+                payOsInfo.Status, payOsInfo.AmountPaid, orderCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "CheckPaymentStatus: Failed to poll PayOS for OrderCode {OrderCode}", orderCode);
+            return new PaymentStatusResponse(orderCode, "Pending", payment.Amount, 0, false, "Đang chờ thanh toán.");
+        }
+
+        // 4. PayOS trả về PAID → xử lý xác nhận (reuse logic webhook)
+        if (string.Equals(payOsInfo.Status, "PAID", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("CheckPaymentStatus: Polling detected PAID for OrderCode {OrderCode}. Processing confirmation...", orderCode);
+
+            var webhookData = new WebhookPaymentData(
+                orderCode,
+                payOsInfo.AmountPaid,
+                "",
+                payment.GatewayTransactionId ?? ""
+            );
+
+            try
+            {
+                await HandlePaymentConfirmedAsync(webhookData, cancellationToken);
+                _logger.LogInformation("CheckPaymentStatus: HandlePaymentConfirmedAsync completed for OrderCode {OrderCode}", orderCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CheckPaymentStatus: HandlePaymentConfirmedAsync FAILED for OrderCode {OrderCode}", orderCode);
+            }
+
+            return new PaymentStatusResponse(
+                orderCode,
+                PaymentStatus.Paid,
+                payment.Amount,
+                payOsInfo.AmountPaid,
+                true,
+                "Thanh toán thành công! Giao dịch đã được xác nhận."
+            );
+        }
+
+        // 5. PayOS trả về CANCELLED hoặc EXPIRED
+        if (string.Equals(payOsInfo.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase) || string.Equals(payOsInfo.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+        {
+            var isCancelled = string.Equals(payOsInfo.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase);
+            payment.Status = isCancelled ? PaymentStatus.Cancelled : PaymentStatus.Expired;
+            payment.Note = $"PayOS status: {payOsInfo.Status} (detected via polling)";
+            _paymentRepo.Update(payment);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new PaymentStatusResponse(
+                orderCode,
+                payment.Status,
+                payment.Amount,
+                0,
+                false,
+                isCancelled
+                    ? "Giao dịch đã bị hủy."
+                    : "Giao dịch đã hết hạn."
+            );
+        }
+
+        // 6. Vẫn đang PENDING trên PayOS
+        return new PaymentStatusResponse(
+            orderCode,
+            "Pending",
+            payment.Amount,
+            payOsInfo.AmountPaid,
+            false,
+            "Đang chờ thanh toán."
         );
     }
 }

@@ -68,7 +68,9 @@ public class WalletService : IWalletService
             t.Amount,
             t.BalanceAfter,
             t.Note,
-            t.CreatedAt
+            t.CreatedAt,
+            t.ReferenceId,
+            t.Status
         )).ToList();
 
         return (dtos, totalCount);

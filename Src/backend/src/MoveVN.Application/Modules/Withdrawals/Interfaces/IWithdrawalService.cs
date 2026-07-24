@@ -6,6 +6,7 @@ public interface IWithdrawalService
 {
     // Owner
     Task<WithdrawalRequestDto> CreateAsync(long userId, CreateWithdrawalRequest request, CancellationToken ct = default);
+    Task<WithdrawalRequestDto> CancelAsync(long userId, long withdrawalId, CancellationToken ct = default);
     Task<(List<WithdrawalRequestDto> Items, int TotalCount)> GetMyWithdrawalsAsync(long userId, WithdrawalListRequest request, CancellationToken ct = default);
 
     // Staff / Admin
@@ -18,4 +19,6 @@ public interface IWithdrawalService
     Task<OwnerBankDetailsDto> GetBankAccountAsync(long userId, CancellationToken ct = default);
     Task RequestBankAccountOtpAsync(long userId, CancellationToken ct = default);
     Task VerifyBankAccountOtpAsync(long userId, VerifyBankAccountOtpRequest request, CancellationToken ct = default);
+
+    Task<decimal> GetPayOsBalanceAsync(CancellationToken ct = default);
 }

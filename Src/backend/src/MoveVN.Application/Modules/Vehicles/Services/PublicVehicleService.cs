@@ -73,6 +73,8 @@ public class PublicVehicleService : IPublicVehicleService
 
         var owner = await _userRepository.GetByIdAsync(vehicle.OwnerId, cancellationToken);
 
+        var feeRule = await _repository.GetActivePlatformFeeRuleAsync(vehicle.OwnerId, DateTime.UtcNow, cancellationToken);
+
         return new VehicleResponse
         {
             Id = vehicle.Id,
@@ -110,6 +112,10 @@ public class PublicVehicleService : IPublicVehicleService
             FeaturedImage = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
             Images = images,
             Features = features,
+            PlatformFeeType = feeRule?.FeeType,
+            PlatformFeeValue = feeRule?.FeeValue,
+            PlatformFeeMinFee = feeRule?.MinFee,
+            PlatformFeeMaxFee = feeRule?.MaxFee,
             CreatedAt = vehicle.CreatedAt,
         };
     }

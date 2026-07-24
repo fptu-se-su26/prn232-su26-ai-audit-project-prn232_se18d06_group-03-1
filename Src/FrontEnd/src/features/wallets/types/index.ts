@@ -15,6 +15,8 @@ export interface WalletTransactionDto {
   balanceAfter: number;
   note?: string;
   createdAt: string;
+  referenceId?: number;
+  status?: string;
 }
 
 export interface WalletTransactionListRequest {

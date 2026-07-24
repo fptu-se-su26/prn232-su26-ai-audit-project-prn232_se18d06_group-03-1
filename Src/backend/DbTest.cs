@@ -1,46 +1,33 @@
 using System;
-using Microsoft.EntityFrameworkCore;
-using MoveVN.Infrastructure.Persistence;
-using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
+using PayOS;
 
 class Program
 {
-    static void Main()
+    static async Task Main()
     {
-        var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseNpgsql("Host=aws-1-ap-southeast-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.lpvalzjyksmvtplwusqq;Password=Movevnfpt@123456;SSL Mode=Require;Trust Server Certificate=true");
-        
-        using var context = new AppDbContext(optionsBuilder.Options);
-        
-        try
+        var payOS = new PayOSClient(
+            "3d906be1-e4ec-42eb-9235-65e5a849c5c5",
+            "2527c999-a143-44a9-aece-fe85ee386c20",
+            "b1f064204fc3d0cc63322f230176b876307c207d8621b8acf399e4d17dc7dfa3"
+        );
+
+        long[] orderCodes = { 45260723073349, 45260723072635, 45260723070822 };
+
+        foreach (var code in orderCodes)
         {
-            Console.WriteLine("--- RECENT BOOKINGS ---");
-            foreach (var b in context.Bookings.OrderByDescending(b => b.Id).Take(5).ToList())
+            try
             {
-                Console.WriteLine($"ID: {b.Id}, Code: {b.BookingCode}, Status: {b.Status}, Deposit: {b.DepositAmount}, OwnerId: {b.OwnerId}");
+                var response = await payOS.PaymentRequests.GetAsync(code);
+                Console.WriteLine($"OrderCode: {code}");
+                Console.WriteLine($"  Status: {response.Status}");
+                Console.WriteLine($"  Amount: {response.Amount}");
+                Console.WriteLine($"  AmountPaid: {response.AmountPaid}");
             }
-
-            Console.WriteLine("\n--- RECENT PAYMENTS ---");
-            foreach (var p in context.Payments.OrderByDescending(p => p.Id).Take(5).ToList())
+            catch (Exception ex)
             {
-                Console.WriteLine($"ID: {p.Id}, BookingId: {p.BookingId}, Status: {p.Status}, Amount: {p.Amount}, OrderCode: {p.OrderCode}");
+                Console.WriteLine($"OrderCode: {code} -> Error: {ex.Message}");
             }
-
-            Console.WriteLine("\n--- WALLETS ---");
-            foreach (var w in context.Wallets.ToList())
-            {
-                Console.WriteLine($"ID: {w.Id}, UserId: {w.UserId}, Balance: {w.Balance}");
-            }
-
-            Console.WriteLine("\n--- WALLET TRANSACTIONS ---");
-            foreach (var tx in context.WalletTransactions.OrderByDescending(tx => tx.Id).Take(5).ToList())
-            {
-                Console.WriteLine($"ID: {tx.Id}, WalletId: {tx.WalletId}, Type: {tx.Type}, Amount: {tx.Amount}, BalanceAfter: {tx.BalanceAfter}, Note: {tx.Note}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error: " + ex.Message + "\n" + ex.StackTrace);
         }
     }
 }

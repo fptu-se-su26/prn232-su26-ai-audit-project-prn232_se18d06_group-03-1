@@ -13,3 +13,12 @@ public record WebhookPaymentData(
     string TransactionReference,
     string PaymentLinkId
 );
+
+public record PaymentStatusResponse(
+    long OrderCode,
+    string Status,
+    decimal Amount,
+    decimal AmountPaid,
+    bool IsConfirmed,
+    string Message
+);

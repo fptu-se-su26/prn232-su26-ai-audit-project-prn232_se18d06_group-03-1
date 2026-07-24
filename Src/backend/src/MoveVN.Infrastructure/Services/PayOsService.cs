@@ -15,6 +15,7 @@ namespace MoveVN.Infrastructure.Services;
 public class PayOsService : IPayOsService
 {
     private readonly PayOSClient _payOS;
+    private readonly PayOSClient _payOSPayout;
     private readonly PayOsSettings _settings;
     private readonly ILogger<PayOsService> _logger;
 
@@ -23,6 +24,7 @@ public class PayOsService : IPayOsService
         _settings = settings.Value;
         _logger = logger;
         _payOS = new PayOSClient(_settings.ClientId, _settings.ApiKey, _settings.ChecksumKey);
+        _payOSPayout = new PayOSClient(_settings.PayoutClientId, _settings.PayoutApiKey, _settings.PayoutChecksumKey);
     }
 
     public async Task<PaymentLinkResult> CreatePaymentLinkAsync(CreatePaymentLinkInput input)
@@ -94,19 +96,37 @@ public class PayOsService : IPayOsService
             ToAccountNumber = input.ToAccountNumber
         };
 
-        var response = await _payOS.Payouts.CreateAsync(payoutRequest);
+        _logger.LogInformation("PayOS payout request: ReferenceId={ReferenceId}, Amount={Amount}, ToBin={ToBin}, ToAccount={ToAccount}, Desc={Desc}",
+            payoutRequest.ReferenceId, payoutRequest.Amount, payoutRequest.ToBin, payoutRequest.ToAccountNumber, payoutRequest.Description);
 
-        return new PayoutResult
+        try
         {
-            PayoutId = response.Id,
-            ReferenceId = response.ReferenceId,
-            State = response.ApprovalState.ToString()
-        };
+            var response = await _payOSPayout.Payouts.CreateAsync(payoutRequest);
+
+            _logger.LogInformation("PayOS payout success: PayoutId={PayoutId}, State={State}",
+                response.Id, response.ApprovalState);
+
+            return new PayoutResult
+            {
+                PayoutId = response.Id,
+                ReferenceId = response.ReferenceId,
+                State = response.ApprovalState.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "PayOS payout FAILED: Ref={ReferenceId}, StatusCode={StatusCode}, ErrorCode={ErrorCode}, Message={Message}",
+                input.ReferenceId,
+                ex.GetType().Name,
+                ex.Data.Contains("ErrorCode") ? ex.Data["ErrorCode"] : "N/A",
+                ex.Message);
+            throw;
+        }
     }
 
     public async Task<PayoutInfo> GetPayoutInfoAsync(string payoutId)
     {
-        var response = await _payOS.Payouts.GetAsync(payoutId);
+        var response = await _payOSPayout.Payouts.GetAsync(payoutId);
 
         return new PayoutInfo
         {
@@ -120,12 +140,23 @@ public class PayOsService : IPayOsService
 
     public async Task<decimal> GetPayoutBalanceAsync()
     {
-        var response = await _payOS.PayoutsAccount.GetBalanceAsync();
-        if (decimal.TryParse(response.Balance, out var balance))
+        try
         {
-            return balance;
+            _logger.LogInformation("Calling PayOS payout balance API...");
+            var response = await _payOSPayout.PayoutsAccount.GetBalanceAsync();
+            _logger.LogInformation("PayOS payout balance response: Balance={Balance}, AccountNumber={Account}, AccountName={AccountName}",
+                response.Balance, response.AccountNumber, response.AccountName);
+            if (decimal.TryParse(response.Balance, out var balance))
+            {
+                return balance;
+            }
+            return 0;
         }
-        return 0;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "PayOS payout balance FAILED: {Message}", ex.Message);
+            throw;
+        }
     }
 
     public bool VerifyWebhookSignature(string rawBody, string signature)

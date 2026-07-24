@@ -22,7 +22,8 @@ import {
   requestBankAccountOtp, 
   verifyBankAccountOtp, 
   createWithdrawal, 
-  getMyWithdrawals 
+  getMyWithdrawals,
+  cancelWithdrawal
 } from "@/features/wallets/services/walletService";
 import type { 
   WalletDto, 
@@ -107,6 +108,7 @@ export default function WalletPage() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   // Tabs
   const [activeTab, setActiveTab] = useState<"transactions" | "withdrawals">("transactions");
@@ -147,9 +149,14 @@ export default function WalletPage() {
       setTransactions(txData.items);
 
       if (isOwner) {
-        const bankData = await getBankAccountDetails();
-        setBankDetails(bankData);
-        
+        try {
+          const bankData = await getBankAccountDetails();
+          setBankDetails(bankData);
+        } catch (bankErr: any) {
+          console.warn("Bank details not available:", bankErr?.response?.data?.message || bankErr);
+          setBankDetails(null);
+        }
+
         const wData = await getMyWithdrawals({ page: 1, pageSize: 20 });
         setWithdrawals(wData.items);
       }
@@ -164,6 +171,87 @@ export default function WalletPage() {
   useEffect(() => {
     loadData();
   }, [isOwner]);
+
+  useEffect(() => {
+    const orderCodeStr = searchParams.get("orderCode");
+    const status = searchParams.get("status");
+    const cancel = searchParams.get("cancel");
+
+    if (orderCodeStr && !isVerifyingPayment) {
+      const orderCode = Number(orderCodeStr);
+      let cancelled = false;
+      let attempt = 0;
+      const maxAttempts = 10;
+      const intervalMs = 3000;
+
+      const cleanup = () => {
+        setIsVerifyingPayment(false);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("orderCode");
+        newParams.delete("status");
+        newParams.delete("cancel");
+        newParams.delete("id");
+        setSearchParams(newParams, { replace: true });
+      };
+
+      const handleVerifyPayment = async () => {
+        setIsVerifyingPayment(true);
+        showToast({ type: "info", title: "Xác nhận", message: "Đang kiểm tra kết quả nạp tiền từ PayOS..." });
+        try {
+          const { checkPaymentStatus } = await import("@/features/payments/services/paymentService");
+
+          const poll = async (): Promise<void> => {
+            if (cancelled) return;
+            attempt++;
+            try {
+              const res = await checkPaymentStatus(orderCode);
+              if (res.isConfirmed) {
+                showToast({ type: "success", title: "Thành công", message: "Nạp tiền vào ví thành công!" });
+                void loadData();
+                cleanup();
+                return;
+              }
+              if (res.status === "Cancelled" || cancel === "true" || status === "CANCELLED") {
+                showToast({ type: "info", title: "Thông báo", message: "Giao dịch nạp tiền đã bị hủy." });
+                void loadData();
+                cleanup();
+                return;
+              }
+              if (res.status === "Expired" || res.status === "Failed") {
+                showToast({ type: "info", title: "Thông báo", message: "Giao dịch đã hết hạn hoặc thất bại." });
+                void loadData();
+                cleanup();
+                return;
+              }
+              if (attempt >= maxAttempts) {
+                showToast({ type: "info", title: "Hết thời gian", message: "Không nhận được xác nhận. Vui lòng kiểm tra lại sau." });
+                void loadData();
+                cleanup();
+                return;
+              }
+              setTimeout(poll, intervalMs);
+            } catch {
+              if (attempt >= maxAttempts) {
+                showToast({ type: "error", title: "Lỗi", message: "Không thể kiểm tra trạng thái nạp tiền." });
+                cleanup();
+                return;
+              }
+              setTimeout(poll, intervalMs);
+            }
+          };
+
+          await poll();
+        } catch {
+          showToast({ type: "error", title: "Lỗi", message: "Không thể kiểm tra trạng thái nạp tiền." });
+          cleanup();
+        }
+      };
+
+      void handleVerifyPayment();
+
+      return () => { cancelled = true; };
+    }
+  }, [searchParams, setSearchParams, isVerifyingPayment]);
 
   const handleTopUp = async () => {
     if (!topUpAmount || Number(topUpAmount) < 10000) {
@@ -185,8 +273,8 @@ export default function WalletPage() {
   };
 
   const handleWithdraw = async () => {
-    if (!withdrawAmount || Number(withdrawAmount) < 50000) {
-      showToast({ type: "error", title: "Lỗi rút tiền", message: "Số tiền rút tối thiểu là 50.000đ." });
+    if (!withdrawAmount || Number(withdrawAmount) < 5000) {
+      showToast({ type: "error", title: "Lỗi rút tiền", message: "Số tiền rút tối thiểu là 5.000đ." });
       return;
     }
     if (wallet && wallet.balance < Number(withdrawAmount)) {
@@ -201,10 +289,22 @@ export default function WalletPage() {
       setWithdrawAmount("");
       await loadData();
     } catch (err: any) {
-      const errMsg = err.response?.data?.message || "Tạo yêu cầu rút tiền thất bại.";
+      const errMsg = err.response?.data?.errors?.[0] || err.response?.data?.message || "Tạo yêu cầu rút tiền thất bại.";
       showToast({ type: "error", title: "Lỗi", message: errMsg });
     } finally {
       setIsSubmittingWithdraw(false);
+    }
+  };
+
+  const handleCancelWithdrawal = async (id: number) => {
+    if (!window.confirm("Bạn có chắc muốn hủy yêu cầu rút tiền này?")) return;
+    try {
+      await cancelWithdrawal(id);
+      showToast({ type: "success", title: "Thành công", message: "Đã hủy yêu cầu rút tiền." });
+      await loadData();
+    } catch (err: any) {
+      const errMsg = err.response?.data?.errors?.[0] || err.response?.data?.message || "Hủy yêu cầu thất bại.";
+      showToast({ type: "error", title: "Lỗi", message: errMsg });
     }
   };
 
@@ -303,14 +403,22 @@ export default function WalletPage() {
                 Nạp tiền
               </Button>
               {isOwner && (
-                <Button 
-                  onClick={() => setIsWithdrawOpen(true)} 
-                  disabled={!bankDetails?.bankAccountNumber}
-                  className="bg-transparent text-white border border-white/30 hover:bg-white/10 font-bold px-6 py-2.5 rounded-xl transition-all disabled:opacity-50"
-                >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Rút tiền
-                </Button>
+                <div className="relative group">
+                  <Button 
+                    onClick={() => setIsWithdrawOpen(true)} 
+                    disabled={!bankDetails?.bankAccountNumber}
+                    className="bg-transparent text-white border border-white/30 hover:bg-white/10 font-bold px-6 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Rút tiền
+                  </Button>
+                  {!bankDetails?.bankAccountNumber && (
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-lg">
+                      Bạn cần liên kết tài khoản ngân hàng trước khi rút tiền
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -466,9 +574,19 @@ export default function WalletPage() {
                           Yêu cầu lúc: {new Date(w.createdAt).toLocaleString('vi-VN')}
                         </span>
                       </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getStatusBadgeClass(w.status)}`}>
-                        {getStatusText(w.status)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getStatusBadgeClass(w.status)}`}>
+                          {getStatusText(w.status)}
+                        </span>
+                        {(w.status === "Pending" || w.status === "Approved") && (
+                          <button
+                            onClick={() => handleCancelWithdrawal(w.id)}
+                            className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                          >
+                            Hủy
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
@@ -584,30 +702,59 @@ export default function WalletPage() {
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Số tiền rút (VNĐ)</label>
                 <input 
                   type="number" 
-                  placeholder="Số tiền cần rút, tối thiểu 50.000đ" 
+                  placeholder="Số tiền cần rút, tối thiểu 5.000đ" 
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value ? Number(e.target.value) : "")}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                {[100000, 500000, 1000000].map(amt => (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Số dư khả dụng:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(wallet?.balance || 0)}</span>
+              </div>
+
+              <div className="grid grid-cols-5 gap-2">
+                {[5000, 50000, 100000, 200000, 500000].map(amt => (
                   <button 
                     key={amt} 
                     onClick={() => setWithdrawAmount(amt)}
-                    className="py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
+                    disabled={amt > (wallet?.balance || 0)}
+                    className={`py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      amt > (wallet?.balance || 0)
+                        ? "border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                        : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30"
+                    }`}
                   >
                     {formatCurrency(amt)}
                   </button>
                 ))}
               </div>
 
+              {!withdrawAmount && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Vui lòng nhập số tiền cần rút (tối thiểu 5.000đ)
+                </p>
+              )}
+              {withdrawAmount && Number(withdrawAmount) < 5000 && (
+                <p className="text-xs text-rose-500 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Số tiền rút tối thiểu là 5.000đ
+                </p>
+              )}
+              {withdrawAmount && Number(withdrawAmount) >= 5000 && (wallet?.balance || 0) < Number(withdrawAmount) && (
+                <p className="text-xs text-rose-500 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Số dư không đủ. Còn thiếu {formatCurrency(Number(withdrawAmount) - (wallet?.balance || 0))}
+                </p>
+              )}
+
               <Button 
                 onClick={handleWithdraw}
                 isLoading={isSubmittingWithdraw}
-                disabled={!withdrawAmount || Number(withdrawAmount) < 50000 || (wallet?.balance || 0) < Number(withdrawAmount)}
-                className="w-full h-12 rounded-xl text-[15px] font-bold mt-4 shadow-md"
+                disabled={!withdrawAmount || Number(withdrawAmount) < 5000 || (wallet?.balance || 0) < Number(withdrawAmount)}
+                className="w-full h-12 rounded-xl text-[15px] font-bold shadow-md"
               >
                 Gửi yêu cầu rút tiền
               </Button>

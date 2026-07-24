@@ -18,7 +18,9 @@ public record WalletTransactionDto(
     decimal Amount,
     decimal BalanceAfter,
     string? Note,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    long? ReferenceId = null,
+    string Status = "Completed"
 );
 
 public record WalletTransactionListRequest(
@@ -46,5 +48,9 @@ public record AdminWalletDetail(
     int TransactionTotalCount
 );
 
-public record AdjustBalanceRequest(decimal Amount, string Note);
+public class AdjustBalanceRequest
+{
+    public decimal Amount { get; set; }
+    public string Note { get; set; } = "";
+}
 

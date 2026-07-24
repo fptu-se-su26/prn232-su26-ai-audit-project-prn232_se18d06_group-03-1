@@ -26,6 +26,8 @@ public class BookingResponse
     public decimal DiscountPercent { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal PlatformFee { get; set; }
+    public string? PlatformFeeType { get; set; }
+    public decimal? PlatformFeeValue { get; set; }
     public decimal DepositAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal EscrowAmount { get; set; }

@@ -5,7 +5,7 @@ import Alert from "@/components/common/Alert";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
-import { getBookingById, approveBooking, rejectBooking, createCheckInReport, createCheckOutReport, getInspectionReports } from "@/features/booking/bookingService";
+import { getBookingById, approveBooking, rejectBooking, createCheckInReport, createCheckOutReport, getInspectionReports, ownerCompleteBooking } from "@/features/booking/bookingService";
 import type { BookingResponse, InspectionReportResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import RiskScoreBadge from "@/features/booking/components/RiskScoreBadge";
@@ -137,6 +137,21 @@ export default function OwnerBookingDetailPage() {
       showToast({ type: "success", title: "Đã từ chối", message: "Booking đã bị từ chối." });
     } catch {
       showToast({ type: "error", title: "Lỗi", message: "Không thể từ chối booking." });
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  async function handleOwnerComplete() {
+    if (!booking || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const updated = await ownerCompleteBooking(booking.id);
+      setBooking(updated);
+      showToast({ type: "success", title: "Hoàn tất", message: "Booking đã hoàn tất. Tiền cọc đã được giải ngân cho chủ xe." });
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || "Không thể hoàn tất booking.";
+      showToast({ type: "error", title: "Lỗi", message: errMsg });
     } finally {
       setIsProcessing(false);
     }
@@ -329,6 +344,22 @@ export default function OwnerBookingDetailPage() {
         )}
       </Card>
 
+      {booking.escrowStatus === "Held" && ["DepositPaid", "InProgress", "Completed"].includes(booking.status) && (
+        <Card className="space-y-4 rounded-md p-5 border-emerald-200 bg-emerald-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-emerald-800">Giải ngân tiền cọc</h2>
+              <p className="text-sm text-emerald-700 mt-1">
+                Xác nhận hoàn tất booking để giải ngân tiền cọc ({formatCurrency(booking.depositAmount)}) về ví và tự động chuyển về tài khoản ngân hàng của bạn.
+              </p>
+            </div>
+            <Button variant="primary" onClick={handleOwnerComplete} isLoading={isProcessing} className="bg-emerald-600 hover:bg-emerald-700">
+              <Check className="h-4 w-4" /> Hoàn tất & nhận tiền
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {booking.cancelReason && (
         <Alert variant="warning" title="Lý do từ chối / hủy">{booking.cancelReason}</Alert>
       )}
@@ -392,7 +423,9 @@ export default function OwnerBookingDetailPage() {
             </div>
           )}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600">Phí nền tảng (đã gồm trong tổng)</span>
+            <span className="text-slate-600">Phí nền tảng{booking.platformFeeType
+              ? ` (${booking.platformFeeType === "Fixed" ? formatCurrency(booking.platformFeeValue ?? 0) : (booking.platformFeeValue ?? 10) + "%"}, đã gồm trong tổng)`
+              : " (đã gồm trong tổng)"}</span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.platformFee)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">

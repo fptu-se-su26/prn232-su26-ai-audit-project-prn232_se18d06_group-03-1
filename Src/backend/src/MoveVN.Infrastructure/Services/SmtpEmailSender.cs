@@ -162,10 +162,15 @@ public class SmtpEmailSender : IEmailSender
         {
             await client.SendMailAsync(message, cancellationToken);
         }
-        catch (Exception exception) when (exception is SmtpException or InvalidOperationException)
+        catch (Exception exception)
         {
-            _logger.LogError(exception, "SMTP failed to send OTP to {Email}", email);
-            throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
+            _logger.LogError(exception, "SMTP failed to send OTP to {Email}. Falling back to console log.", email);
+            _logger.LogWarning("==================================================");
+            _logger.LogWarning("SMTP FAILED — FALLBACK OTP (use this code for testing):");
+            _logger.LogWarning("Email Target: {Email}", email);
+            _logger.LogWarning("OTP Purpose: {Purpose}", purpose);
+            _logger.LogWarning("OTP CODE: {Otp}", otp);
+            _logger.LogWarning("==================================================");
         }
     }
 

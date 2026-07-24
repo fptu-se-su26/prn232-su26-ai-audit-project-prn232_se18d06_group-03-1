@@ -13,6 +13,8 @@ export interface BookingResponse {
   discountPercent: number;
   discountAmount: number;
   platformFee: number;
+  platformFeeType?: string;
+  platformFeeValue?: number;
   depositAmount: number;
   totalAmount: number;
   escrowAmount: number;

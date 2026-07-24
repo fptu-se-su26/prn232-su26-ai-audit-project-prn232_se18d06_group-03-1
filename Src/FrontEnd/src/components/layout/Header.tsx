@@ -1,5 +1,5 @@
-import { ArrowLeftRight, ChevronDown, LogOut, Menu, UserRound } from "lucide-react";
-import { useRef, useState } from "react";
+import { ArrowLeftRight, ChevronDown, LogOut, Menu, UserRound, Wallet } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { APP_NAME } from "@/constants/appConstants";
 import type { UserRole } from "@/features/auth/types";
@@ -8,6 +8,7 @@ import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import { usePresenceStore } from "@/features/presence/usePresence";
 import useClickOutside from "@/hooks/useClickOutside";
 import NotificationMenu from "@/components/layout/NotificationMenu";
+import { getMyWallet } from "@/features/wallets/services/walletService";
 import logoUrl from "../../../Logo/movevn_horizontal_light.png";
 
 const roleSwitchLabels: Record<UserRole, string> = {
@@ -27,6 +28,15 @@ export default function Header() {
   const navigate = useNavigate();
 
   useClickOutside(dropdownRef, () => setOpen(false));
+
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getMyWallet()
+      .then((w) => setWalletBalance(w.balance))
+      .catch(() => {}); // Silently ignore — wallet might not exist yet
+  }, [user]);
 
   const initials = user?.fullName
     ?.split(" ")
@@ -112,6 +122,15 @@ export default function Header() {
             )}
           </div>
 
+          {walletBalance !== null && (
+            <Link
+              to="/account/wallet"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-colors"
+            >
+              <Wallet className="h-3.5 w-3.5" />
+              <span>{new Intl.NumberFormat("vi-VN").format(walletBalance)}đ</span>
+            </Link>
+          )}
           <NotificationMenu variant="dashboard" />
 
           <button
