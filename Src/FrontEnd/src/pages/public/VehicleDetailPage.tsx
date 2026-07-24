@@ -180,37 +180,31 @@ export default function VehicleDetailPage() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const [vehicle, setVehicle] = useState<VehicleResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [vehicleLoadError, setVehicleLoadError] = useState<string | null>(null);
   const [vehicleImages, setVehicleImages] = useState<VehicleImageResponse[]>([]);
   const [imagesLoading, setImagesLoading] = useState(true);
   const [previewImages, setPreviewImages] = useState<ImagePreviewItem[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [busyPeriods, setBusyPeriods] = useState<BusyPeriod[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
   const [selection, setSelection] = useState<SelectionState>({ start: null, end: null });
 
   useEffect(() => {
     if (!id) return;
-    setIsLoading(true);
-    setError(null);
+    setVehicleLoadError(null);
     getPublicVehicleById(Number(id))
       .then((data) => setVehicle(data))
-      .catch(() => setError("Không thể tải thông tin xe."))
-      .finally(() => setIsLoading(false));
-    getVehicleReviews(Number(id)).then(setReviews).catch(() => {});
-    getVehicleAvailability(Number(id)).then((d) => d && setBusyPeriods(d.busyPeriods)).catch(() => {});
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
+      .catch(() => setVehicleLoadError("Không thể tải thông tin xe."));
     setImagesLoading(true);
-    getPublicVehicleImages(Number(id))
-      .then(setVehicleImages)
-      .catch(() => {})
-      .finally(() => setImagesLoading(false));
+    getPublicVehicleImages(Number(id)).then(setVehicleImages).catch(() => {}).finally(() => setImagesLoading(false));
+    setReviewsLoading(true);
+    getVehicleReviews(Number(id)).then(setReviews).catch(() => {}).finally(() => setReviewsLoading(false));
+    setAvailabilityLoading(true);
+    getVehicleAvailability(Number(id)).then((d) => d && setBusyPeriods(d.busyPeriods)).catch(() => {}).finally(() => setAvailabilityLoading(false));
   }, [id]);
 
   const busySet = useMemo(() => {
@@ -284,26 +278,27 @@ export default function VehicleDetailPage() {
     navigate(`/booking/new?${params.toString()}`);
   }
 
-  if (isLoading) return <VehicleDetailSkeleton />;
-
-  if (error || !vehicle) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
-        <div className="mx-auto max-w-6xl px-4 pt-6">
-          <div className="flex min-h-[400px] items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                <AlertCircle className="h-8 w-8 text-red-400" />
+  if (!vehicle) {
+    if (vehicleLoadError) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+          <div className="mx-auto max-w-6xl px-4 pt-6">
+            <div className="flex min-h-[400px] items-center justify-center">
+              <div className="text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+                  <AlertCircle className="h-8 w-8 text-red-400" />
+                </div>
+                <p className="mt-4 text-sm text-red-600">{vehicleLoadError}</p>
+                <button type="button" onClick={() => navigate("/vehicle")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800">
+                  <ArrowLeft className="h-4 w-4" /> Quay lại
+                </button>
               </div>
-              <p className="mt-4 text-sm text-red-600">{error ?? "Không tìm thấy xe."}</p>
-              <button type="button" onClick={() => navigate("/vehicle")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-800">
-                <ArrowLeft className="h-4 w-4" /> Quay lại
-              </button>
             </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
+    return <VehicleDetailSkeleton />;
   }
 
   const displayPrice = vehicle.currentPricePerDay ?? vehicle.pricePerDay;
@@ -353,7 +348,7 @@ export default function VehicleDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
-          {imagesLoading && vehicleImages.length === 0 ? (
+          {imagesLoading ? (
             <Skeleton className="aspect-[16/9] w-full rounded-xl" />
           ) : vehicleImages.length > 0 ? (
             <div className="grid grid-cols-4 gap-2">
@@ -482,14 +477,14 @@ export default function VehicleDetailPage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
                 <Star className="h-3.5 w-3.5 text-yellow-500" />
               </div>
               <h2 className="text-sm font-semibold text-slate-900">
                 Đánh giá khách hàng
-                {avgRating != null && (
+                {!reviewsLoading && avgRating != null && (
                   <span className="ml-2 text-sm font-normal text-slate-500">
                     <Star className="mr-0.5 inline h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                     {avgRating.toFixed(1)} ({reviews.length} đánh giá)
@@ -497,7 +492,17 @@ export default function VehicleDetailPage() {
                 )}
               </h2>
             </div>
-            {reviews.length > 0 ? (
+            {reviewsLoading ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="space-y-2 rounded-lg bg-slate-50 p-4">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ))}
+              </div>
+            ) : reviews.length > 0 ? (
               <div className="space-y-3">
                 {reviews.map((r) => (
                   <ReviewCard key={r.id} review={r} />
@@ -533,15 +538,31 @@ export default function VehicleDetailPage() {
 
             <hr className="my-4 border-slate-100" />
 
-            <AvailabilityCalendar
-              busyPeriods={busyPeriods}
-              month={calendarMonth}
-              year={calendarYear}
-              onPrev={() => { if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear((y) => y - 1); } else setCalendarMonth((m) => m - 1); }}
-              onNext={() => { if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear((y) => y + 1); } else setCalendarMonth((m) => m + 1); }}
-              selection={selection}
-              onSelect={handleSelectDate}
-            />
+            {availabilityLoading ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-5">
+                <Skeleton className="mb-3 h-5 w-28" />
+                <div className="flex items-center justify-between mb-3">
+                  <Skeleton className="h-6 w-6 rounded" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-6 rounded" />
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: 35 }).map((_, i) => (
+                    <Skeleton key={i} className="mx-auto h-9 w-9 rounded" />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <AvailabilityCalendar
+                busyPeriods={busyPeriods}
+                month={calendarMonth}
+                year={calendarYear}
+                onPrev={() => { if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear((y) => y - 1); } else setCalendarMonth((m) => m - 1); }}
+                onNext={() => { if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear((y) => y + 1); } else setCalendarMonth((m) => m + 1); }}
+                selection={selection}
+                onSelect={handleSelectDate}
+              />
+            )}
 
             <hr className="my-4 border-slate-100" />
 

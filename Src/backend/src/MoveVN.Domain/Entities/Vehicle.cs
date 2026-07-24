@@ -38,5 +38,8 @@ public class Vehicle
     public VehicleModel Model { get; set; } = null!;
     public VehicleModelVariant? Variant { get; set; }
     public Area? Area { get; set; }
+    public VehiclePricing? Pricing { get; set; }
+    public User? Owner { get; set; }
+    public ICollection<VehicleFeatureMapping> FeatureMappings { get; set; } = [];
 }
 

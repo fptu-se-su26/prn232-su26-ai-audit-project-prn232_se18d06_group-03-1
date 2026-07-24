@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Vehicles.DTOs;
@@ -8,6 +9,7 @@ using MoveVN.Application.Modules.Vehicles.Interfaces;
 namespace MoveVN.Api.Controllers.Vehicles;
 
 [AllowAnonymous]
+[EnableRateLimiting("PublicVehicleSearch")]
 [Route("api/public/vehicles")]
 public class PublicVehiclesController : BaseApiController
 {
@@ -52,6 +54,12 @@ public class PublicVehiclesController : BaseApiController
         [FromQuery] int? areaId = null,
         CancellationToken cancellationToken = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        if (searchStartDate.HasValue && searchEndDate.HasValue && searchStartDate > searchEndDate)
+            return BadRequest(ApiResponse<PagedResult<VehicleListItemResponse>>.Failed("INVALID_DATE_RANGE", "searchStartDate must not be after searchEndDate"));
+
         var result = await _publicVehicleService.GetAvailableVehiclesAsync(
             type, keyword, sortBy, page, pageSize,
             brandId, modelId, fuelType, seatCount,

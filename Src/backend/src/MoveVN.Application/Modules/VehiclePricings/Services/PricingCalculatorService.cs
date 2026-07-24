@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Errors;
@@ -15,21 +16,52 @@ public class PricingCalculatorService : IPricingCalculatorService
     private readonly IVehicleCatalogRepository _repository;
     private readonly IDynamicPricingSuggestionClient _dynamicPricingClient;
     private readonly ILogger<PricingCalculatorService> _logger;
+    private readonly IMemoryCache _cache;
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
+    private const string CacheKeyPrefix = "pricing-suggestion";
+    private const string CacheKeyPrefixFull = "pricing-suggestion-full";
+    private sealed record CachedSuggestion(PricingSuggestionResponse Suggestion, int BrandId);
 
     public PricingCalculatorService(
         IVehicleCatalogRepository repository,
         IDynamicPricingSuggestionClient dynamicPricingClient,
-        ILogger<PricingCalculatorService> logger)
+        ILogger<PricingCalculatorService> logger,
+        IMemoryCache cache)
     {
         _repository = repository;
         _dynamicPricingClient = dynamicPricingClient;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, DateOnly? date = null, decimal? vacantRate = null, CancellationToken cancellationToken = default, bool includeDynamic = false)
     {
         if (vacantRate is < 0 or > 1)
             throw new AppException(ErrorCode.PRICING_INVALID_RANGE);
+
+        var cacheKey = $"{CacheKeyPrefix}:{modelId}:{areaId}";
+        var fullCacheKey = $"{CacheKeyPrefixFull}:{modelId}:{areaId}";
+
+        if (_cache.TryGetValue(fullCacheKey, out PricingSuggestionResponse? cachedFull) && cachedFull is not null)
+            return cachedFull;
+
+        if (_cache.TryGetValue(cacheKey, out CachedSuggestion? cached) && cached is not null)
+        {
+            var result = new PricingSuggestionResponse
+            {
+                HasSuggestion = cached.Suggestion.HasSuggestion,
+                ModelId = cached.Suggestion.ModelId,
+                AreaId = cached.Suggestion.AreaId,
+                PricingRegionId = cached.Suggestion.PricingRegionId,
+                PricingRegionCode = cached.Suggestion.PricingRegionCode,
+                BasePrice = cached.Suggestion.BasePrice,
+                SuggestedMinPrice = cached.Suggestion.SuggestedMinPrice,
+                SuggestedMaxPrice = cached.Suggestion.SuggestedMaxPrice
+            };
+            await EnrichDynamicSuggestionAsync(result, cached.BrandId, date, vacantRate, cancellationToken);
+            _cache.Set(fullCacheKey, result, CacheTtl);
+            return result;
+        }
 
         var model = await _repository.GetVehicleModelByIdAsync(modelId, cancellationToken);
         if (model is null)
@@ -41,9 +73,10 @@ public class PricingCalculatorService : IPricingCalculatorService
         var region = await _repository.GetPricingRegionByIdAsync(area.PricingRegionId, cancellationToken);
         var pricing = await _repository.GetActiveVehicleModelPricingByModelIdAsync(modelId, cancellationToken);
 
+        PricingSuggestionResponse suggestion;
         if (pricing is null || region is null)
         {
-            return new PricingSuggestionResponse
+            suggestion = new PricingSuggestionResponse
             {
                 HasSuggestion = false,
                 ModelId = modelId,
@@ -52,24 +85,29 @@ public class PricingCalculatorService : IPricingCalculatorService
                 PricingRegionCode = region?.Code
             };
         }
-
-        var basePrice = Math.Round(pricing.BasePrice * region.Coefficient, 2);
-        var suggestion = new PricingSuggestionResponse
+        else
         {
-            HasSuggestion = true,
-            ModelId = modelId,
-            AreaId = area.Id,
-            PricingRegionId = area.PricingRegionId,
-            PricingRegionCode = region.Code,
-            BasePrice = basePrice,
-            SuggestedMinPrice = Math.Round(pricing.SuggestedMinPrice * region.Coefficient, 2),
-            SuggestedMaxPrice = Math.Round(pricing.SuggestedMaxPrice * region.Coefficient, 2)
-        };
+            var basePrice = Math.Round(pricing.BasePrice * region.Coefficient, 2);
+            suggestion = new PricingSuggestionResponse
+            {
+                HasSuggestion = true,
+                ModelId = modelId,
+                AreaId = area.Id,
+                PricingRegionId = area.PricingRegionId,
+                PricingRegionCode = region.Code,
+                BasePrice = basePrice,
+                SuggestedMinPrice = Math.Round(pricing.SuggestedMinPrice * region.Coefficient, 2),
+                SuggestedMaxPrice = Math.Round(pricing.SuggestedMaxPrice * region.Coefficient, 2)
+            };
+        }
 
-        if (includeDynamic)
+if (includeDynamic)
         {
             await EnrichDynamicSuggestionAsync(suggestion, model.BrandId, date, vacantRate, cancellationToken);
         }
+
+        _cache.Set(cacheKey, new CachedSuggestion(suggestion, model.BrandId), CacheTtl);
+        _cache.Set(fullCacheKey, suggestion, CacheTtl);
         return suggestion;
     }
 

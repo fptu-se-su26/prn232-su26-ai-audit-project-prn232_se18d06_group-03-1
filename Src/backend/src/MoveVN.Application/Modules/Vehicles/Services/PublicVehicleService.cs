@@ -4,8 +4,6 @@ using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
-using MoveVN.Application.Modules.VehiclePricings.DTOs;
-using MoveVN.Application.Modules.VehiclePricings.Interfaces;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
 using MoveVN.Domain.Entities;
@@ -15,16 +13,13 @@ namespace MoveVN.Application.Modules.Vehicles.Services;
 public class PublicVehicleService : IPublicVehicleService
 {
     private readonly IVehicleCatalogRepository _repository;
-    private readonly IPricingCalculatorService _pricingCalculator;
     private readonly IUserRepository _userRepository;
 
     public PublicVehicleService(
         IVehicleCatalogRepository repository,
-        IPricingCalculatorService pricingCalculator,
         IUserRepository userRepository)
     {
         _repository = repository;
-        _pricingCalculator = pricingCalculator;
         _userRepository = userRepository;
     }
 
@@ -50,19 +45,7 @@ public class PublicVehicleService : IPublicVehicleService
         if (vehicle.Status != VehicleStatus.Approved)
             throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
-        var pricing = await _repository.GetVehiclePricingByVehicleIdAsync(vehicle.Id, cancellationToken);
         var features = await _repository.GetVehicleFeatureResponsesAsync(vehicle.Id, cancellationToken);
-        var owner = await _userRepository.GetByIdAsync(vehicle.OwnerId, cancellationToken);
-
-        var region = vehicle.Area is not null
-            ? await _repository.GetPricingRegionByIdAsync(vehicle.Area.PricingRegionId, cancellationToken)
-            : null;
-
-        PricingSuggestionResponse? suggestion = null;
-        if (vehicle.AreaId.HasValue)
-        {
-            suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
-        }
 
         var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
         var feeRule = await _repository.GetActivePlatformFeeRuleAsync(vehicle.OwnerId, DateTime.UtcNow, cancellationToken);
@@ -71,7 +54,7 @@ public class PublicVehicleService : IPublicVehicleService
         {
             Id = vehicle.Id,
             OwnerId = vehicle.OwnerId,
-            OwnerName = owner?.FullName ?? "",
+            OwnerName = vehicle.Owner?.FullName ?? "",
             BrandId = vehicle.BrandId,
             BrandName = vehicle.Brand?.Name ?? "",
             ModelId = vehicle.ModelId,
@@ -89,27 +72,25 @@ public class PublicVehicleService : IPublicVehicleService
             Longitude = vehicle.Longitude,
             AreaName = vehicle.Area is not null ? $"{vehicle.Area.Province} - {vehicle.Area.District}" : null,
             PricingRegionId = vehicle.Area?.PricingRegionId,
-            PricingRegionCode = region?.Code,
+            PricingRegionCode = vehicle.Area?.PricingRegion?.Code,
             PricePerDay = vehicle.PricePerDay,
             DepositPercent = vehicle.DepositPercent,
             SecurityRequiresDeposit = vehicle.SecurityRequiresDeposit,
             SecurityDepositAmount = vehicle.SecurityDepositAmount,
-            PricingMode = pricing?.PricingMode,
-            FixedPricePerDay = pricing?.FixedPricePerDay,
-            AutoMinPrice = pricing?.AutoMinPrice,
-            AutoMaxPrice = pricing?.AutoMaxPrice,
-            CurrentPricePerDay = pricing?.CurrentPricePerDay,
-            SuggestedBasePrice = suggestion?.BasePrice,
-            SuggestedMinPrice = suggestion?.SuggestedMinPrice,
-            SuggestedMaxPrice = suggestion?.SuggestedMaxPrice,
+            PricingMode = vehicle.Pricing?.PricingMode,
+            FixedPricePerDay = vehicle.Pricing?.FixedPricePerDay,
+            AutoMinPrice = vehicle.Pricing?.AutoMinPrice,
+            AutoMaxPrice = vehicle.Pricing?.AutoMaxPrice,
+            CurrentPricePerDay = vehicle.Pricing?.CurrentPricePerDay,
             Status = vehicle.Status,
             FeaturedImage = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
             Images = images,
             Features = features,
-            PlatformFeeType = feeRule?.FeeType,
+PlatformFeeType = feeRule?.FeeType,
             PlatformFeeValue = feeRule?.FeeValue,
             PlatformFeeMinFee = feeRule?.MinFee,
             PlatformFeeMaxFee = feeRule?.MaxFee,
+            BusyPeriods = [],
             CreatedAt = vehicle.CreatedAt,
         };
     }

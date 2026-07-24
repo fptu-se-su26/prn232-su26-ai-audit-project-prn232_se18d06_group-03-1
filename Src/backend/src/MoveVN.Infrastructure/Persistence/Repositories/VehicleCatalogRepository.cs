@@ -152,6 +152,9 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
             .Include(v => v.Model)
             .Include(v => v.Variant)
             .Include(v => v.Area)
+                .ThenInclude(a => a.PricingRegion)
+            .Include(v => v.Pricing)
+            .Include(v => v.Owner)
             .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
 
@@ -289,7 +292,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
     public Task<List<VehicleFeatureResponse>> GetVehicleFeatureResponsesAsync(long vehicleId, CancellationToken cancellationToken = default)
         => _context.VehicleFeatureMapping.AsNoTracking()
             .Where(fm => fm.VehicleId == vehicleId)
-            .Join(_context.VehicleFeature.AsNoTracking(), fm => fm.FeatureId, f => f.Id, (fm, f) => new VehicleFeatureResponse { Id = f.Id, Name = f.Name })
+            .Select(fm => new VehicleFeatureResponse { Id = fm.Feature!.Id, Name = fm.Feature.Name })
             .ToListAsync(cancellationToken);
 
     public Task<List<VehicleDocument>> GetVehicleDocumentsAsync(long vehicleId, bool includeDeleted = false, CancellationToken cancellationToken = default)
@@ -728,23 +731,24 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
 
     public async Task<List<BusyPeriod>> GetVehicleBusyPeriodsAsync(long vehicleId, CancellationToken cancellationToken = default)
     {
-        var blocked = await _context.BlockedDates
-            .Where(bd => bd.VehicleId == vehicleId && bd.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow))
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+
+        var busyPeriods = await _context.BlockedDates
+            .Where(bd => bd.VehicleId == vehicleId && bd.EndDate >= today)
             .Select(bd => new BusyPeriod { StartDate = bd.StartDate, EndDate = bd.EndDate, Type = "blocked" })
+            .Union(_context.Bookings
+                .Where(b => b.VehicleId == vehicleId
+                    && b.EndDate > now
+                    && b.Status != "Cancelled" && b.Status != "Rejected")
+                .Select(b => new BusyPeriod
+                {
+                    StartDate = DateOnly.FromDateTime(b.StartDate),
+                    EndDate = DateOnly.FromDateTime(b.EndDate),
+                    Type = "booking"
+                }))
             .ToListAsync(cancellationToken);
 
-        var bookings = await _context.Bookings
-            .Where(b => b.VehicleId == vehicleId
-                && b.EndDate > DateTime.UtcNow
-                && b.Status != "Cancelled" && b.Status != "Rejected")
-            .Select(b => new BusyPeriod
-            {
-                StartDate = DateOnly.FromDateTime(b.StartDate),
-                EndDate = DateOnly.FromDateTime(b.EndDate),
-                Type = "booking"
-            })
-            .ToListAsync(cancellationToken);
-
-        return [.. blocked, .. bookings];
+        return busyPeriods;
     }
 }
