@@ -11,4 +11,6 @@ public interface IAdminPostManagementService
     Task<VehicleResponse> CreateVehicleAsync(CreateAdminVehicleRequest request, long adminUserId, CancellationToken cancellationToken = default);
     Task<PagedResult<AdminOwnerListItem>> GetOwnersWithVehiclesAsync(string? keyword, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<PagedResult<AdminOwnerVehicleListItem>> GetOwnerVehiclesAsync(long ownerId, string? vehicleType, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<VehicleResponse> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default);
+    Task<VehicleResponse> UpdateVehicleAsync(long vehicleId, UpdateAdminVehicleRequest request, CancellationToken cancellationToken = default);
 }

@@ -230,6 +230,8 @@ export type CreateAdminVehicleRequest = {
   year: number;
   licensePlate: string;
   odometerKm?: number | null;
+  engineNumber?: string | null;
+  chassisNumber?: string | null;
   description?: string | null;
   address: string;
   areaId?: number | null;
@@ -247,6 +249,7 @@ export type CreateAdminVehicleRequest = {
   imageUrls: string[];
   featuredImageIndex?: number | null;
   documentFileUrl?: string | null;
+  useOcr?: boolean;
 };
 
 export type AdminVehicleOcrPreviewResponse = {
@@ -260,4 +263,32 @@ export type AdminVehicleOcrPreviewResponse = {
   recommendation?: string | null;
   flags: string[];
   message?: string | null;
+};
+
+export type UpdateAdminVehicleRequest = {
+  brandId: number;
+  modelId: number;
+  variantId?: number | null;
+  vehicleType: string;
+  year: number;
+  licensePlate: string;
+  odometerKm?: number | null;
+  engineNumber?: string | null;
+  chassisNumber?: string | null;
+  description?: string | null;
+  address: string;
+  areaId?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  pricePerDay: number;
+  depositPercent: number;
+  securityRequiresDeposit: boolean;
+  securityDepositAmount: number;
+  pricingMode?: string | null;
+  fixedPricePerDay?: number | null;
+  autoMinPrice?: number | null;
+  autoMaxPrice?: number | null;
+  featureIds: number[];
+  documentFileUrl?: string | null;
+  useOcr: boolean;
 };

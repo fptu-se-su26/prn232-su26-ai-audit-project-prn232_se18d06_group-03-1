@@ -79,6 +79,25 @@ public class PostManagementController : BaseApiController
         return Success(result);
     }
 
+    [HttpGet("vehicles/{vehicleId}")]
+    public async Task<ActionResult<ApiResponse<VehicleResponse>>> GetVehicleById(
+        long vehicleId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _postManagementService.GetVehicleByIdAsync(vehicleId, cancellationToken);
+        return Success(result);
+    }
+
+    [HttpPut("vehicles/{vehicleId}")]
+    public async Task<ActionResult<ApiResponse<VehicleResponse>>> UpdateVehicle(
+        long vehicleId,
+        [FromBody] UpdateAdminVehicleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _postManagementService.UpdateVehicleAsync(vehicleId, request, cancellationToken);
+        return Success(result, "Vehicle updated successfully.");
+    }
+
     private static async Task<AdminDocumentFile> ToDocumentAsync(IFormFile file, CancellationToken cancellationToken)
     {
         await using var stream = file.OpenReadStream();

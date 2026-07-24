@@ -44,6 +44,8 @@ export const endpoints = {
     postStats: "/api/admin/posts/stats",
     postOcrPreview: "/api/admin/posts/ocr-preview",
     postCreateVehicle: "/api/admin/posts/vehicles",
+    postUpdateVehicle: (id: number) => `/api/admin/posts/vehicles/${id}`,
+    postVehicleDetail: (id: number) => `/api/admin/posts/vehicles/${id}`,
     postOwners: "/api/admin/posts/owners",
     postOwnerVehicles: (ownerId: number) => `/api/admin/posts/owners/${ownerId}/vehicles`,
 

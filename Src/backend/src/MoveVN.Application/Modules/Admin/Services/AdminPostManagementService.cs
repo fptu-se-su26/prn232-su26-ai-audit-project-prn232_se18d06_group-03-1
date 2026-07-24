@@ -301,7 +301,24 @@ public class AdminPostManagementService : IAdminPostManagementService
             _repository.Add(document);
             await _repository.SaveChangesAsync(cancellationToken);
 
-            await VerifyVehicleDocumentAsync(vehicle, brand.Name, model.Name, document, cancellationToken);
+            if (request.UseOcr)
+            {
+                await VerifyVehicleDocumentAsync(vehicle, brand.Name, model.Name, document, cancellationToken);
+            }
+            else
+            {
+                document.Verified = true;
+                document.VerificationStatus = VehicleDocumentVerificationStatus.Verified;
+                document.VerificationProvider = "ADMIN_MANUAL";
+                document.OcrConfidence = 1.0m;
+                document.OcrLicensePlate = request.LicensePlate;
+                document.OcrBrand = brand.Name;
+                document.OcrModel = model.Name;
+                document.OcrEngineNumber = request.EngineNumber;
+                document.OcrChassisNumber = request.ChassisNumber;
+                document.ProcessedAt = DateTime.UtcNow;
+                await _repository.SaveChangesAsync(cancellationToken);
+            }
         }
 
         _repository.Add(new VehiclePricing
@@ -454,16 +471,175 @@ public class AdminPostManagementService : IAdminPostManagementService
         };
     }
 
+    public async Task<VehicleResponse> GetVehicleByIdAsync(long vehicleId, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await _repository.GetVehicleWithDetailsByIdAsync(vehicleId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
+        return await GetVehicleResponseAsync(vehicle, cancellationToken);
+    }
+
+    public async Task<VehicleResponse> UpdateVehicleAsync(long vehicleId, UpdateAdminVehicleRequest request, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await _repository.GetVehicleByIdAsync(vehicleId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
+
+        var brand = await _repository.GetVehicleBrandByIdAsync(request.BrandId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_BRAND_NOT_FOUND);
+        var model = await _repository.GetVehicleModelByIdAsync(request.ModelId, cancellationToken)
+            ?? throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+
+        if (!model.IsActive || !brand.IsActive)
+            throw new AppException(ErrorCode.VEHICLE_MODEL_INACTIVE);
+
+        if (NormalizeVehicleType(brand.VehicleType) != NormalizeVehicleType(request.VehicleType))
+            throw new AppException(ErrorCode.VEHICLE_MODEL_NOT_FOUND);
+
+        if (request.AreaId.HasValue)
+        {
+            var area = await _repository.GetAreaByIdAsync(request.AreaId.Value, cancellationToken)
+                ?? throw new AppException(ErrorCode.AREA_NOT_FOUND);
+            if (!area.IsActive)
+                throw new AppException(ErrorCode.AREA_NOT_FOUND);
+        }
+
+        if (request.VariantId.HasValue)
+        {
+            var variant = await _repository.GetVehicleModelVariantByIdAsync(request.VariantId.Value, cancellationToken)
+                ?? throw new AppException(ErrorCode.VEHICLE_MODEL_VARIANT_NOT_FOUND);
+            if (variant.ModelId != request.ModelId || NormalizeVehicleType(variant.VehicleType) != NormalizeVehicleType(request.VehicleType))
+                throw new AppException(ErrorCode.VEHICLE_MODEL_VARIANT_NOT_FOUND);
+        }
+
+        await ValidateFeaturesAsync(request.FeatureIds, request.VehicleType, cancellationToken);
+        ValidateDeposit(request.DepositPercent, request.SecurityRequiresDeposit, request.SecurityDepositAmount);
+
+        var pricingRequest = BuildUpdatePricingRequest(request);
+        var vehicleForValidation = new Vehicle
+        {
+            ModelId = request.ModelId,
+            AreaId = request.AreaId
+        };
+        await _pricingCalculator.ValidatePricingAsync(vehicleForValidation, pricingRequest, cancellationToken);
+
+        vehicle.BrandId = request.BrandId;
+        vehicle.ModelId = request.ModelId;
+        vehicle.VariantId = request.VariantId;
+        vehicle.VehicleType = request.VehicleType;
+        vehicle.Year = request.Year;
+        vehicle.LicensePlate = request.LicensePlate;
+        vehicle.OdometerKm = request.OdometerKm;
+        vehicle.Description = request.Description;
+        vehicle.Address = request.Address;
+        vehicle.AreaId = request.AreaId;
+        vehicle.Latitude = request.Latitude;
+        vehicle.Longitude = request.Longitude;
+        vehicle.DepositPercent = request.DepositPercent;
+        vehicle.SecurityRequiresDeposit = request.SecurityRequiresDeposit;
+        vehicle.SecurityDepositAmount = request.SecurityRequiresDeposit ? request.SecurityDepositAmount : 0;
+
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        var existingMappings = await _repository.GetVehicleFeatureMappingsAsync(vehicle.Id, cancellationToken);
+        foreach (var mapping in existingMappings)
+        {
+            _repository.Remove(mapping);
+        }
+        if (request.FeatureIds.Count != 0)
+        {
+            foreach (var featureId in request.FeatureIds)
+            {
+                _repository.Add(new VehicleFeatureMapping { VehicleId = vehicle.Id, FeatureId = featureId });
+            }
+        }
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        var pricing = await _repository.GetVehiclePricingByVehicleIdAsync(vehicle.Id, cancellationToken);
+        if (pricing is not null)
+        {
+            pricing.PricingMode = pricingRequest.PricingMode;
+            pricing.FixedPricePerDay = pricingRequest.PricingMode == PricingModes.Fixed ? pricingRequest.FixedPricePerDay : null;
+            pricing.AutoMinPrice = pricingRequest.PricingMode == PricingModes.Auto ? pricingRequest.AutoMinPrice : null;
+            pricing.AutoMaxPrice = pricingRequest.PricingMode == PricingModes.Auto ? pricingRequest.AutoMaxPrice : null;
+            pricing.CurrentPricePerDay = await _pricingCalculator.CalculateCurrentPriceAsync(vehicleForValidation, pricingRequest, DateOnly.FromDateTime(DateTime.UtcNow), cancellationToken);
+            pricing.LastUpdatedAt = DateTime.UtcNow;
+            vehicle.PricePerDay = pricing.CurrentPricePerDay;
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+
+        var existingDocs = await _repository.GetVehicleDocumentsAsync(vehicle.Id, includeDeleted: false, cancellationToken);
+        var currentRegistration = existingDocs.FirstOrDefault(d => d.IsCurrent && d.DocType == "Registration");
+
+        if (!string.IsNullOrWhiteSpace(request.DocumentFileUrl))
+        {
+            if (currentRegistration is not null)
+            {
+                currentRegistration.IsCurrent = false;
+            }
+            var doc = new VehicleDocument
+            {
+                VehicleId = vehicle.Id,
+                DocType = "Registration",
+                FileUrl = request.DocumentFileUrl,
+                IsCurrent = true
+            };
+
+            if (request.UseOcr)
+            {
+                await VerifyVehicleDocumentAsync(vehicle, brand.Name, model.Name, doc, cancellationToken);
+            }
+            else
+            {
+                doc.Verified = true;
+                doc.VerificationStatus = VehicleDocumentVerificationStatus.Verified;
+                doc.VerificationProvider = "ADMIN_MANUAL";
+                doc.OcrConfidence = 1.0m;
+                doc.OcrLicensePlate = request.LicensePlate;
+                doc.OcrBrand = brand.Name;
+                doc.OcrModel = model.Name;
+                doc.OcrEngineNumber = request.EngineNumber;
+                doc.OcrChassisNumber = request.ChassisNumber;
+                doc.ProcessedAt = DateTime.UtcNow;
+            }
+
+            _repository.Add(doc);
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+        else if (currentRegistration is not null)
+        {
+            currentRegistration.OcrLicensePlate = request.LicensePlate;
+            currentRegistration.OcrBrand = brand.Name;
+            currentRegistration.OcrModel = model.Name;
+            currentRegistration.OcrEngineNumber = request.EngineNumber;
+            currentRegistration.OcrChassisNumber = request.ChassisNumber;
+            currentRegistration.Verified = true;
+            currentRegistration.VerificationStatus = VehicleDocumentVerificationStatus.Verified;
+            currentRegistration.VerificationProvider = "ADMIN_MANUAL";
+            currentRegistration.OcrConfidence = 1.0m;
+            currentRegistration.ProcessedAt = DateTime.UtcNow;
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+
+        return await GetVehicleResponseAsync(vehicle, cancellationToken);
+    }
+
     private async Task<VehicleResponse> GetVehicleResponseAsync(Vehicle vehicle, CancellationToken cancellationToken)
     {
-        var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken);
-        var model = await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken);
-        var variant = vehicle.VariantId.HasValue
-            ? await _repository.GetVehicleModelVariantByIdAsync(vehicle.VariantId.Value, cancellationToken)
-            : null;
-        var area = vehicle.AreaId.HasValue
-            ? await _repository.GetAreaByIdAsync(vehicle.AreaId.Value, cancellationToken)
-            : null;
+        var brand = vehicle.Brand is not null && vehicle.Brand.Id == vehicle.BrandId
+            ? vehicle.Brand
+            : await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken);
+        var model = vehicle.Model is not null && vehicle.Model.Id == vehicle.ModelId
+            ? vehicle.Model
+            : await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken);
+        var variant = vehicle.Variant is not null && vehicle.Variant.Id == vehicle.VariantId
+            ? vehicle.Variant
+            : vehicle.VariantId.HasValue
+                ? await _repository.GetVehicleModelVariantByIdAsync(vehicle.VariantId.Value, cancellationToken)
+                : null;
+        var area = vehicle.Area is not null && vehicle.Area.Id == vehicle.AreaId
+            ? vehicle.Area
+            : vehicle.AreaId.HasValue
+                ? await _repository.GetAreaByIdAsync(vehicle.AreaId.Value, cancellationToken)
+                : null;
         var region = area is not null
             ? await _repository.GetPricingRegionByIdAsync(area.PricingRegionId, cancellationToken)
             : null;
@@ -635,6 +811,18 @@ public class AdminPostManagementService : IAdminPostManagementService
         => value.Equals("Motorcycle", StringComparison.OrdinalIgnoreCase) ? "Motorbike" : value;
 
     private static UpdateVehiclePricingRequest BuildPricingRequest(CreateAdminVehicleRequest request)
+    {
+        var pricingMode = string.IsNullOrWhiteSpace(request.PricingMode) ? PricingModes.Fixed : request.PricingMode.Trim();
+        return new UpdateVehiclePricingRequest
+        {
+            PricingMode = pricingMode,
+            FixedPricePerDay = pricingMode == PricingModes.Fixed ? request.FixedPricePerDay ?? request.PricePerDay : null,
+            AutoMinPrice = pricingMode == PricingModes.Auto ? request.AutoMinPrice : null,
+            AutoMaxPrice = pricingMode == PricingModes.Auto ? request.AutoMaxPrice : null
+        };
+    }
+
+    private static UpdateVehiclePricingRequest BuildUpdatePricingRequest(UpdateAdminVehicleRequest request)
     {
         var pricingMode = string.IsNullOrWhiteSpace(request.PricingMode) ? PricingModes.Fixed : request.PricingMode.Trim();
         return new UpdateVehiclePricingRequest

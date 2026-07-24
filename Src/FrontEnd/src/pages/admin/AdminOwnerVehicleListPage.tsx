@@ -5,7 +5,8 @@ import { getAdminOwnerVehicles } from "@/features/admin/services/adminPostManage
 import { getAdminUserById } from "@/features/admin/services/adminUserService";
 import type { AdminOwnerVehicleListItem, PagedResult } from "@/features/admin/types";
 import CreateVehicleModal from "@/features/admin/components/CreateVehicleModal";
-import { ChevronLeft, ChevronRight, Plus, Car, Bike, ArrowLeft } from "lucide-react";
+import EditVehicleModal from "@/features/admin/components/EditVehicleModal";
+import { ChevronLeft, ChevronRight, Plus, Car, Bike, ArrowLeft, Pencil } from "lucide-react";
 import fallbackImg from "../../../Logo/logo.png";
 
 function statusBadge(status: string) {
@@ -36,6 +37,7 @@ export default function AdminOwnerVehicleListPage() {
   const [vehicleType, setVehicleType] = useState<string>("");
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editVehicleId, setEditVehicleId] = useState<number | null>(null);
   const pageSize = 10;
 
   useEffect(() => {
@@ -129,6 +131,14 @@ export default function AdminOwnerVehicleListPage() {
                 className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                 onClick={() => navigate(`/admin/vehicle-listings/${vehicle.id}`, { state: { from: location.pathname } })}
               >
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setEditVehicleId(vehicle.id); }}
+                  className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-slate-500 shadow-sm backdrop-blur-sm transition-colors hover:bg-brand-50 hover:text-brand-600"
+                  title="Chỉnh sửa xe"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
                 {vehicle.featuredImage ? (
                   <div className="aspect-[16/9] overflow-hidden bg-slate-100">
                     <img src={vehicle.featuredImage} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" onError={(e) => { e.currentTarget.src = fallbackImg; }} />
@@ -197,6 +207,14 @@ export default function AdminOwnerVehicleListPage() {
           ownerName={displayName}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => { setShowCreateModal(false); setPage(1); }}
+        />
+      )}
+
+      {editVehicleId && (
+        <EditVehicleModal
+          vehicleId={editVehicleId}
+          onClose={() => setEditVehicleId(null)}
+          onUpdated={() => { setEditVehicleId(null); setPage(1); }}
         />
       )}
     </div>
