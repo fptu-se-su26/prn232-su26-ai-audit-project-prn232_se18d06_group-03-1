@@ -224,7 +224,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Customer") {
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
-    mainItems.push({ to: "/chat", label: "Tin nhan", icon: MessageSquare });
+    mainItems.push({ to: "/chat", label: "Tin nhắn", icon: MessageSquare });
     if (!user?.roles?.includes("Owner")) {
       mainItems.push({ to: "/become-owner", label: "Đăng ký làm chủ xe", icon: UserPlus });
     }
@@ -239,7 +239,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Owner") {
     mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
-    mainItems.push({ to: "/chat", label: "Tin nhan", icon: MessageSquare });
+    mainItems.push({ to: "/chat", label: "Tin nhắn", icon: MessageSquare });
     mainItems.push({ to: "/owner/disputes", label: "Tranh chấp", icon: Scale });
     mainItems.push({ to: "/", label: "Về trang chủ", icon: Home });
   }
@@ -855,7 +855,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           )}
         </div>
 
-        <div className="shrink-0 border-t border-brand-100/70 bg-white/80 pt-2 backdrop-blur">
+        <div className="shrink-0 border-t border-slate-100 pt-2">
           <button
             type="button"
             onClick={onToggle}

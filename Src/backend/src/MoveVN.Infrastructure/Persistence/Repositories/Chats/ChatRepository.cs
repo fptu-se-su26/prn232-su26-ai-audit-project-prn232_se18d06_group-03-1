@@ -8,6 +8,11 @@ namespace MoveVN.Infrastructure.Persistence.Repositories.Chats;
 public class ChatRepository : IChatRepository
 {
     private readonly MongoDbContext _context;
+    private static readonly SortDefinition<ChatRoomDocument> CanonicalRoomSort =
+        Builders<ChatRoomDocument>.Sort
+            .Descending("LastMessage.SentAt")
+            .Descending(room => room.UpdatedAt)
+            .Descending(room => room.CreatedAt);
 
     public ChatRepository(MongoDbContext context)
     {
@@ -22,23 +27,44 @@ public class ChatRepository : IChatRepository
     public async Task<ChatRoomDocument?> GetRoomByBookingIdAsync(long bookingId, CancellationToken cancellationToken = default)
         => await _context.ChatRooms
             .Find(room => room.BookingId == bookingId.ToString() && room.IsActive)
+            .Sort(CanonicalRoomSort)
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<List<ChatRoomDocument>> GetRoomsByBookingIdAsync(long bookingId, CancellationToken cancellationToken = default)
+        => await _context.ChatRooms
+            .Find(room => room.BookingId == bookingId.ToString() && room.IsActive)
+            .Sort(CanonicalRoomSort)
+            .ToListAsync(cancellationToken);
 
     public async Task<List<ChatRoomDocument>> GetRoomsByUserIdAsync(long userId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var filter = BuildUserRoomFilter(userId);
         return await _context.ChatRooms
             .Find(filter)
-            .SortByDescending(room => room.UpdatedAt)
+            .Sort(CanonicalRoomSort)
             .Skip((page - 1) * pageSize)
             .Limit(pageSize)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<ChatRoomDocument>> GetAllRoomsByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var filter = BuildUserRoomFilter(userId);
+        return await _context.ChatRooms
+            .Find(filter)
+            .Sort(CanonicalRoomSort)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<int> CountRoomsByUserIdAsync(long userId, CancellationToken cancellationToken = default)
     {
         var filter = BuildUserRoomFilter(userId);
-        return (int)await _context.ChatRooms.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        var bookingIds = await _context.ChatRooms
+            .Find(filter)
+            .Project(room => room.BookingId)
+            .ToListAsync(cancellationToken);
+
+        return bookingIds.Distinct(StringComparer.Ordinal).Count();
     }
 
     public async Task AddRoomAsync(ChatRoomDocument room, CancellationToken cancellationToken = default)

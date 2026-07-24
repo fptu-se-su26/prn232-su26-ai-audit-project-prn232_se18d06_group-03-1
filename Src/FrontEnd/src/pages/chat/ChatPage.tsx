@@ -1,5 +1,5 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
-import { Car, MessageSquare, Send, UserRound } from "lucide-react";
+import { Car, CheckCheck, MessageSquare, Send, Wifi, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -16,12 +16,31 @@ import type { ChatMessage, ChatMessageCreatedPayload, ChatRoom } from "@/feature
 import { getApiBaseUrl, getApiErrorMessage } from "@/services/apiClient";
 
 function formatTime(value: string) {
+  const date = new Date(value);
+  const now = new Date();
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(date);
+  }
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(date);
+}
+
+function getAvatarInitials(name: string) {
+  return name
+    .split(" ")
+    .map((word) => word[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 function moveRoomToTop(rooms: ChatRoom[], room: ChatRoom, unreadCount?: number) {
@@ -60,6 +79,7 @@ export default function ChatPage() {
   const connectionRef = useRef<HubConnection | null>(null);
   const selectedRoomRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.id === selectedRoomId) ?? null,
@@ -98,7 +118,7 @@ export default function ChatPage() {
       setRooms(nextRooms);
       setSelectedRoomId((current) => bookingRoom?.id ?? current ?? nextRooms[0]?.id ?? null);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the tai danh sach chat."));
+      setError(getApiErrorMessage(err, "Không thể tải danh sách chat."));
     } finally {
       setIsLoadingRooms(false);
     }
@@ -127,7 +147,7 @@ export default function ChatPage() {
         setRooms((current) => moveRoomToTop(current, updated, 0));
       })
       .catch((err) => {
-        if (isMounted) setError(getApiErrorMessage(err, "Khong the tai tin nhan."));
+        if (isMounted) setError(getApiErrorMessage(err, "Không thể tải tin nhắn."));
       })
       .finally(() => {
         if (isMounted) setIsLoadingMessages(false);
@@ -220,6 +240,9 @@ export default function ChatPage() {
     try {
       const sent = await sendChatMessage(selectedRoomId, { content });
       setDraft("");
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
       setMessages((current) => appendMessage(current, sent));
       setRooms((current) => {
         const room = current.find((item) => item.id === selectedRoomId);
@@ -231,70 +254,109 @@ export default function ChatPage() {
         }, 0);
       });
     } catch (err) {
-      setError(getApiErrorMessage(err, "Khong the gui tin nhan."));
+      setError(getApiErrorMessage(err, "Không thể gửi tin nhắn."));
     } finally {
       setIsSending(false);
     }
   }
 
+  function handleTextareaChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    setDraft(event.target.value);
+    event.target.style.height = "auto";
+    event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`;
+  }
+
   return (
     <div className="mx-auto flex h-[calc(100vh-7rem)] min-h-[620px] max-w-6xl flex-col gap-4">
+      {/* Page header */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Chat realtime</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-950">Tin nhan booking</h1>
+          <h1 className="mt-1 text-2xl font-bold text-slate-950">Tin nhắn booking</h1>
         </div>
-        {selectedRoom?.bookingId ? (
-          <Link to={bookingDetailPath}>
-            <Button variant="secondary" size="sm">Xem booking</Button>
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {/* Connection status */}
+          <span
+            className={[
+              "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+              connectionReady
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-slate-100 text-slate-500",
+            ].join(" ")}
+          >
+            {connectionReady ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+            {connectionReady ? "Đang kết nối" : "Đang tải..."}
+          </span>
+          {selectedRoom?.bookingId ? (
+            <Link to={bookingDetailPath}>
+              <Button variant="secondary" size="sm">Xem booking</Button>
+            </Link>
+          ) : null}
+        </div>
       </header>
 
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 overflow-hidden rounded-md border border-slate-200 bg-white lg:grid-cols-[320px_1fr]">
-        <aside className="min-h-0 border-b border-slate-200 bg-slate-50 lg:border-b-0 lg:border-r">
-          <div className="border-b border-slate-200 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-900">Cuoc tro chuyen</p>
-            <p className="text-xs text-slate-500">{rooms.length} phong chat</p>
+      <div className="grid min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[320px_1fr]">
+        {/* Room list sidebar */}
+        <aside className="flex min-h-0 flex-col border-b border-slate-200 bg-slate-50 lg:border-b-0 lg:border-r">
+          <div className="border-b border-slate-200 px-4 py-3.5">
+            <p className="text-sm font-semibold text-slate-900">Cuộc trò chuyện</p>
+            <p className="mt-0.5 text-xs text-slate-500">{rooms.length} phòng chat</p>
           </div>
-          <div className="max-h-64 overflow-y-auto p-2 lg:max-h-none lg:h-[calc(100%-57px)]">
+          <div className="flex-1 overflow-y-auto p-2">
             {isLoadingRooms ? (
-              <div className="flex h-32 items-center justify-center"><LoadingSpinner /></div>
+              <div className="flex h-32 items-center justify-center">
+                <LoadingSpinner />
+              </div>
             ) : rooms.length === 0 ? (
-              <div className="rounded-md border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-                Chua co phong chat.
+              <div className="mt-8 flex flex-col items-center gap-2 px-4 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
+                  <MessageSquare className="h-7 w-7 text-slate-300" />
+                </div>
+                <p className="text-sm font-medium text-slate-600">Chưa có phòng chat</p>
+                <p className="text-xs text-slate-400">Mở chi tiết booking để bắt đầu chat</p>
               </div>
             ) : (
               rooms.map((room) => {
                 const participant = room.participants.find((item) => item.userId !== user?.userId);
                 const isActive = room.id === selectedRoomId;
+                const initials = getAvatarInitials(participant?.fullName ?? "?");
                 return (
                   <button
                     key={room.id}
                     type="button"
                     onClick={() => setSelectedRoomId(room.id)}
                     className={[
-                      "mb-2 w-full rounded-md border px-3 py-3 text-left transition-colors",
-                      isActive ? "border-brand-300 bg-white shadow-sm" : "border-transparent bg-transparent hover:bg-white",
+                      "mb-1 w-full rounded-lg border px-3 py-3 text-left transition-all duration-150",
+                      isActive
+                        ? "border-brand-200 bg-white shadow-sm"
+                        : "border-transparent hover:border-slate-200 hover:bg-white",
                     ].join(" ")}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
-                        <UserRound className="h-5 w-5" />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-sm font-semibold text-white shadow-sm">
+                        {initials}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-semibold text-slate-900">{participant?.fullName ?? "Nguoi dung"}</p>
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {participant?.fullName ?? "Người dùng"}
+                          </p>
                           {room.unreadCount > 0 ? (
-                            <span className="rounded-full bg-brand-700 px-2 py-0.5 text-xs font-semibold text-white">{room.unreadCount}</span>
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white">
+                              {room.unreadCount}
+                            </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 truncate text-xs text-slate-500">Booking {room.bookingCode}</p>
-                        <p className="mt-1 truncate text-xs text-slate-600">{room.lastMessage?.text ?? "Chua co tin nhan"}</p>
+                        <p className="mt-0.5 truncate text-[11px] font-medium text-slate-400">
+                          Booking {room.bookingCode}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {room.lastMessage?.text ?? "Chưa có tin nhắn"}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -304,47 +366,95 @@ export default function ChatPage() {
           </div>
         </aside>
 
+        {/* Chat area */}
         <section className="flex min-h-0 flex-col">
           {selectedRoom ? (
             <>
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              {/* Chat header */}
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-                    <UserRound className="h-5 w-5" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-sm font-semibold text-white shadow-sm">
+                    {getAvatarInitials(otherParticipant?.fullName ?? "?")}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-950">{otherParticipant?.fullName ?? "Nguoi dung"}</p>
+                    <p className="truncate text-sm font-semibold text-slate-950">
+                      {otherParticipant?.fullName ?? "Người dùng"}
+                    </p>
                     <p className="truncate text-xs text-slate-500">
-                      Booking {selectedRoom.bookingCode}
-                      {selectedRoom.vehicleName ? ` - ${selectedRoom.vehicleName}` : ""}
+                      {selectedRoom.bookingCode}
+                      {selectedRoom.vehicleName ? ` · ${selectedRoom.vehicleName}` : ""}
                     </p>
                   </div>
                 </div>
-                <div className="hidden items-center gap-2 rounded-md bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 sm:flex">
-                  <Car className="h-4 w-4" />
-                  Xe #{selectedRoom.vehicleId}
-                </div>
+                {selectedRoom.vehicleId ? (
+                  <div className="hidden items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 sm:flex">
+                    <Car className="h-3.5 w-3.5" />
+                    Xe #{selectedRoom.vehicleId}
+                  </div>
+                ) : null}
               </div>
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50 px-4 py-4">
+              {/* Messages */}
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#f7f8fc] px-4 py-4">
                 {isLoadingMessages ? (
-                  <div className="flex h-full items-center justify-center"><LoadingSpinner /></div>
+                  <div className="flex h-full items-center justify-center">
+                    <LoadingSpinner />
+                  </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
-                    <div>
-                      <MessageSquare className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                      Chua co tin nhan. Hay bat dau trao doi ve booking nay.
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
+                      <MessageSquare className="h-8 w-8 text-slate-300" />
                     </div>
+                    <p className="text-sm font-medium text-slate-500">Chưa có tin nhắn</p>
+                    <p className="text-xs text-slate-400">Hãy bắt đầu trao đổi về booking này</p>
                   </div>
                 ) : (
-                  messages.map((message) => {
+                  messages.map((message, index) => {
                     const isMine = message.senderId === user?.userId;
+                    const prevMessage = messages[index - 1];
+                    const showAvatar =
+                      !isMine &&
+                      (index === 0 || prevMessage?.senderId !== message.senderId);
+
                     return (
-                      <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[78%] rounded-md px-4 py-2 shadow-sm ${isMine ? "bg-brand-700 text-white" : "bg-white text-slate-800"}`}>
-                          {!isMine ? <p className="mb-1 text-xs font-semibold text-slate-500">{message.senderName}</p> : null}
-                          <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
-                          <p className={`mt-1 text-right text-[11px] ${isMine ? "text-brand-100" : "text-slate-400"}`}>{formatTime(message.sentAt)}</p>
+                      <div
+                        key={message.id}
+                        className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}
+                      >
+                        {!isMine ? (
+                          <div
+                            className={[
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm",
+                              showAvatar
+                                ? "bg-gradient-to-br from-brand-500 to-violet-600"
+                                : "invisible",
+                            ].join(" ")}
+                          >
+                            {getAvatarInitials(message.senderName)}
+                          </div>
+                        ) : null}
+                        <div className={`max-w-[72%] ${isMine ? "" : ""}`}>
+                          {showAvatar && !isMine ? (
+                            <p className="mb-1 ml-1 text-[11px] font-semibold text-slate-500">{message.senderName}</p>
+                          ) : null}
+                          <div
+                            className={[
+                              "rounded-2xl px-4 py-2.5 shadow-sm",
+                              isMine
+                                ? "rounded-br-sm bg-brand-600 text-white"
+                                : "rounded-bl-sm bg-white text-slate-800",
+                            ].join(" ")}
+                          >
+                            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>
+                            <div className={`mt-1 flex items-center gap-1 ${isMine ? "justify-end" : "justify-end"}`}>
+                              <p className={`text-[10px] ${isMine ? "text-brand-200" : "text-slate-400"}`}>
+                                {formatTime(message.sentAt)}
+                              </p>
+                              {isMine && message.isRead ? (
+                                <CheckCheck className="h-3 w-3 text-brand-200" />
+                              ) : null}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );
@@ -353,11 +463,13 @@ export default function ChatPage() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Input area */}
               <div className="border-t border-slate-200 bg-white p-3">
-                <div className="flex gap-2">
+                <div className="flex items-end gap-2">
                   <textarea
+                    ref={textareaRef}
                     value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
+                    onChange={handleTextareaChange}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -366,20 +478,34 @@ export default function ChatPage() {
                     }}
                     rows={1}
                     maxLength={2000}
-                    placeholder="Nhap tin nhan..."
-                    className="min-h-10 flex-1 resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"
+                    className="min-h-10 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                    style={{ maxHeight: "120px" }}
                   />
-                  <Button onClick={handleSend} isLoading={isSending} disabled={!draft.trim()}>
-                    <Send className="h-4 w-4" /> Gui
+                  <Button
+                    onClick={handleSend}
+                    isLoading={isSending}
+                    disabled={!draft.trim()}
+                    className="h-10 w-10 shrink-0 rounded-xl !p-0"
+                  >
+                    <Send className="h-4 w-4" />
                   </Button>
                 </div>
+                {draft.length > 1800 ? (
+                  <p className="mt-1 text-right text-xs text-slate-400">{draft.length}/2000</p>
+                ) : null}
               </div>
             </>
           ) : (
-            <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 shadow-sm">
+                <MessageSquare className="h-10 w-10 text-slate-300" />
+              </div>
               <div>
-                <MessageSquare className="mx-auto mb-2 h-10 w-10 text-slate-300" />
-                Chon mot phong chat hoac mo tu chi tiet booking.
+                <p className="text-sm font-semibold text-slate-600">Chọn một cuộc trò chuyện</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Hoặc mở từ chi tiết booking để bắt đầu chat
+                </p>
               </div>
             </div>
           )}

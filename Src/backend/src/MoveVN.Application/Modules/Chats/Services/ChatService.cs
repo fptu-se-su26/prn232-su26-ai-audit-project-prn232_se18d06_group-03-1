@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
@@ -18,6 +19,7 @@ public class ChatService : IChatService
 {
     private const int MaxPageSize = 50;
     private const int MaxMessageLength = 2000;
+    private static readonly ConcurrentDictionary<long, SemaphoreSlim> RoomCreationLocks = new();
     private readonly IBookingRepository _bookingRepository;
     private readonly IUserRepository _userRepository;
     private readonly IChatRepository _chatRepository;
@@ -43,11 +45,15 @@ public class ChatService : IChatService
         var page = Math.Max(request.Page, 1);
         var pageSize = Math.Clamp(request.PageSize, 1, MaxPageSize);
 
-        var totalCount = await _chatRepository.CountRoomsByUserIdAsync(userId, cancellationToken);
-        var rooms = await _chatRepository.GetRoomsByUserIdAsync(userId, page, pageSize, cancellationToken);
+        var allRooms = await _chatRepository.GetAllRoomsByUserIdAsync(userId, cancellationToken);
+        var rooms = GetCanonicalRooms(allRooms);
+        var pagedRooms = rooms
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
         var responses = new List<ChatRoomResponse>();
 
-        foreach (var room in rooms)
+        foreach (var room in pagedRooms)
         {
             responses.Add(await MapRoomAsync(room, userId, cancellationToken));
         }
@@ -55,7 +61,7 @@ public class ChatService : IChatService
         return new PagedResult<ChatRoomResponse>
         {
             Items = responses,
-            TotalCount = totalCount,
+            TotalCount = rooms.Count,
             Page = page,
             PageSize = pageSize
         };
@@ -64,41 +70,55 @@ public class ChatService : IChatService
     public async Task<ChatRoomResponse> GetOrCreateRoomByBookingAsync(long bookingId, long userId, CancellationToken cancellationToken = default)
     {
         var booking = await GetAccessibleBookingAsync(bookingId, userId, cancellationToken);
-        var room = await _chatRepository.GetRoomByBookingIdAsync(bookingId, cancellationToken);
+        ChatRoomDocument? room;
+        var roomLock = RoomCreationLocks.GetOrAdd(bookingId, _ => new SemaphoreSlim(1, 1));
 
-        if (room is null)
+        await roomLock.WaitAsync(cancellationToken);
+        try
         {
-            var now = DateTime.UtcNow;
-            room = new ChatRoomDocument
+            room = SelectCanonicalRoom(await _chatRepository.GetRoomsByBookingIdAsync(bookingId, cancellationToken));
+            if (room is null)
             {
-                BookingId = booking.Id.ToString(),
-                RoomType = "booking",
-                Participants =
-                [
-                    new ChatParticipantDocument
-                    {
-                        UserId = booking.CustomerId.ToString(),
-                        Role = "Customer",
-                        JoinedAt = now
-                    },
-                    new ChatParticipantDocument
-                    {
-                        UserId = booking.OwnerId.ToString(),
-                        Role = "Owner",
-                        JoinedAt = now
-                    }
-                ],
-                UnreadCount = new Dictionary<string, int>
+                var now = DateTime.UtcNow;
+                room = new ChatRoomDocument
                 {
-                    [booking.CustomerId.ToString()] = 0,
-                    [booking.OwnerId.ToString()] = 0
-                },
-                IsActive = true,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
+                    BookingId = booking.Id.ToString(),
+                    RoomType = "booking",
+                    Participants =
+                    [
+                        new ChatParticipantDocument
+                        {
+                            UserId = booking.CustomerId.ToString(),
+                            Role = "Customer",
+                            JoinedAt = now
+                        },
+                        new ChatParticipantDocument
+                        {
+                            UserId = booking.OwnerId.ToString(),
+                            Role = "Owner",
+                            JoinedAt = now
+                        }
+                    ],
+                    UnreadCount = new Dictionary<string, int>
+                    {
+                        [booking.CustomerId.ToString()] = 0,
+                        [booking.OwnerId.ToString()] = 0
+                    },
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
 
-            await _chatRepository.AddRoomAsync(room, cancellationToken);
+                await _chatRepository.AddRoomAsync(room, cancellationToken);
+            }
+        }
+        finally
+        {
+            roomLock.Release();
+            if (roomLock.CurrentCount == 1)
+            {
+                RoomCreationLocks.TryRemove(bookingId, out _);
+            }
         }
 
         return await MapRoomAsync(room, userId, cancellationToken, booking);
@@ -340,6 +360,31 @@ public class ChatService : IChatService
 
     private static bool IsParticipant(ChatRoomDocument room, long userId)
         => room.Participants.Any(participant => participant.UserId == userId.ToString());
+
+    private static List<ChatRoomDocument> GetCanonicalRooms(IEnumerable<ChatRoomDocument> rooms)
+        => rooms
+            .GroupBy(room => string.IsNullOrWhiteSpace(room.BookingId) ? room.Id ?? Guid.NewGuid().ToString() : room.BookingId, StringComparer.Ordinal)
+            .Select(group => SelectCanonicalRoom(group))
+            .OfType<ChatRoomDocument>()
+            .OrderByDescending(GetRoomActivityAt)
+            .ToList();
+
+    private static ChatRoomDocument? SelectCanonicalRoom(IEnumerable<ChatRoomDocument> rooms)
+        => rooms
+            .OrderByDescending(GetRoomActivityAt)
+            .ThenByDescending(room => room.UpdatedAt)
+            .ThenByDescending(room => room.CreatedAt)
+            .FirstOrDefault();
+
+    private static DateTime GetRoomActivityAt(ChatRoomDocument room)
+    {
+        if (room.LastMessage?.SentAt is DateTime sentAt)
+        {
+            return sentAt;
+        }
+
+        return room.UpdatedAt != default ? room.UpdatedAt : room.CreatedAt;
+    }
 
     private static List<long> GetParticipantIds(ChatRoomDocument room)
         => room.Participants
