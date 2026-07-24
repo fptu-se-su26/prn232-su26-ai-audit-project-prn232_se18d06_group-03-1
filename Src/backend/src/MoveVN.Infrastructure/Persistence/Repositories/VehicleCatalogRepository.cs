@@ -119,7 +119,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
         => _context.PricingRegion.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<VehiclePricing?> GetVehiclePricingByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default)
-        => _context.VehiclePricing.AsNoTracking().FirstOrDefaultAsync(x => x.VehicleId == vehicleId, cancellationToken);
+        => _context.VehiclePricing.FirstOrDefaultAsync(x => x.VehicleId == vehicleId, cancellationToken);
 
     public Task<VehicleModelPricing?> GetVehicleModelPricingByIdAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleModelPricing.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -144,7 +144,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<Vehicle?> GetVehicleByIdAsync(long id, CancellationToken cancellationToken = default)
-        => _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        => _context.Vehicles.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<Vehicle?> GetVehicleWithDetailsByIdAsync(long id, CancellationToken cancellationToken = default)
         => _context.Vehicles
@@ -156,7 +156,7 @@ public class VehicleCatalogRepository : IVehicleCatalogRepository
             .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
 
     public Task<Vehicle?> GetVehicleByIdAndOwnerIdAsync(long id, long ownerId, CancellationToken cancellationToken = default)
-        => _context.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, cancellationToken);
+        => _context.Vehicles.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, cancellationToken);
 
     public Task<bool> VehicleBrandExistsAsync(int id, CancellationToken cancellationToken = default)
         => _context.VehicleBrand.AnyAsync(x => x.Id == id, cancellationToken);
