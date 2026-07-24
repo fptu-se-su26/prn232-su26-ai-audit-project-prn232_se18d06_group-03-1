@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ClipboardList,
   FileBadge,
+  FileText,
   FolderTree,
   Home,
   IdCard,
@@ -860,6 +861,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   ))}
                 </div>
               )}
+
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <NavItem collapsed={collapsed} to="/admin/cms-pages" label="Trang CMS" icon={FileText} />
             </>
           )}
         </div>

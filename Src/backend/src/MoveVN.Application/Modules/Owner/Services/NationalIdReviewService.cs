@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
@@ -63,6 +65,39 @@ public class NationalIdReviewService : INationalIdReviewService
 
         var customerProfile = await _userRepository.GetCustomerProfileByUserIdAsync(request.UserId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
+
+        // === Check duplicate CCCD before approving ===
+        var nationalId = customerProfile.NationalId;
+        if (string.IsNullOrWhiteSpace(nationalId) && !string.IsNullOrWhiteSpace(request.ExternalResultJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(request.ExternalResultJson);
+                if (doc.RootElement.TryGetProperty("extracted", out var extracted)
+                    && extracted.TryGetProperty("nationalIdNumber", out var idProp))
+                {
+                    nationalId = idProp.GetString();
+                }
+            }
+            catch { /* ignore parse errors */ }
+        }
+
+        if (!string.IsNullOrWhiteSpace(nationalId))
+        {
+            var hash = HashNationalId(nationalId);
+            var existingProfile = await _userRepository.GetByNationalIdHashAsync(hash, cancellationToken);
+            if (existingProfile != null && existingProfile.UserId != request.UserId)
+            {
+                var existingUser = await _userRepository.GetByIdAsync(existingProfile.UserId, cancellationToken);
+                if (existingUser?.Status is not ("Deleted" or "Suspended"))
+                {
+                    throw new AppException(ErrorCode.OWNER_NATIONAL_ID_DUPLICATED);
+                }
+            }
+            customerProfile.NationalId ??= nationalId;
+            customerProfile.NationalIdHash ??= hash;
+            customerProfile.NationalIdMasked ??= MaskNationalId(nationalId);
+        }
 
         request.Status = "Verified";
         request.ReviewedBy = reviewerId;
@@ -173,6 +208,20 @@ public class NationalIdReviewService : INationalIdReviewService
             && !string.IsNullOrWhiteSpace(application.BankAccountNumber)
             && !string.IsNullOrWhiteSpace(application.BankAccountHolderName);
         return bankInfoCompleted ? "ReadyToSubmit" : "WaitingBankInfo";
+    }
+
+    private static string HashNationalId(string? nationalId)
+    {
+        if (string.IsNullOrWhiteSpace(nationalId)) return string.Empty;
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(nationalId));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private static string MaskNationalId(string? nationalId)
+    {
+        if (string.IsNullOrWhiteSpace(nationalId)) return string.Empty;
+        if (nationalId.Length <= 4) return new string('*', nationalId.Length);
+        return new string('*', nationalId.Length - 4) + nationalId[^4..];
     }
 
     private long GetCurrentUserId()

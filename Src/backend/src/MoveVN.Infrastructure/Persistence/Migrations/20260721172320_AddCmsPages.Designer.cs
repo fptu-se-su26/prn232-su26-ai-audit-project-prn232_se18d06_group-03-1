@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoveVN.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MoveVN.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260721172320_AddCmsPages")]
+    partial class AddCmsPages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2438,12 +2441,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AreaId");
 
-                    b.HasIndex("BrandId");
-
-                    b.HasIndex("ModelId");
-
-                    b.HasIndex("OwnerId");
-
                     b.HasIndex("VariantId");
 
                     b.HasIndex("OwnerId", "Status", "VehicleType");
@@ -2665,8 +2662,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VehicleId");
-
                     b.ToTable("VehicleImages");
                 });
 
@@ -2861,8 +2856,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("VehicleId");
 
                     b.ToTable("VehiclePricing");
                 });
@@ -3392,35 +3385,15 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MoveVN.Domain.Entities.Vehicle", b =>
                 {
-                    b.HasOne("MoveVN.Domain.Entities.Area", "Area")
+                    b.HasOne("MoveVN.Domain.Entities.Area", null)
                         .WithMany()
                         .HasForeignKey("AreaId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("MoveVN.Domain.Entities.VehicleBrand", "Brand")
-                        .WithMany()
-                        .HasForeignKey("BrandId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.VehicleModel", "Model")
-                        .WithMany()
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MoveVN.Domain.Entities.VehicleModelVariant", "Variant")
+                    b.HasOne("MoveVN.Domain.Entities.VehicleModelVariant", null)
                         .WithMany()
                         .HasForeignKey("VariantId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Area");
-
-                    b.Navigation("Brand");
-
-                    b.Navigation("Model");
-
-                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("MoveVN.Domain.Entities.VehicleModelPricing", b =>

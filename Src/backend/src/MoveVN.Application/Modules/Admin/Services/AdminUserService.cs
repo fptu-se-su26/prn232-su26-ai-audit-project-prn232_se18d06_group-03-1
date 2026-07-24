@@ -351,6 +351,18 @@ public class AdminUserService : IAdminUserService
             }, cancellationToken);
         }
 
+        // === Check duplicate CCCD before creating owner ===
+        var nationalIdHash = HashNationalId(request.NationalId.Trim());
+        var existingProfile = await _userRepository.GetByNationalIdHashAsync(nationalIdHash, cancellationToken);
+        if (existingProfile != null)
+        {
+            var existingUser = await _userRepository.GetByIdAsync(existingProfile.UserId, cancellationToken);
+            if (existingUser?.Status is not ("Deleted" or "Suspended"))
+            {
+                throw new AppException(ErrorCode.OWNER_NATIONAL_ID_DUPLICATED);
+            }
+        }
+
         var adminId = _currentUserContext.UserId ?? throw new AppException(ErrorCode.UNAUTHORIZED);
         var customerRole = await _roleRepository.GetByNameAsync(UserRoleType.Customer, cancellationToken)
             ?? throw new AppException(ErrorCode.INVALID_ROLE);

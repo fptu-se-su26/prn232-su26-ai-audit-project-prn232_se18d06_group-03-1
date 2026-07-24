@@ -408,9 +408,10 @@ public class OwnerApplicationService : IOwnerApplicationService
         var customerProfile = await _userRepository.GetCustomerProfileByUserIdAsync(userId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
-        if (customerProfile.NationalIdVerified)
+        var wasAlreadyVerified = customerProfile.NationalIdVerified;
+        if (wasAlreadyVerified)
         {
-            throw new AppException(ErrorCode.OWNER_NATIONAL_ID_ALREADY_VERIFIED);
+            _logger.LogInformation("User {UserId} is re-uploading CCCD", userId);
         }
 
         var existingRequest = await _userRepository.GetLatestNationalIdVerificationByUserIdAsync(userId, cancellationToken);
@@ -494,11 +495,53 @@ public class OwnerApplicationService : IOwnerApplicationService
 
             if (shouldAutoVerify)
             {
+                var nationalIdHash = HashNationalId(preVerifyResult.NationalId);
+
+                // === Check duplicate CCCD across all users ===
+                var existingProfile = await _userRepository.GetByNationalIdHashAsync(nationalIdHash, cancellationToken);
+                if (existingProfile != null)
+                {
+                    if (existingProfile.UserId == userId)
+                    {
+                        _logger.LogInformation("User {UserId} re-verified same CCCD (hash {Hash})", userId, nationalIdHash);
+                    }
+                    else
+                    {
+                        var existingUser = await _userRepository.GetByIdAsync(existingProfile.UserId, cancellationToken);
+                        if (existingUser?.Status is not ("Deleted" or "Suspended"))
+                        {
+                            _logger.LogWarning("User {UserId} tried to use CCCD (hash {Hash}) already registered to user {OwnerId}", userId, nationalIdHash, existingProfile.UserId);
+                            verificationRequest.Status = "Rejected";
+                            verificationRequest.DecisionReason = "CCCD này đã được đăng ký cho tài khoản khác.";
+                            verificationRequest.ProcessedAt = DateTime.UtcNow;
+                            _userRepository.UpdateVerificationRequest(verificationRequest);
+                            application.UpdatedAt = DateTime.UtcNow;
+                            _userRepository.UpdateOwnerApplication(application);
+                            await _unitOfWork.SaveChangesAsync(cancellationToken);
+                            throw new AppException(ErrorCode.OWNER_NATIONAL_ID_DUPLICATED);
+                        }
+                        _logger.LogInformation("User {UserId} reusing CCCD from {Status} user {OwnerId}", userId, existingUser!.Status, existingProfile.UserId);
+                    }
+                }
+
+                if (wasAlreadyVerified && customerProfile.NationalIdHash != nationalIdHash)
+                {
+                    _logger.LogWarning("User {UserId} tried to change verified CCCD (old hash {OldHash}, new hash {NewHash})", userId, customerProfile.NationalIdHash, nationalIdHash);
+                    verificationRequest.Status = "Rejected";
+                    verificationRequest.DecisionReason = "Bạn đã xác thực CCCD trước đó, không thể thay đổi sang CCCD khác.";
+                    verificationRequest.ProcessedAt = DateTime.UtcNow;
+                    _userRepository.UpdateVerificationRequest(verificationRequest);
+                    application.UpdatedAt = DateTime.UtcNow;
+                    _userRepository.UpdateOwnerApplication(application);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    throw new AppException(ErrorCode.OWNER_NATIONAL_ID_DUPLICATED, ["Bạn đã xác thực CCCD trước đó, không thể thay đổi sang CCCD khác."]);
+                }
+
                 verificationRequest.Status = "Verified";
                 verificationRequest.DecisionReason = "AI đã xác thực CCCD thành công.";
 
                 customerProfile.NationalId = preVerifyResult.NationalId;
-                customerProfile.NationalIdHash = HashNationalId(preVerifyResult.NationalId);
+                customerProfile.NationalIdHash = nationalIdHash;
                 customerProfile.NationalIdMasked = MaskNationalId(preVerifyResult.NationalId);
                 if (preVerifyResult.DateOfBirth.HasValue)
                     customerProfile.DateOfBirth = DateOnly.FromDateTime(preVerifyResult.DateOfBirth.Value);
@@ -520,6 +563,8 @@ public class OwnerApplicationService : IOwnerApplicationService
                 await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
 
                 await LogAiResultAsync(userId, verificationRequest, preVerifyResult, cancellationToken);
+
+                _logger.LogInformation("User {UserId} CCCD verification completed successfully (hash {Hash})", userId, nationalIdHash);
 
                 return new NationalIdUploadResponse
                 {

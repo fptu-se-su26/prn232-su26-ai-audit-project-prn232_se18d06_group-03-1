@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     public DbSet<Area> Area => Set<Area>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CmsPage> CmsPages => Set<CmsPage>();
     public DbSet<BlockedDate> BlockedDates => Set<BlockedDate>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingStatusHistory> BookingStatusHistory => Set<BookingStatusHistory>();
@@ -131,15 +132,32 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             .HasForeignKey(entity => entity.ModelId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Vehicle>()
-            .HasOne<VehicleModelVariant>()
+            .HasOne(v => v.Brand)
             .WithMany()
-            .HasForeignKey(entity => entity.VariantId)
+            .HasForeignKey(v => v.BrandId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Vehicle>()
+            .HasOne(v => v.Model)
+            .WithMany()
+            .HasForeignKey(v => v.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Vehicle>()
+            .HasOne(v => v.Variant)
+            .WithMany()
+            .HasForeignKey(v => v.VariantId)
             .OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Vehicle>()
-            .HasOne<Area>()
+            .HasOne(v => v.Area)
             .WithMany()
-            .HasForeignKey(entity => entity.AreaId)
+            .HasForeignKey(v => v.AreaId)
             .OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Vehicle>().HasIndex(v => v.BrandId);
+        builder.Entity<Vehicle>().HasIndex(v => v.ModelId);
+        builder.Entity<Vehicle>().HasIndex(v => v.VariantId);
+        builder.Entity<Vehicle>().HasIndex(v => v.AreaId);
+        builder.Entity<Vehicle>().HasIndex(v => v.OwnerId);
+        builder.Entity<VehicleImage>().HasIndex(img => img.VehicleId);
+        builder.Entity<VehiclePricing>().HasIndex(p => p.VehicleId);
         builder.Entity<Vehicle>().Property(entity => entity.DepositPercent).HasDefaultValue(0);
         builder.Entity<Vehicle>().HasIndex(entity => new { entity.OwnerId, entity.Status, entity.VehicleType });
         builder.Entity<Dispute>().Property(entity => entity.PlatformSettledAmount).HasDefaultValue(0);

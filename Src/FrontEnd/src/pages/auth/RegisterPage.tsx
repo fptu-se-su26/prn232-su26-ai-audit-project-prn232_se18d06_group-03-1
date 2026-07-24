@@ -25,6 +25,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const canSubmit = useMemo(
     () =>
@@ -33,8 +34,9 @@ export default function RegisterPage() {
       form.phone.trim().length > 0 &&
       form.password.length > 0 &&
       form.confirmPassword.length > 0 &&
+      termsAccepted &&
       !isSubmitting,
-    [form, isSubmitting],
+    [form, termsAccepted, isSubmitting],
   );
 
   function updateField<K extends keyof RegisterPayload>(key: K, value: RegisterPayload[K]) {
@@ -50,6 +52,11 @@ export default function RegisterPage() {
       confirmPassword: validateConfirmPassword(form.password, form.confirmPassword),
       role: form.role === "Customer" || form.role === "Owner" ? "" : "Chỉ được đăng ký vai trò Customer hoặc Owner.",
     };
+
+    if (!termsAccepted) {
+      showToast({ type: "error", title: "Chưa đồng ý điều khoản", message: "Vui lòng đọc và đồng ý với chính sách và điều khoản sử dụng." });
+      return false;
+    }
 
     Object.keys(nextErrors).forEach((key) => {
       if (!nextErrors[key as keyof RegisterPayload]) {
@@ -137,6 +144,26 @@ export default function RegisterPage() {
           placeholder="Nhập lại mật khẩu"
           value={form.confirmPassword}
         />
+
+        <label className="flex items-start gap-2 text-xs text-slate-500">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-700 focus:ring-brand-500"
+          />
+          <span>
+            Tôi đã đọc và đồng ý với{" "}
+            <a href="/policies/privacy-policy" target="_blank" rel="noreferrer" className="font-semibold text-brand-700 underline hover:text-brand-800">
+              Chính sách bảo mật
+            </a>{" "}
+            và{" "}
+            <a href="/policies/terms-of-service" target="_blank" rel="noreferrer" className="font-semibold text-brand-700 underline hover:text-brand-800">
+              Điều khoản sử dụng
+            </a>{" "}
+            của MoveVN.
+          </span>
+        </label>
 
         <Button className="w-full" disabled={!canSubmit} isLoading={isSubmitting} size="lg" type="submit">
           Đăng ký

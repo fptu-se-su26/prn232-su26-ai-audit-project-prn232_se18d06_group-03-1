@@ -44,34 +44,25 @@ public class PublicVehicleService : IPublicVehicleService
 
     public async Task<VehicleResponse> GetVehicleDetailAsync(long id, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _repository.GetVehicleByIdAsync(id, cancellationToken)
+        var vehicle = await _repository.GetVehicleWithDetailsByIdAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
         if (vehicle.Status != VehicleStatus.Approved)
             throw new AppException(ErrorCode.VEHICLE_NOT_FOUND);
 
-        var brand = await _repository.GetVehicleBrandByIdAsync(vehicle.BrandId, cancellationToken);
-        var model = await _repository.GetVehicleModelByIdAsync(vehicle.ModelId, cancellationToken);
-        var variant = vehicle.VariantId.HasValue
-            ? await _repository.GetVehicleModelVariantByIdAsync(vehicle.VariantId.Value, cancellationToken)
-            : null;
-        var area = vehicle.AreaId.HasValue
-            ? await _repository.GetAreaByIdAsync(vehicle.AreaId.Value, cancellationToken)
-            : null;
-        var region = area is not null
-            ? await _repository.GetPricingRegionByIdAsync(area.PricingRegionId, cancellationToken)
-            : null;
         var pricing = await _repository.GetVehiclePricingByVehicleIdAsync(vehicle.Id, cancellationToken);
+        var features = await _repository.GetVehicleFeatureResponsesAsync(vehicle.Id, cancellationToken);
+        var owner = await _userRepository.GetByIdAsync(vehicle.OwnerId, cancellationToken);
+
+        var region = vehicle.Area is not null
+            ? await _repository.GetPricingRegionByIdAsync(vehicle.Area.PricingRegionId, cancellationToken)
+            : null;
+
         PricingSuggestionResponse? suggestion = null;
         if (vehicle.AreaId.HasValue)
         {
             suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
         }
-
-        var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
-        var features = await _repository.GetVehicleFeatureResponsesAsync(vehicle.Id, cancellationToken);
-
-        var owner = await _userRepository.GetByIdAsync(vehicle.OwnerId, cancellationToken);
 
         return new VehicleResponse
         {
@@ -79,11 +70,11 @@ public class PublicVehicleService : IPublicVehicleService
             OwnerId = vehicle.OwnerId,
             OwnerName = owner?.FullName ?? "",
             BrandId = vehicle.BrandId,
-            BrandName = brand?.Name ?? "",
+            BrandName = vehicle.Brand?.Name ?? "",
             ModelId = vehicle.ModelId,
-            ModelName = model?.Name ?? "",
+            ModelName = vehicle.Model?.Name ?? "",
             VariantId = vehicle.VariantId,
-            VariantName = variant?.Name,
+            VariantName = vehicle.Variant?.Name,
             VehicleType = vehicle.VehicleType,
             Year = vehicle.Year,
             LicensePlate = vehicle.LicensePlate,
@@ -93,8 +84,8 @@ public class PublicVehicleService : IPublicVehicleService
             AreaId = vehicle.AreaId,
             Latitude = vehicle.Latitude,
             Longitude = vehicle.Longitude,
-            AreaName = area is not null ? $"{area.Province} - {area.District}" : null,
-            PricingRegionId = area?.PricingRegionId,
+            AreaName = vehicle.Area is not null ? $"{vehicle.Area.Province} - {vehicle.Area.District}" : null,
+            PricingRegionId = vehicle.Area?.PricingRegionId,
             PricingRegionCode = region?.Code,
             PricePerDay = vehicle.PricePerDay,
             DepositPercent = vehicle.DepositPercent,
@@ -109,10 +100,13 @@ public class PublicVehicleService : IPublicVehicleService
             SuggestedMinPrice = suggestion?.SuggestedMinPrice,
             SuggestedMaxPrice = suggestion?.SuggestedMaxPrice,
             Status = vehicle.Status,
-            FeaturedImage = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
-            Images = images,
+            FeaturedImage = null,
+            Images = [],
             Features = features,
             CreatedAt = vehicle.CreatedAt,
         };
     }
+
+    public async Task<List<VehicleImageResponse>> GetVehicleImagesAsync(long vehicleId, CancellationToken cancellationToken = default)
+        => await _repository.GetVehicleImageResponsesAsync(vehicleId, cancellationToken);
 }

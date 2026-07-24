@@ -15,12 +15,14 @@ import {
   X,
 } from "lucide-react";
 import Button from "@/components/common/Button";
+import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import SectionPanel from "@/components/dashboard/SectionPanel";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { useOwnerApplication } from "@/features/owner/hooks/useOwnerApplication";
+import { toApiError } from "@/features/auth/services/authService";
 
 export default function CccdVerificationPage() {
   const navigate = useNavigate();
@@ -73,8 +75,11 @@ export default function CccdVerificationPage() {
         return;
       }
       setRejected(true);
-    } catch {
+      showToast({ type: "error", title: "Xác thực CCCD thất bại", message: "Ảnh không hợp lệ hoặc không rõ, vui lòng thử lại." });
+    } catch (err) {
       setRejected(true);
+      const apiError = toApiError(err);
+      showToast({ type: "error", title: "Xác thực CCCD thất bại", message: apiError.message });
     }
   }
 

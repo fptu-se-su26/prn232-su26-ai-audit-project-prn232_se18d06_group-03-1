@@ -243,8 +243,8 @@ export default function PublicLayout() {
           id="contact"
           className="border-t border-slate-100 bg-white py-12 text-slate-600 transition-colors duration-300 dark:border-neutral-900 dark:bg-black dark:text-gray-400"
         >
-          <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-4 lg:px-8">
-            <div className="md:col-span-1">
+          <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
+            <div>
               <img
                 src={darkMode ? logoDark : logoLight}
                 alt="MoveVN"
@@ -266,7 +266,7 @@ export default function PublicLayout() {
                 <Link to="/vehicle?type=motorbike" className="hover:text-brand-600 dark:hover:text-brand-300">
                   Thuê xe máy
                 </Link>
-                <Link to="/register-owner" className="hover:text-brand-600 dark:hover:text-brand-300">
+                <Link to="/for-owners" className="hover:text-brand-600 dark:hover:text-brand-300">
                   Đăng ký chủ xe
                 </Link>
               </div>
@@ -291,17 +291,25 @@ export default function PublicLayout() {
 
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                Ho tro
+                Chính Sách
+              </h3>
+              <div className="mt-4 flex flex-col gap-3 text-sm">
+                <Link to="/policies/privacy-policy" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Chính sách bảo mật
+                </Link>
+                <Link to="/policies/terms-of-service" className="hover:text-brand-600 dark:hover:text-brand-300">
+                  Điều khoản sử dụng
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                Hỗ trợ
               </h3>
               <div className="mt-4 flex flex-col gap-3 text-sm">
                 <Link to="/support" className="hover:text-brand-600 dark:hover:text-brand-300">
                   Trung tâm hỗ trợ
-                </Link>
-                <Link to="/terms" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Điều khoản sử dụng
-                </Link>
-                <Link to="/privacy" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Chính sách bảo mật
                 </Link>
                 <a href="mailto:support@movevn.com" className="hover:text-brand-600 dark:hover:text-brand-300">
                   support@movevn.com

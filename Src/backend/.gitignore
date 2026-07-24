@@ -9,3 +9,6 @@ TestResults/
 *.cache
 *.db
 .env
+*.log
+*-err.log
+api*.log
