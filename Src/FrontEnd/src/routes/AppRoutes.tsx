@@ -24,6 +24,7 @@ import AdminDriverLicenseClassesPage from "@/pages/admin/AdminDriverLicenseClass
 import AdminDriverLicenseVerificationsPage from "@/pages/admin/AdminDriverLicenseVerificationsPage";
 import AdminNationalIdVerificationsPage from "@/pages/admin/AdminNationalIdVerificationsPage";
 import AdminCmsPagesPage from "@/pages/admin/AdminCmsPagesPage";
+import AdminCmsEditPage from "@/pages/admin/AdminCmsEditPage";
 import AdminVehicleFeaturesPage from "@/pages/admin/AdminVehicleFeaturesPage";
 import AdminPricingRegionsPage from "@/pages/admin/AdminPricingRegionsPage";
 import AdminAreasPage from "@/pages/admin/AdminAreasPage";
@@ -209,6 +210,8 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-listings" element={<AdminVehiclesPage />} />
             <Route path="/admin/vehicle-listings/:id" element={<AdminVehiclesPage />} />
             <Route path="/admin/cms-pages" element={<AdminCmsPagesPage />} />
+            <Route path="/admin/cms-pages/create" element={<AdminCmsEditPage />} />
+            <Route path="/admin/cms-pages/:id/edit" element={<AdminCmsEditPage />} />
             <Route path="/admin/driver-license-verifications" element={<AdminDriverLicenseVerificationsPage />} />
             <Route path="/admin/national-id-verifications" element={<AdminNationalIdVerificationsPage />} />
             <Route path="/admin/disputes" element={<DisputePage />} />

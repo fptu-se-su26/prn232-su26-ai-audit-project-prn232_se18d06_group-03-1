@@ -92,6 +92,7 @@ export type VehicleResponse = {
   images: VehicleImageResponse[];
   features: VehicleFeatureResponse[];
   documents: VehicleDocumentResponse[];
+  busyPeriods: BusyPeriod[];
   createdAt: string;
 };
 

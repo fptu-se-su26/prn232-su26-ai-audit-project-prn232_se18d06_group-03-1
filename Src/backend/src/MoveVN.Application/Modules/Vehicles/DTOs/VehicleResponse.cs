@@ -41,6 +41,7 @@ public class VehicleResponse
     public List<VehicleImageResponse> Images { get; set; } = [];
     public List<VehicleFeatureResponse> Features { get; set; } = [];
     public List<VehicleDocumentResponse> Documents { get; set; } = [];
+    public List<BusyPeriod> BusyPeriods { get; set; } = [];
     public DateTime CreatedAt { get; set; }
 }
 

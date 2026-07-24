@@ -1,5 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Outlet } from "react-router-dom";
+import { getCmsPageNavigation } from "@/features/cms/services/cmsService";
+import type { CmsPageNavigationItem } from "@/features/cms/types";
 import {
   CalendarDays,
   ChevronDown,
@@ -33,6 +35,11 @@ export default function PublicLayout() {
   const [darkMode, setDarkMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [cmsNav, setCmsNav] = useState<CmsPageNavigationItem[]>([]);
+
+  useEffect(() => {
+    getCmsPageNavigation().then(setCmsNav).catch(() => {});
+  }, []);
   const accountRef = useRef<HTMLDivElement>(null);
   const dashboardPath = getDashboardPath(user?.roles ?? []);
   const isSignedIn = Boolean(token && user);
@@ -294,12 +301,11 @@ export default function PublicLayout() {
                 Chính Sách
               </h3>
               <div className="mt-4 flex flex-col gap-3 text-sm">
-                <Link to="/policies/privacy-policy" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Chính sách bảo mật
-                </Link>
-                <Link to="/policies/terms-of-service" className="hover:text-brand-600 dark:hover:text-brand-300">
-                  Điều khoản sử dụng
-                </Link>
+                {cmsNav.map((item) => (
+                  <Link key={item.slug} to={`/policies/${item.slug}`} className="hover:text-brand-600 dark:hover:text-brand-300">
+                    {item.title}
+                  </Link>
+                ))}
               </div>
             </div>
 

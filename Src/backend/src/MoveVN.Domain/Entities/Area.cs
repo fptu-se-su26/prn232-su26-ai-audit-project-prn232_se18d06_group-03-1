@@ -7,5 +7,7 @@ public class Area
     public string District { get; set; } = string.Empty;
     public int PricingRegionId { get; set; }
     public bool IsActive { get; set; } = true;
+
+    public PricingRegion? PricingRegion { get; set; }
 }
 
