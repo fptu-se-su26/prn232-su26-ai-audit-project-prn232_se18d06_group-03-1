@@ -481,13 +481,26 @@ export default function BookingNewPage() {
                 </div>
                 {pricePreview.deposit > 0 && (
                   <div className="flex justify-between text-[14px] pt-2 border-t border-slate-50 dark:border-slate-800">
-                    <span className="text-slate-600 dark:text-slate-400">Tiền cọc ({pricePreview.depositPercent}%)</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.deposit)}</span>
+                    <span className="text-slate-600 dark:text-slate-400">Tổng cộng</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.total)}</span>
                   </div>
                 )}
-                <div className="flex justify-between gap-4 rounded-xl bg-amber-50 px-3 py-2 text-[13px] dark:bg-amber-950/30">
-                  <span className="text-amber-800 dark:text-amber-300">Còn lại trả chủ xe khi nhận xe</span>
-                  <span className="shrink-0 font-semibold text-amber-900 dark:text-amber-200">{formatCurrency(pricePreview.remaining)}</span>
+
+                <div className="rounded-xl border border-brand-200 bg-brand-50 p-3 space-y-2 dark:border-brand-800 dark:bg-brand-950/30">
+                  <h3 className="text-xs font-bold text-brand-800 dark:text-brand-300">Lịch thanh toán</h3>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-700 dark:text-brand-400">Khách đặt cọc ({pricePreview.depositPercent}%)</span>
+                    <span className="font-bold text-brand-900 dark:text-brand-200">{formatCurrency(pricePreview.deposit)}</span>
+                  </div>
+                  {pricePreview.remaining > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-brand-700 dark:text-brand-400">Thu khi giao xe</span>
+                      <span className="font-bold text-brand-900 dark:text-brand-200">{formatCurrency(pricePreview.remaining)}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-brand-600 dark:text-brand-400">
+                    Khách thanh toán đặt cọc qua PayOS. Số còn lại thu khi giao xe.
+                  </p>
                 </div>
               </div>
             ) : (

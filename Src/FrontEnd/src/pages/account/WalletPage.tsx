@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
@@ -620,7 +621,7 @@ export default function WalletPage() {
       </div>
 
       {/* TopUp Modal */}
-      {isTopUpOpen && (
+      {isTopUpOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-md bg-white dark:bg-slate-900 shadow-xl border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
@@ -671,11 +672,12 @@ export default function WalletPage() {
               </Button>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Withdraw Modal */}
-      {isWithdrawOpen && (
+      {isWithdrawOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-md bg-white dark:bg-slate-900 shadow-xl border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
@@ -760,11 +762,12 @@ export default function WalletPage() {
               </Button>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Bank Info Modal */}
-      {isBankModalOpen && (
+      {isBankModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-md bg-white dark:bg-slate-900 shadow-xl border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
@@ -876,7 +879,8 @@ export default function WalletPage() {
               )}
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

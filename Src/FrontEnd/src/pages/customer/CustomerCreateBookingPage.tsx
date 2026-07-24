@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, DollarSign } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -265,23 +265,29 @@ export default function CustomerCreateBookingPage() {
                 <span className="font-medium text-slate-900">{formatCurrency(pricePreview.fee)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
-                <span className="flex items-center gap-1 text-slate-600">
-                  <CreditCard className="h-3.5 w-3.5 text-brand-700" />
-                  Tiền cọc ({pricePreview.depositPercent}%)
-                </span>
-                <span className="font-medium text-slate-900">{formatCurrency(pricePreview.deposit)}</span>
-              </div>
-              <div className="flex items-start justify-between gap-4 rounded-md bg-amber-50 px-3 py-2 text-sm">
-                <span className="text-amber-800">Còn lại trả cho chủ xe khi nhận xe</span>
-                <span className="shrink-0 font-semibold text-amber-900">{formatCurrency(pricePreview.remaining)}</span>
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
                 <span className="flex items-center gap-1 font-semibold text-slate-900">
                   <DollarSign className="h-4 w-4 text-brand-700" />
                   Tổng cộng
                 </span>
                 <span className="text-lg font-bold text-brand-700">{formatCurrency(pricePreview.total)}</span>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 space-y-2">
+              <h3 className="text-xs font-bold text-brand-800">Lịch thanh toán</h3>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-brand-700">Thanh toán ngay (đặt cọc {pricePreview.depositPercent}%)</span>
+                <span className="font-bold text-brand-900">{formatCurrency(pricePreview.deposit)}</span>
+              </div>
+              {pricePreview.remaining > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-brand-700">Trả khi nhận xe</span>
+                  <span className="font-bold text-brand-900">{formatCurrency(pricePreview.remaining)}</span>
+                </div>
+              )}
+              <p className="text-xs text-brand-600">
+                Tiền cọc xác nhận đặt xe qua PayOS. Số còn lại thanh toán trực tiếp khi nhận xe.
+              </p>
             </div>
           </Card>
         )}
