@@ -19,6 +19,23 @@ public class WithdrawalsController : BaseApiController
         _currentUser = currentUser;
     }
 
+    // ──── PayOS Payout Balance (debug) ────
+
+    [HttpGet("payos-balance")]
+    [Authorize(Roles = "Owner,Staff,Admin")]
+    public async Task<ActionResult<ApiResponse<object>>> GetPayOsBalance()
+    {
+        try
+        {
+            var balance = await _service.GetPayOsBalanceAsync();
+            return Success<object>(new { balance, status = "ok" });
+        }
+        catch (Exception ex)
+        {
+            return Success<object>(new { balance = 0, status = "error", message = ex.Message, type = ex.GetType().Name });
+        }
+    }
+
     // ──── Owner endpoints ────
 
     [HttpPost]
@@ -29,6 +46,16 @@ public class WithdrawalsController : BaseApiController
         var userId = _currentUser.UserId!.Value;
         var result = await _service.CreateAsync(userId, request, ct);
         return Success(result, "Yêu cầu rút tiền đã được tạo.");
+    }
+
+    [HttpPut("{id:long}/cancel")]
+    [Authorize(Roles = "Owner")]
+    public async Task<ActionResult<ApiResponse<WithdrawalRequestDto>>> Cancel(
+        long id, CancellationToken ct)
+    {
+        var userId = _currentUser.UserId!.Value;
+        var result = await _service.CancelAsync(userId, id, ct);
+        return Success(result, "Đã hủy yêu cầu rút tiền.");
     }
 
     [HttpGet("my")]

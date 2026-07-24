@@ -114,6 +114,14 @@ public static class ServiceCollectionExtensions
                 ?? Environment.GetEnvironmentVariable("PAYOS__ReturnUrl") ?? "http://localhost:5173/payment/result";
             settings.CancelUrl = configuration["PAYOS__CancelUrl"]
                 ?? Environment.GetEnvironmentVariable("PAYOS__CancelUrl") ?? "http://localhost:5173/payment/cancel";
+
+            // Payout keys (separate channel)
+            settings.PayoutClientId = configuration["PAYOS_PAYOUT__ClientId"]
+                ?? Environment.GetEnvironmentVariable("PAYOS_PAYOUT__ClientId") ?? settings.ClientId;
+            settings.PayoutApiKey = configuration["PAYOS_PAYOUT__ApiKey"]
+                ?? Environment.GetEnvironmentVariable("PAYOS_PAYOUT__ApiKey") ?? settings.ApiKey;
+            settings.PayoutChecksumKey = configuration["PAYOS_PAYOUT__ChecksumKey"]
+                ?? Environment.GetEnvironmentVariable("PAYOS_PAYOUT__ChecksumKey") ?? settings.ChecksumKey;
         });
         services.AddScoped<IPayOsService, PayOsService>();
         services.AddScoped<IDisputeRepository, DisputeRepository>();

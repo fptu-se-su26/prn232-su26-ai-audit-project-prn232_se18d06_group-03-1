@@ -48,7 +48,7 @@ public class AdminWalletService : IAdminWalletService
         var (txItems, txTotalCount) = await _walletRepo.GetTransactionsPagedAsync(wallet.Id, txPage, txPageSize, null, ct);
 
         var walletDto = new WalletDto(wallet.Id, wallet.UserId, wallet.Balance, wallet.TotalEarned, wallet.TotalSpent, wallet.UpdatedAt);
-        var txDtos = txItems.Select(t => new WalletTransactionDto(t.Id, t.WalletId, t.Type, t.Amount, t.BalanceAfter, t.Note, t.CreatedAt)).ToList();
+        var txDtos = txItems.Select(t => new WalletTransactionDto(t.Id, t.WalletId, t.Type, t.Amount, t.BalanceAfter, t.Note, t.CreatedAt, t.ReferenceId, t.Status)).ToList();
 
         return new AdminWalletDetail(walletDto, user.FullName, user.Email, txDtos, txTotalCount);
     }

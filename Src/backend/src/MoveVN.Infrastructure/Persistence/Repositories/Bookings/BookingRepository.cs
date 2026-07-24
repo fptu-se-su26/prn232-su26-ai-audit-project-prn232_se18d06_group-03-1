@@ -27,7 +27,8 @@ public class BookingRepository : IBookingRepository
     {
         var bookingOverlap = await _context.Bookings
             .AnyAsync(b => b.VehicleId == vehicleId
-                && (b.Status == "Approved"
+                && (b.Status == "Pending"
+                    || b.Status == "Approved"
                     || b.Status == "DepositPaid"
                     || b.Status == "Confirmed"
                     || b.Status == "InProgress")
@@ -205,6 +206,8 @@ public class BookingRepository : IBookingRepository
                 TotalDays = b.TotalDays,
                 BasePrice = b.BasePrice,
                 PlatformFee = b.PlatformFee,
+                PlatformFeeType = b.PlatformFeeType,
+                PlatformFeeValue = b.PlatformFeeValue,
                 DepositAmount = b.DepositAmount,
                 TotalAmount = b.TotalAmount,
                 EscrowAmount = b.EscrowAmount,
@@ -243,6 +246,8 @@ public class BookingRepository : IBookingRepository
                 TotalDays = b.TotalDays,
                 BasePrice = b.BasePrice,
                 PlatformFee = b.PlatformFee,
+                PlatformFeeType = b.PlatformFeeType,
+                PlatformFeeValue = b.PlatformFeeValue,
                 DepositAmount = b.DepositAmount,
                 TotalAmount = b.TotalAmount,
                 EscrowAmount = b.EscrowAmount,

@@ -1,11 +1,11 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, CreditCard, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { getBookingById, confirmCheckIn, confirmCheckOut, getInspectionReports } from "@/features/booking/bookingService";
-import { createPaymentLink } from "@/features/payments/services/paymentService";
+import { createPaymentLink, checkPaymentStatus } from "@/features/payments/services/paymentService";
 import type { BookingResponse, InspectionReportResponse } from "@/features/booking/types";
 import { showToast } from "@/components/common/toastStore";
 import { createCustomerReview, getBookingReviews, hasReviewed } from "@/features/review/reviewService";
@@ -52,6 +52,7 @@ function formatCurrency(n: number) {
 
 export default function CustomerBookingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
@@ -66,6 +67,7 @@ export default function CustomerBookingDetailPage() {
   const [inspectionReports, setInspectionReports] = useState<InspectionReportResponse[]>([]);
   const [isConfirmingCheckIn, setIsConfirmingCheckIn] = useState(false);
   const [isConfirmingCheckOut, setIsConfirmingCheckOut] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -91,6 +93,85 @@ export default function CustomerBookingDetailPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const orderCodeStr = searchParams.get("orderCode");
+    const status = searchParams.get("status");
+    const cancel = searchParams.get("cancel");
+
+    if (orderCodeStr && !isVerifyingPayment) {
+      const orderCode = Number(orderCodeStr);
+      let cancelled = false;
+      let attempt = 0;
+      const maxAttempts = 10;
+      const intervalMs = 3000;
+
+      const cleanup = () => {
+        setIsVerifyingPayment(false);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("orderCode");
+        newParams.delete("status");
+        newParams.delete("cancel");
+        newParams.delete("id");
+        setSearchParams(newParams, { replace: true });
+      };
+
+      const handleVerifyPayment = async () => {
+        setIsVerifyingPayment(true);
+        showToast({ type: "info", title: "Xác nhận", message: "Đang kiểm tra kết quả thanh toán từ PayOS..." });
+        try {
+          const poll = async (): Promise<void> => {
+            if (cancelled) return;
+            attempt++;
+            try {
+              const res = await checkPaymentStatus(orderCode);
+              if (res.isConfirmed) {
+                showToast({ type: "success", title: "Thành công", message: "Thanh toán cọc thành công!" });
+                void load();
+                cleanup();
+                return;
+              }
+              if (res.status === "Cancelled" || cancel === "true" || status === "CANCELLED") {
+                showToast({ type: "info", title: "Thông báo", message: "Giao dịch thanh toán đã bị hủy." });
+                void load();
+                cleanup();
+                return;
+              }
+              if (res.status === "Expired" || res.status === "Failed") {
+                showToast({ type: "info", title: "Thông báo", message: "Giao dịch đã hết hạn hoặc thất bại." });
+                void load();
+                cleanup();
+                return;
+              }
+              if (attempt >= maxAttempts) {
+                showToast({ type: "info", title: "Hết thời gian", message: "Không nhận được xác nhận. Vui lòng kiểm tra lại sau." });
+                void load();
+                cleanup();
+                return;
+              }
+              setTimeout(poll, intervalMs);
+            } catch {
+              if (attempt >= maxAttempts) {
+                showToast({ type: "error", title: "Lỗi", message: "Không thể kiểm tra trạng thái thanh toán." });
+                cleanup();
+                return;
+              }
+              setTimeout(poll, intervalMs);
+            }
+          };
+
+          await poll();
+        } catch {
+          showToast({ type: "error", title: "Lỗi", message: "Không thể kiểm tra trạng thái thanh toán." });
+          cleanup();
+        }
+      };
+
+      void handleVerifyPayment();
+
+      return () => { cancelled = true; };
+    }
+  }, [searchParams, setSearchParams, load, isVerifyingPayment]);
 
   async function handleConfirmCheckOut() {
     if (!booking || isConfirmingCheckOut) return;
@@ -325,10 +406,10 @@ export default function CustomerBookingDetailPage() {
       </Card>
 
       <Card className="space-y-4 rounded-md p-5">
-        <h2 className="text-lg font-bold text-slate-950">Chi tiết giá</h2>
+        <h2 className="text-lg font-bold text-slate-950">Chi tiết chi phí</h2>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-600">Giá cơ bản ({booking.totalDays} ngày)</span>
+            <span className="text-slate-600">Giá thuê ({booking.totalDays} ngày)</span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.basePrice)}</span>
           </div>
           {booking.discountPercent > 0 && (
@@ -344,17 +425,6 @@ export default function CustomerBookingDetailPage() {
             <span className="text-slate-600">Phí nền tảng (đã gồm trong tổng)</span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.platformFee)}</span>
           </div>
-          <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
-            <span className="flex items-center gap-1 text-slate-600">
-              <CreditCard className="h-4 w-4 text-brand-700" />
-              Tiền cọc
-            </span>
-            <span className="font-medium text-slate-900">{formatCurrency(booking.depositAmount)}</span>
-          </div>
-          <div className="flex items-start justify-between gap-4 rounded-md bg-amber-50 px-3 py-2 text-sm">
-            <span className="text-amber-800">Còn lại trả cho chủ xe khi nhận xe</span>
-            <span className="shrink-0 font-semibold text-amber-900">{formatCurrency(Math.max(booking.totalAmount - booking.depositAmount, 0))}</span>
-          </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-2">
             <span className="flex items-center gap-1 font-semibold text-slate-900">
               <DollarSign className="h-5 w-5 text-brand-700" />
@@ -362,6 +432,27 @@ export default function CustomerBookingDetailPage() {
             </span>
             <span className="text-xl font-bold text-brand-700">{formatCurrency(booking.totalAmount)}</span>
           </div>
+        </div>
+
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
+          <h3 className="text-sm font-bold text-brand-800">Lịch thanh toán</h3>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-brand-700">Thanh toán ngay (đặt cọc)</span>
+            <span className="font-bold text-brand-900 text-base">{formatCurrency(booking.depositAmount)}</span>
+          </div>
+          {booking.totalAmount > booking.depositAmount && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-brand-700">Trả khi nhận xe</span>
+              <span className="font-bold text-brand-900 text-base">{formatCurrency(booking.totalAmount - booking.depositAmount)}</span>
+            </div>
+          )}
+          <p className="text-xs text-brand-600">
+            {booking.status === "Approved"
+              ? "Vui lòng thanh toán đặt cọc qua PayOS để xác nhận đặt xe."
+              : booking.status === "DepositPaid" || booking.status === "Confirmed"
+                ? "Đã thanh toán đặt cọc. Số còn lại thanh toán trực tiếp khi nhận xe."
+                : "Tiền cọc xác nhận đặt xe. Số còn lại thanh toán khi nhận xe."}
+          </p>
         </div>
       </Card>
 

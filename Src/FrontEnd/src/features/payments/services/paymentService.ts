@@ -21,3 +21,17 @@ export async function createTopUpPaymentLink(amount: number): Promise<CreatePaym
   const res = await apiClient.post<ApiResponse<CreatePaymentLinkResponse>>(`/api/payments/wallet/topup`, { amount });
   return res.data.data!;
 }
+
+export interface PaymentStatusResponse {
+  orderCode: number;
+  status: string;
+  amount: number;
+  amountPaid: number;
+  isConfirmed: boolean;
+  message: string;
+}
+
+export async function checkPaymentStatus(orderCode: number): Promise<PaymentStatusResponse> {
+  const res = await apiClient.get<ApiResponse<PaymentStatusResponse>>(`/api/payments/check/${orderCode}`);
+  return res.data.data!;
+}

@@ -96,8 +96,10 @@ public static class DependencyInjection
         services.AddScoped<IVehiclePricingService, VehiclePricingService>();
         services.AddScoped<IBookingRiskScorer, RuleBasedBookingRiskScorer>();
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IBookingWalletService, BookingWalletService>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPaymentService, MoveVN.Application.Modules.Payments.Services.PaymentService>();
+        services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPayoutManagementService, MoveVN.Application.Modules.Payments.Services.PayoutManagementService>();
         services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IWalletService, MoveVN.Application.Modules.Wallets.Services.WalletService>();
         services.AddScoped<IBlockedDateService, BlockedDateService>();
         services.AddScoped<ISupportTicketService, SupportTicketService>();

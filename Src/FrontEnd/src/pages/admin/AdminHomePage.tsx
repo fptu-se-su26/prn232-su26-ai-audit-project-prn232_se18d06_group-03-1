@@ -292,7 +292,7 @@ export default function AdminHomePage() {
                           </td>
                           <td className="px-5 py-4 text-right font-medium text-slate-950">{formatCurrency(booking.depositAmount)}</td>
                           <td className="px-5 py-4 text-right font-semibold text-emerald-700">
-                            {booking.status === "Completed" ? `+${formatCurrency(booking.platformFee)}` : "-"}
+                            {formatCurrency(booking.platformFee)}
                           </td>
                         </tr>
                       ))

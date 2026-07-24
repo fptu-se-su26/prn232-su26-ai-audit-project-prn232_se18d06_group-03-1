@@ -37,6 +37,10 @@ public class VehicleResponse
     public decimal? SuggestedMaxPrice { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }
+    public string? PlatformFeeType { get; set; }
+    public decimal? PlatformFeeValue { get; set; }
+    public decimal? PlatformFeeMinFee { get; set; }
+    public decimal? PlatformFeeMaxFee { get; set; }
     public string? FeaturedImage { get; set; }
     public List<VehicleImageResponse> Images { get; set; } = [];
     public List<VehicleFeatureResponse> Features { get; set; } = [];

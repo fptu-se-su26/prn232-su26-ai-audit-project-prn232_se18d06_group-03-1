@@ -7,4 +7,9 @@ public class PayOsSettings
     public string ChecksumKey { get; set; } = "";
     public string ReturnUrl { get; set; } = "";
     public string CancelUrl { get; set; } = "";
+
+    // Payout (Chi tiền) - separate keys
+    public string PayoutClientId { get; set; } = "";
+    public string PayoutApiKey { get; set; } = "";
+    public string PayoutChecksumKey { get; set; } = "";
 }

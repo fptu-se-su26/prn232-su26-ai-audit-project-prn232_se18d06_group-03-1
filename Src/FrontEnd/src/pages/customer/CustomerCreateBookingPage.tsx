@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, DollarSign } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -8,6 +8,7 @@ import Card from "@/components/ui/Card";
 import { createBooking } from "@/features/booking/bookingService";
 import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
 import { showToast } from "@/components/common/toastStore";
+import AddressAutocomplete from "@/features/locations/components/AddressAutocomplete";
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("vi-VN").format(n) + "đ";
@@ -32,7 +33,7 @@ export default function CustomerCreateBookingPage() {
   const navigate = useNavigate();
   const vehicleId = Number(searchParams.get("vehicleId"));
 
-  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number } | null>(null);
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; platformFeeType?: string; platformFeeValue?: number; platformFeeMinFee?: number; platformFeeMaxFee?: number } | null>(null);
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
@@ -57,7 +58,7 @@ export default function CustomerCreateBookingPage() {
     if (!vehicleId) { setLoadingVehicle(false); return; }
     getPublicVehicleById(vehicleId)
       .then((v) => {
-        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, depositPercent: v.depositPercent });
+        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, depositPercent: v.depositPercent, platformFeeType: v.platformFeeType, platformFeeValue: v.platformFeeValue, platformFeeMinFee: v.platformFeeMinFee, platformFeeMaxFee: v.platformFeeMaxFee });
         setVehicleName(`${v.brandName} ${v.modelName}`);
       })
       .catch(() => setError("Không thể tải thông tin xe."))
@@ -80,7 +81,8 @@ export default function CustomerCreateBookingPage() {
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
     const total = afterDisc;
-    const fee = Math.round(total * 10 / 100);
+    const feeValue = vehicle.platformFeeValue ?? 10;
+    const fee = vehicle.platformFeeType === "Fixed" ? Math.min(Math.max(feeValue, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? Infinity) : Math.round(Math.min(Math.max(total * feeValue / 100, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? total));
     const depositPercent = Math.max(20, vehicle.depositPercent || 0);
     const deposit = Math.round(total * depositPercent / 100);
     const remaining = Math.max(total - deposit, 0);
@@ -212,32 +214,22 @@ export default function CustomerCreateBookingPage() {
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              <MapPin className="mr-1 inline h-3.5 w-3.5" />Địa chỉ nhận xe
-            </label>
-            <input
-              type="text"
-              value={pickupAddress}
-              onChange={(e) => setPickupAddress(e.target.value)}
-              placeholder="VD: 123 Nguyễn Huệ, Quận 1"
-              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
-              required
-            />
-          </div>
+          <AddressAutocomplete
+            value={pickupAddress}
+            onChange={setPickupAddress}
+            onSelect={(addr) => setPickupAddress(addr.address)}
+            label="Địa chỉ nhận xe"
+            placeholder="Nhập địa chỉ nhận xe"
+          />
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              <MapPin className="mr-1 inline h-3.5 w-3.5" />Địa chỉ trả xe <span className="text-slate-400">(tuỳ chọn)</span>
-            </label>
-            <input
-              type="text"
-              value={returnAddress}
-              onChange={(e) => setReturnAddress(e.target.value)}
-              placeholder="Để trống nếu trả cùng địa chỉ nhận"
-              className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm"
-            />
-          </div>
+          <AddressAutocomplete
+            value={returnAddress}
+            onChange={setReturnAddress}
+            onSelect={(addr) => setReturnAddress(addr.address)}
+            label="Địa chỉ trả xe (tuỳ chọn)"
+            placeholder="Để trống nếu trả cùng địa chỉ nhận"
+            resolveCoordinates={false}
+          />
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Ghi chú <span className="text-slate-400">(tuỳ chọn)</span></label>
@@ -269,19 +261,8 @@ export default function CustomerCreateBookingPage() {
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-slate-600">Phí nền tảng (10%, đã gồm trong giá)</span>
+                <span className="text-slate-600">Phí nền tảng ({vehicle?.platformFeeType === "Fixed" ? formatCurrency(vehicle.platformFeeValue ?? 0) : (vehicle?.platformFeeValue ?? 10) + "%"}, đã gồm trong giá)</span>
                 <span className="font-medium text-slate-900">{formatCurrency(pricePreview.fee)}</span>
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
-                <span className="flex items-center gap-1 text-slate-600">
-                  <CreditCard className="h-3.5 w-3.5 text-brand-700" />
-                  Tiền cọc ({pricePreview.depositPercent}%)
-                </span>
-                <span className="font-medium text-slate-900">{formatCurrency(pricePreview.deposit)}</span>
-              </div>
-              <div className="flex items-start justify-between gap-4 rounded-md bg-amber-50 px-3 py-2 text-sm">
-                <span className="text-amber-800">Còn lại trả cho chủ xe khi nhận xe</span>
-                <span className="shrink-0 font-semibold text-amber-900">{formatCurrency(pricePreview.remaining)}</span>
               </div>
               <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
                 <span className="flex items-center gap-1 font-semibold text-slate-900">
@@ -290,6 +271,23 @@ export default function CustomerCreateBookingPage() {
                 </span>
                 <span className="text-lg font-bold text-brand-700">{formatCurrency(pricePreview.total)}</span>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 space-y-2">
+              <h3 className="text-xs font-bold text-brand-800">Lịch thanh toán</h3>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-brand-700">Thanh toán ngay (đặt cọc {pricePreview.depositPercent}%)</span>
+                <span className="font-bold text-brand-900">{formatCurrency(pricePreview.deposit)}</span>
+              </div>
+              {pricePreview.remaining > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-brand-700">Trả khi nhận xe</span>
+                  <span className="font-bold text-brand-900">{formatCurrency(pricePreview.remaining)}</span>
+                </div>
+              )}
+              <p className="text-xs text-brand-600">
+                Tiền cọc xác nhận đặt xe qua PayOS. Số còn lại thanh toán trực tiếp khi nhận xe.
+              </p>
             </div>
           </Card>
         )}

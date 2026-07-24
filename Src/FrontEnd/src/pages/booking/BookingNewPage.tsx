@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign, Settings, Info, PenLine } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign, Settings, Info, PenLine, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -6,8 +6,10 @@ import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { createBooking } from "@/features/booking/bookingService";
-import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
+import { getPublicVehicleById, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
+import type { BusyPeriod } from "@/features/vehicles/types";
 import { showToast } from "@/components/common/toastStore";
+import AddressAutocomplete from "@/features/locations/components/AddressAutocomplete";
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("vi-VN").format(n) + "đ";
@@ -32,7 +34,7 @@ export default function BookingNewPage() {
   const navigate = useNavigate();
   const vehicleId = Number(searchParams.get("vehicleId"));
 
-  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; featuredImage?: string | null; images?: any[] } | null>(null);
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; featuredImage?: string | null; images?: any[]; platformFeeType?: string; platformFeeValue?: number; platformFeeMinFee?: number; platformFeeMaxFee?: number } | null>(null);
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
@@ -49,6 +51,11 @@ export default function BookingNewPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [busyPeriods, setBusyPeriods] = useState<BusyPeriod[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
+  const [calSelection, setCalSelection] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const dateError = startDate && endDate && new Date(endDate) <= new Date(startDate) ? "Ngày trả phải sau ngày nhận." : null;
   const today = new Date().toISOString().slice(0, 10);
 
@@ -64,7 +71,11 @@ export default function BookingNewPage() {
           pricePerDay: v.currentPricePerDay ?? v.pricePerDay, 
           depositPercent: v.depositPercent,
           featuredImage: v.featuredImage,
-          images: v.images
+          images: v.images,
+          platformFeeType: v.platformFeeType,
+          platformFeeValue: v.platformFeeValue,
+          platformFeeMinFee: v.platformFeeMinFee,
+          platformFeeMaxFee: v.platformFeeMaxFee
         });
         setVehicleName(`${v.brandName} ${v.modelName}`);
       })
@@ -74,6 +85,65 @@ export default function BookingNewPage() {
       })
       .finally(() => setLoadingVehicle(false));
   }, [vehicleId]);
+
+  useEffect(() => {
+    if (!vehicleId) return;
+    getVehicleAvailability(vehicleId).then((d) => { if (d) setBusyPeriods(d.busyPeriods); }).catch(() => {});
+  }, [vehicleId]);
+
+  const MONTHS = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
+  const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+  function fmtDate(d: Date): string {
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  const busySet = useMemo(() => {
+    const set = new Set<string>();
+    for (const bp of busyPeriods) {
+      const s = new Date(bp.startDate); const e = new Date(bp.endDate);
+      for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) set.add(fmtDate(d));
+    }
+    return set;
+  }, [busyPeriods]);
+
+  function handleCalSelect(date: Date) {
+    const ds = fmtDate(date);
+    const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
+    if (date.getTime() < todayNorm.getTime()) return;
+    if (busySet.has(ds)) return;
+
+    setCalSelection((prev) => {
+      if (!prev.start || (prev.start && prev.end)) {
+        return { start: date, end: null };
+      }
+      if (date.getTime() <= prev.start.getTime()) {
+        return { start: date, end: null };
+      }
+      const s = new Date(prev.start); const e = new Date(date);
+      for (let d = new Date(s); d < e; d.setDate(d.getDate() + 1)) {
+        if (busySet.has(fmtDate(d))) {
+          showToast({ type: "error", title: "Trùng lịch", message: "Khoảng ngày bạn chọn bị trùng với booking hoặc ngày chặn khác." });
+          return { start: date, end: null };
+        }
+      }
+      return { start: prev.start, end: date };
+    });
+  }
+
+  useEffect(() => {
+    if (calSelection.start && calSelection.end) {
+      const s = new Date(calSelection.start); s.setHours(0, 0, 0, 0);
+      const e = new Date(calSelection.end); e.setHours(23, 59, 0, 0);
+      setStartDate(fmtDate(s) + "T08:00");
+      setEndDate(fmtDate(e) + "T08:00");
+    } else if (calSelection.start && !calSelection.end) {
+      const s = new Date(calSelection.start); s.setHours(0, 0, 0, 0);
+      setStartDate(fmtDate(s) + "T08:00");
+      setEndDate("");
+    }
+  }, [calSelection]);
 
   const totalDays = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -91,7 +161,8 @@ export default function BookingNewPage() {
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
     const total = afterDisc;
-    const fee = Math.round(total * 10 / 100);
+    const feeValue = vehicle.platformFeeValue ?? 10;
+    const fee = vehicle.platformFeeType === "Fixed" ? Math.min(Math.max(feeValue, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? Infinity) : Math.round(Math.min(Math.max(total * feeValue / 100, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? total));
     const depositPercent = Math.max(20, vehicle.depositPercent || 0);
     const deposit = Math.round(total * depositPercent / 100);
     const remaining = Math.max(total - deposit, 0);
@@ -225,71 +296,102 @@ export default function BookingNewPage() {
           )}
 
           <form id="booking-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {/* Time */}
+            {/* Time - Calendar */}
             <div>
               <p className="text-[14px] font-semibold mb-2 text-slate-800 dark:text-slate-200">Thời gian thuê</p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl p-3.5 px-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-300 dark:focus-within:ring-brand-500 transition-all border border-slate-200 dark:border-slate-800">
-                  <label className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Nhận xe</label>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="datetime-local" 
-                      value={startDate}
-                      min={today + "T00:00"}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      required
-                      className="bg-transparent text-[14px] w-full outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 [color-scheme:light] dark:[color-scheme:dark]" 
-                    />
-                  </div>
+              {(startDate || endDate) && (
+                <div className="mb-3 flex items-center gap-2 text-[13px] text-slate-600 dark:text-slate-400">
+                  <CalendarDays className="h-4 w-4 text-brand-600" />
+                  <span>
+                    {startDate && <span className="font-medium text-slate-800 dark:text-slate-200">{new Date(startDate).toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}</span>}
+                    {startDate && endDate && <span> → </span>}
+                    {endDate && <span className="font-medium text-slate-800 dark:text-slate-200">{new Date(endDate).toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" })}</span>}
+                  </span>
                 </div>
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl p-3.5 px-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-300 dark:focus-within:ring-brand-500 transition-all border border-slate-200 dark:border-slate-800">
-                  <label className="text-[13px] font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Trả xe</label>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="datetime-local" 
-                      value={endDate}
-                      min={startDate ? startDate.slice(0, 10) + "T00:00" : today + "T00:00"}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      required
-                      className="bg-transparent text-[14px] w-full outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 [color-scheme:light] dark:[color-scheme:dark]" 
-                    />
-                  </div>
-                  {dateError && <p className="mt-1 text-xs text-red-500">{dateError}</p>}
+              )}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <button type="button" onClick={() => { if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(calendarYear - 1); } else setCalendarMonth(calendarMonth - 1); }} className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><ChevronLeft className="h-4 w-4" /></button>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{MONTHS[calendarMonth]} {calendarYear}</span>
+                  <button type="button" onClick={() => { if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(calendarYear + 1); } else setCalendarMonth(calendarMonth + 1); }} className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><ChevronRight className="h-4 w-4" /></button>
+                </div>
+                <div className="grid grid-cols-7 gap-y-1 text-center">
+                  {DAYS.map((d) => <div key={d} className="text-xs font-medium text-slate-400 py-1">{d}</div>)}
+                  {(() => {
+                    const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+                    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+                    const todayN = new Date(); const todayNorm = new Date(todayN.getFullYear(), todayN.getMonth(), todayN.getDate());
+                    const days: React.ReactNode[] = [];
+                    for (let i = 0; i < firstDay; i++) days.push(<div key={`e-${i}`} />);
+                    for (let d = 1; d <= daysInMonth; d++) {
+                      const date = new Date(calendarYear, calendarMonth, d);
+                      const ds = fmtDate(date);
+                      const isPast = date.getTime() < todayNorm.getTime();
+                      const isBusy = busySet.has(ds);
+                      const isStart = calSelection.start && ds === fmtDate(calSelection.start);
+                      const isEnd = calSelection.end && ds === fmtDate(calSelection.end);
+                      const inRange = (() => {
+                        if (!calSelection.start || !calSelection.end) return false;
+                        const s = fmtDate(calSelection.start); const e = fmtDate(calSelection.end);
+                        return ds > s && ds < e;
+                      })();
+                      const selectable = !isPast && !isBusy;
+                      let cls = "relative flex h-8 w-8 items-center justify-center text-xs transition-colors ";
+                      if (isStart) cls += "bg-brand-600 text-white font-bold rounded-l-full ";
+                      else if (isEnd) cls += "bg-brand-600 text-white font-bold rounded-r-full ";
+                      else if (inRange) cls += "bg-brand-100 text-brand-800 dark:bg-brand-900/40 dark:text-brand-300 ";
+                      else if (isPast) cls += "text-slate-200 dark:text-slate-700 cursor-not-allowed ";
+                      else if (isBusy) cls += "text-red-400 cursor-not-allowed ";
+                      else cls += "text-slate-700 dark:text-slate-300 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:text-brand-700 cursor-pointer ";
+                      days.push(
+                        <div key={d} className="flex justify-center">
+                          {selectable ? (
+                            <button type="button" onClick={() => handleCalSelect(date)} className={cls}>
+                              {isStart && calSelection.start && calSelection.end && <span className="absolute inset-y-0 left-1/2 w-1/2 bg-brand-600 -z-10" />}
+                              {isEnd && calSelection.start && calSelection.end && <span className="absolute inset-y-0 right-1/2 w-1/2 bg-brand-600 -z-10" />}
+                              {d}
+                            </button>
+                          ) : (
+                            <span className={cls}>
+                              {d}
+                              {isBusy && !isPast && <span className="absolute -top-0.5 right-0.5 text-[8px] text-red-400">●</span>}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                    return days;
+                  })()}
+                </div>
+                <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-brand-600" /> Đã chọn</span>
+                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-brand-100 dark:bg-brand-900/40" /> Trong khoảng</span>
+                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-red-100" /> Đã đặt/Chặn</span>
                 </div>
               </div>
+              {dateError && <p className="mt-1 text-xs text-red-500">{dateError}</p>}
             </div>
 
             {/* Addresses */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <label className="text-[14px] font-semibold mb-2 text-slate-800 dark:text-slate-200 block">Địa chỉ nhận xe</label>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 flex items-center gap-3 shadow-sm focus-within:ring-2 focus-within:ring-brand-300 dark:focus-within:ring-brand-500 transition-all border border-slate-200 dark:border-slate-800">
-                  <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <input 
-                    type="text" 
-                    placeholder="VD: 123 Nguyễn Huệ..." 
-                    value={pickupAddress}
-                    onChange={(e) => setPickupAddress(e.target.value)}
-                    required
-                    className="bg-transparent text-[14px] w-full outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600" 
-                  />
-                </div>
+                <AddressAutocomplete
+                  value={pickupAddress}
+                  onChange={setPickupAddress}
+                  onSelect={(addr) => setPickupAddress(addr.address)}
+                  label="Địa chỉ nhận xe"
+                  placeholder="Nhập địa chỉ nhận xe"
+                />
               </div>
               <div className="flex-1">
-                <label className="text-[14px] font-semibold mb-2 text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  Địa chỉ trả xe 
-                  <span className="text-[11px] bg-[#fdf2d2] dark:bg-amber-900/40 text-[#c99527] dark:text-amber-400 px-2 py-0.5 rounded-md font-medium">Tùy chọn</span>
-                </label>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 flex items-center gap-3 shadow-sm focus-within:ring-2 focus-within:ring-brand-300 dark:focus-within:ring-brand-500 transition-all border border-slate-200 dark:border-slate-800">
-                  <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <input 
-                    type="text" 
-                    placeholder="Để trống nếu trả cùng địa chỉ nhận" 
-                    value={returnAddress}
-                    onChange={(e) => setReturnAddress(e.target.value)}
-                    className="bg-transparent text-[14px] w-full outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600" 
-                  />
-                </div>
+                <AddressAutocomplete
+                  value={returnAddress}
+                  onChange={setReturnAddress}
+                  onSelect={(addr) => setReturnAddress(addr.address)}
+                  label="Địa chỉ trả xe"
+                  placeholder="Để trống nếu trả cùng địa chỉ nhận"
+                  resolveCoordinates={false}
+                />
               </div>
             </div>
 
@@ -374,18 +476,31 @@ export default function BookingNewPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-[14px]">
-                  <span className="text-slate-600 dark:text-slate-400">Phí nền tảng (10%, đã gồm trong giá)</span>
+                  <span className="text-slate-600 dark:text-slate-400">Phí nền tảng ({vehicle?.platformFeeType === "Fixed" ? formatCurrency(vehicle.platformFeeValue ?? 0) : (vehicle?.platformFeeValue ?? 10) + "%"}, đã gồm trong giá)</span>
                   <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.fee)}</span>
                 </div>
                 {pricePreview.deposit > 0 && (
                   <div className="flex justify-between text-[14px] pt-2 border-t border-slate-50 dark:border-slate-800">
-                    <span className="text-slate-600 dark:text-slate-400">Tiền cọc ({pricePreview.depositPercent}%)</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.deposit)}</span>
+                    <span className="text-slate-600 dark:text-slate-400">Tổng cộng</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.total)}</span>
                   </div>
                 )}
-                <div className="flex justify-between gap-4 rounded-xl bg-amber-50 px-3 py-2 text-[13px] dark:bg-amber-950/30">
-                  <span className="text-amber-800 dark:text-amber-300">Còn lại trả chủ xe khi nhận xe</span>
-                  <span className="shrink-0 font-semibold text-amber-900 dark:text-amber-200">{formatCurrency(pricePreview.remaining)}</span>
+
+                <div className="rounded-xl border border-brand-200 bg-brand-50 p-3 space-y-2 dark:border-brand-800 dark:bg-brand-950/30">
+                  <h3 className="text-xs font-bold text-brand-800 dark:text-brand-300">Lịch thanh toán</h3>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-700 dark:text-brand-400">Khách đặt cọc ({pricePreview.depositPercent}%)</span>
+                    <span className="font-bold text-brand-900 dark:text-brand-200">{formatCurrency(pricePreview.deposit)}</span>
+                  </div>
+                  {pricePreview.remaining > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-brand-700 dark:text-brand-400">Thu khi giao xe</span>
+                      <span className="font-bold text-brand-900 dark:text-brand-200">{formatCurrency(pricePreview.remaining)}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-brand-600 dark:text-brand-400">
+                    Khách thanh toán đặt cọc qua PayOS. Số còn lại thu khi giao xe.
+                  </p>
                 </div>
               </div>
             ) : (

@@ -64,6 +64,9 @@ public class PublicVehicleService : IPublicVehicleService
             suggestion = await _pricingCalculator.GetSuggestionAsync(vehicle.ModelId, vehicle.AreaId.Value, cancellationToken: cancellationToken);
         }
 
+        var images = await _repository.GetVehicleImageResponsesAsync(vehicle.Id, cancellationToken);
+        var feeRule = await _repository.GetActivePlatformFeeRuleAsync(vehicle.OwnerId, DateTime.UtcNow, cancellationToken);
+
         return new VehicleResponse
         {
             Id = vehicle.Id,
@@ -100,9 +103,13 @@ public class PublicVehicleService : IPublicVehicleService
             SuggestedMinPrice = suggestion?.SuggestedMinPrice,
             SuggestedMaxPrice = suggestion?.SuggestedMaxPrice,
             Status = vehicle.Status,
-            FeaturedImage = null,
-            Images = [],
+            FeaturedImage = images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
+            Images = images,
             Features = features,
+            PlatformFeeType = feeRule?.FeeType,
+            PlatformFeeValue = feeRule?.FeeValue,
+            PlatformFeeMinFee = feeRule?.MinFee,
+            PlatformFeeMaxFee = feeRule?.MaxFee,
             CreatedAt = vehicle.CreatedAt,
         };
     }

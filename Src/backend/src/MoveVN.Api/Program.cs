@@ -51,7 +51,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddScoped<INotificationRealtimeDispatcher, SignalRNotificationRealtimeDispatcher>();
 builder.Services.AddScoped<IChatRealtimeDispatcher, SignalRChatRealtimeDispatcher>();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o =>
+{
+    o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
 builder.Services.AddHostedService<BookingAutoCancelBackgroundService>();

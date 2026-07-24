@@ -88,6 +88,10 @@ export type VehicleResponse = {
   suggestedMaxPrice: number | null;
   status: string;
   rejectionReason: string | null;
+  platformFeeType?: string;
+  platformFeeValue?: number;
+  platformFeeMinFee?: number;
+  platformFeeMaxFee?: number;
   featuredImage: string | null;
   images: VehicleImageResponse[];
   features: VehicleFeatureResponse[];

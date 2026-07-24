@@ -34,6 +34,11 @@ export async function createWithdrawal(amount: number): Promise<WithdrawalReques
   return res.data.data!;
 }
 
+export async function cancelWithdrawal(id: number): Promise<WithdrawalRequestDto> {
+  const res = await apiClient.put<ApiResponse<WithdrawalRequestDto>>(`/api/withdrawals/${id}/cancel`);
+  return res.data.data!;
+}
+
 export async function getMyWithdrawals(params?: WithdrawalListRequest): Promise<WithdrawalListResponse> {
   const res = await apiClient.get<ApiResponse<WithdrawalListResponse>>("/api/withdrawals/my", { params });
   return res.data.data!;

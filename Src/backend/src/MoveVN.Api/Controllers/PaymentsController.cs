@@ -38,6 +38,19 @@ public class PaymentsController : BaseApiController
         var response = await _paymentService.CreateTopUpPaymentLinkAsync(userId, request.Amount, cancellationToken);
         return Success(response);
     }
+
+    /// <summary>
+    /// Kiểm tra trạng thái thanh toán từ PayOS (polling thay webhook).
+    /// Frontend gọi endpoint này sau khi user được redirect về từ PayOS.
+    /// Nếu PayOS xác nhận PAID → hệ thống tự động xử lý (tương đương webhook).
+    /// </summary>
+    [HttpGet("check/{orderCode:long}")]
+    public async Task<ActionResult<ApiResponse<PaymentStatusResponse>>> CheckPaymentStatus(
+        long orderCode, CancellationToken cancellationToken)
+    {
+        var response = await _paymentService.CheckPaymentStatusAsync(orderCode, cancellationToken);
+        return Success(response, response.Message);
+    }
 }
 
 public class TopUpRequest

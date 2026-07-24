@@ -1,4 +1,5 @@
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Helpers;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.AuditLogs.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
@@ -47,13 +48,16 @@ public class WithdrawalService : IWithdrawalService
         _logger = logger;
     }
 
+    private static string ResolveBankBin(string? bankBin, string? bankName)
+        => BankBinResolver.Resolve(bankBin, bankName);
+
     // ──────────────────────────────────────────────
     //  OWNER: Tạo yêu cầu rút tiền
     // ──────────────────────────────────────────────
     public async Task<WithdrawalRequestDto> CreateAsync(long userId, CreateWithdrawalRequest request, CancellationToken ct = default)
     {
-        if (request.Amount < 50000)
-            throw new ValidationException(new[] { "Số tiền rút tối thiểu là 50.000đ." });
+        if (request.Amount < 5000)
+            throw new ValidationException(new[] { "Số tiền rút tối thiểu là 5.000đ." });
 
         var user = await _userRepo.GetByIdAsync(userId, ct)
             ?? throw new NotFoundException("Người dùng không tồn tại.");
@@ -67,7 +71,10 @@ public class WithdrawalService : IWithdrawalService
         // Check pending withdrawals
         var pendingWithdrawals = await _withdrawalRepo.FindAsync(w => w.UserId == userId && (w.Status == "Pending" || w.Status == "Approved"), ct);
         if (pendingWithdrawals.Any())
-            throw new ValidationException(new[] { "Bạn đang có yêu cầu rút tiền chưa xử lý. Vui lòng chờ hoàn tất trước khi tạo yêu cầu mới." });
+        {
+            var ids = string.Join(", ", pendingWithdrawals.Select(w => $"#{w.Id} ({w.Status})"));
+            throw new ValidationException(new[] { $"Bạn đang có yêu cầu rút tiền chưa xử lý: {ids}. Vui lòng chờ hoàn tất hoặc hủy trước khi tạo yêu cầu mới." });
+        }
 
         // Check wallet balance
         var wallets = await _walletRepo.FindAsync(w => w.UserId == userId, ct);
@@ -103,7 +110,7 @@ public class WithdrawalService : IWithdrawalService
             BankAccountNumber = ownerProfile.BankAccountNumber!,
             BankName = ownerProfile.BankName!,
             BankAccountHolderName = ownerProfile.BankAccountHolderName ?? user.FullName,
-            BankBin = ownerProfile.BankBin,
+            BankBin = ResolveBankBin(ownerProfile.BankBin, ownerProfile.BankName),
             Status = "Pending"
         };
         await _withdrawalRepo.AddAsync(withdrawal, ct);
@@ -112,6 +119,53 @@ public class WithdrawalService : IWithdrawalService
         _logger.LogInformation("Withdrawal request #{Id} created by User #{UserId}, Amount={Amount}", withdrawal.Id, userId, request.Amount);
 
         return MapToDto(withdrawal, user.FullName, user.Email);
+    }
+
+    // ──────────────────────────────────────────────
+    //  OWNER: Hủy yêu cầu rút tiền (chỉ khi Pending)
+    // ──────────────────────────────────────────────
+    public async Task<WithdrawalRequestDto> CancelAsync(long userId, long withdrawalId, CancellationToken ct = default)
+    {
+        var withdrawal = await _withdrawalRepo.GetByIdAsync(withdrawalId, ct)
+            ?? throw new NotFoundException("Yêu cầu rút tiền không tồn tại.");
+
+        if (withdrawal.UserId != userId)
+            throw new ValidationException(new[] { "Bạn không có quyền hủy yêu cầu này." });
+
+        if (withdrawal.Status != "Pending" && withdrawal.Status != "Approved")
+            throw new ValidationException(new[] { "Chỉ có thể hủy yêu cầu đang chờ xử lý hoặc đã duyệt." });
+
+        // Refund the frozen amount back to wallet
+        var wallets = await _walletRepo.FindAsync(w => w.UserId == userId, ct);
+        var wallet = wallets.FirstOrDefault();
+        if (wallet != null)
+        {
+            var refundTx = new WalletTransaction
+            {
+                WalletId = wallet.Id,
+                Type = WalletTransactionType.PayoutReversal,
+                Amount = withdrawal.Amount,
+                BalanceAfter = wallet.Balance + withdrawal.Amount,
+                IdempotencyKey = $"withdrawal_cancel_refund_{withdrawalId}",
+                Note = $"Hoàn tiền do hủy yêu cầu rút tiền #{withdrawalId}",
+                Status = "Completed"
+            };
+            await _walletRepo.AddTransactionAsync(refundTx, ct);
+            wallet.Balance += withdrawal.Amount;
+            wallet.TotalSpent -= withdrawal.Amount;
+            _walletRepo.Update(wallet);
+        }
+
+        withdrawal.Status = "Rejected";
+        withdrawal.ProcessNote = "Chủ yêu cầu tự hủy";
+        withdrawal.ProcessedAt = DateTime.UtcNow;
+        _withdrawalRepo.Update(withdrawal);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Owner #{UserId} cancelled withdrawal #{WithdrawalId}", userId, withdrawalId);
+
+        var user = await _userRepo.GetByIdAsync(userId, ct);
+        return MapToDto(withdrawal, user?.FullName, user?.Email);
     }
 
     // ──────────────────────────────────────────────
@@ -159,7 +213,7 @@ public class WithdrawalService : IWithdrawalService
         if (withdrawal.Status != "Pending")
             throw new ValidationException(new[] { "Chỉ có thể duyệt yêu cầu đang ở trạng thái Chờ xử lý." });
 
-        // Trigger PayOS Payout (Chi hộ)
+        var payosNote = "";
         try
         {
             var payoutInput = new CreatePayoutInput
@@ -167,31 +221,32 @@ public class WithdrawalService : IWithdrawalService
                 ReferenceId = $"wd_{withdrawal.Id}_{DateTime.UtcNow.Ticks}",
                 Amount = (int)withdrawal.Amount,
                 Description = $"WITHDRAW {withdrawal.Id}",
-                ToBin = withdrawal.BankBin ?? "",
+                ToBin = ResolveBankBin(withdrawal.BankBin, withdrawal.BankName),
                 ToAccountNumber = withdrawal.BankAccountNumber
             };
 
             var payoutResult = await _payOsService.CreatePayoutAsync(payoutInput);
             
-            withdrawal.ExternalTransactionRef = payoutResult.PayoutId; // Store Payout ID
-            withdrawal.ProcessNote = $"Tự động tạo lô chi hộ PayOS: ID={payoutResult.PayoutId}, State={payoutResult.State}. {request.Note}";
+            withdrawal.ExternalTransactionRef = payoutResult.PayoutId;
+            payosNote = $"PayOS auto-payout: ID={payoutResult.PayoutId}, State={payoutResult.State}. ";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create PayOS payout for withdrawal #{WithdrawalId}", withdrawalId);
-            throw new ValidationException(new[] { $"Lỗi cổng chi hộ PayOS: {ex.Message}. Vui lòng kiểm tra cấu hình kênh chuyển tiền." });
+            _logger.LogWarning(ex, "PayOS payout failed for withdrawal #{WithdrawalId}, proceeding with manual approval", withdrawalId);
+            payosNote = $"PayOS auto-payout thất bại ({ex.Message}). Chuyển xử lý thủ công. ";
         }
 
         withdrawal.Status = "Approved";
         withdrawal.ProcessedBy = staffId;
         withdrawal.ProcessedAt = DateTime.UtcNow;
+        withdrawal.ProcessNote = $"{payosNote}{request.Note}";
         _withdrawalRepo.Update(withdrawal);
         await _unitOfWork.SaveChangesAsync(ct);
 
         await _auditLog.LogAsync(staffId, "Staff", "Withdrawal.Approve", "WithdrawalRequest", withdrawalId,
             new { OldStatus = "Pending" }, new { NewStatus = "Approved", request.Note }, ct: ct);
 
-        _logger.LogInformation("Staff #{StaffId} approved withdrawal #{WithdrawalId} with PayOS auto-payout", staffId, withdrawalId);
+        _logger.LogInformation("Staff #{StaffId} approved withdrawal #{WithdrawalId}", staffId, withdrawalId);
 
         var user = await _userRepo.GetByIdAsync(withdrawal.UserId, ct);
         return MapToDto(withdrawal, user?.FullName, user?.Email);
@@ -208,10 +263,36 @@ public class WithdrawalService : IWithdrawalService
         if (withdrawal.Status != "Approved")
             throw new ValidationException(new[] { "Chỉ có thể hoàn tất yêu cầu đã được duyệt." });
 
+        // If no payout was done during approval, try now
+        var payosNote = "";
+        if (string.IsNullOrEmpty(withdrawal.ExternalTransactionRef))
+        {
+            try
+            {
+                var payoutInput = new CreatePayoutInput
+                {
+                    ReferenceId = $"wd_{withdrawal.Id}_{DateTime.UtcNow.Ticks}",
+                    Amount = (int)withdrawal.Amount,
+                    Description = $"WITHDRAW {withdrawal.Id}",
+                    ToBin = ResolveBankBin(withdrawal.BankBin, withdrawal.BankName),
+                    ToAccountNumber = withdrawal.BankAccountNumber
+                };
+
+                var payoutResult = await _payOsService.CreatePayoutAsync(payoutInput);
+                withdrawal.ExternalTransactionRef = payoutResult.PayoutId;
+                payosNote = $"PayOS payout (from Complete): ID={payoutResult.PayoutId}, State={payoutResult.State}. ";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "PayOS payout FAILED during CompleteAsync for withdrawal #{WithdrawalId}. Staff will transfer manually.", withdrawalId);
+                payosNote = $"PayOS payout thất bại ({ex.Message}). Staff chuyển khoản thủ công. ";
+            }
+        }
+
         withdrawal.Status = "Completed";
         withdrawal.ProcessedBy = staffId;
-        withdrawal.ExternalTransactionRef = request.ExternalTransactionRef;
-        withdrawal.ProcessNote = request.Note;
+        withdrawal.ExternalTransactionRef = request.ExternalTransactionRef ?? withdrawal.ExternalTransactionRef;
+        withdrawal.ProcessNote = $"{payosNote}{request.Note}";
         withdrawal.ProcessedAt = DateTime.UtcNow;
         _withdrawalRepo.Update(withdrawal);
 
@@ -365,6 +446,14 @@ public class WithdrawalService : IWithdrawalService
             new { request.BankAccountNumber, request.BankName, request.BankAccountHolderName, request.BankBin }, ct: ct);
 
         _logger.LogInformation("User #{UserId} updated bank account to {Bank} {Account}", userId, request.BankName, request.BankAccountNumber);
+    }
+
+    // ──────────────────────────────────────────────
+    //  STAFF: Lấy số dư PayOS payout (debug)
+    // ──────────────────────────────────────────────
+    public async Task<decimal> GetPayOsBalanceAsync(CancellationToken ct = default)
+    {
+        return await _payOsService.GetPayoutBalanceAsync();
     }
 
     // ──────────────────────────────────────────────
