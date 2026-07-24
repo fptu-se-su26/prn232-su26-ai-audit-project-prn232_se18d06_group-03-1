@@ -40,7 +40,10 @@ public class SystemConfigService : ISystemConfigService
         await EnsureDefaultsAsync(cancellationToken);
         var definitions = SystemConfigKeys.Definitions.ToDictionary(x => x.ConfigKey, StringComparer.OrdinalIgnoreCase);
         var keys = request.Items.Select(x => x.ConfigKey.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var configs = await _context.SystemConfig.Where(x => keys.Contains(x.ConfigKey)).ToListAsync(cancellationToken);
+        var configs = await _context.SystemConfig
+            .Where(x => keys.Contains(x.ConfigKey))
+            .ToListAsync(cancellationToken);
+        var configByKey = SelectLatestByKey(configs);
 
         foreach (var item in request.Items)
         {
@@ -51,7 +54,7 @@ public class SystemConfigService : ISystemConfigService
             }
 
             var value = NormalizeValue(definition, item.ConfigValue);
-            var config = configs.FirstOrDefault(x => string.Equals(x.ConfigKey, key, StringComparison.OrdinalIgnoreCase));
+            configByKey.TryGetValue(key, out var config);
             if (config is null)
             {
                 config = new SystemConfig
@@ -62,6 +65,7 @@ public class SystemConfigService : ISystemConfigService
                 };
                 await _context.SystemConfig.AddAsync(config, cancellationToken);
                 configs.Add(config);
+                configByKey[key] = config;
             }
 
             config.ConfigValue = value;
@@ -112,7 +116,8 @@ public class SystemConfigService : ISystemConfigService
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var values = configs.ToDictionary(x => x.ConfigKey, x => x.ConfigValue, StringComparer.OrdinalIgnoreCase);
+        var values = SelectLatestByKey(configs)
+            .ToDictionary(x => x.Key, x => x.Value.ConfigValue, StringComparer.OrdinalIgnoreCase);
 
         _cache.Set(CacheKey, values, CacheDuration);
         return values;
@@ -160,7 +165,7 @@ public class SystemConfigService : ISystemConfigService
 
     private static IReadOnlyList<SystemConfigResponse> Map(IReadOnlyCollection<SystemConfig> configs)
     {
-        var byKey = configs.ToDictionary(x => x.ConfigKey, StringComparer.OrdinalIgnoreCase);
+        var byKey = SelectLatestByKey(configs);
         return SystemConfigKeys.Definitions
             .OrderBy(x => x.Category)
             .ThenBy(x => x.ConfigKey)
@@ -181,6 +186,20 @@ public class SystemConfigService : ISystemConfigService
                 };
             })
             .ToList();
+    }
+
+    private static Dictionary<string, SystemConfig> SelectLatestByKey(IEnumerable<SystemConfig> configs)
+    {
+        return configs
+            .Where(config => !string.IsNullOrWhiteSpace(config.ConfigKey))
+            .GroupBy(config => config.ConfigKey.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderByDescending(config => config.UpdatedAt)
+                    .ThenByDescending(config => config.Id)
+                    .First(),
+                StringComparer.OrdinalIgnoreCase);
     }
 
     private static string NormalizeValue(SystemConfigDefinition definition, string rawValue)
