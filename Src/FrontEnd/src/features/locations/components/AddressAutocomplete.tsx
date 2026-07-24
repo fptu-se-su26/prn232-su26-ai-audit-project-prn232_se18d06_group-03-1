@@ -35,19 +35,23 @@ export default function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
   const [predictions, setPredictions] = useState<GoongPlacePrediction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const debouncedValue = useDebounce(value, 350);
 
-  useClickOutside(rootRef, () => setIsOpen(false));
+  useClickOutside(rootRef, () => {
+    setIsOpen(false);
+    setIsSearchActive(false);
+  });
 
   useEffect(() => {
     let ignore = false;
     const query = debouncedValue.trim();
 
-    if (query.length < 2 || disabled) {
+    if (!isSearchActive || query.length < 2 || disabled) {
       setPredictions([]);
       setIsLoading(false);
       return;
@@ -74,7 +78,7 @@ export default function AddressAutocomplete({
     return () => {
       ignore = true;
     };
-  }, [debouncedValue, disabled]);
+  }, [debouncedValue, disabled, isSearchActive]);
 
   const handleSelect = useCallback(async (prediction: GoongPlacePrediction) => {
     if (!resolveCoordinates) {
@@ -87,6 +91,7 @@ export default function AddressAutocomplete({
         placeId: prediction.placeId,
       });
       setIsOpen(false);
+      setIsSearchActive(false);
       return;
     }
 
@@ -105,6 +110,7 @@ export default function AddressAutocomplete({
         placeId: detail.placeId || prediction.placeId,
       });
       setIsOpen(false);
+      setIsSearchActive(false);
     } catch {
       setError("Không lấy được tọa độ địa chỉ.");
       setIsOpen(true);
@@ -123,9 +129,11 @@ export default function AddressAutocomplete({
           onChange={(event) => {
             onChange(event.target.value);
             onManualChange?.();
+            setIsSearchActive(true);
             setIsOpen(true);
           }}
-          onFocus={() => {
+          onClick={() => {
+            setIsSearchActive(true);
             if (predictions.length > 0 || error) setIsOpen(true);
           }}
           disabled={disabled}
