@@ -35,6 +35,7 @@ export const endpoints = {
     driverLicenseVerifications: "/api/admin/driver-license-verifications",
     nationalIdVerifications: "/api/admin/national-id-verifications",
     dashboardStats: "/api/admin/dashboard/stats",
+    systemConfig: "/api/admin/config",
     createStaff: "/api/admin/staff",
     createCustomer: "/api/admin/customers",
     createOwner: "/api/admin/owners",

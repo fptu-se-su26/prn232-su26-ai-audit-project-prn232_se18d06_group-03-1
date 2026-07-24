@@ -7,6 +7,8 @@ using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
+using MoveVN.Application.Modules.SystemConfigs.DTOs;
+using MoveVN.Application.Modules.SystemConfigs.Interfaces;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Modules.Notifications.Services;
@@ -19,19 +21,22 @@ public class NotificationService : INotificationService
     private readonly INotificationRepository _notificationRepository;
     private readonly INotificationRealtimeDispatcher _realtimeDispatcher;
     private readonly IEmailSender _emailSender;
+    private readonly ISystemConfigService _systemConfigService;
 
     public NotificationService(
         ICurrentUserContext currentUserContext,
         IUserRepository userRepository,
         INotificationRepository notificationRepository,
         INotificationRealtimeDispatcher realtimeDispatcher,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        ISystemConfigService systemConfigService)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
         _realtimeDispatcher = realtimeDispatcher;
         _emailSender = emailSender;
+        _systemConfigService = systemConfigService;
     }
 
     public async Task<PagedResult<NotificationResponse>> GetMineAsync(bool? unreadOnly, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -154,6 +159,11 @@ public class NotificationService : INotificationService
 
     private async Task SendEmailNotificationIfAllowedAsync(User user, Notification notification, CancellationToken cancellationToken)
     {
+        if (!await _systemConfigService.GetBoolAsync(SystemConfigKeys.NotificationEmailEnabled, true, cancellationToken))
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(user.Email))
         {
             return;

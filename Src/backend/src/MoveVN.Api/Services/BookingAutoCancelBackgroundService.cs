@@ -2,6 +2,8 @@ using System.Text.Json;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
+using MoveVN.Application.Modules.SystemConfigs.DTOs;
+using MoveVN.Application.Modules.SystemConfigs.Interfaces;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Api.Services;
@@ -54,8 +56,20 @@ public class BookingAutoCancelBackgroundService : BackgroundService
     {
         try
         {
-            await AutoCancelExpiredPendingBookingsAsync(cancellationToken);
-            await AutoCancelExpiredApprovedBookingsAsync(cancellationToken);
+            using var scope = _scopeFactory.CreateScope();
+            var systemConfig = scope.ServiceProvider.GetRequiredService<ISystemConfigService>();
+            var enabled = await systemConfig.GetBoolAsync(
+                SystemConfigKeys.BookingAutoCancelEnabled,
+                GetBool("BOOKING_AUTO_CANCEL_ENABLED", "BookingAutoCancel:Enabled", true),
+                cancellationToken);
+
+            if (!enabled)
+            {
+                return;
+            }
+
+            await AutoCancelExpiredPendingBookingsAsync(scope.ServiceProvider, systemConfig, cancellationToken);
+            await AutoCancelExpiredApprovedBookingsAsync(scope.ServiceProvider, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -67,11 +81,10 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         }
     }
 
-    private async Task AutoCancelExpiredApprovedBookingsAsync(CancellationToken cancellationToken)
+    private async Task AutoCancelExpiredApprovedBookingsAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
-        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+        var bookingRepository = serviceProvider.GetRequiredService<IBookingRepository>();
+        var notificationService = serviceProvider.GetRequiredService<INotificationService>();
         var now = DateTime.UtcNow;
         var expiredBookings = (await bookingRepository.GetExpiredApprovedAsync(now, cancellationToken))
             .Take(GetBatchSize())
@@ -107,14 +120,17 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         _logger.LogInformation("Auto-cancelled {Count} approved booking(s) after deposit deadline.", expiredBookings.Count);
     }
 
-    private async Task AutoCancelExpiredPendingBookingsAsync(CancellationToken cancellationToken)
+    private async Task AutoCancelExpiredPendingBookingsAsync(
+        IServiceProvider serviceProvider,
+        ISystemConfigService systemConfig,
+        CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
-        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+        var bookingRepository = serviceProvider.GetRequiredService<IBookingRepository>();
+        var notificationService = serviceProvider.GetRequiredService<INotificationService>();
 
         var now = DateTime.UtcNow;
-        var threshold = now.Subtract(GetPendingTimeout());
+        var pendingTimeout = await GetPendingTimeoutAsync(systemConfig, cancellationToken);
+        var threshold = now.Subtract(pendingTimeout);
         var batchSize = GetBatchSize();
 
         var expiredBookings = (await bookingRepository.GetExpiredPendingAsync(threshold, cancellationToken))
@@ -129,7 +145,7 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         foreach (var booking in expiredBookings)
         {
             var previousStatus = booking.Status;
-            var reason = $"Chủ xe không phản hồi trong {GetPendingTimeout().TotalHours:0} giờ. Hệ thống tự động từ chối booking.";
+            var reason = $"Chủ xe không phản hồi trong {pendingTimeout.TotalHours:0} giờ. Hệ thống tự động từ chối booking.";
 
             booking.Status = "Rejected";
             booking.CancelReason = reason;
@@ -190,7 +206,7 @@ public class BookingAutoCancelBackgroundService : BackgroundService
                     targetPath = roleTarget == "owner"
                         ? $"/owner/bookings/{booking.Id}"
                         : $"/customer/bookings/{booking.Id}",
-                    action = "BookingAutoRejected"
+                    action = booking.Status == "Rejected" ? "BookingAutoRejected" : "BookingAutoCancelled"
                 }),
                 Channel = "InApp"
             }, cancellationToken);
@@ -211,6 +227,12 @@ public class BookingAutoCancelBackgroundService : BackgroundService
     {
         var minutes = GetPositiveInt("BOOKING_AUTO_CANCEL_PENDING_MINUTES", "BookingAutoCancel:PendingMinutes");
         return minutes.HasValue ? TimeSpan.FromMinutes(minutes.Value) : DefaultPendingTimeout;
+    }
+
+    private async Task<TimeSpan> GetPendingTimeoutAsync(ISystemConfigService systemConfig, CancellationToken cancellationToken)
+    {
+        var hours = await systemConfig.GetIntAsync(SystemConfigKeys.AutoCancelHours, (int)DefaultPendingTimeout.TotalHours, cancellationToken);
+        return TimeSpan.FromHours(Math.Max(1, hours));
     }
 
     private int GetBatchSize()

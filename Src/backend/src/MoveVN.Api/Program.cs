@@ -55,6 +55,7 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
 builder.Services.AddHostedService<BookingAutoCancelBackgroundService>();
+builder.Services.AddHostedService<BookingReminderBackgroundService>();
 
 const string frontendCorsPolicy = "Frontend";
 var allowedOrigins = builder.Configuration
