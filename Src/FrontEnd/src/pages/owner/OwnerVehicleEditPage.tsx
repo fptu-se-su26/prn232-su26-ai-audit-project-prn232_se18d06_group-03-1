@@ -185,7 +185,7 @@ export default function OwnerVehicleEditPage() {
     setSaving("info");
     setError(null);
     try {
-      await updateVehicle(Number(id), {
+      const updated = await updateVehicle(Number(id), {
         year,
         licensePlate: licensePlate.trim(),
         odometerKm: odometerKm ? Number(odometerKm) : null,
@@ -200,7 +200,7 @@ export default function OwnerVehicleEditPage() {
         securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
         featureIds: selectedFeatureIds,
       });
-      await loadData();
+      if (updated) setVehicle(updated);
     } catch {
       setError("Cập nhật thông tin xe thất bại.");
     } finally {
@@ -213,7 +213,7 @@ export default function OwnerVehicleEditPage() {
     setSaving("features");
     setError(null);
     try {
-      await updateVehicle(Number(id), {
+      const updated = await updateVehicle(Number(id), {
         year,
         licensePlate: licensePlate.trim(),
         odometerKm: odometerKm ? Number(odometerKm) : null,
@@ -228,7 +228,10 @@ export default function OwnerVehicleEditPage() {
         securityDepositAmount: securityRequiresDeposit ? Number(securityDepositAmount) : 0,
         featureIds: selectedFeatureIds,
       });
-      await loadData();
+      if (updated) {
+        setVehicle(updated);
+        setSelectedFeatureIds(updated.features.map((f) => f.id));
+      }
     } catch {
       setError("Cập nhật tính năng thất bại.");
     } finally {
@@ -241,7 +244,7 @@ export default function OwnerVehicleEditPage() {
     setSaving("pricing");
     setError(null);
     try {
-      await updateVehicle(Number(id), {
+      const updatedVehicle = await updateVehicle(Number(id), {
         year,
         licensePlate: licensePlate.trim(),
         odometerKm: odometerKm ? Number(odometerKm) : null,
@@ -263,7 +266,7 @@ export default function OwnerVehicleEditPage() {
         autoMaxPrice: pricingMode === "Auto" ? Number(autoMaxPrice) : null,
       });
       setPricing(updated ?? null);
-      await loadData();
+      if (updatedVehicle) setVehicle(updatedVehicle);
     } catch {
       setError("Cập nhật giá xe thất bại.");
     } finally {

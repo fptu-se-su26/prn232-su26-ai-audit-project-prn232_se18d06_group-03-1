@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Upload, Loader2, CheckCircle, AlertCircle, Check, Camera } from "lucide-react";
 import FormDropdown from "@/components/common/FormDropdown";
@@ -13,6 +13,7 @@ type Props = { vehicleId: number; onClose: () => void; onUpdated: () => void; };
 const steps = ["Thông tin xe", "Địa điểm & Giá", "Hình ảnh", "Xác nhận"];
 
 export default function EditVehicleModal({ vehicleId, onClose, onUpdated }: Props) {
+  const hydratingInitialVehicleRef = useRef(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -95,6 +96,7 @@ export default function EditVehicleModal({ vehicleId, onClose, onUpdated }: Prop
 
   useEffect(() => {
     if (!vehicleType) return;
+    if (hydratingInitialVehicleRef.current) return;
     setBrandId(null); setModelId(null); setVariantId(null);
     getCatalogBrands(vehicleType).then(setBrands).catch(() => {});
     getCatalogFeatures(vehicleType).then(setFeatures).catch(() => {});
@@ -102,12 +104,14 @@ export default function EditVehicleModal({ vehicleId, onClose, onUpdated }: Prop
 
   useEffect(() => {
     if (!brandId) return;
+    if (hydratingInitialVehicleRef.current) return;
     setModelId(null); setVariantId(null);
     getCatalogModels(brandId).then(setModels).catch(() => {});
   }, [brandId]);
 
   useEffect(() => {
     if (!modelId) return;
+    if (hydratingInitialVehicleRef.current) return;
     setVariantId(null);
     getCatalogVariants(modelId, vehicleType || undefined).then(setVariants).catch(() => {});
   }, [modelId, vehicleType]);
@@ -139,7 +143,7 @@ export default function EditVehicleModal({ vehicleId, onClose, onUpdated }: Prop
       .then(async (v) => {
         if (cancelled) return;
         if (!v) { setLoadError("Không tìm thấy xe."); return; }
-        populateFromVehicle(v);
+        await populateFromVehicle(v);
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -164,7 +168,8 @@ export default function EditVehicleModal({ vehicleId, onClose, onUpdated }: Prop
     setDocumentFileUrl(null);
   }, [cavetFile]);
 
-  function populateFromVehicle(v: VehicleResponse) {
+  async function populateFromVehicle(v: VehicleResponse) {
+    hydratingInitialVehicleRef.current = true;
     setVehicleType(v.vehicleType);
     setYear(String(v.year));
     setLicensePlate(v.licensePlate);
@@ -195,25 +200,26 @@ export default function EditVehicleModal({ vehicleId, onClose, onUpdated }: Prop
       setPricePerDay(String(v.fixedPricePerDay ?? v.pricePerDay));
     }
 
-    setTimeout(() => {
-      getCatalogBrands(v.vehicleType).then((brandList) => {
-        const matched = brandList.find((b) => b.id === v.brandId);
-        if (matched) setBrandId(matched.id);
-        getCatalogModels(v.brandId).then((modelList) => {
-          const matchedModel = modelList.find((m) => m.id === v.modelId);
-          if (matchedModel) setModelId(matchedModel.id);
-          if (v.variantId) {
-            getCatalogVariants(v.modelId, v.vehicleType).then((varList) => {
-              const matchedVar = varList.find((vr) => vr.id === v.variantId);
-              if (matchedVar) setVariantId(matchedVar.id);
-            });
-          }
-        });
-      });
-      getCatalogFeatures(v.vehicleType).then((featureList) => {
-        setFeatures(featureList);
-      });
-    }, 100);
+    try {
+      const [brandList, modelList, varList, featureList] = await Promise.all([
+        getCatalogBrands(v.vehicleType),
+        getCatalogModels(v.brandId),
+        v.variantId ? getCatalogVariants(v.modelId, v.vehicleType) : Promise.resolve([]),
+        getCatalogFeatures(v.vehicleType),
+      ]);
+
+      setBrands(brandList);
+      setModels(modelList);
+      setVariants(varList);
+      setFeatures(featureList);
+      if (brandList.some((b) => b.id === v.brandId)) setBrandId(v.brandId);
+      if (modelList.some((m) => m.id === v.modelId)) setModelId(v.modelId);
+      if (v.variantId && varList.some((vr) => vr.id === v.variantId)) setVariantId(v.variantId);
+    } finally {
+      window.setTimeout(() => {
+        hydratingInitialVehicleRef.current = false;
+      }, 0);
+    }
   }
 
   function isPriceInSuggestion(value: number) {

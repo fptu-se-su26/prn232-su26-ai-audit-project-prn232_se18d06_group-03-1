@@ -26,7 +26,7 @@ public class PricingCalculatorService : IPricingCalculatorService
         _logger = logger;
     }
 
-    public async Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, DateOnly? date = null, decimal? vacantRate = null, CancellationToken cancellationToken = default)
+    public async Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, DateOnly? date = null, decimal? vacantRate = null, CancellationToken cancellationToken = default, bool includeDynamic = false)
     {
         if (vacantRate is < 0 or > 1)
             throw new AppException(ErrorCode.PRICING_INVALID_RANGE);
@@ -66,7 +66,10 @@ public class PricingCalculatorService : IPricingCalculatorService
             SuggestedMaxPrice = Math.Round(pricing.SuggestedMaxPrice * region.Coefficient, 2)
         };
 
-        await EnrichDynamicSuggestionAsync(suggestion, model.BrandId, date, vacantRate, cancellationToken);
+        if (includeDynamic)
+        {
+            await EnrichDynamicSuggestionAsync(suggestion, model.BrandId, date, vacantRate, cancellationToken);
+        }
         return suggestion;
     }
 

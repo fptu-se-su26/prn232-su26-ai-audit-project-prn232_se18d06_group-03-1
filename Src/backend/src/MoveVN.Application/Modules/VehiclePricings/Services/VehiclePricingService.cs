@@ -19,8 +19,8 @@ public class VehiclePricingService : IVehiclePricingService
         _calculator = calculator;
     }
 
-    public Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, DateOnly? date = null, decimal? vacantRate = null, CancellationToken cancellationToken = default)
-        => _calculator.GetSuggestionAsync(modelId, areaId, date, vacantRate, cancellationToken);
+    public Task<PricingSuggestionResponse> GetSuggestionAsync(int modelId, int areaId, DateOnly? date = null, decimal? vacantRate = null, CancellationToken cancellationToken = default, bool includeDynamic = false)
+        => _calculator.GetSuggestionAsync(modelId, areaId, date, vacantRate, cancellationToken, includeDynamic);
 
     public async Task<VehiclePricingResponse> GetByVehicleIdAsync(long vehicleId, long ownerId, CancellationToken cancellationToken = default)
     {
