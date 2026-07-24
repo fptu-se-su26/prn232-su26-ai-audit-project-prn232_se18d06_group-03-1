@@ -21,6 +21,7 @@ import {
   ListChecks,
   LogOut,
   Map,
+  Megaphone,
   MessageSquare,
   MapPinned,
   Monitor,
@@ -235,6 +236,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Staff") {
     mainItems.push({ to: "/staff/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
+    mainItems.push({ to: "/staff/broadcast", label: "Gửi thông báo", icon: Megaphone });
   }
 
   if (primaryRole === "Owner") {
@@ -484,6 +486,13 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                   ))}
                 </div>
               )}
+            </>
+          )}
+
+          {primaryRole === "Admin" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <NavItem collapsed={collapsed} to="/admin/broadcast" label="Gửi thông báo" icon={Megaphone} />
             </>
           )}
 

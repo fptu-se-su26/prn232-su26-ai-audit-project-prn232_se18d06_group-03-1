@@ -7,6 +7,8 @@ using MoveVN.Application.Modules.Admin.Interfaces;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
 using MoveVN.Application.Modules.Disputes.Interfaces;
 using MoveVN.Application.Modules.Locations.Interfaces;
+using MoveVN.Application.Modules.Payments.Interfaces;
+using MoveVN.Application.Modules.Withdrawals.Interfaces;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
 using MoveVN.Application.Modules.SystemConfigs.Interfaces;
 using MoveVN.Application.Modules.UserManagementAuditLog.Interfaces;
@@ -94,10 +96,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGoongPlaceService, GoongPlaceService>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
-        services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IPaymentRepository, MoveVN.Infrastructure.Persistence.Repositories.PaymentRepository>();
-        services.AddScoped<MoveVN.Application.Modules.Payments.Interfaces.IWalletRepository, MoveVN.Infrastructure.Persistence.Repositories.WalletRepository>();
-        services.AddScoped<MoveVN.Application.Modules.Withdrawals.Interfaces.IWithdrawalRepository, MoveVN.Infrastructure.Persistence.Repositories.WithdrawalRepository>();
-        services.AddScoped<MoveVN.Application.Interfaces.IAuditLogRepository, MoveVN.Infrastructure.Persistence.Repositories.AuditLogRepository>();
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<IWithdrawalRepository, WithdrawalRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
         // PayOS Payment Gateway
         services.Configure<PayOsSettings>(settings =>

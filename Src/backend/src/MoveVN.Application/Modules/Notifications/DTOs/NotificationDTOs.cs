@@ -33,3 +33,21 @@ public class MarkAllNotificationsReadResponse
 {
     public int UpdatedCount { get; set; }
 }
+
+public class BroadcastNotificationRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string Channel { get; set; } = "InApp";
+    public string TargetType { get; set; } = "All";
+    public List<string> TargetRoles { get; set; } = [];
+    public List<long> TargetUserIds { get; set; } = [];
+}
+
+public class BroadcastNotificationResponse
+{
+    public int TotalTargeted { get; set; }
+    public int SuccessCount { get; set; }
+    public int FailedCount { get; set; }
+    public List<string> Errors { get; set; } = [];
+}
