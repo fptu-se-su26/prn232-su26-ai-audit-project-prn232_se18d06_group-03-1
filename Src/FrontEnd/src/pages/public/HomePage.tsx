@@ -7,7 +7,13 @@ import {
   Bike,
   ArrowUpRight,
   Star,
-  TicketPercent
+  TicketPercent,
+  Search,
+  Calendar,
+  Smartphone,
+  X,
+  CarFront,
+  ShieldCheck,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
