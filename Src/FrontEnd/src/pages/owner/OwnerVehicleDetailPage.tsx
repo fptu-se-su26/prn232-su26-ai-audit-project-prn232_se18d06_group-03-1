@@ -13,7 +13,7 @@ import Button from "@/components/common/Button";
 import { showToast } from "@/components/common/toastStore";
 import { Skeleton } from "@/components/common/Skeleton";
 import { getVehicleErrorMessage } from "@/features/vehicles/vehicleDisplay";
-import MapWithPin from "@/features/locations/components/MapWithPin";
+import VehicleLocationMap from "@/features/locations/components/VehicleLocationMap";
 
 const MONTHS = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
 
@@ -429,11 +429,13 @@ export default function OwnerVehicleDetailPage() {
                 Mở Google Maps
               </a>
               {vehicle.latitude != null && vehicle.longitude != null && (
-                <MapWithPin
+                <VehicleLocationMap
                   latitude={Number(vehicle.latitude)}
                   longitude={Number(vehicle.longitude)}
                   address={vehicle.address}
-                  className="h-60 w-full rounded-xl z-0"
+                  title={`${vehicle.brandName} ${vehicle.modelName}`}
+                  googleMapsUrl={googleMapsUrl}
+                  className="h-80 w-full"
                 />
               )}
             </div>

@@ -89,7 +89,7 @@ function LocationMapCanvas({
     <MapContainer
       center={position}
       zoom={zoom}
-      scrollWheelZoom={false}
+      scrollWheelZoom={true}
       zoomControl={false}
       className={className}
     >
@@ -170,12 +170,12 @@ export default function VehicleLocationMap({
 
   return (
     <>
-      <div className={["relative overflow-hidden rounded-xl border border-violet-100 bg-slate-100 shadow-sm", className].join(" ")}>
+      <div className={["relative rounded-xl border border-violet-100 bg-slate-100 shadow-sm", className].join(" ")}>
         <LocationMapCanvas
           position={position}
           title={title}
           address={address}
-          className="h-72 w-full"
+          className="h-full w-full"
           zoom={16}
           resizeTick={0}
         />

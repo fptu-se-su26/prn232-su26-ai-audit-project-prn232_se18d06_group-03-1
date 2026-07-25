@@ -12,7 +12,7 @@ import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getVehicleReviews } from "@/features/review/reviewService";
 import type { ReviewResponse } from "@/features/review/reviewService";
 import ReviewCard from "@/features/review/components/ReviewCard";
-import MapWithPin from "@/features/locations/components/MapWithPin";
+import VehicleLocationMap from "@/features/locations/components/VehicleLocationMap";
 
 const MONTHS = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -468,11 +468,12 @@ export default function VehicleDetailPage() {
                 Mở Google Maps
                 <ExternalLink className="h-3 w-3 text-slate-400" />
               </a>
-              <MapWithPin
+              <VehicleLocationMap
                 latitude={Number(vehicle.latitude)}
                 longitude={Number(vehicle.longitude)}
                 address={vehicle.address}
-                className="h-56 w-full rounded-xl z-0"
+                title={`${vehicle.brandName} ${vehicle.modelName}`}
+                className="h-80 w-full"
               />
             </div>
           )}
