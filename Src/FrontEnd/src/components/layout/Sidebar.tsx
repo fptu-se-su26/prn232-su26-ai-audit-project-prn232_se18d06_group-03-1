@@ -228,6 +228,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Customer") {
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
+    mainItems.push({ to: "/customer/voucher-hunt", label: "Săn mã", icon: TicketPercent });
+    mainItems.push({ to: "/customer/voucher-wallet", label: "Ví voucher", icon: Wallet });
     mainItems.push({ to: "/customer/promotions", label: "Khuyến mãi", icon: TicketPercent });
     mainItems.push({ to: "/chat", label: "Tin nhắn", icon: MessageSquare });
     if (!user?.roles?.includes("Owner")) {

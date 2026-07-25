@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { 
   getAllWithdrawals, 
   approveWithdrawal, 
@@ -18,11 +19,76 @@ import {
   ExternalLink, 
   Filter, 
   FileText, 
-  AlertCircle 
+  AlertCircle,
+  Download
 } from "lucide-react";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+}
+
+function resolveBankBin(bankBin: string | undefined, bankName: string): string {
+  const bankBinMap: Record<string, string> = {
+    "VCB": "970436", "Vietcombank": "970436",
+    "BIDV": "970418",
+    "ICB": "970415", "VietinBank": "970415", "CTG": "970415",
+    "VBA": "970405", "Agribank": "970405", "AGR": "970405",
+    "MB": "970422", "MB Bank": "970422",
+    "TCB": "970407", "Techcombank": "970407",
+    "ACB": "970416",
+    "VPB": "970432", "VPBank": "970432",
+    "TPB": "970423", "TPBank": "970423",
+    "STB": "970403", "Sacombank": "970403",
+    "HDB": "970437", "HDBank": "970437",
+    "SHB": "970443",
+    "VIB": "970441",
+    "LPB": "970449", "LienVietPostBank": "970449",
+    "MSB": "970426",
+    "SCB": "970429",
+    "OCB": "970448",
+    "SEAB": "970440", "SeABank": "970440", "SSB": "970440",
+    "KLB": "970452", "KienlongBank": "970452",
+    "ABB": "970425", "ABBANK": "970425",
+    "VAB": "970427", "VietABank": "970427",
+    "NAB": "970428", "Nam A Bank": "970428",
+    "PVCB": "970412", "PVcomBank": "970412",
+    "EIB": "970431", "Eximbank": "970431",
+    "BAB": "970409", "BAC A BANK": "970409",
+    "VRB": "970421",
+    "CIMB": "422589",
+    "HSBC": "458761",
+    "BVB": "970438",
+    "NCB": "970419",
+    "SGB": "970400", "SaigonBank": "970400", "SGICB": "970400",
+  };
+
+  // 1. Prioritize resolving by bank name to bypass any database seeds/mismatches
+  if (bankName) {
+    const upperName = bankName.toUpperCase();
+    
+    // Sort keys by descending length to match more specific bank name strings first
+    const sortedKeys = Object.keys(bankBinMap).sort((a, b) => b.length - a.length);
+    for (const key of sortedKeys) {
+      if (upperName.includes(key.toUpperCase())) {
+        return bankBinMap[key];
+      }
+    }
+  }
+
+  // 2. Fallback to raw bankBin from database if it's a valid 6-digit BIN
+  if (bankBin && /^\d{6}$/.test(bankBin)) {
+    return bankBin;
+  }
+
+  // 3. Match raw database bankBin against map keys
+  if (bankBin) {
+    const upperBin = bankBin.toUpperCase();
+    for (const [key, bin] of Object.entries(bankBinMap)) {
+      if (upperBin === key.toUpperCase()) return bin;
+    }
+  }
+
+  return "";
 }
 
 export default function AdminWithdrawalsPage() {
@@ -286,11 +352,12 @@ export default function AdminWithdrawalsPage() {
       )}
 
       {/* Action modal */}
-      {selectedRequest && actionType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-md bg-white dark:bg-slate-900 shadow-xl border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+      {selectedRequest && actionType && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md bg-white dark:bg-slate-900 shadow-xl border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] !p-0 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 {actionType === "approve" && <CheckCircle className="w-5 h-5 text-blue-600" />}
                 {actionType === "complete" && <CheckCircle className="w-5 h-5 text-emerald-600" />}
                 {actionType === "reject" && <XCircle className="w-5 h-5 text-rose-600" />}
@@ -298,76 +365,142 @@ export default function AdminWithdrawalsPage() {
                 {actionType === "complete" && "Xác nhận chuyển khoản"}
                 {actionType === "reject" && "Từ chối yêu cầu rút tiền"}
               </h3>
-              <button onClick={() => { setSelectedRequest(null); setActionType(null); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button 
+                onClick={() => { setSelectedRequest(null); setActionType(null); }} 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 text-sm">
-                <p>Mã yêu cầu: <span className="font-bold text-slate-900 dark:text-white">#{selectedRequest.id}</span></p>
-                <p>Chủ xe: <span className="font-semibold text-slate-900 dark:text-white">{selectedRequest.userFullName}</span></p>
-                <p>Số tiền rút: <span className="font-bold text-rose-500">{formatCurrency(selectedRequest.amount)}</span></p>
-                <p className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 font-mono text-xs">
-                  NH: {selectedRequest.bankName} - STK: {selectedRequest.bankAccountNumber}
+            {/* Modal Body (Scrollable) */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-sm space-y-1.5">
+                <p className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Mã yêu cầu:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">#{selectedRequest.id}</span>
                 </p>
+                <p className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Chủ xe:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{selectedRequest.userFullName}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Số tiền rút:</span>
+                  <span className="font-bold text-rose-500">{formatCurrency(selectedRequest.amount)}</span>
+                </p>
+                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 font-mono text-xs space-y-1">
+                  <p className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Ngân hàng:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedRequest.bankName}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Số tài khoản:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{selectedRequest.bankAccountNumber}</span>
+                  </p>
+                  {selectedRequest.bankBin && (
+                    <p className="flex justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">Mã BIN:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedRequest.bankBin}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
+              {actionType === "approve" && (() => {
+                const bin = resolveBankBin(selectedRequest.bankBin, selectedRequest.bankName);
+                if (!bin || !selectedRequest.bankAccountNumber) return null;
+                const encodedNote = encodeURIComponent(`Rut tien ${selectedRequest.id}`);
+                const qrUrl = `https://img.vietqr.io/image/${bin}-${selectedRequest.bankAccountNumber}-compact2.png?amount=${selectedRequest.amount}&addInfo=${encodedNote}&accountName=${encodeURIComponent(selectedRequest.bankAccountHolderName || "")}`;
+                return (
+                  <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50 text-center space-y-3">
+                    <p className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">Mã QR chuyển khoản</p>
+                    <div className="bg-white p-2 rounded-lg inline-block border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <img
+                        src={qrUrl}
+                        alt={`QR chuyển khoản #${selectedRequest.id}`}
+                        className="w-52 h-auto mx-auto rounded"
+                        onError={(e) => { (e.target as HTMLImageElement).alt = "Không thể tải mã QR"; }}
+                      />
+                    </div>
+                    <div>
+                      <a
+                        href={qrUrl}
+                        download={`QR-RutTien-${selectedRequest.id}.png`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Tải mã QR
+                      </a>
+                    </div>
+                    <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                      BIN: {bin} · STK: {selectedRequest.bankAccountNumber} · {formatCurrency(selectedRequest.amount)}
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      Quét mã QR bằng ứng dụng ngân hàng để chuyển khoản chính xác số tiền.
+                    </p>
+                  </div>
+                );
+              })()}
+
               {actionType === "complete" && (
-                <div>
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Mã giao dịch ngân hàng (External Transaction Ref) *</label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block">
+                    Mã giao dịch ngân hàng (External Transaction Ref) *
+                  </label>
                   <input
                     type="text"
                     placeholder="Nhập mã giao dịch của ngân hàng chuyển tiền..."
                     value={externalRef}
                     onChange={(e) => setExternalRef(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono"
                   />
                 </div>
               )}
 
-              <div>
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block">
                   {actionType === "reject" ? "Lý do từ chối *" : "Ghi chú xử lý (Tùy chọn)"}
                 </label>
                 <textarea
                   placeholder={actionType === "reject" ? "Nhập lý do từ chối chi tiết..." : "Nhập ghi chú lưu lại hệ thống..."}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 h-24 resize-none"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 h-20 resize-none"
                 />
               </div>
 
               {actionType === "complete" && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-xs p-3 rounded-lg flex gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div className="bg-blue-50/50 dark:bg-blue-950/20 text-blue-800 dark:text-blue-300 text-xs p-3 rounded-lg flex gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
                   <span>Chủ xe sẽ nhận được thông báo về việc rút tiền thành công cùng thông tin chi tiết tài khoản nhận.</span>
                 </div>
               )}
+            </div>
 
-              <div className="flex gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => { setSelectedRequest(null); setActionType(null); }}
-                  className="flex-1 h-12 rounded-xl text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                >
-                  Hủy bỏ
-                </Button>
-                <Button
-                  onClick={handleActionSubmit}
-                  isLoading={isSubmitting}
-                  className={`flex-1 h-12 rounded-xl text-[15px] font-bold text-white ${
-                    actionType === "reject" ? "bg-rose-600 hover:bg-rose-700" :
-                    actionType === "complete" ? "bg-emerald-600 hover:bg-emerald-700" :
-                    "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  Xác nhận
-                </Button>
-              </div>
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 flex gap-3 shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => { setSelectedRequest(null); setActionType(null); }}
+                className="flex-1 h-11 rounded-xl text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold text-sm"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                onClick={handleActionSubmit}
+                isLoading={isSubmitting}
+                className={`flex-1 h-11 rounded-xl text-sm font-bold text-white ${
+                  actionType === "reject" ? "bg-rose-600 hover:bg-rose-700" :
+                  actionType === "complete" ? "bg-emerald-600 hover:bg-emerald-700" :
+                  "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                Xác nhận
+              </Button>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

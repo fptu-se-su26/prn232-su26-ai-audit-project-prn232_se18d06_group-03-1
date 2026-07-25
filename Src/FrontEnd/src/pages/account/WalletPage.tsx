@@ -39,6 +39,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { showToast } from "@/components/common/toastStore";
 import { useSearchParams } from "react-router-dom";
+import { VIETNAM_BANKS } from "@/features/owner/data/banks";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
@@ -783,14 +784,21 @@ export default function WalletPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Tên ngân hàng</label>
-                <input 
-                  type="text" 
-                  placeholder="Ví dụ: MB Bank, Vietcombank..." 
+                <select 
                   value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
+                  onChange={(e) => {
+                    setBankName(e.target.value);
+                    const bank = VIETNAM_BANKS.find(b => b.name === e.target.value);
+                    if (bank) setBankBin(bank.bin);
+                  }}
                   disabled={otpSent}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 disabled:opacity-60"
-                />
+                >
+                  <option value="">Chọn ngân hàng</option>
+                  {VIETNAM_BANKS.map(bank => (
+                    <option key={bank.code} value={bank.name}>{bank.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

@@ -8,7 +8,8 @@ import {
   Car,
   Bike,
   ArrowUpRight,
-  Star
+  Star,
+  TicketPercent
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
@@ -209,6 +210,13 @@ export default function HomePage() {
                 className="inline-flex h-12 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white/80 px-6 text-sm font-bold text-slate-800 shadow-sm backdrop-blur transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
               >
                 Tìm hiểu thêm
+              </Link>
+              <Link
+                to="/customer/voucher-hunt"
+                className="inline-flex h-12 items-center justify-center gap-3 rounded-md border border-brand-200 bg-brand-50/80 px-6 text-sm font-bold text-brand-700 shadow-sm backdrop-blur transition hover:bg-brand-100 hover:text-brand-800"
+              >
+                <TicketPercent className="h-4 w-4" />
+                Săn mã
               </Link>
             </div>
 

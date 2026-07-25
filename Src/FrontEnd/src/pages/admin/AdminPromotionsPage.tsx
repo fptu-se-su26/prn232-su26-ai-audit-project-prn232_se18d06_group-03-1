@@ -54,7 +54,18 @@ function formatVehicleType(v: string) {
 
 function toDatetimeLocal(iso?: string) {
   if (!iso) return "";
-  return iso.slice(0, 16);
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso.slice(0, 16);
+  const offset = -d.getTimezoneOffset();
+  const local = new Date(d.getTime() + offset * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function toUtcIso(datetimeLocal?: string) {
+  if (!datetimeLocal) return undefined;
+  const d = new Date(datetimeLocal);
+  if (isNaN(d.getTime())) return datetimeLocal;
+  return d.toISOString();
 }
 
 export default function AdminPromotionsPage() {
@@ -239,8 +250,8 @@ export default function AdminPromotionsPage() {
           vehicleType,
           whoBears,
           ownerBearsPercent: whoBears === "Shared" ? Number(ownerBearsPercent) : 0,
-          startAt,
-          endAt: endAt || "",
+          startAt: toUtcIso(startAt) || startAt,
+          endAt: toUtcIso(endAt) || "",
           maxUsageCount: muc,
         });
       } else {
@@ -256,8 +267,8 @@ export default function AdminPromotionsPage() {
           whoBears,
           ownerBearsPercent: whoBears === "Shared" ? Number(ownerBearsPercent) : undefined,
           ownerId: whoBears !== "System" && !sendToAllOwners && ownerId ? Number(ownerId) : undefined,
-          startAt,
-          endAt: endAt || undefined,
+          startAt: toUtcIso(startAt) || startAt,
+          endAt: toUtcIso(endAt) || undefined,
           maxUsageCount: muc,
         });
       }
