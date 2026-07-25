@@ -23,11 +23,14 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.511.0",
     "qrcode.react": "^4.2.0",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^6.1.200",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.3.0",
     "tailwind-merge": "^3.0.2",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

@@ -552,7 +552,7 @@ export default function VehicleDetailPage() {
               )}
               <div>
                 <label className="flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-gray-500"><User className="h-3 w-3" /> Chủ xe</label>
-                <p className="mt-1 font-medium text-slate-800 dark:text-gray-200">{vehicle.ownerName || `Chủ xe #${vehicle.ownerId}`}</p>
+                <button type="button" onClick={() => navigate(`/users/${vehicle.ownerId}`)} className="mt-1 font-medium text-brand-700 hover:text-brand-800 hover:underline">{vehicle.ownerName || `Chủ xe #${vehicle.ownerId}`}</button>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 dark:text-gray-500">Loại xe</label>

@@ -8,6 +8,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   getAdminCmsPages,
   deleteAdminCmsPage,
+  updateAdminCmsPage,
   type CmsPageListItem,
 } from "@/features/admin/services/adminCmsService";
 import { showToast } from "@/components/common/toastStore";
@@ -45,11 +46,29 @@ export default function AdminCmsPagesPage() {
     setPage(p); void load(p, keyword);
   }
 
+  function handleToggleActive(item: CmsPageListItem) {
+    const newActive = !item.isActive;
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, isActive: newActive } : i));
+    updateAdminCmsPage(item.id, { title: item.title, content: item.content, isActive: newActive })
+      .then(() => showToast({ type: "success", title: newActive ? "Đã kích hoạt" : "Đã tắt", message: `Trang "${item.title}" ${newActive ? "đã được kích hoạt." : "đã tắt."}` }))
+      .catch(() => {
+        setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, isActive: !newActive } : i));
+        showToast({ type: "error", title: "Thất bại", message: "Không thể thay đổi trạng thái." });
+      });
+  }
+
   async function handleDelete(id: number) {
     try {
       await deleteAdminCmsPage(id);
       showToast({ type: "success", title: "Đã xoá", message: "Trang CMS đã được xoá." });
-      setConfirmDelete(null); void load(page, keyword);
+      setConfirmDelete(null);
+      const result = await getAdminCmsPages(keyword || undefined, page, PAGE_SIZE);
+      if (page > result.totalPages && result.totalPages > 0) {
+        setPage(result.totalPages);
+        void load(result.totalPages, keyword);
+      } else {
+        setItems(result.items); setTotalCount(result.totalCount); setPage(result.page); setTotalPages(result.totalPages);
+      }
       } catch { showToast({ type: "error", title: "Xoá thất bại", message: "Vui lòng thử lại." }); }
   }
 
@@ -119,13 +138,13 @@ export default function AdminCmsPagesPage() {
                   <td className="px-4 py-3 font-medium text-slate-900">{item.title}</td>
                   <td className="px-4 py-3 text-slate-500">{item.slug}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${item.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
-                      {item.isActive ? "Có" : "Không"}
-                    </span>
+                    <button type="button" onClick={() => handleToggleActive(item)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 ${item.isActive ? "bg-brand-600" : "bg-slate-300"}`} role="switch" aria-checked={item.isActive}>
+                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform ${item.isActive ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-slate-500">{new Date(item.updatedAt).toLocaleDateString("vi-VN")}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <button type="button" onClick={() => navigate(`/admin/cms-pages/${item.id}/edit`)} title="Sửa" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800">
                         <Pencil className="h-4 w-4" />
                       </button>

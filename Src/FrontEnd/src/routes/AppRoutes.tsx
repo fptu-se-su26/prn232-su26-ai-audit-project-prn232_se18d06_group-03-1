@@ -87,6 +87,7 @@ import PolicyPage from "@/pages/public/PolicyPage";
 import SupportPage from "@/pages/public/SupportPage";
 import VehicleListPage from "@/pages/public/VehicleListPage";
 import VehicleDetailPage from "@/pages/public/VehicleDetailPage";
+import PublicProfilePage from "@/pages/public/PublicProfilePage";
 import StaffHomePage from "@/pages/staff/StaffHomePage";
 import StaffDriverLicenseVerificationsPage from "@/pages/staff/StaffDriverLicenseVerificationsPage";
 import StaffNationalIdVerificationsPage from "@/pages/staff/StaffNationalIdVerificationsPage";
@@ -123,6 +124,7 @@ export default function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/vehicle" element={<VehicleListPage />} />
         <Route path="/vehicle/:id" element={<VehicleDetailPage />} />
+        <Route path="/users/:id" element={<PublicProfilePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/for-owners" element={<ForOwnersPage />} />

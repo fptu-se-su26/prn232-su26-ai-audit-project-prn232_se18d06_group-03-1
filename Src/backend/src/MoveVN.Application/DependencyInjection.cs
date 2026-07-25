@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IAdminPostManagementService, AdminPostManagementService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IPublicUserProfileService, PublicUserProfileService>();
         services.AddScoped<IOwnerApplicationService, OwnerApplicationService>();
         services.AddScoped<IStaffOwnerApplicationService, StaffOwnerApplicationService>();
         services.AddScoped<INationalIdReviewService, NationalIdReviewService>();

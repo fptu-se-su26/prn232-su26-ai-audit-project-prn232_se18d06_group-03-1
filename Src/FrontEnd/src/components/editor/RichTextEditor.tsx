@@ -2,7 +2,8 @@ import { useCallback, useEffect, useReducer } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Link as LinkIcon, Heading2, Heading3 } from "lucide-react";
+import Link from "@tiptap/extension-link";
+import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Link as LinkIcon, Heading1, Heading2, Heading3 } from "lucide-react";
 
 type Props = {
   content: string;
@@ -29,12 +30,12 @@ export default function RichTextEditor({ content, onChange, placeholder, showHea
   const [, forceRender] = useReducer(x => x + 1, 0);
 
   const editor = useEditor({
-    extensions: [StarterKit.configure({ heading: { levels: showHeadings ? [2, 3] : [] } }), Underline],
+    extensions: [StarterKit.configure({ heading: { levels: showHeadings ? [1, 2, 3] : [] } }), Underline, Link.configure({ openOnClick: false })],
     content,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: "prose prose-slate max-w-none min-h-[200px] px-3 py-2 text-sm focus:outline-none",
+        class: "prose prose-slate max-w-none min-h-[220px] px-3 py-2 text-sm focus:outline-none",
         placeholder: placeholder ?? "",
       },
     },
@@ -69,6 +70,9 @@ export default function RichTextEditor({ content, onChange, placeholder, showHea
       <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
         {showHeadings && (
           <>
+            <ToolbarButton onClick={() => run((c) => c.toggleHeading({ level: 1 }))} isActive={editor.isActive("heading", { level: 1 })}>
+              <Heading1 className="h-4 w-4" />
+            </ToolbarButton>
             <ToolbarButton onClick={() => run((c) => c.toggleHeading({ level: 2 }))} isActive={editor.isActive("heading", { level: 2 })}>
               <Heading2 className="h-4 w-4" />
             </ToolbarButton>
@@ -98,6 +102,7 @@ export default function RichTextEditor({ content, onChange, placeholder, showHea
         <ToolbarButton onClick={setLink} isActive={editor.isActive("link")}>
           <LinkIcon className="h-4 w-4" />
         </ToolbarButton>
+
       </div>
       <EditorContent editor={editor} />
     </div>

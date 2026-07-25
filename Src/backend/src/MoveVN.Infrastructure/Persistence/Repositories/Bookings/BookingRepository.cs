@@ -339,6 +339,13 @@ public class BookingRepository : IBookingRepository
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<List<Review>> GetReviewsByRevieweeIdAsync(long revieweeId, CancellationToken cancellationToken = default)
+        => await _context.Reviews
+            .Where(r => r.RevieweeId == revieweeId && r.IsPublic)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(20)
+            .ToListAsync(cancellationToken);
+
     public async Task<bool> HasReviewAsync(long bookingId, long reviewerId, CancellationToken cancellationToken = default)
         => await _context.Reviews.AnyAsync(r => r.BookingId == bookingId && r.ReviewerId == reviewerId, cancellationToken);
 
