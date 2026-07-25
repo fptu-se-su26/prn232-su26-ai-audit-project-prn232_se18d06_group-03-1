@@ -215,6 +215,10 @@ public class BookingRepository : IBookingRepository
                 PaymentDueAt = b.PaymentDueAt,
                 PickupAddress = b.PickupAddress,
                 Status = b.Status,
+                SecurityDepositAmount = b.SecurityDepositAmount,
+                PromotionId = b.PromotionId,
+                PromotionCode = b.PromotionCode,
+                PromotionDiscount = b.PromotionDiscount,
                 CreatedAt = b.CreatedAt,
                 UpdatedAt = b.UpdatedAt,
             })
@@ -257,6 +261,10 @@ public class BookingRepository : IBookingRepository
                 RiskScore = b.RiskScore,
                 Status = b.Status,
                 CustomerNote = b.CustomerNote,
+                SecurityDepositAmount = b.SecurityDepositAmount,
+                PromotionId = b.PromotionId,
+                PromotionCode = b.PromotionCode,
+                PromotionDiscount = b.PromotionDiscount,
                 CreatedAt = b.CreatedAt,
                 UpdatedAt = b.UpdatedAt,
             })

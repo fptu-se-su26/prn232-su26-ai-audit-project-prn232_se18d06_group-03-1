@@ -52,6 +52,8 @@ using MoveVN.Application.Modules.AuditLogs.Interfaces;
 using MoveVN.Application.Modules.AuditLogs.Services;
 using MoveVN.Application.Modules.Withdrawals.Interfaces;
 using MoveVN.Application.Modules.Withdrawals.Services;
+using MoveVN.Application.Modules.Promotions.Interfaces;
+using MoveVN.Application.Modules.Promotions.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
@@ -109,6 +111,7 @@ public static class DependencyInjection
         services.AddScoped<MoveVN.Application.Modules.Wallets.Interfaces.IAdminWalletService, MoveVN.Application.Modules.Wallets.Services.AdminWalletService>();
         services.AddScoped<IDisputeService, DisputeService>();
         services.AddScoped<ICmsPageService, CmsPageService>();
+        services.AddScoped<IPromotionService, PromotionService>();
 
         return services;
     }

@@ -47,6 +47,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<PlatformFeeRule> PlatformFeeRules => Set<PlatformFeeRule>();
     public DbSet<PricingRegion> PricingRegion => Set<PricingRegion>();
     public DbSet<PricingRule> PricingRules => Set<PricingRule>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<PromotionUsage> PromotionUsages => Set<PromotionUsage>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<Review> Reviews => Set<Review>();

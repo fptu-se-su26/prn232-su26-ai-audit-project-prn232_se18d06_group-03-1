@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Camera, Check, ClipboardCheck, DollarSign, MapPin, TicketPercent, X, Star, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarDays, Camera, Check, ClipboardCheck, DollarSign, MapPin, TicketPercent, X, Star, MessageSquare, Tag } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -422,6 +422,15 @@ export default function OwnerBookingDetailPage() {
               <span className="font-medium text-green-600">-{formatCurrency(booking.discountAmount)}</span>
             </div>
           )}
+          {(booking as any).promotionDiscount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1 text-green-600">
+                <Tag className="h-4 w-4" />
+                Mã {(booking as any).promotionCode}
+              </span>
+              <span className="font-medium text-green-600">-{formatCurrency((booking as any).promotionDiscount)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-600">Phí nền tảng{booking.platformFeeType
               ? ` (${booking.platformFeeType === "Fixed" ? formatCurrency(booking.platformFeeValue ?? 0) : (booking.platformFeeValue ?? 10) + "%"}, đã gồm trong tổng)`
@@ -455,6 +464,19 @@ export default function OwnerBookingDetailPage() {
               : "Khách thanh toán đặt cọc qua PayOS. Số còn lại thu khi giao xe."}
           </p>
         </div>
+
+        {(booking.securityDepositAmount ?? 0) > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+            <h3 className="text-sm font-bold text-amber-800">Tiền thế chấp với khách thuê</h3>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-amber-700">Thu thế chấp khi giao xe</span>
+              <span className="font-bold text-amber-900 text-base">{formatCurrency(booking.securityDepositAmount)}</span>
+            </div>
+            <p className="text-xs text-amber-600">
+              Số tiền này được thỏa thuận trực tiếp giữa bạn và khách thuê. MoveVN không thu giữ tiền thế chấp.
+            </p>
+          </div>
+        )}
       </Card>
 
       {booking.status === "Completed" && (

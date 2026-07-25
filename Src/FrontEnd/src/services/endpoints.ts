@@ -32,6 +32,7 @@ export const endpoints = {
     vehicleModelPricings: "/api/admin/vehicle-model-pricings",
     pricingRules: "/api/admin/pricing-rules",
     platformFeeRules: "/api/admin/platform-fee-rules",
+    promotions: "/api/promotions",
     driverLicenseVerifications: "/api/admin/driver-license-verifications",
     nationalIdVerifications: "/api/admin/national-id-verifications",
     dashboardStats: "/api/admin/dashboard/stats",

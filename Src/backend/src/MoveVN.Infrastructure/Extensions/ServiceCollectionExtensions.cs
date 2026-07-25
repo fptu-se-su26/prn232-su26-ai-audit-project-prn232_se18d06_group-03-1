@@ -100,6 +100,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<IWithdrawalRepository, WithdrawalRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<MoveVN.Application.Modules.Promotions.Interfaces.IPromotionRepository, MoveVN.Infrastructure.Persistence.Repositories.PromotionRepository>();
 
         // PayOS Payment Gateway
         services.Configure<PayOsSettings>(settings =>

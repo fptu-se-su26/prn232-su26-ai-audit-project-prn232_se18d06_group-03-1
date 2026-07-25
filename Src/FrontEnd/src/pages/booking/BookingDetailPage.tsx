@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Info,
   CheckCircle2,
-  Lock
+  Lock,
+  Tag
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -846,6 +847,15 @@ export default function BookingDetailPage() {
                     <span className="font-bold text-emerald-650">-{formatCurrency(booking.discountAmount)}</span>
                   </div>
                 )}
+                {(booking as any).promotionDiscount > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="flex items-center gap-1 text-green-600">
+                      <Tag className="h-4 w-4" />
+                      Mã {(booking as any).promotionCode}
+                    </span>
+                    <span className="font-bold text-green-600">-{formatCurrency((booking as any).promotionDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-sm border-t border-slate-100 pt-2.5">
                   <span className="text-slate-400 text-xs">Phí nền tảng (Đã gồm trong tổng)</span>
                   <span className="text-xs font-medium text-slate-500">{formatCurrency(booking.platformFee)}</span>
@@ -857,6 +867,18 @@ export default function BookingDetailPage() {
                 <span className="text-sm font-bold text-slate-950">Tổng cộng toàn bộ</span>
                 <span className="text-lg font-extrabold text-slate-950">{formatCurrency(booking.totalAmount)}</span>
               </div>
+
+              {(booking.securityDepositAmount ?? 0) > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Thế chấp với chủ xe</span>
+                    <span className="text-base font-extrabold text-amber-800">{formatCurrency(booking.securityDepositAmount)}</span>
+                  </div>
+                  <p className="text-[10px] text-amber-600 leading-relaxed">
+                    Số tiền này được thỏa thuận trực tiếp giữa khách thuê và chủ xe. MoveVN không thu giữ tiền thế chấp.
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
 

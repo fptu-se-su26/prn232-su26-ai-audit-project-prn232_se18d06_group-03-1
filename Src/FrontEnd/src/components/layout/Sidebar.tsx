@@ -31,6 +31,7 @@ import {
   Scale,
   Settings,
   ShieldCheck,
+  TicketPercent,
   UserCog,
   UserPlus,
   UserRound,
@@ -70,6 +71,7 @@ const vehiclePricingItems = [
   { to: "/admin/vehicle-model-pricings", label: "Khung giá", icon: BadgeDollarSign },
   { to: "/admin/pricing-rules", label: "Quy tắc giá", icon: ReceiptText },
   { to: "/admin/platform-fee-rules", label: "Phí nền tảng", icon: Percent },
+  { to: "/admin/promotions", label: "Khuyến mãi", icon: TicketPercent },
   { to: "/admin/areas", label: "Khu vực", icon: MapPinned },
 ];
 
@@ -226,6 +228,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Customer") {
     mainItems.push({ to: "/customer/bookings", label: "Lịch sử thuê xe", icon: CalendarCheck });
+    mainItems.push({ to: "/customer/promotions", label: "Khuyến mãi", icon: TicketPercent });
     mainItems.push({ to: "/chat", label: "Tin nhắn", icon: MessageSquare });
     if (!user?.roles?.includes("Owner")) {
       mainItems.push({ to: "/become-owner", label: "Đăng ký làm chủ xe", icon: UserPlus });
@@ -244,6 +247,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/owner/bookings", label: "Yêu cầu thuê", icon: CalendarCheck });
     mainItems.push({ to: "/chat", label: "Tin nhắn", icon: MessageSquare });
     mainItems.push({ to: "/owner/disputes", label: "Tranh chấp", icon: Scale });
+    mainItems.push({ to: "/owner/promotions", label: "Khuyến mãi", icon: TicketPercent });
     mainItems.push({ to: "/", label: "Về trang chủ", icon: Home });
   }
 

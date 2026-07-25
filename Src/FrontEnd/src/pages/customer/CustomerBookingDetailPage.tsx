@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare, Tag } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -421,6 +421,15 @@ export default function CustomerBookingDetailPage() {
               <span className="font-medium text-green-600">-{formatCurrency(booking.discountAmount)}</span>
             </div>
           )}
+          {(booking as any).promotionDiscount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1 text-green-600">
+                <Tag className="h-4 w-4" />
+                Mã {(booking as any).promotionCode}
+              </span>
+              <span className="font-medium text-green-600">-{formatCurrency((booking as any).promotionDiscount)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-600">Phí nền tảng (đã gồm trong tổng)</span>
             <span className="font-medium text-slate-900">{formatCurrency(booking.platformFee)}</span>
@@ -454,6 +463,19 @@ export default function CustomerBookingDetailPage() {
                 : "Tiền cọc xác nhận đặt xe. Số còn lại thanh toán khi nhận xe."}
           </p>
         </div>
+
+        {(booking.securityDepositAmount ?? 0) > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+            <h3 className="text-sm font-bold text-amber-800">Tiền thế chấp với chủ xe</h3>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-amber-700">Thế chấp khi nhận xe</span>
+              <span className="font-bold text-amber-900 text-base">{formatCurrency(booking.securityDepositAmount)}</span>
+            </div>
+            <p className="text-xs text-amber-600">
+              Số tiền này được thỏa thuận trực tiếp giữa bạn và chủ xe. MoveVN không thu giữ tiền thế chấp.
+            </p>
+          </div>
+        )}
       </Card>
 
       {booking.status === "Completed" && (

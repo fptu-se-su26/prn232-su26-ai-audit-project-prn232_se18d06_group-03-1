@@ -31,6 +31,7 @@ import AdminAreasPage from "@/pages/admin/AdminAreasPage";
 import AdminVehicleModelPricingsPage from "@/pages/admin/AdminVehicleModelPricingsPage";
 import AdminPricingRulesPage from "@/pages/admin/AdminPricingRulesPage";
 import AdminPlatformFeeRulesPage from "@/pages/admin/AdminPlatformFeeRulesPage";
+import AdminPromotionsPage from "@/pages/admin/AdminPromotionsPage";
 import AdminSystemConfigPage from "@/pages/admin/AdminSystemConfigPage";
 import AdminVehiclesPage from "@/pages/admin/AdminVehiclesPage";
 import AdminWithdrawalsPage from "@/pages/admin/AdminWithdrawalsPage";
@@ -60,6 +61,7 @@ import CustomerHomePage from "@/pages/customer/CustomerHomePage";
 import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPage";
 import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
 import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
+import CustomerPromotionsPage from "@/pages/customer/CustomerPromotionsPage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
 import DisputePage from "@/pages/disputes/DisputePage";
@@ -72,6 +74,7 @@ import OwnerVehicleListPage from "@/pages/owner/OwnerVehicleListPage";
 import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
 import OwnerVehicleAddPage from "@/pages/owner/OwnerVehicleAddPage";
 import OwnerVehicleEditPage from "@/pages/owner/OwnerVehicleEditPage";
+import OwnerPromotionApprovalsPage from "@/pages/owner/OwnerPromotionsPage";
 import AboutPage from "@/pages/public/AboutPage";
 import ForOwnersPage from "@/pages/public/ForOwnersPage";
 import HomePage from "@/pages/public/HomePage";
@@ -153,6 +156,7 @@ export default function AppRoutes() {
             <Route path="/customer/disputes" element={<DisputePage />} />
             <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
             <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
+            <Route path="/customer/promotions" element={<CustomerPromotionsPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
             <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
             <Route path="/become-owner/bank" element={<BankInfoPage />} />
@@ -170,6 +174,7 @@ export default function AppRoutes() {
             <Route path="/owner/vehicles/add" element={<OwnerVehicleAddPage />} />
             <Route path="/owner/vehicles/:id" element={<OwnerVehicleDetailPage />} />
             <Route path="/owner/vehicles/:id/edit" element={<OwnerVehicleEditPage />} />
+            <Route path="/owner/promotions" element={<OwnerPromotionApprovalsPage />} />
           </Route>
 
           <Route element={<RoleRoute roles={["Staff"]} />}>
@@ -230,6 +235,7 @@ export default function AppRoutes() {
             <Route path="/admin/vehicle-model-pricings" element={<AdminVehicleModelPricingsPage />} />
             <Route path="/admin/pricing-rules" element={<AdminPricingRulesPage />} />
             <Route path="/admin/platform-fee-rules" element={<AdminPlatformFeeRulesPage />} />
+            <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
             <Route path="/admin/system-config" element={<AdminSystemConfigPage />} />
             <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/admin/wallets" element={<AdminWalletsPage />} />
