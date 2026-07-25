@@ -11,11 +11,13 @@ public class RefreshTokenService : IRefreshTokenService
 {
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IPasswordHasherService _passwordHasherService;
+    private readonly ITokenSessionService _tokenSessionService;
 
-    public RefreshTokenService(IRefreshTokenRepository refreshTokenRepository, IPasswordHasherService passwordHasherService)
+    public RefreshTokenService(IRefreshTokenRepository refreshTokenRepository, IPasswordHasherService passwordHasherService, ITokenSessionService tokenSessionService)
     {
         _refreshTokenRepository = refreshTokenRepository;
         _passwordHasherService = passwordHasherService;
+        _tokenSessionService = tokenSessionService;
     }
 
     public async Task<(string PlainToken, RefreshToken Entity)> CreateAsync(long userId, string? deviceInfo, string sessionId, string? ipAddress, CancellationToken cancellationToken = default)
@@ -60,5 +62,22 @@ public class RefreshTokenService : IRefreshTokenService
         var refreshToken = await ValidateAsync(plainToken, cancellationToken);
         refreshToken.RevokedAt = DateTime.UtcNow;
         _refreshTokenRepository.Update(refreshToken);
+    }
+
+    public async Task RevokeAllByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var tokens = await _refreshTokenRepository.GetActiveByUserIdAsync(userId, cancellationToken);
+
+        foreach (var token in tokens)
+        {
+            token.RevokedAt = now;
+            _refreshTokenRepository.Update(token);
+
+            if (!string.IsNullOrWhiteSpace(token.AccessTokenJti))
+            {
+                await _tokenSessionService.RevokeAsync(token.AccessTokenJti, cancellationToken);
+            }
+        }
     }
 }

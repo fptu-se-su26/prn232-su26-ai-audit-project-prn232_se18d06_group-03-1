@@ -5,6 +5,7 @@ public static class RedisKeys
     public static string Session(string jti) => $"session:{jti}";
     public static string OtpRate(string email) => $"otp_rate:{email.ToLowerInvariant()}";
     public static string OtpLock(string email) => $"otp_lock:{email.ToLowerInvariant()}";
+    public static string OtpResendDaily(string email, string date) => $"otp_resend:{email.ToLowerInvariant()}:{date}";
     public static string LoginFail(string ipAddress) => $"login_fail:{ipAddress}";
     public static string RefreshBlacklist(string jti) => $"refresh_blacklist:{jti}";
     public static string Online(long userId) => $"online:{userId}";

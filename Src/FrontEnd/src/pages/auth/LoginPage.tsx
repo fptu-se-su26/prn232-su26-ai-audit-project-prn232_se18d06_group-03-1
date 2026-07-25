@@ -36,8 +36,8 @@ export default function LoginPage() {
       setApiError("");
       setIsSubmitting(true);
       try {
-        const idToken = tokenResponse.access_token;
-        const result = await googleLogin(idToken);
+        const accessToken = tokenResponse.access_token;
+        const result = await googleLogin(accessToken);
         setSession({ token: result.token, user: result.user });
         showToast({ type: "success", title: "Đăng nhập thành công", message: `Chào mừng ${result.user.fullName}.` });
         const fromState = location.state as { from?: { pathname?: string } } | null;

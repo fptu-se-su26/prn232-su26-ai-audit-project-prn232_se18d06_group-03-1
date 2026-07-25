@@ -156,7 +156,7 @@ public class AuthService : IAuthService
         {
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             googleUser = await httpClient.GetFromJsonAsync<GoogleUserInfo>(
-                $"https://www.googleapis.com/oauth2/v3/userinfo?access_token={request.IdToken}",
+                $"https://www.googleapis.com/oauth2/v3/userinfo?access_token={request.AccessToken}",
                 cancellationToken) ?? throw new AppException(ErrorCode.GOOGLE_AUTH_FAILED);
 
             if (string.IsNullOrWhiteSpace(googleUser.Email))
@@ -313,6 +313,7 @@ public class AuthService : IAuthService
         user.PasswordHash = _passwordHasherService.Hash(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
         _userRepository.Update(user);
+        await _refreshTokenService.RevokeAllByUserIdAsync(user.Id, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordResetCompleted, null, null, cancellationToken: cancellationToken);
     }
@@ -340,6 +341,7 @@ public class AuthService : IAuthService
         user.PasswordHash = _passwordHasherService.Hash(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
         _userRepository.Update(user);
+        await _refreshTokenService.RevokeAllByUserIdAsync(user.Id, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _activityLogger.LogAsync(user.Id, user.Email, AuthEventType.PasswordChanged, null, null, cancellationToken: cancellationToken);
     }

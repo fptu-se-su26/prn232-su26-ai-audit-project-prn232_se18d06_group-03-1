@@ -8,4 +8,5 @@ public interface IRefreshTokenService
     Task<(string PlainToken, RefreshToken Entity)> CreateAsync(long userId, string? deviceInfo, string sessionId, string? ipAddress, CancellationToken cancellationToken = default);
     Task<RefreshToken> ValidateAsync(string plainToken, CancellationToken cancellationToken = default);
     Task RevokeAsync(string plainToken, CancellationToken cancellationToken = default);
+    Task RevokeAllByUserIdAsync(long userId, CancellationToken cancellationToken = default);
 }

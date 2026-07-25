@@ -71,6 +71,10 @@ export function toApiError(error: unknown): AppApiError {
   }
 
   if (error instanceof AxiosError) {
+    if (error.response?.status === 429) {
+      return new AppApiError({ code: "429", message: "Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau." });
+    }
+
     const data = error.response?.data as any;
     const code = data?.code ?? data?.Code;
     const message = data?.message ?? data?.Message;
@@ -92,8 +96,8 @@ export function toApiError(error: unknown): AppApiError {
   return new AppApiError({ code: "UNKNOWN", message: "Đã có lỗi xảy ra. Vui lòng thử lại." });
 }
 
-export async function googleLogin(idToken: string) {
-  const res = await apiClient.post<ApiResponse<AuthResponse>>(endpoints.auth.googleLogin, { idToken });
+export async function googleLogin(accessToken: string) {
+  const res = await apiClient.post<ApiResponse<AuthResponse>>(endpoints.auth.googleLogin, { accessToken });
   return unwrap(res.data);
 }
 

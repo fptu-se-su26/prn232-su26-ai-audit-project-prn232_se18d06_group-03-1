@@ -169,23 +169,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddRateLimiter(options =>
 {
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    options.AddFixedWindowLimiter("NationalIdUpload", config =>
-    {
-        config.PermitLimit = 5;
-        config.Window = TimeSpan.FromMinutes(1);
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 0;
-    });
-
-    options.AddFixedWindowLimiter("PublicVehicleSearch", config =>
-    {
-        config.PermitLimit = 30;
-        config.Window = TimeSpan.FromMinutes(1);
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 0;
-    });
+    options.AddAuthPolicies();
+    options.AddMiscPolicies();
 });
 
 var app = builder.Build();

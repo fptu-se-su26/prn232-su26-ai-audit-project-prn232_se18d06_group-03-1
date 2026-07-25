@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Auth.DTOs;
 using MoveVN.Application.Modules.Auth.Interfaces;
@@ -17,6 +18,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("AuthRegister")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await _authService.RegisterAsync(request, cancellationToken);
@@ -24,6 +26,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("verify-otp")]
+    [EnableRateLimiting("AuthVerifyOtp")]
     public async Task<ActionResult<ApiResponse<object>>> VerifyOtp(VerifyOtpRequest request, CancellationToken cancellationToken)
     {
         await _authService.VerifyOtpAsync(request, cancellationToken);
@@ -31,6 +34,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("resend-otp")]
+    [EnableRateLimiting("AuthResendOtp")]
     public async Task<ActionResult<ApiResponse<object>>> ResendOtp(ResendOtpRequest request, CancellationToken cancellationToken)
     {
         await _authService.ResendOtpAsync(request, cancellationToken);
@@ -46,6 +50,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("AuthLogin")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         PopulateClientInfo(request);
@@ -54,6 +59,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("refresh-token")]
+    [EnableRateLimiting("AuthRefresh")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         request.IpAddress = GetClientIpAddress();
@@ -70,6 +76,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("forgot-password")]
+    [EnableRateLimiting("AuthForgotPassword")]
     public async Task<ActionResult<ApiResponse<object>>> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         await _authService.ForgotPasswordAsync(request, cancellationToken);
@@ -77,6 +84,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("reset-password")]
+    [EnableRateLimiting("AuthResetPassword")]
     public async Task<ActionResult<ApiResponse<object>>> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         await _authService.ResetPasswordAsync(request, cancellationToken);
@@ -93,6 +101,7 @@ public class AuthController : BaseApiController
 
     [Authorize]
     [HttpPost("change-password")]
+    [EnableRateLimiting("AuthChangePassword")]
     public async Task<ActionResult<ApiResponse<object>>> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         await _authService.ChangePasswordAsync(request, cancellationToken);

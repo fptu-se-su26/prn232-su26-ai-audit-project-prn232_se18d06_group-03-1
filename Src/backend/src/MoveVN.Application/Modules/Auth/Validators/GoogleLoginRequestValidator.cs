@@ -7,6 +7,6 @@ public class GoogleLoginRequestValidator : AbstractValidator<GoogleLoginRequest>
 {
     public GoogleLoginRequestValidator()
     {
-        RuleFor(x => x.IdToken).NotEmpty();
+        RuleFor(x => x.AccessToken).NotEmpty();
     }
 }

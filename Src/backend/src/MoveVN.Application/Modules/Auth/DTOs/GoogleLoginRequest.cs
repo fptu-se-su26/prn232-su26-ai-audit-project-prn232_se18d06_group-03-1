@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 public class GoogleLoginRequest
 {
-    public string IdToken { get; set; } = string.Empty;
+    public string AccessToken { get; set; } = string.Empty;
 
     [JsonIgnore]
     public string? IpAddress { get; set; }

@@ -33,6 +33,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode OTP_RATE_LIMITED = new("AUTH_1010", "Quá nhiều yêu cầu OTP. Vui lòng thử lại sau.", HttpStatusCode.TooManyRequests);
     public static readonly ErrorCode OTP_FAIL = new("AUTH_1011", "OTP không hợp lệ hoặc đã hết hạn.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode OTP_ALREADY_USED = new("AUTH_1012", "OTP đã được sử dụng.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode OTP_LOCKED = new("AUTH_1014", "OTP đã bị khóa do nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.", HttpStatusCode.TooManyRequests);
     public static readonly ErrorCode EMAIL_SEND_FAILED = new("AUTH_1013", "Gửi email OTP thất bại.", HttpStatusCode.InternalServerError);
     public static readonly ErrorCode REFRESH_TOKEN_INVALID = new("AUTH_1020", "Refresh token không hợp lệ.", HttpStatusCode.Unauthorized);
     public static readonly ErrorCode REFRESH_TOKEN_EXPIRED = new("AUTH_1021", "Refresh token đã hết hạn.", HttpStatusCode.Unauthorized);
