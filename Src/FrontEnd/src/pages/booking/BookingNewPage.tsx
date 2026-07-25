@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign, Settings, Info, PenLine, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign, Settings, Info, PenLine, ChevronLeft, ChevronRight, Tag, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -154,20 +154,50 @@ export default function BookingNewPage() {
     return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   }, [startDate, endDate]);
 
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoResult, setPromoResult] = useState<{ discountAmount: number; code: string } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   const pricePreview = useMemo(() => {
     if (!vehicle || totalDays <= 0) return null;
     const base = vehicle.pricePerDay * totalDays;
     const discPct = getDiscountPercent(totalDays);
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
-    const total = afterDisc;
+    const promoAmt = promoResult?.discountAmount ?? 0;
+    const total = Math.max(afterDisc - promoAmt, 0);
     const feeValue = vehicle.platformFeeValue ?? 10;
     const fee = vehicle.platformFeeType === "Fixed" ? Math.min(Math.max(feeValue, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? Infinity) : Math.round(Math.min(Math.max(total * feeValue / 100, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? total));
     const depositPercent = Math.max(20, vehicle.depositPercent || 0);
     const deposit = Math.round(total * depositPercent / 100);
     const remaining = Math.max(total - deposit, 0);
     return { base, discPct, discAmt, fee, deposit, depositPercent, remaining, total };
-  }, [vehicle, totalDays]);
+  }, [vehicle, totalDays, promoResult]);
+
+  const handleValidatePromo = useCallback(async () => {
+    if (!promoCode.trim() || !vehicleId || totalDays <= 0) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoResult(null);
+    try {
+      const { apiClient } = await import("@/services/apiClient");
+      const base = pricePreview ? (pricePreview.base - pricePreview.discAmt + (promoResult?.discountAmount ?? 0)) : 0;
+      const res = await apiClient.post("/api/promotions/validate", { code: promoCode.trim(), vehicleId, totalAmount: base });
+      const payload = res.data;
+      if (payload?.data?.success) {
+        setPromoResult({ discountAmount: payload.data.discountAmount, code: payload.data.code });
+      } else {
+        setPromoError(payload?.data?.message || payload?.message || "Mã không hợp lệ.");
+      }
+    } catch (err: any) {
+      console.error("Promo validate error:", err);
+      const msg = err?.response?.data?.errors?.[0] || err?.response?.data?.message || "Không thể kiểm tra mã.";
+      setPromoError(msg);
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoCode, vehicleId, totalDays, pricePreview, promoResult]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,6 +219,7 @@ export default function BookingNewPage() {
         pickupAddress: pickupAddress.trim(),
         returnAddress: returnAddress.trim() || undefined,
         customerNote: customerNote.trim() || undefined,
+        promotionCode: promoResult ? promoCode.trim() : undefined,
       });
       
       showToast({ type: "success", title: "Đặt xe thành công", message: "Vui lòng thanh toán cọc để hoàn tất." });
@@ -205,7 +236,6 @@ export default function BookingNewPage() {
 
   const [insurance, setInsurance] = useState(false);
   const [extraHelmet, setExtraHelmet] = useState(true);
-  const [promoCode, setPromoCode] = useState("");
 
   if (!vehicleId) {
     return (
@@ -395,24 +425,10 @@ export default function BookingNewPage() {
               </div>
             </div>
 
-            {/* Row 3: Promo & Note */}
+            {/* Row 3: Note */}
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Left Side */}
               <div className="flex-1 flex flex-col gap-4">
-                <div>
-                  <label className="text-[14px] font-semibold mb-2 text-slate-800 dark:text-slate-200 block">Mã giảm giá (tuỳ chọn)</label>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 flex items-center gap-3 shadow-sm focus-within:ring-2 focus-within:ring-brand-300 dark:focus-within:ring-brand-500 transition-all border border-slate-200 dark:border-slate-800">
-                    <TicketPercent className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                    <input 
-                      type="text" 
-                      placeholder="Nhập mã" 
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
-                      className="bg-transparent text-[14px] w-full outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600" 
-                    />
-                  </div>
-                </div>
-
                 {/* Service Options */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-800">
                   <label className="text-[15px] font-semibold mb-4 text-slate-800 dark:text-slate-100 block">Tùy chọn dịch vụ</label>
@@ -461,6 +477,47 @@ export default function BookingNewPage() {
         {/* Right Column: Cost Summary */}
         <div className="w-full lg:w-[320px] flex flex-col gap-4 lg:pt-16">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+            <h3 className="font-bold text-[15px] mb-3 text-slate-800 dark:text-slate-100">Mã khuyến mãi</h3>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoResult(null); setPromoError(null); }}
+                  placeholder="Nhập mã..."
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 pl-9 pr-3 py-2 text-[14px] uppercase text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                isLoading={promoLoading}
+                disabled={!promoCode.trim() || totalDays <= 0}
+                onClick={handleValidatePromo}
+                className="px-4 rounded-xl"
+              >
+                Áp dụng
+              </Button>
+            </div>
+            {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+            {promoResult && (
+              <div className="flex items-center justify-between rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 px-3 py-2 text-sm mt-2">
+                <span className="flex items-center gap-1 text-green-700 dark:text-green-300 font-medium">
+                  <TicketPercent className="h-4 w-4" />
+                  {promoResult.code}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-green-700 dark:text-green-300">-{formatCurrency(promoResult.discountAmount)}</span>
+                  <button type="button" onClick={() => { setPromoResult(null); setPromoCode(""); }} className="text-slate-400 hover:text-red-500">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="font-bold text-[15px] mb-5 text-slate-800 dark:text-slate-100">Tóm tắt chi phí</h3>
             
             {pricePreview ? (
@@ -477,8 +534,17 @@ export default function BookingNewPage() {
                 )}
                 <div className="flex justify-between text-[14px]">
                   <span className="text-slate-600 dark:text-slate-400">Phí nền tảng ({vehicle?.platformFeeType === "Fixed" ? formatCurrency(vehicle.platformFeeValue ?? 0) : (vehicle?.platformFeeValue ?? 10) + "%"}, đã gồm trong giá)</span>
-                  <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.fee)}</span>
+                   <span className="font-medium text-slate-900 dark:text-slate-50">{formatCurrency(pricePreview.fee)}</span>
                 </div>
+                {promoResult && (
+                  <div className="flex justify-between text-[14px]">
+                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                      <Tag className="h-3.5 w-3.5" />
+                      {"Mã "}{promoResult.code}
+                    </span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{"-"}{formatCurrency(promoResult.discountAmount)}</span>
+                  </div>
+                )}
                 {pricePreview.deposit > 0 && (
                   <div className="flex justify-between text-[14px] pt-2 border-t border-slate-50 dark:border-slate-800">
                     <span className="text-slate-600 dark:text-slate-400">Tổng cộng</span>

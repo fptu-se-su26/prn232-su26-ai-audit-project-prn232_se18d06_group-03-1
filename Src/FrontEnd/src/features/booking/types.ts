@@ -35,6 +35,10 @@ export interface BookingResponse {
   cancellationForfeitedAmount: number;
   cancellationOwnerCompensation: number;
   cancellationPlatformFee: number;
+  securityDepositAmount: number;
+  promotionId?: number;
+  promotionCode?: string;
+  promotionDiscount: number;
   createdAt: string;
   updatedAt: string;
   statusHistory: BookingStatusHistoryDto[];
@@ -67,6 +71,7 @@ export interface CreateBookingRequest {
   pickupAddress: string;
   returnAddress?: string;
   customerNote?: string;
+  promotionCode?: string;
 }
 
 export interface ApproveBookingRequest {

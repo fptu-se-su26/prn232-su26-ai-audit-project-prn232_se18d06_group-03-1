@@ -38,5 +38,9 @@ public class Booking
     public decimal CancellationForfeitedAmount { get; set; }
     public decimal CancellationOwnerCompensation { get; set; }
     public decimal CancellationPlatformFee { get; set; }
+    public decimal SecurityDepositAmount { get; set; }
+    public long? PromotionId { get; set; }
+    public string? PromotionCode { get; set; }
+    public decimal PromotionDiscount { get; set; }
 }
 

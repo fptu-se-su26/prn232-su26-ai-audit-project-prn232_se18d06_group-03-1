@@ -12,6 +12,8 @@ using MoveVN.Application.Modules.Disputes.Services;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Payments.Interfaces;
+using MoveVN.Application.Modules.Promotions.Interfaces;
+using MoveVN.Application.Modules.Promotions.DTOs;
 using Microsoft.Extensions.Logging;
 using MoveVN.Domain.Entities;
 using MoveVN.Domain.Enums;
@@ -32,6 +34,7 @@ public class BookingService : IBookingService
     private readonly IDisputeRepository _disputeRepository;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IVehicleCatalogRepository _catalogRepository;
+    private readonly IPromotionRepository _promoRepo;
     private readonly ILogger<BookingService> _logger;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
@@ -54,6 +57,7 @@ public class BookingService : IBookingService
         IDisputeRepository disputeRepository,
         ICloudinaryService cloudinaryService,
         IVehicleCatalogRepository catalogRepository,
+        IPromotionRepository promoRepo,
         ILogger<BookingService> logger)
     {
         _repo = repo;
@@ -67,6 +71,7 @@ public class BookingService : IBookingService
         _disputeRepository = disputeRepository;
         _cloudinaryService = cloudinaryService;
         _catalogRepository = catalogRepository;
+        _promoRepo = promoRepo;
         _logger = logger;
     }
 
@@ -149,6 +154,53 @@ public class BookingService : IBookingService
         var platformFee = CalculatePlatformFee(totalAmount, platformFeeType, platformFeeValue, feeRule.MinFee, feeRule.MaxFee);
         var effectiveDepositPercent = Math.Clamp(vehicle.DepositPercent, 20, 100);
         var depositAmount = Math.Round(totalAmount * effectiveDepositPercent / 100, 0);
+
+        long? promoId = null;
+        string? promoCode = null;
+        decimal promoDiscount = 0;
+        if (!string.IsNullOrWhiteSpace(request.PromotionCode))
+        {
+            var promoCodeTrimmed = request.PromotionCode.Trim().ToUpperInvariant();
+            var promo = await _promoRepo.GetByCodeAsync(promoCodeTrimmed, cancellationToken);
+            if (promo is null)
+                throw new ValidationException(["Mã khuyến mãi không tồn tại."]);
+            if (!promo.IsActive)
+                throw new ValidationException(["Mã khuyến mãi đã bị vô hiệu hóa."]);
+            if (promo.StartAt > DateTime.UtcNow)
+                throw new ValidationException(["Mã khuyến mãi chưa đến hạn sử dụng."]);
+            if (promo.EndAt.HasValue && promo.EndAt.Value < DateTime.UtcNow)
+                throw new ValidationException(["Mã khuyến mãi đã hết hạn."]);
+            if (promo.UsageCount >= promo.MaxUsageCount)
+                throw new ValidationException(["Mã khuyến mãi đã hết lượt sử dụng."]);
+            if (promo.MinOrderAmount.HasValue && totalAmount < promo.MinOrderAmount.Value)
+                throw new ValidationException([$"Đơn hàng tối thiểu {promo.MinOrderAmount.Value:N0}đ để sử dụng mã này."]);
+
+            if (promo.VehicleType != "All")
+            {
+                if (promo.VehicleType == "Motorbike" && vehicle.VehicleType != "Motorbike")
+                    throw new ValidationException(["Mã này chỉ áp dụng cho xe máy."]);
+                if (promo.VehicleType == "Car" && vehicle.VehicleType != "Car")
+                    throw new ValidationException(["Mã này chỉ áp dụng cho ô tô."]);
+            }
+
+            if (promo.WhoBears == "Owner" && promo.OwnerId.HasValue && vehicle.OwnerId != promo.OwnerId.Value)
+                throw new ValidationException(["Mã này không áp dụng cho xe này."]);
+
+            promoDiscount = promo.DiscountType == "Fixed"
+                ? promo.DiscountValue
+                : Math.Round(totalAmount * promo.DiscountValue / 100m, 0);
+            if (promo.MaxDiscountAmount.HasValue && promoDiscount > promo.MaxDiscountAmount.Value)
+                promoDiscount = promo.MaxDiscountAmount.Value;
+            promoDiscount = Math.Min(promoDiscount, totalAmount);
+
+            promoId = promo.Id;
+            promoCode = promo.Code;
+            totalAmount -= promoDiscount;
+            depositAmount = Math.Round(totalAmount * effectiveDepositPercent / 100, 0);
+
+            promo.UsageCount++;
+            _promoRepo.Update(promo);
+        }
         var createdAt = DateTime.UtcNow;
         var risk = await CalculateBookingRiskAsync(
             customerId,
@@ -185,6 +237,10 @@ public class BookingService : IBookingService
             PlatformFeeType = platformFeeType,
             PlatformFeeValue = platformFeeValue,
             EscrowStatus = "None",
+            SecurityDepositAmount = vehicle.SecurityRequiresDeposit ? vehicle.SecurityDepositAmount : 0,
+            PromotionId = promoId,
+            PromotionCode = promoCode,
+            PromotionDiscount = promoDiscount,
         };
 
         await _repo.AddAsync(booking, cancellationToken);
@@ -199,6 +255,36 @@ public class BookingService : IBookingService
             Note = "Customer tạo booking",
         }, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
+
+        if (promoId.HasValue)
+        {
+            decimal systemPaid = 0;
+            decimal ownerPaid = 0;
+            var promo2 = await _promoRepo.GetByIdAsync(promoId.Value, cancellationToken);
+            if (promo2 is not null)
+            {
+                switch (promo2.WhoBears)
+                {
+                    case "System": systemPaid = promoDiscount; break;
+                    case "Owner": ownerPaid = promoDiscount; break;
+                    case "Shared":
+                        var ownerPct = promo2.OwnerBearsPercent ?? 50m;
+                        ownerPaid = Math.Round(promoDiscount * ownerPct / 100m, 0);
+                        systemPaid = promoDiscount - ownerPaid;
+                        break;
+                }
+            }
+            await _promoRepo.AddUsageAsync(new PromotionUsage
+            {
+                PromotionId = promoId.Value,
+                BookingId = booking.Id,
+                UserId = customerId,
+                DiscountAmount = promoDiscount,
+                SystemPaidAmount = systemPaid,
+                OwnerPaidAmount = ownerPaid,
+            }, cancellationToken);
+            await _promoRepo.SaveChangesAsync(cancellationToken);
+        }
 
             await NotifyUserAsync(
                 booking.OwnerId,
@@ -1019,6 +1105,10 @@ public class BookingService : IBookingService
             CancellationForfeitedAmount = b.CancellationForfeitedAmount,
             CancellationOwnerCompensation = b.CancellationOwnerCompensation,
             CancellationPlatformFee = b.CancellationPlatformFee,
+            SecurityDepositAmount = b.SecurityDepositAmount,
+            PromotionId = b.PromotionId,
+            PromotionCode = b.PromotionCode,
+            PromotionDiscount = b.PromotionDiscount,
             CreatedAt = b.CreatedAt,
             UpdatedAt = b.UpdatedAt,
             StatusHistory = history,

@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, DollarSign } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, DollarSign, Tag, Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -33,7 +33,7 @@ export default function CustomerCreateBookingPage() {
   const navigate = useNavigate();
   const vehicleId = Number(searchParams.get("vehicleId"));
 
-  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; platformFeeType?: string; platformFeeValue?: number; platformFeeMinFee?: number; platformFeeMaxFee?: number } | null>(null);
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; platformFeeType?: string; platformFeeValue?: number; platformFeeMinFee?: number; platformFeeMaxFee?: number; securityRequiresDeposit?: boolean; securityDepositAmount?: number } | null>(null);
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
@@ -47,6 +47,11 @@ export default function CustomerCreateBookingPage() {
   const [nextAvailableDate, setNextAvailableDate] = useState<string | null>(null);
   const today = new Date().toISOString().slice(0, 10);
 
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoResult, setPromoResult] = useState<{ discountAmount: number; code: string; message?: string } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   useEffect(() => {
     const qStart = searchParams.get("startDate");
     const qEnd = searchParams.get("endDate");
@@ -58,7 +63,7 @@ export default function CustomerCreateBookingPage() {
     if (!vehicleId) { setLoadingVehicle(false); return; }
     getPublicVehicleById(vehicleId)
       .then((v) => {
-        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, depositPercent: v.depositPercent, platformFeeType: v.platformFeeType, platformFeeValue: v.platformFeeValue, platformFeeMinFee: v.platformFeeMinFee, platformFeeMaxFee: v.platformFeeMaxFee });
+        setVehicle({ pricePerDay: v.currentPricePerDay ?? v.pricePerDay, depositPercent: v.depositPercent, platformFeeType: v.platformFeeType, platformFeeValue: v.platformFeeValue, platformFeeMinFee: v.platformFeeMinFee, platformFeeMaxFee: v.platformFeeMaxFee, securityRequiresDeposit: v.securityRequiresDeposit, securityDepositAmount: v.securityDepositAmount });
         setVehicleName(`${v.brandName} ${v.modelName}`);
       })
       .catch(() => setError("Không thể tải thông tin xe."))
@@ -80,14 +85,39 @@ export default function CustomerCreateBookingPage() {
     const discPct = getDiscountPercent(totalDays);
     const discAmt = Math.round(base * discPct / 100);
     const afterDisc = base - discAmt;
-    const total = afterDisc;
+    const promoAmt = promoResult?.discountAmount ?? 0;
+    const total = Math.max(afterDisc - promoAmt, 0);
     const feeValue = vehicle.platformFeeValue ?? 10;
     const fee = vehicle.platformFeeType === "Fixed" ? Math.min(Math.max(feeValue, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? Infinity) : Math.round(Math.min(Math.max(total * feeValue / 100, vehicle.platformFeeMinFee ?? 0), vehicle.platformFeeMaxFee ?? total));
     const depositPercent = Math.max(20, vehicle.depositPercent || 0);
     const deposit = Math.round(total * depositPercent / 100);
     const remaining = Math.max(total - deposit, 0);
     return { base, discPct, discAmt, fee, deposit, depositPercent, remaining, total };
-  }, [vehicle, totalDays]);
+  }, [vehicle, totalDays, promoResult]);
+
+  const handleValidatePromo = useCallback(async () => {
+    if (!promoCode.trim() || !vehicleId || totalDays <= 0) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoResult(null);
+    try {
+      const { apiClient } = await import("@/services/apiClient");
+      const base = pricePreview ? (pricePreview.base - pricePreview.discAmt + (promoResult?.discountAmount ?? 0)) : 0;
+      const res = await apiClient.post("/api/promotions/validate", { code: promoCode.trim(), vehicleId, totalAmount: base });
+      const payload = res.data;
+      if (payload?.data?.success) {
+        setPromoResult({ discountAmount: payload.data.discountAmount, code: payload.data.code });
+      } else {
+        setPromoError(payload?.data?.message || payload?.message || "Mã không hợp lệ.");
+      }
+    } catch (err: any) {
+      console.error("Promo validate error:", err);
+      const msg = err?.response?.data?.errors?.[0] || err?.response?.data?.message || "Không thể kiểm tra mã.";
+      setPromoError(msg);
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoCode, vehicleId, totalDays, pricePreview, promoResult]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +139,7 @@ export default function CustomerCreateBookingPage() {
         pickupAddress: pickupAddress.trim(),
         returnAddress: returnAddress.trim() || undefined,
         customerNote: customerNote.trim() || undefined,
+        promotionCode: promoResult ? promoCode.trim() : undefined,
       });
       showToast({ type: "success", title: "Đặt xe thành công", message: `Mã booking: ${result.bookingCode}` });
       navigate(`/customer/bookings/${result.id}`);
@@ -243,6 +274,47 @@ export default function CustomerCreateBookingPage() {
           </div>
         </Card>
 
+        <Card className="space-y-3 rounded-md p-5">
+          <h2 className="text-sm font-bold text-slate-950">Mã khuyến mãi</h2>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoResult(null); setPromoError(null); }}
+                placeholder="Nhập mã..."
+                className="w-full rounded-md border border-slate-300 pl-9 pr-3 py-2 text-sm uppercase"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              isLoading={promoLoading}
+              disabled={!promoCode.trim() || totalDays <= 0}
+              onClick={handleValidatePromo}
+              className="px-4"
+            >
+              Áp dụng
+            </Button>
+          </div>
+          {promoError && <p className="text-xs text-red-500">{promoError}</p>}
+          {promoResult && (
+            <div className="flex items-center justify-between rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm">
+              <span className="flex items-center gap-1 text-green-700 font-medium">
+                <TicketPercent className="h-4 w-4" />
+                {promoResult.code}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-green-700">-{formatCurrency(promoResult.discountAmount)}</span>
+                <button type="button" onClick={() => { setPromoResult(null); setPromoCode(""); }} className="text-slate-400 hover:text-red-500">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+
         {pricePreview && (
           <Card className="space-y-3 rounded-md p-5">
             <h2 className="text-sm font-bold text-slate-950">Dự kiến chi phí</h2>
@@ -264,6 +336,15 @@ export default function CustomerCreateBookingPage() {
                 <span className="text-slate-600">Phí nền tảng ({vehicle?.platformFeeType === "Fixed" ? formatCurrency(vehicle.platformFeeValue ?? 0) : (vehicle?.platformFeeValue ?? 10) + "%"}, đã gồm trong giá)</span>
                 <span className="font-medium text-slate-900">{formatCurrency(pricePreview.fee)}</span>
               </div>
+              {promoResult && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1 text-green-600">
+                    <Tag className="h-3.5 w-3.5" />
+                    Mã {promoResult.code}
+                  </span>
+                  <span className="font-medium text-green-600">-{formatCurrency(promoResult.discountAmount)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between border-t border-slate-200 pt-1.5">
                 <span className="flex items-center gap-1 font-semibold text-slate-900">
                   <DollarSign className="h-4 w-4 text-brand-700" />
@@ -289,6 +370,19 @@ export default function CustomerCreateBookingPage() {
                 Tiền cọc xác nhận đặt xe qua PayOS. Số còn lại thanh toán trực tiếp khi nhận xe.
               </p>
             </div>
+
+            {vehicle?.securityRequiresDeposit && (vehicle.securityDepositAmount ?? 0) > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-1">
+                <h3 className="text-xs font-bold text-amber-800">Tiền thế chấp với chủ xe</h3>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-amber-700">Thế chấp khi nhận xe</span>
+                  <span className="font-bold text-amber-900">{formatCurrency(vehicle.securityDepositAmount!)}</span>
+                </div>
+                <p className="text-xs text-amber-600">
+                  Số tiền này được thỏa thuận trực tiếp giữa bạn và chủ xe. MoveVN không thu giữ tiền thế chấp.
+                </p>
+              </div>
+            )}
           </Card>
         )}
 

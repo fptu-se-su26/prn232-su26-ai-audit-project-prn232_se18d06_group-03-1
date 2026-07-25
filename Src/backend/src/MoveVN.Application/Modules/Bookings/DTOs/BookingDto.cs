@@ -8,6 +8,7 @@ public class CreateBookingRequest
     public string PickupAddress { get; set; } = string.Empty;
     public string? ReturnAddress { get; set; }
     public string? CustomerNote { get; set; }
+    public string? PromotionCode { get; set; }
 }
 
 public class BookingResponse
@@ -48,6 +49,10 @@ public class BookingResponse
     public decimal CancellationForfeitedAmount { get; set; }
     public decimal CancellationOwnerCompensation { get; set; }
     public decimal CancellationPlatformFee { get; set; }
+    public decimal SecurityDepositAmount { get; set; }
+    public long? PromotionId { get; set; }
+    public string? PromotionCode { get; set; }
+    public decimal PromotionDiscount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<BookingStatusHistoryDto> StatusHistory { get; set; } = new();
