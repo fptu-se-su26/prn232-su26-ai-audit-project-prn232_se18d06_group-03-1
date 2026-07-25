@@ -29,7 +29,7 @@ public class CmsPageService : ICmsPageService
 
     public async Task<PagedResult<CmsPageResponse>> GetAllAsync(string? keyword, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = _repository.CmsPages.Where(x => x.IsActive);
+        var query = _repository.CmsPages.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -101,8 +101,7 @@ public class CmsPageService : ICmsPageService
         var entity = await _repository.CmsPages.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new AppException(ErrorCode.CMS_PAGE_NOT_FOUND);
 
-        entity.IsActive = false;
-        entity.UpdatedAt = DateTime.UtcNow;
+        _repository.Remove(entity);
         await _repository.SaveChangesAsync(cancellationToken);
     }
 

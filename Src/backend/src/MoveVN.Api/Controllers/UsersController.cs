@@ -14,10 +14,20 @@ namespace MoveVN.Api.Controllers;
 public class UsersController : BaseApiController
 {
     private readonly IUserService _userService;
+    private readonly IPublicUserProfileService _publicProfileService;
 
-    public UsersController(IUserService userService)
+    public UsersController(IUserService userService, IPublicUserProfileService publicProfileService)
     {
         _userService = userService;
+        _publicProfileService = publicProfileService;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{id:long}/profile")]
+    public async Task<ActionResult<ApiResponse<PublicUserProfileResponse>>> GetPublicProfile(long id, CancellationToken cancellationToken)
+    {
+        var result = await _publicProfileService.GetProfileAsync(id, cancellationToken);
+        return Ok(ApiResponse<PublicUserProfileResponse>.Succeeded(result));
     }
 
     [HttpPost("me/avatar")]

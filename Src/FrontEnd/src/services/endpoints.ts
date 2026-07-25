@@ -158,6 +158,7 @@ export const endpoints = {
     me: "/api/users/me",
     updateProfile: "/api/users/me/profile",
     uploadAvatar: "/api/users/me/avatar",
+    profile: (id: number) => `/api/users/${id}/profile`,
   },
   notifications: {
     base: "/api/notifications",

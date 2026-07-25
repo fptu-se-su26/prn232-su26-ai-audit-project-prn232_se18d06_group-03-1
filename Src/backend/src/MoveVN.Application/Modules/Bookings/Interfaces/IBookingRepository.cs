@@ -34,6 +34,7 @@ public interface IBookingRepository
     Task AddReviewAsync(Review review, CancellationToken cancellationToken = default);
     Task<List<Review>> GetReviewsByBookingIdAsync(long bookingId, CancellationToken cancellationToken = default);
     Task<List<Review>> GetReviewsByVehicleIdAsync(long vehicleId, CancellationToken cancellationToken = default);
+    Task<List<Review>> GetReviewsByRevieweeIdAsync(long revieweeId, CancellationToken cancellationToken = default);
     Task<bool> HasReviewAsync(long bookingId, long reviewerId, CancellationToken cancellationToken = default);
     Task<DateOnly?> GetNextAvailableDateAsync(long vehicleId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
