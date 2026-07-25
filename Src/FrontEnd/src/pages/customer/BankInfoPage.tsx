@@ -113,7 +113,7 @@ export default function BankInfoPage() {
         setIsSaving(true);
         setLocalError(null);
         setSuccess(false);
-        const bankBin = VIETNAM_BANKS.find((bank) => bank.name === selectedBank)?.code || "";
+        const bankBin = VIETNAM_BANKS.find((bank) => bank.name === selectedBank)?.bin || "";
         await verifyBankAccountOtp({
           bankAccountHolderName: accountHolderName.trim(),
           bankAccountNumber: accountNumber.trim(),

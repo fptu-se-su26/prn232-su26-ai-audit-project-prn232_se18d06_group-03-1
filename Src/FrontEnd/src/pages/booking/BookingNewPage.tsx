@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign, Settings, Info, PenLine, ChevronLeft, ChevronRight, Tag, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, CreditCard, DollarSign, Settings, Info, PenLine, ChevronLeft, ChevronRight, Tag, X, Wallet } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -7,6 +7,8 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { createBooking } from "@/features/booking/bookingService";
 import { getPublicVehicleById, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
+import { getVoucherWallet } from "@/features/voucherClaims/services/voucherClaimService";
+import type { VoucherClaimResponse } from "@/features/voucherClaims/types";
 import type { BusyPeriod } from "@/features/vehicles/types";
 import { showToast } from "@/components/common/toastStore";
 import AddressAutocomplete from "@/features/locations/components/AddressAutocomplete";
@@ -34,7 +36,7 @@ export default function BookingNewPage() {
   const navigate = useNavigate();
   const vehicleId = Number(searchParams.get("vehicleId"));
 
-  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; featuredImage?: string | null; images?: any[]; platformFeeType?: string; platformFeeValue?: number; platformFeeMinFee?: number; platformFeeMaxFee?: number } | null>(null);
+  const [vehicle, setVehicle] = useState<{ pricePerDay: number; depositPercent: number; featuredImage?: string | null; images?: any[]; platformFeeType?: string; platformFeeValue?: number; platformFeeMinFee?: number; platformFeeMaxFee?: number; securityRequiresDeposit?: boolean; securityDepositAmount?: number } | null>(null);
   const [vehicleName, setVehicleName] = useState("");
   const [loadingVehicle, setLoadingVehicle] = useState(true);
 
@@ -75,7 +77,9 @@ export default function BookingNewPage() {
           platformFeeType: v.platformFeeType,
           platformFeeValue: v.platformFeeValue,
           platformFeeMinFee: v.platformFeeMinFee,
-          platformFeeMaxFee: v.platformFeeMaxFee
+          platformFeeMaxFee: v.platformFeeMaxFee,
+          securityRequiresDeposit: v.securityRequiresDeposit,
+          securityDepositAmount: v.securityDepositAmount
         });
         setVehicleName(`${v.brandName} ${v.modelName}`);
       })
@@ -159,6 +163,10 @@ export default function BookingNewPage() {
   const [promoResult, setPromoResult] = useState<{ discountAmount: number; code: string } | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
 
+  const [walletVouchers, setWalletVouchers] = useState<VoucherClaimResponse[]>([]);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   const pricePreview = useMemo(() => {
     if (!vehicle || totalDays <= 0) return null;
     const base = vehicle.pricePerDay * totalDays;
@@ -198,6 +206,28 @@ export default function BookingNewPage() {
       setPromoLoading(false);
     }
   }, [promoCode, vehicleId, totalDays, pricePreview, promoResult]);
+
+  const handleLoadWallet = useCallback(async () => {
+    if (walletOpen) { setWalletOpen(false); return; }
+    setWalletOpen(true);
+    if (walletVouchers.length > 0) return;
+    setWalletLoading(true);
+    try {
+      const data = await getVoucherWallet();
+      setWalletVouchers(data.filter(v => !v.usedAt));
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tải ví voucher." });
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [walletOpen, walletVouchers.length]);
+
+  function handleSelectVoucher(v: VoucherClaimResponse) {
+    setPromoCode(v.code);
+    setPromoResult(null);
+    setPromoError(null);
+    setWalletOpen(false);
+  }
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -501,6 +531,43 @@ export default function BookingNewPage() {
               </Button>
             </div>
             {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+            <button
+              type="button"
+              onClick={handleLoadWallet}
+              className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors mt-2"
+            >
+              <Wallet className="h-3.5 w-3.5" />
+              Chọn từ ví voucher
+            </button>
+            {walletOpen && (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 space-y-2 max-h-48 overflow-y-auto mt-2">
+                {walletLoading ? (
+                  <LoadingSpinner />
+                ) : walletVouchers.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-2">Ví voucher trống. <Link to="/customer/voucher-hunt" className="text-brand-600 font-medium">Đi săn mã!</Link></p>
+                ) : (
+                  walletVouchers.map(v => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => handleSelectVoucher(v)}
+                      className="w-full flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-left hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <TicketPercent className="h-4 w-4 text-brand-600" />
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{v.code}</span>
+                          <span className="ml-2 text-xs text-slate-500">{v.name}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-brand-700 dark:text-brand-400">
+                        {v.discountType === "Fixed" ? formatCurrency(v.discountValue) : `-${v.discountValue}%`}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
             {promoResult && (
               <div className="flex items-center justify-between rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 px-3 py-2 text-sm mt-2">
                 <span className="flex items-center gap-1 text-green-700 dark:text-green-300 font-medium">
@@ -568,6 +635,19 @@ export default function BookingNewPage() {
                     Khách thanh toán đặt cọc qua PayOS. Số còn lại thu khi giao xe.
                   </p>
                 </div>
+
+                {vehicle?.securityRequiresDeposit && (vehicle.securityDepositAmount ?? 0) > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1 dark:border-amber-800 dark:bg-amber-950/30">
+                    <h3 className="text-xs font-bold text-amber-800 dark:text-amber-300">Tiền thế chấp với chủ xe</h3>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-amber-700 dark:text-amber-400">Thế chấp khi nhận xe</span>
+                      <span className="font-bold text-amber-900 dark:text-amber-200">{formatCurrency(vehicle.securityDepositAmount!)}</span>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Số tiền này được thỏa thuận trực tiếp giữa bạn và chủ xe. MoveVN không thu giữ tiền thế chấp.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4 mb-6 border-b border-slate-100 dark:border-slate-800 pb-5 text-[14px] text-slate-500 dark:text-slate-500 italic text-center">

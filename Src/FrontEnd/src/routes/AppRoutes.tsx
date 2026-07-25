@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AccountPage from "@/pages/account/AccountPage";
@@ -62,6 +62,8 @@ import CustomerBookingDetailPage from "@/pages/customer/CustomerBookingDetailPag
 import CustomerBookingListPage from "@/pages/customer/CustomerBookingListPage";
 import CustomerCreateBookingPage from "@/pages/customer/CustomerCreateBookingPage";
 import CustomerPromotionsPage from "@/pages/customer/CustomerPromotionsPage";
+import CustomerVoucherHuntPage from "@/pages/customer/CustomerVoucherHuntPage";
+import CustomerVoucherWalletPage from "@/pages/customer/CustomerVoucherWalletPage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
 import DisputePage from "@/pages/disputes/DisputePage";
@@ -99,6 +101,21 @@ import GuestRoute from "@/routes/GuestRoute";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import RoleRoute from "@/routes/RoleRoute";
 
+function BookingNewRedirect() {
+  const [searchParams] = useSearchParams();
+  const vehicleId = searchParams.get("vehicleId");
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+  if (vehicleId) {
+    const qs = new URLSearchParams();
+    if (startDate) qs.set("startDate", startDate);
+    if (endDate) qs.set("endDate", endDate);
+    const q = qs.toString();
+    return <Navigate to={`/vehicle/${vehicleId}${q ? `?${q}` : ""}`} replace />;
+  }
+  return <Navigate to="/vehicle" replace />;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -115,7 +132,7 @@ export default function AppRoutes() {
         <Route path="/privacy" element={<Navigate to="/policies/privacy-policy" replace />} />
         <Route path="/terms" element={<Navigate to="/policies/terms-of-service" replace />} />
         <Route path="/policies/:slug" element={<PolicyPage />} />
-        <Route path="/booking/new" element={<BookingNewPage />} />
+        <Route path="/booking/new" element={<BookingNewRedirect />} />
         <Route path="/booking/list" element={<BookingListPage />} />
         <Route path="/booking/manage" element={<BookingManagePage />} />
         <Route path="/booking/:id" element={<BookingDetailPage />} />
@@ -244,6 +261,13 @@ export default function AppRoutes() {
             <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/admin/wallets" element={<AdminWalletsPage />} />
             <Route path="/admin/broadcast" element={<AdminBroadcastNotificationPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<PublicLayout />}>
+          <Route element={<RoleRoute roles={["Customer"]} />}>
+            <Route path="/customer/voucher-hunt" element={<CustomerVoucherHuntPage />} />
+            <Route path="/customer/voucher-wallet" element={<CustomerVoucherWalletPage />} />
           </Route>
         </Route>
       </Route>

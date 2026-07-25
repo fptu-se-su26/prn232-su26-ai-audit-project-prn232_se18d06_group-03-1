@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, DollarSign, Tag, Loader2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Car, MapPin, TicketPercent, DollarSign, Tag, Loader2, X, Wallet } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@/components/common/Alert";
@@ -7,6 +7,8 @@ import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Card from "@/components/ui/Card";
 import { createBooking } from "@/features/booking/bookingService";
 import { getPublicVehicleById } from "@/features/vehicles/services/publicVehicleService";
+import { getVoucherWallet } from "@/features/voucherClaims/services/voucherClaimService";
+import type { VoucherClaimResponse } from "@/features/voucherClaims/types";
 import { showToast } from "@/components/common/toastStore";
 import AddressAutocomplete from "@/features/locations/components/AddressAutocomplete";
 
@@ -51,6 +53,10 @@ export default function CustomerCreateBookingPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoResult, setPromoResult] = useState<{ discountAmount: number; code: string; message?: string } | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
+
+  const [walletVouchers, setWalletVouchers] = useState<VoucherClaimResponse[]>([]);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   useEffect(() => {
     const qStart = searchParams.get("startDate");
@@ -118,6 +124,52 @@ export default function CustomerCreateBookingPage() {
       setPromoLoading(false);
     }
   }, [promoCode, vehicleId, totalDays, pricePreview, promoResult]);
+
+  const handleLoadWallet = useCallback(async () => {
+    if (walletOpen) { setWalletOpen(false); return; }
+    setWalletOpen(true);
+    if (walletVouchers.length > 0) return;
+    setWalletLoading(true);
+    try {
+      const data = await getVoucherWallet();
+      setWalletVouchers(data.filter(v => !v.usedAt));
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tải ví voucher." });
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [walletOpen, walletVouchers.length]);
+
+  function handleSelectVoucher(v: VoucherClaimResponse) {
+    setPromoCode(v.code);
+    setPromoResult(null);
+    setPromoError(null);
+    setWalletOpen(false);
+    setTimeout(() => {
+      if (v.code && vehicleId && totalDays > 0) {
+        (async () => {
+          setPromoLoading(true);
+          setPromoError(null);
+          setPromoResult(null);
+          try {
+            const { apiClient } = await import("@/services/apiClient");
+            const res = await apiClient.post("/api/promotions/validate", { code: v.code, vehicleId, totalAmount: 0 });
+            const payload = res.data;
+            if (payload?.data?.success) {
+              setPromoResult({ discountAmount: payload.data.discountAmount, code: payload.data.code });
+            } else {
+              setPromoError(payload?.data?.message || payload?.message || "Mã không hợp lệ.");
+            }
+          } catch (err: any) {
+            const msg = err?.response?.data?.errors?.[0] || err?.response?.data?.message || "Không thể kiểm tra mã.";
+            setPromoError(msg);
+          } finally {
+            setPromoLoading(false);
+          }
+        })();
+      }
+    }, 100);
+  }
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,6 +351,43 @@ export default function CustomerCreateBookingPage() {
             </Button>
           </div>
           {promoError && <p className="text-xs text-red-500">{promoError}</p>}
+          <button
+            type="button"
+            onClick={handleLoadWallet}
+            className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors"
+          >
+            <Wallet className="h-3.5 w-3.5" />
+            Chọn từ ví voucher
+          </button>
+          {walletOpen && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2 max-h-48 overflow-y-auto">
+              {walletLoading ? (
+                <LoadingSpinner />
+              ) : walletVouchers.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-2">Ví voucher trống. <Link to="/customer/voucher-hunt" className="text-brand-600 font-medium">Đi săn mã!</Link></p>
+              ) : (
+                walletVouchers.map(v => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => handleSelectVoucher(v)}
+                    className="w-full flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left hover:border-brand-300 hover:bg-brand-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <TicketPercent className="h-4 w-4 text-brand-600" />
+                      <div>
+                        <span className="text-xs font-bold text-slate-900">{v.code}</span>
+                        <span className="ml-2 text-xs text-slate-500">{v.name}</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-brand-700">
+                      {v.discountType === "Fixed" ? formatCurrency(v.discountValue) : `-${v.discountValue}%`}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
           {promoResult && (
             <div className="flex items-center justify-between rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm">
               <span className="flex items-center gap-1 text-green-700 font-medium">

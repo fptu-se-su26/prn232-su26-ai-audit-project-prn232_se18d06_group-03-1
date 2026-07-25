@@ -13,6 +13,7 @@ import {
   UserRound,
   X,
   Wallet,
+  TicketPercent,
 } from "lucide-react";
 import NotificationMenu from "@/components/layout/NotificationMenu";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -21,14 +22,6 @@ import useClickOutside from "@/hooks/useClickOutside";
 import logoDark from "../../../Logo/movevn_horizontal_dark.png";
 import logoLight from "../../../Logo/movevn_horizontal_light.png";
 
-const navItems = [
-  { href: "/", label: "Trang chủ" },
-  { href: "/vehicle", label: "Thuê xe" },
-  { href: "/how-it-works", label: "Cách hoạt động" },
-  { href: "/for-owners", label: "Chủ xe" },
-  { href: "/blog", label: "Cẩm nang" },
-  { href: "/support", label: "Hỗ trợ" },
-];
 
 export default function PublicLayout() {
   const token = useAuthStore((state) => state.token);
@@ -44,6 +37,15 @@ export default function PublicLayout() {
   useEffect(() => {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+
+  const isCustomer = user?.roles?.includes("Customer");
+  const navItems = [
+    { href: "/", label: "Trang chủ" },
+    { href: "/vehicle", label: "Thuê xe" },
+    { href: "/how-it-works", label: "Cách hoạt động" },
+    { href: "/for-owners", label: "Chủ xe" },
+    { href: "/support", label: "Hỗ trợ" },
+  ];
 
   useEffect(() => {
     getCmsPageNavigation().then(setCmsNav).catch(() => {});
@@ -72,6 +74,9 @@ export default function PublicLayout() {
     { to: dashboardPath, label: "Khu vực của tôi", icon: UserRound },
     ...(user?.roles.includes("Customer")
       ? [{ to: "/booking/list", label: "Lịch sử thuê xe", icon: CalendarDays }]
+      : []),
+    ...(user?.roles.includes("Customer")
+      ? [{ to: "/customer/voucher-wallet", label: "Ví voucher", icon: TicketPercent }]
       : []),
     ...(user?.roles.includes("Owner")
       ? [{ to: "/booking/manage", label: "Yêu cầu thuê", icon: CalendarDays }]

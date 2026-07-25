@@ -5,11 +5,9 @@ import {
   MapPin,
   Car,
   Bike,
-  Search,
-  Calendar,
-  Smartphone,
+  ArrowUpRight,
   Star,
-  X,
+  TicketPercent
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
@@ -254,14 +252,133 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/80 pointer-events-none" />
         </div>
 
-        {/* Hero Content */}
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-2">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight max-w-3xl mx-auto drop-shadow-md">
-            <span className="text-brand-400">MoveVN</span> — Cùng Bạn Trên <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 via-purple-300 to-white">Mọi Hành Trình</span>
-          </h1>
-          <p className="mt-3.5 text-sm sm:text-base text-gray-200 max-w-xl mx-auto font-normal leading-relaxed drop-shadow-sm">
-            Trải nghiệm dịch vụ thuê xe <span className="text-white font-semibold">tự lái</span> và <span className="text-white font-semibold">có tài xế</span> <span className="text-brand-300 font-semibold">nhanh chóng</span>, <span className="text-brand-300 font-semibold">minh bạch</span> và <span className="text-brand-300 font-semibold">tiện lợi</span>.
-          </p>
+        <div className="relative z-10 mx-auto flex min-h-[760px] w-full max-w-7xl items-center px-4 py-24 sm:px-6 lg:min-h-[860px] lg:px-8">
+          <div className="w-full max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-md border border-brand-200 bg-white/80 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-lg shadow-brand-500/10 backdrop-blur">
+              <CarFront className="h-4 w-4" />
+              Đặt xe siêu nhanh
+            </div>
+
+            <h1 className="mt-8 max-w-3xl text-4xl font-black leading-[1.1] tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-[56px]">
+              Đặt xe trong vài phút
+              <span className="mt-2 block bg-gradient-to-r from-brand-700 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
+                nhận xe cực dễ dàng
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
+              Tìm xe, xác nhận chủ xe và hoàn tất đặt chỗ nhanh chóng chỉ với vài thao tác trên MOVEVN.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={handleSearch}
+                className="inline-flex h-12 items-center justify-center gap-3 rounded-md bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 px-7 text-sm font-bold text-white shadow-xl shadow-brand-600/25 transition hover:from-brand-700 hover:via-violet-700 hover:to-fuchsia-600 active:scale-[0.99]"
+              >
+                Bắt đầu đặt xe
+                <ArrowRight className="h-5 w-5" />
+              </button>
+              <Link
+                to="#process"
+                className="inline-flex h-12 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white/80 px-6 text-sm font-bold text-slate-800 shadow-sm backdrop-blur transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+              >
+                Tìm hiểu thêm
+              </Link>
+              <Link
+                to="/customer/voucher-hunt"
+                className="inline-flex h-12 items-center justify-center gap-3 rounded-md border border-brand-200 bg-brand-50/80 px-6 text-sm font-bold text-brand-700 shadow-sm backdrop-blur transition hover:bg-brand-100 hover:text-brand-800"
+              >
+                <TicketPercent className="h-4 w-4" />
+                Săn mã
+              </Link>
+            </div>
+
+            <div className="mt-8 w-full max-w-3xl rounded-md border border-white/80 bg-white/75 p-3 shadow-2xl shadow-brand-950/10 backdrop-blur-xl">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="grid grid-cols-2 gap-1 rounded-md border border-slate-200 bg-slate-50 p-1 md:w-48">
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab("car")}
+                    className={`h-11 rounded-md text-xs font-bold uppercase tracking-[0.12em] transition ${
+                      searchTab === "car"
+                        ? "bg-gradient-to-r from-brand-600 to-fuchsia-500 text-white shadow-lg shadow-brand-500/25"
+                        : "text-slate-500 hover:bg-white hover:text-slate-900"
+                    }`}
+                  >
+                    Ô tô
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchTab("motorbike")}
+                    className={`h-11 rounded-md text-xs font-bold uppercase tracking-[0.12em] transition ${
+                      searchTab === "motorbike"
+                        ? "bg-gradient-to-r from-brand-600 to-fuchsia-500 text-white shadow-lg shadow-brand-500/25"
+                        : "text-slate-500 hover:bg-white hover:text-slate-900"
+                    }`}
+                  >
+                    Xe máy
+                  </button>
+                </div>
+
+                <div className="relative min-w-0 flex-1">
+                  <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-600" />
+                  <input
+                    type="text"
+                    value={searchLoc}
+                    onChange={(event) => setSearchLoc(event.target.value)}
+                    placeholder="Nhập địa điểm, thành phố..."
+                    className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="h-12 shrink-0 rounded-md bg-slate-950 px-7 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-slate-950/15 transition hover:bg-brand-700 active:scale-[0.99]"
+                >
+                  Tìm xe
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-8 grid max-w-3xl gap-3 rounded-md border border-white/70 bg-white/60 p-3 shadow-xl shadow-brand-950/5 backdrop-blur md:grid-cols-4">
+              {[
+                { icon: CheckCircle2, title: "Nhanh chóng", text: "Đặt xe chỉ trong vài phút" },
+                { icon: MapPin, title: "Thuận tiện", text: "Nhận xe mọi lúc, mọi nơi" },
+                { icon: ShieldCheck, title: "Minh bạch", text: "Hợp đồng điện tử an toàn" },
+                { icon: CarFront, title: "Hỗ trợ 24/7", text: "Đồng hành trong mọi chuyến đi" },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.title} className="flex items-start gap-3 rounded-md p-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold text-slate-950">{item.title}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-600">{item.text}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 flex items-center gap-2">
+              {heroSlides.map((slide, index) => (
+                <button
+                  key={slide.src}
+                  type="button"
+                  onClick={() => setActiveHeroIndex(index)}
+                  className={`h-2.5 rounded-full transition-all ${
+                    index === activeHeroIndex ? "w-9 bg-brand-600 shadow-md shadow-brand-600/30" : "w-2.5 bg-slate-300 hover:bg-brand-300"
+                  }`}
+                  aria-current={index === activeHeroIndex ? "true" : undefined}
+                  aria-label={`Chọn ảnh banner ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

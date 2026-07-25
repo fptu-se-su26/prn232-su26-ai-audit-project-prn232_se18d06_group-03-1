@@ -95,14 +95,14 @@ public class BookingService : IBookingService
 
         var profile = await _repo.GetCustomerProfileByUserIdAsync(customerId, cancellationToken);
         if (profile?.NationalIdVerified != true)
-            throw new ValidationException(new[] { "Ban can xac thuc CCCD truoc khi dat xe." });
+            throw new ValidationException(new[] { "Bạn cần xác thực CCCD trước khi đặt xe." });
 
         if (profile.DriverLicenseVerified != true)
-            throw new ValidationException(new[] { "Ban can xac thuc giay phep lai xe truoc khi dat xe." });
+            throw new ValidationException(new[] { "Bạn cần xác thực giấy phép lái xe trước khi đặt xe." });
 
         var customerLicense = await _customerLicenseRepo.GetByUserIdAndVehicleTypeAsync(customerId, vehicle.VehicleType, cancellationToken);
         if (customerLicense is null)
-            throw new ValidationException(new[] { "Ban chua xac thuc giay phep lai xe cho loai xe nay." });
+            throw new ValidationException(new[] { "Bạn chưa xác thực giấy phép lái xe cho loại xe này." });
 
         if (vehicle.VariantId.HasValue)
         {
@@ -111,7 +111,7 @@ public class BookingService : IBookingService
             {
                 var compatible = await _repo.IsLicenseClassCompatibleAsync(customerLicense.LicenseClass!, variant.RequiredLicenseClassId.Value, cancellationToken);
                 if (!compatible)
-                    throw new ValidationException(new[] { "Hang bang lai cua ban khong phu hop voi loai xe nay." });
+                    throw new ValidationException(new[] { "Hạng bằng lái của bạn không phù hợp với loại xe này." });
             }
         }
 

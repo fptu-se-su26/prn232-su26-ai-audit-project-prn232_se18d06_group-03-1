@@ -1,6 +1,6 @@
-import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star, CalendarDays, ChevronLeft, ChevronRight, User, Clock, ExternalLink } from "lucide-react";
+import { ArrowLeft, Car, Bike, AlertCircle, MapPin, Gauge, BadgeInfo, Image as ImageIcon, CheckCircle, Phone, CalendarCheck, Star, CalendarDays, ChevronLeft, ChevronRight, User, Clock, ExternalLink, TicketPercent, Tag, X, Wallet, PenLine, CreditCard, DollarSign, Settings, Info } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { getPublicVehicleById, getPublicVehicleImages, getVehicleAvailability } from "@/features/vehicles/services/publicVehicleService";
 import type { VehicleResponse, VehicleImageResponse, BusyPeriod } from "@/features/vehicles/types";
 import { showToast } from "@/components/common/toastStore";
@@ -13,6 +13,11 @@ import { getVehicleReviews } from "@/features/review/reviewService";
 import type { ReviewResponse } from "@/features/review/reviewService";
 import ReviewCard from "@/features/review/components/ReviewCard";
 import VehicleLocationMap from "@/features/locations/components/VehicleLocationMap";
+import AddressAutocomplete from "@/features/locations/components/AddressAutocomplete";
+import { createBooking } from "@/features/booking/bookingService";
+import { getVoucherWallet } from "@/features/voucherClaims/services/voucherClaimService";
+import type { VoucherClaimResponse } from "@/features/voucherClaims/types";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 const MONTHS = ["Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"];
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -32,6 +37,24 @@ function formatDisplay(date: Date): string {
   return date.toLocaleDateString("vi-VN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
+}
+
+function formatCurrencyVND(n: number) {
+  return new Intl.NumberFormat("vi-VN").format(n) + "đ";
+}
+
+const discountTiers: { min: number; max: number; pct: number }[] = [
+  { min: 3, max: 3, pct: 5 },
+  { min: 5, max: 6, pct: 10 },
+  { min: 7, max: 29, pct: 15 },
+  { min: 30, max: Infinity, pct: 25 },
+];
+
+function getDiscountPercent(days: number) {
+  for (const t of discountTiers) {
+    if (days >= t.min && days <= t.max) return t.pct;
+  }
+  return 0;
 }
 
 type SelectionState = { start: Date | null; end: Date | null };
@@ -176,6 +199,7 @@ function VehicleDetailSkeleton() {
 
 export default function VehicleDetailPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
@@ -193,6 +217,25 @@ export default function VehicleDetailPage() {
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
   const [selection, setSelection] = useState<SelectionState>({ start: null, end: null });
 
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [returnAddress, setReturnAddress] = useState("");
+  const [customerNote, setCustomerNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [insurance, setInsurance] = useState(false);
+  const [extraHelmet, setExtraHelmet] = useState(true);
+  const [pickupHour, setPickupHour] = useState("08:00");
+  const [returnHour, setReturnHour] = useState("08:00");
+
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoResult, setPromoResult] = useState<{ discountAmount: number; code: string } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
+  const [walletVouchers, setWalletVouchers] = useState<VoucherClaimResponse[]>([]);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   useEffect(() => {
     if (!id) return;
     setVehicleLoadError(null);
@@ -206,6 +249,20 @@ export default function VehicleDetailPage() {
     setAvailabilityLoading(true);
     getVehicleAvailability(Number(id)).then((d) => d && setBusyPeriods(d.busyPeriods)).catch(() => {}).finally(() => setAvailabilityLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    const sd = searchParams.get("startDate");
+    const ed = searchParams.get("endDate");
+    if (sd && ed) {
+      const start = new Date(sd + "T00:00:00");
+      const end = new Date(ed + "T00:00:00");
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        setSelection({ start, end });
+        setCalendarMonth(start.getMonth());
+        setCalendarYear(start.getFullYear());
+      }
+    }
+  }, [searchParams]);
 
   const busySet = useMemo(() => {
     const set = new Set<string>();
@@ -267,16 +324,106 @@ export default function VehicleDetailPage() {
     return Math.round((selection.end.getTime() - selection.start.getTime()) / (1000 * 60 * 60 * 24));
   }, [selection]);
 
-  function handleBooking() {
-    if (!selection.start || !selection.end) {
-      showToast({ type: "error", title: "Chưa chọn đủ ngày", message: "Vui lòng chọn ngày nhận và trả xe trên lịch." });
+  const startDateISO = useMemo(() => selection.start ? formatDate(selection.start) + "T" + pickupHour : "", [selection.start, pickupHour]);
+  const endDateISO = useMemo(() => selection.end ? formatDate(selection.end) + "T" + returnHour : "", [selection.end, returnHour]);
+  const dateError = startDateISO && endDateISO && new Date(endDateISO) <= new Date(startDateISO) ? "Ngày trả phải sau ngày nhận." : null;
+
+  const pricePreview = useMemo(() => {
+    if (!vehicle || totalDays <= 0) return null;
+    const displayPrice = vehicle.currentPricePerDay ?? vehicle.pricePerDay;
+    const base = displayPrice * totalDays;
+    const discPct = getDiscountPercent(totalDays);
+    const discAmt = Math.round(base * discPct / 100);
+    const afterDisc = base - discAmt;
+    const promoAmt = promoResult?.discountAmount ?? 0;
+    const total = Math.max(afterDisc - promoAmt, 0);
+    const feeValue = (vehicle as any).platformFeeValue ?? 10;
+    const fee = (vehicle as any).platformFeeType === "Fixed"
+      ? Math.min(Math.max(feeValue, (vehicle as any).platformFeeMinFee ?? 0), (vehicle as any).platformFeeMaxFee ?? Infinity)
+      : Math.round(Math.min(Math.max(total * feeValue / 100, (vehicle as any).platformFeeMinFee ?? 0), (vehicle as any).platformFeeMaxFee ?? total));
+    const depositPercent = Math.max(20, vehicle.depositPercent || 0);
+    const deposit = Math.round(total * depositPercent / 100);
+    const remaining = Math.max(total - deposit, 0);
+    return { base, discPct, discAmt, fee, deposit, depositPercent, remaining, total, displayPrice };
+  }, [vehicle, totalDays, promoResult]);
+
+  const handleValidatePromo = useCallback(async () => {
+    if (!promoCode.trim() || !id || totalDays <= 0) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoResult(null);
+    try {
+      const { apiClient } = await import("@/services/apiClient");
+      const base = pricePreview ? (pricePreview.base - pricePreview.discAmt + (promoResult?.discountAmount ?? 0)) : 0;
+      const res = await apiClient.post("/api/promotions/validate", { code: promoCode.trim(), vehicleId: Number(id), totalAmount: base });
+      const payload = res.data;
+      if (payload?.data?.success) {
+        setPromoResult({ discountAmount: payload.data.discountAmount, code: payload.data.code });
+      } else {
+        setPromoError(payload?.data?.message || payload?.message || "Mã không hợp lệ.");
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.errors?.[0] || err?.response?.data?.message || "Không thể kiểm tra mã.";
+      setPromoError(msg);
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoCode, id, totalDays, pricePreview, promoResult]);
+
+  const handleLoadWallet = useCallback(async () => {
+    if (walletOpen) { setWalletOpen(false); return; }
+    setWalletOpen(true);
+    if (walletVouchers.length > 0) return;
+    setWalletLoading(true);
+    try {
+      const data = await getVoucherWallet();
+      setWalletVouchers(data.filter(v => !v.usedAt));
+    } catch {
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tải ví voucher." });
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [walletOpen, walletVouchers.length]);
+
+  function handleSelectVoucher(v: VoucherClaimResponse) {
+    setPromoCode(v.code);
+    setPromoResult(null);
+    setPromoError(null);
+    setWalletOpen(false);
+  }
+
+  const handleSubmitBooking = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !startDateISO || !endDateISO || !pickupAddress.trim()) {
+      setBookingError("Vui lòng chọn ngày và nhập địa chỉ nhận xe.");
       return;
     }
-    const params = new URLSearchParams({ vehicleId: String(id) });
-    params.set("startDate", formatDate(selection.start));
-    params.set("endDate", formatDate(selection.end));
-    navigate(`/booking/new?${params.toString()}`);
-  }
+    if (new Date(endDateISO) <= new Date(startDateISO)) {
+      setBookingError("Ngày trả phải sau ngày nhận.");
+      return;
+    }
+    setIsSubmitting(true);
+    setBookingError(null);
+    try {
+      const result = await createBooking({
+        vehicleId: Number(id),
+        startDate: startDateISO,
+        endDate: endDateISO,
+        pickupAddress: pickupAddress.trim(),
+        returnAddress: returnAddress.trim() || undefined,
+        customerNote: customerNote.trim() || undefined,
+        promotionCode: promoResult ? promoCode.trim() : undefined,
+      });
+      showToast({ type: "success", title: "Đặt xe thành công", message: "Vui lòng thanh toán cọc để hoàn tất." });
+      navigate(`/booking/${result.id}`);
+    } catch (err: any) {
+      const data = err?.response?.data;
+      const msg = data?.errors?.length ? data.errors.join(", ") : data?.message || err?.message || "Không thể tạo booking.";
+      setBookingError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [id, startDateISO, endDateISO, pickupAddress, returnAddress, customerNote, promoCode, promoResult, navigate]);
 
   if (!vehicle) {
     if (vehicleLoadError) {
@@ -569,15 +716,15 @@ export default function VehicleDetailPage() {
 
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-gray-400">Ngày nhận xe</span>
-                <span className="font-medium text-slate-800 dark:text-gray-200">
-                  {selection.start ? formatShort(selection.start) : "Chưa chọn"}
+                <span className="text-slate-500">Nhận xe</span>
+                <span className="font-medium text-slate-800">
+                  {selection.start ? `${formatShort(selection.start)} ${pickupHour}` : "Chưa chọn"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 dark:text-gray-400">Ngày trả xe</span>
-                <span className="font-medium text-slate-800 dark:text-gray-200">
-                  {selection.end ? formatShort(selection.end) : "Chưa chọn"}
+                <span className="text-slate-500">Trả xe</span>
+                <span className="font-medium text-slate-800">
+                  {selection.end ? `${formatShort(selection.end)} ${returnHour}` : "Chưa chọn"}
                 </span>
               </div>
               <hr className="border-slate-100 dark:border-white/5" />
@@ -585,22 +732,232 @@ export default function VehicleDetailPage() {
                 <span className="text-slate-500 dark:text-gray-400">Số ngày</span>
                 <span className="font-medium text-slate-800 dark:text-gray-200">{totalDays > 0 ? `${totalDays} ngày` : "-"}</span>
               </div>
-              <div className="flex items-center justify-between text-lg font-bold text-brand-700 dark:text-brand-400">
-                <span>Tổng</span>
-                <span>{(displayPrice * totalDays).toLocaleString("vi-VN")}đ</span>
-              </div>
+              {pricePreview ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">{vehicle.brandName} {vehicle.modelName} ({totalDays} ngày)</span>
+                    <span className="font-medium text-slate-800">{formatCurrencyVND(pricePreview.base)}</span>
+                  </div>
+                  {pricePreview.discPct > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Giảm giá ({pricePreview.discPct}%)</span>
+                      <span className="font-medium text-green-600">-{formatCurrencyVND(pricePreview.discAmt)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">Phí nền tảng (đã gồm trong giá)</span>
+                    <span className="text-slate-500">{formatCurrencyVND(pricePreview.fee)}</span>
+                  </div>
+                  {promoResult && (
+                    <div className="flex justify-between">
+                      <span className="flex items-center gap-1 text-green-600">
+                        <Tag className="h-3 w-3" /> {promoResult.code}
+                      </span>
+                      <span className="font-medium text-green-600">-{formatCurrencyVND(promoResult.discountAmount)}</span>
+                    </div>
+                  )}
+                  <hr className="border-slate-100" />
+                  <div className="flex items-center justify-between text-lg font-bold text-brand-700">
+                    <span>Tổng cộng</span>
+                    <span>{formatCurrencyVND(pricePreview.total)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between text-lg font-bold text-brand-700 dark:text-brand-400">
+                  <span>Tổng</span>
+                  <span>{(displayPrice * totalDays).toLocaleString("vi-VN")}đ</span>
+                </div>
+              )}
             </div>
 
             <hr className="my-4 border-slate-100 dark:border-white/5" />
 
-            {token && user ? (
-              <Button type="button" onClick={handleBooking} className="w-full">
-                <CalendarCheck className="h-4 w-4" /> Đặt ngay
-              </Button>
-            ) : (
+            {!token || !user ? (
               <Button type="button" onClick={() => navigate("/login")} className="w-full">
                 <Phone className="h-4 w-4" /> Đăng nhập để đặt xe
               </Button>
+            ) : !selection.start || !selection.end ? (
+              <Button type="button" disabled className="w-full">
+                <CalendarCheck className="h-4 w-4" /> Chọn ngày trên lịch
+              </Button>
+            ) : (
+              <form onSubmit={handleSubmitBooking} className="space-y-4">
+                {bookingError && (
+                  <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-700">{bookingError}</div>
+                )}
+
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Giờ nhận xe</label>
+                    <select
+                      value={pickupHour}
+                      onChange={(e) => setPickupHour(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    >
+                      {Array.from({ length: 17 }, (_, i) => i + 6).map((h) => (
+                        <option key={h} value={`${String(h).padStart(2, "0")}:00`}>{`${String(h).padStart(2, "0")}:00`}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Giờ trả xe</label>
+                    <select
+                      value={returnHour}
+                      onChange={(e) => setReturnHour(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    >
+                      {Array.from({ length: 17 }, (_, i) => i + 6).map((h) => (
+                        <option key={h} value={`${String(h).padStart(2, "0")}:00`}>{`${String(h).padStart(2, "0")}:00`}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <AddressAutocomplete
+                    value={pickupAddress}
+                    onChange={setPickupAddress}
+                    onSelect={(addr) => setPickupAddress(addr.address)}
+                    label="Địa chỉ nhận xe *"
+                    placeholder="Nhập địa chỉ nhận xe"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <AddressAutocomplete
+                    value={returnAddress}
+                    onChange={setReturnAddress}
+                    onSelect={(addr) => setReturnAddress(addr.address)}
+                    label="Địa chỉ trả xe"
+                    placeholder="Trả cùng địa chỉ nhận"
+                    resolveCoordinates={false}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Mã khuyến mãi</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        value={promoCode}
+                        onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoResult(null); setPromoError(null); }}
+                        placeholder="Nhập mã..."
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-2 py-1.5 text-xs uppercase text-slate-800 placeholder:text-slate-400 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      isLoading={promoLoading}
+                      disabled={!promoCode.trim() || totalDays <= 0}
+                      onClick={handleValidatePromo}
+                      className="px-3 py-1.5 text-xs rounded-lg"
+                    >
+                      Áp dụng
+                    </Button>
+                  </div>
+                  {promoError && <p className="text-[11px] text-red-500">{promoError}</p>}
+                  <button
+                    type="button"
+                    onClick={handleLoadWallet}
+                    className="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    <Wallet className="h-3 w-3" /> Chọn từ ví voucher
+                  </button>
+                  {walletOpen && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1.5 max-h-40 overflow-y-auto">
+                      {walletLoading ? (
+                        <LoadingSpinner />
+                      ) : walletVouchers.length === 0 ? (
+                        <p className="text-[11px] text-slate-500 text-center py-1">Ví trống. <Link to="/customer/voucher-hunt" className="text-brand-600 font-medium">Đi săn mã!</Link></p>
+                      ) : (
+                        walletVouchers.map(v => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => handleSelectVoucher(v)}
+                            className="w-full flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] hover:border-brand-300 hover:bg-brand-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <TicketPercent className="h-3 w-3 text-brand-600" />
+                              <span className="font-bold text-slate-900">{v.code}</span>
+                              <span className="text-slate-500">{v.name}</span>
+                            </div>
+                            <span className="font-bold text-brand-700">
+                              {v.discountType === "Fixed" ? formatCurrencyVND(v.discountValue) : `-${v.discountValue}%`}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {promoResult && (
+                    <div className="flex items-center justify-between rounded-lg bg-green-50 border border-green-200 px-2.5 py-1.5 text-xs">
+                      <span className="flex items-center gap-1 text-green-700 font-medium">
+                        <TicketPercent className="h-3 w-3" /> {promoResult.code}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-green-700">-{formatCurrencyVND(promoResult.discountAmount)}</span>
+                        <button type="button" onClick={() => { setPromoResult(null); setPromoCode(""); }} className="text-slate-400 hover:text-red-500">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {pricePreview && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-1.5 text-xs">
+                    <p className="font-bold text-blue-800">Lịch thanh toán</p>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Đặt cọc ({pricePreview.depositPercent}%)</span>
+                      <span className="font-bold text-blue-900">{formatCurrencyVND(pricePreview.deposit)}</span>
+                    </div>
+                    {pricePreview.remaining > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Thu khi giao xe</span>
+                        <span className="font-bold text-blue-900">{formatCurrencyVND(pricePreview.remaining)}</span>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-blue-600">Khách đặt cọc qua PayOS. Số còn lại thu khi giao xe.</p>
+                  </div>
+                )}
+
+                {vehicle.securityRequiresDeposit && (vehicle.securityDepositAmount ?? 0) > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1 text-xs">
+                    <p className="font-bold text-amber-800">Thế chấp với chủ xe</p>
+                    <div className="flex justify-between">
+                      <span className="text-amber-700">Khi nhận xe</span>
+                      <span className="font-bold text-amber-900">{formatCurrencyVND(vehicle.securityDepositAmount!)}</span>
+                    </div>
+                    <p className="text-[10px] text-amber-600">Thỏa thuận trực tiếp với chủ xe. MoveVN không thu giữ.</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Ghi chú (tuỳ chọn)</label>
+                  <textarea
+                    placeholder="Yêu cầu đặc biệt..."
+                    value={customerNote}
+                    onChange={(e) => setCustomerNote(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none resize-none h-16 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={!!dateError || !pickupAddress.trim()}
+                  isLoading={isSubmitting}
+                  variant="primary"
+                  className="w-full h-11 rounded-xl text-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    Hoàn tất đặt xe
+                    {!isSubmitting && <CreditCard className="w-4 h-4" />}
+                  </span>
+                </Button>
+              </form>
             )}
           </div>
 

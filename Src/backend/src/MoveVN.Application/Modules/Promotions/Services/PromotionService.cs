@@ -39,8 +39,8 @@ public class PromotionService : IPromotionService
             WhoBears = req.WhoBears,
             OwnerBearsPercent = req.WhoBears == "Shared" ? req.OwnerBearsPercent : null,
             OwnerId = ownerIdOverride ?? (req.WhoBears == "System" ? null : req.OwnerId),
-            StartAt = DateTime.SpecifyKind(req.StartAt, DateTimeKind.Utc),
-            EndAt = req.EndAt.HasValue ? DateTime.SpecifyKind(req.EndAt.Value, DateTimeKind.Utc) : null,
+            StartAt = ToUtc(req.StartAt),
+            EndAt = req.EndAt.HasValue ? ToUtc(req.EndAt.Value) : null,
             MaxUsageCount = req.MaxUsageCount,
             IsActive = true,
             ApprovalStatus = req.WhoBears == "System" && ownerIdOverride == null ? "Approved" : "Pending",
@@ -71,8 +71,8 @@ public class PromotionService : IPromotionService
             entity.WhoBears = req.WhoBears;
             entity.OwnerBearsPercent = req.WhoBears == "Shared" ? req.OwnerBearsPercent : null;
         }
-        if (req.StartAt.HasValue) entity.StartAt = DateTime.SpecifyKind(req.StartAt.Value, DateTimeKind.Utc);
-        if (req.EndAt.HasValue) entity.EndAt = DateTime.SpecifyKind(req.EndAt.Value, DateTimeKind.Utc);
+        if (req.StartAt.HasValue) entity.StartAt = ToUtc(req.StartAt.Value);
+        if (req.EndAt.HasValue) entity.EndAt = ToUtc(req.EndAt.Value);
         if (req.MaxUsageCount.HasValue) entity.MaxUsageCount = req.MaxUsageCount.Value;
         if (req.IsActive.HasValue) entity.IsActive = req.IsActive.Value;
         entity.UpdatedAt = DateTime.UtcNow;
@@ -314,5 +314,12 @@ public class PromotionService : IPromotionService
         _repo.Update(entity);
         await _repo.SaveChangesAsync(ct);
         return MapToResponse(entity);
+    }
+
+    private static DateTime ToUtc(DateTime dt)
+    {
+        if (dt.Kind == DateTimeKind.Utc) return dt;
+        if (dt.Kind == DateTimeKind.Local) return dt.ToUniversalTime();
+        return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
     }
 }

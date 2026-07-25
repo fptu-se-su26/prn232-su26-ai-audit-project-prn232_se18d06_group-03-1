@@ -76,6 +76,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Wallet> Wallets { get; set; }
     public DbSet<WalletTransaction> WalletTransactions { get; set; }
     public DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
+    public DbSet<VoucherClaim> VoucherClaims => Set<VoucherClaim>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -87,6 +88,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<Booking>().Property(entity => entity.EscrowStatus).HasDefaultValue("None");
         builder.Entity<Booking>().HasIndex(entity => new { entity.Status, entity.PaymentDueAt });
         builder.Entity<WithdrawalRequest>();
+        builder.Entity<VoucherClaim>().HasIndex(vc => new { vc.CustomerId, vc.PromotionId }).IsUnique();
+        builder.Entity<VoucherClaim>().ToTable("voucher_claims");
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<DriverLicenseClass>().HasIndex(entity => entity.Code).IsUnique();
