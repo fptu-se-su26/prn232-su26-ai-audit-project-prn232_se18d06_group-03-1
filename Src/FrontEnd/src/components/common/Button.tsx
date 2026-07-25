@@ -15,8 +15,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "border border-transparent bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 text-white shadow-lg shadow-brand-600/20 hover:from-brand-700 hover:via-brand-600 hover:to-fuchsia-600 disabled:border-slate-200 disabled:bg-none disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none",
-  secondary: "border border-slate-200 bg-white text-slate-800 shadow-sm shadow-slate-950/5 hover:border-slate-300 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400",
-  ghost: "border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 disabled:text-slate-400",
+  secondary: "border border-slate-200 bg-white text-slate-800 shadow-sm shadow-slate-950/5 hover:border-slate-300 hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 dark:border-[#3b3348] dark:bg-[#211b2b] dark:text-gray-100 dark:hover:border-brand-700 dark:hover:bg-[#2a2236] dark:disabled:border-neutral-800 dark:disabled:bg-neutral-900 dark:disabled:text-gray-500",
+  ghost: "border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 disabled:text-slate-400 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white dark:disabled:text-gray-600",
   danger: "border border-rose-600 bg-rose-600 text-white shadow-sm shadow-rose-900/10 hover:border-rose-700 hover:bg-rose-700 disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500",
 };
 

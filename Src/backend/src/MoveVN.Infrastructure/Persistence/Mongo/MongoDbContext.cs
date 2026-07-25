@@ -32,5 +32,6 @@ public class MongoDbContext
     public IMongoCollection<UserActivityLogDocument> UserActivityLogs => _database.GetCollection<UserActivityLogDocument>("user_activity_logs");
     public IMongoCollection<SearchLogDocument> SearchLogs => _database.GetCollection<SearchLogDocument>("search_logs");
     public IMongoCollection<UserManagementAuditLogDocument> UserManagementAuditLogs => _database.GetCollection<UserManagementAuditLogDocument>("user_management_audit_logs");
+    public IMongoCollection<BroadcastNotificationLogDocument> BroadcastNotificationLogs => _database.GetCollection<BroadcastNotificationLogDocument>("broadcast_notification_logs");
     public IMongoCollection<MongoMigrationHistory> MigrationHistory => _database.GetCollection<MongoMigrationHistory>("mongo_migrations");
 }

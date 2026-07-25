@@ -10,6 +10,7 @@ using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.SystemConfigs.DTOs;
 using MoveVN.Application.Modules.SystemConfigs.Interfaces;
+using MoveVN.Domain.Documents;
 using MoveVN.Domain.Entities;
 
 namespace MoveVN.Application.Modules.Notifications.Services;
@@ -27,6 +28,7 @@ public class NotificationService : INotificationService
     private readonly IEmailSender _emailSender;
     private readonly ISystemConfigService _systemConfigService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IBroadcastNotificationLogService _broadcastLogService;
 
     public NotificationService(
         ICurrentUserContext currentUserContext,
@@ -35,7 +37,8 @@ public class NotificationService : INotificationService
         INotificationRealtimeDispatcher realtimeDispatcher,
         IEmailSender emailSender,
         ISystemConfigService systemConfigService,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IBroadcastNotificationLogService broadcastLogService)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
@@ -44,6 +47,7 @@ public class NotificationService : INotificationService
         _emailSender = emailSender;
         _systemConfigService = systemConfigService;
         _scopeFactory = scopeFactory;
+        _broadcastLogService = broadcastLogService;
     }
 
     public async Task<PagedResult<NotificationResponse>> GetMineAsync(bool? unreadOnly, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -168,6 +172,33 @@ public class NotificationService : INotificationService
         var targetType = ValidTargetTypes.Contains(request.TargetType) ? request.TargetType : "All";
         var sendInApp = channel is "InApp" or "Both";
         var sendEmail = channel is "Email" or "Both";
+
+        var currentUserId = _currentUserContext.UserId ?? 0;
+        var senderUser = await _userRepository.GetByIdAsync(currentUserId, cancellationToken);
+        var senderRole = "Unknown";
+        if (senderUser != null)
+        {
+            var userRoles = await _userRepository.GetUsersByRoleAsync(ValidRoles, cancellationToken);
+            // Just use a simple way to get role if possible, or fallback
+            senderRole = "Admin/Staff"; // Because only admin/staff can broadcast
+        }
+
+        // Log the broadcast to MongoDB
+        var log = new BroadcastNotificationLogDocument
+        {
+            SenderId = currentUserId,
+            SenderName = senderUser?.FullName ?? "Unknown",
+            SenderRole = senderRole,
+            Title = request.Title,
+            Body = request.Body,
+            Channel = request.Channel,
+            TargetType = request.TargetType,
+            TargetRoles = request.TargetRoles?.ToList() ?? [],
+            TargetUserIds = request.TargetUserIds?.ToList() ?? [],
+            IpAddress = null, // Can inject IHttpContextAccessor if needed
+            Timestamp = DateTime.UtcNow
+        };
+        await _broadcastLogService.LogBroadcastAsync(log, cancellationToken);
 
         List<User> targetUsers = targetType switch
         {

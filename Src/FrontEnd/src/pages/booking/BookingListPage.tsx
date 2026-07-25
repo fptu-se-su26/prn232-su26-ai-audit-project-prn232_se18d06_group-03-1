@@ -100,7 +100,7 @@ export default function BookingListPage() {
         }
       />
 
-      <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <select
             value={statusFilter}
@@ -108,7 +108,7 @@ export default function BookingListPage() {
               setStatusFilter(event.target.value);
               setPage(1);
             }}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-gray-100 dark:[color-scheme:dark] dark:focus:border-brand-500 dark:focus:ring-brand-950"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -116,7 +116,7 @@ export default function BookingListPage() {
               </option>
             ))}
           </select>
-          <span className="text-sm text-slate-500">{totalCount} kết quả</span>
+          <span className="text-sm text-slate-500 dark:text-gray-300">{totalCount} kết quả</span>
         </div>
       </div>
 
@@ -131,8 +131,8 @@ export default function BookingListPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+            <table className="w-full text-left text-sm dark:text-gray-200">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-[#211b2b] dark:text-gray-300">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Xe</th>
@@ -143,25 +143,25 @@ export default function BookingListPage() {
                   <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#30283d]">
                 {items.map((item) => (
-                  <tr key={item.id} className="transition hover:bg-slate-50/70">
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950">{item.bookingCode}</td>
+                  <tr key={item.id} className="transition hover:bg-slate-50/70 dark:hover:bg-white/[0.04]">
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950 dark:text-gray-100">{item.bookingCode}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {item.vehicleImage ? (
                           <img src={item.vehicleImage} alt={item.vehicleName ?? "Xe"} className="h-10 w-14 rounded-md object-cover" />
                         ) : (
-                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500">
+                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-[#2a2236] dark:text-gray-300">
                             <CalendarCheck className="h-4 w-4" />
                           </span>
                         )}
-                        <span className="font-semibold text-slate-950">{item.vehicleName ?? `Xe #${item.vehicleId}`}</span>
+                        <span className="font-semibold text-slate-950 dark:text-gray-100">{item.vehicleName ?? `Xe #${item.vehicleId}`}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-slate-600">{formatDate(item.startDate)}</td>
-                    <td className="px-5 py-4 text-slate-600">{formatDate(item.endDate)}</td>
-                    <td className="px-5 py-4 font-semibold text-slate-950">{formatCurrency(item.totalAmount)}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{formatDate(item.startDate)}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{formatDate(item.endDate)}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-950 dark:text-gray-100">{formatCurrency(item.totalAmount)}</td>
                     <td className="px-5 py-4">
                       <StatusBadge tone={getStatusTone(item.status)}>{statusLabels[item.status] ?? item.status}</StatusBadge>
                     </td>
@@ -187,18 +187,18 @@ export default function BookingListPage() {
             type="button"
             onClick={() => goToPage(page - 1)}
             disabled={page <= 1}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="min-w-24 text-center text-sm font-semibold text-slate-700">
+          <span className="min-w-24 text-center text-sm font-semibold text-slate-700 dark:text-gray-200">
             {page}/{totalPages}
           </span>
           <button
             type="button"
             onClick={() => goToPage(page + 1)}
             disabled={page >= totalPages}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

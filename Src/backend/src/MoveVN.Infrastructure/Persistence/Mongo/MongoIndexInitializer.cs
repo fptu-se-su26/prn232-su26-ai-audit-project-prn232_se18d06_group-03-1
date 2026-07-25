@@ -87,5 +87,10 @@ public class MongoIndexInitializer
             new CreateIndexModel<UserManagementAuditLogDocument>(Builders<UserManagementAuditLogDocument>.IndexKeys.Ascending(x => x.ActorId).Descending(x => x.Timestamp)),
             new CreateIndexModel<UserManagementAuditLogDocument>(Builders<UserManagementAuditLogDocument>.IndexKeys.Ascending(x => x.Timestamp), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(365) })
         ], cancellationToken);
+
+        await _context.BroadcastNotificationLogs.Indexes.CreateManyAsync([
+            new CreateIndexModel<BroadcastNotificationLogDocument>(Builders<BroadcastNotificationLogDocument>.IndexKeys.Ascending(x => x.SenderId).Descending(x => x.Timestamp)),
+            new CreateIndexModel<BroadcastNotificationLogDocument>(Builders<BroadcastNotificationLogDocument>.IndexKeys.Ascending(x => x.Timestamp), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(365) })
+        ], cancellationToken);
     }
 }

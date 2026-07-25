@@ -86,7 +86,7 @@ function AvailabilityCalendar({ busyPeriods, month, year, onPrev, onNext, select
     else if (isToday) cls += "font-bold ";
     else if (isPast) cls += "text-slate-200 cursor-not-allowed ";
     else if (isBusy) cls += "text-red-400 cursor-not-allowed ";
-    else cls += "text-slate-700 hover:bg-brand-50 hover:text-brand-700 cursor-pointer ";
+    else cls += "text-slate-700 dark:text-gray-300 hover:bg-brand-50 dark:bg-brand-900/30 hover:text-brand-700 dark:text-brand-400 cursor-pointer ";
 
     if ((isStart || isEnd) && dateStr === formatDate(new Date())) cls += "ring-2 ring-white ";
 
@@ -113,23 +113,23 @@ function AvailabilityCalendar({ busyPeriods, month, year, onPrev, onNext, select
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">
-          <CalendarDays className="mr-1.5 inline h-4 w-4 text-brand-700" />
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+          <CalendarDays className="mr-1.5 inline h-4 w-4 text-brand-700 dark:text-brand-400" />
           Lịch khả dụng
         </h2>
       </div>
       <div className="flex items-center justify-between mb-3">
-        <button type="button" onClick={onPrev} className="rounded p-1 text-slate-400 hover:bg-slate-100"><ChevronLeft className="h-4 w-4" /></button>
-        <span className="text-sm font-medium text-slate-700">{MONTHS[month]} {year}</span>
-        <button type="button" onClick={onNext} className="rounded p-1 text-slate-400 hover:bg-slate-100"><ChevronRight className="h-4 w-4" /></button>
+        <button type="button" onClick={onPrev} className="rounded p-1 text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:bg-white/5"><ChevronLeft className="h-4 w-4" /></button>
+        <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{MONTHS[month]} {year}</span>
+        <button type="button" onClick={onNext} className="rounded p-1 text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:bg-white/5"><ChevronRight className="h-4 w-4" /></button>
       </div>
       <div className="grid grid-cols-7 gap-y-1 text-center">
-        {DAYS.map((d) => <div key={d} className="text-xs font-medium text-slate-400 py-1">{d}</div>)}
+        {DAYS.map((d) => <div key={d} className="text-xs font-medium text-slate-400 dark:text-gray-500 py-1">{d}</div>)}
         {days}
       </div>
-      <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+      <div className="mt-3 flex items-center gap-4 text-xs text-slate-500 dark:text-gray-400">
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-brand-600" /> Ngày đã chọn</span>
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-brand-100" /> Trong khoảng</span>
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-red-100" /> Đã đặt/Chặn</span>
@@ -140,7 +140,7 @@ function AvailabilityCalendar({ busyPeriods, month, year, onPrev, onNext, select
 
 function VehicleDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-6">
         <div className="flex items-center gap-3">
           <Skeleton className="h-9 w-9 rounded-xl" />
@@ -152,7 +152,7 @@ function VehicleDetailSkeleton() {
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="space-y-6">
             <Skeleton className="aspect-[16/9] w-full rounded-xl" />
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
               <Skeleton className="mb-4 h-5 w-28" />
               <div className="grid grid-cols-2 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -281,7 +281,7 @@ export default function VehicleDetailPage() {
   if (!vehicle) {
     if (vehicleLoadError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+        <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
           <div className="mx-auto max-w-6xl px-4 pt-6">
             <div className="flex min-h-[400px] items-center justify-center">
               <div className="text-center">
@@ -316,20 +316,20 @@ export default function VehicleDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
       <div className="mx-auto max-w-6xl space-y-4 px-4 pt-6">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate("/vehicle")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">
+        <button type="button" onClick={() => navigate("/vehicle")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 transition-all hover:bg-slate-100 dark:bg-white/5 hover:text-slate-700 dark:text-gray-300">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-slate-900">{vehicle.brandName} {vehicle.modelName}</h1>
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white">{vehicle.brandName} {vehicle.modelName}</h1>
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
               <CheckCircle className="h-3 w-3" /> Đã xác minh
             </span>
           </div>
-          <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500">
+          <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500 dark:text-gray-400">
             <span>{vehicle.licensePlate}</span>
             <span className="text-slate-300">|</span>
             {avgRating != null && (
@@ -338,7 +338,7 @@ export default function VehicleDetailPage() {
               </span>
             )}
             <span className="text-slate-300">|</span>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${vehicle.vehicleType === "Car" ? "bg-sky-50 text-sky-700" : "bg-violet-50 text-violet-700"}`}>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${vehicle.vehicleType === "Car" ? "bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400" : "bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400"}`}>
               {vehicle.vehicleType === "Car" ? <Car className="h-3 w-3" /> : <Bike className="h-3 w-3" />}
               {vehicle.vehicleType === "Car" ? "Ô tô" : "Xe máy"}
             </span>
@@ -355,7 +355,7 @@ export default function VehicleDetailPage() {
               <button
                 type="button"
                 onClick={() => openPreview(previewItems, 0)}
-                className="col-span-4 overflow-hidden rounded-xl bg-slate-100"
+                className="col-span-4 overflow-hidden rounded-xl bg-slate-100 dark:bg-white/5"
               >
                 <img src={vehicleImages[0].imageUrl} alt="" className="aspect-[16/9] w-full object-cover transition-transform duration-300 hover:scale-105" />
               </button>
@@ -364,83 +364,83 @@ export default function VehicleDetailPage() {
                   key={img.id}
                   type="button"
                   onClick={() => openPreview(previewItems, idx + 1)}
-                  className="overflow-hidden rounded-lg bg-slate-100"
+                  className="overflow-hidden rounded-lg bg-slate-100 dark:bg-white/5"
                 >
                   <img src={img.imageUrl} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-300 hover:scale-105" />
                 </button>
               ))}
             </div>
           ) : (
-            <div className="flex aspect-[16/9] items-center justify-center rounded-xl bg-slate-100">
+            <div className="flex aspect-[16/9] items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5">
               {vehicle.vehicleType === "Car" ? <Car className="h-16 w-16 text-slate-300" /> : <Bike className="h-16 w-16 text-slate-300" />}
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                <Car className="h-3.5 w-3.5 text-slate-500" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5">
+                <Car className="h-3.5 w-3.5 text-slate-500 dark:text-gray-400" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-900">Thông tin xe</h2>
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Thông tin xe</h2>
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div>
-                <label className="block text-xs font-medium text-slate-400">Biển số</label>
-                <p className="mt-1 font-semibold text-slate-800">{vehicle.licensePlate}</p>
+                <label className="block text-xs font-medium text-slate-400 dark:text-gray-500">Biển số</label>
+                <p className="mt-1 font-semibold text-slate-800 dark:text-gray-200">{vehicle.licensePlate}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400">Dòng xe</label>
-                <p className="mt-1 font-medium text-slate-800">{vehicle.brandName} {vehicle.modelName}</p>
-                {vehicle.variantName && <p className="text-xs text-slate-400">{vehicle.variantName}</p>}
+                <label className="block text-xs font-medium text-slate-400 dark:text-gray-500">Dòng xe</label>
+                <p className="mt-1 font-medium text-slate-800 dark:text-gray-200">{vehicle.brandName} {vehicle.modelName}</p>
+                {vehicle.variantName && <p className="text-xs text-slate-400 dark:text-gray-500">{vehicle.variantName}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400">Năm sản xuất</label>
-                <p className="mt-1 font-medium text-slate-800">{vehicle.year}</p>
+                <label className="block text-xs font-medium text-slate-400 dark:text-gray-500">Năm sản xuất</label>
+                <p className="mt-1 font-medium text-slate-800 dark:text-gray-200">{vehicle.year}</p>
               </div>
               {vehicle.odometerKm != null && (
                 <div>
-                  <label className="flex items-center gap-1 text-xs font-medium text-slate-400"><Gauge className="h-3 w-3" /> Số km đã đi</label>
-                  <p className="mt-1 font-medium text-slate-800">{vehicle.odometerKm.toLocaleString("vi-VN")} km</p>
+                  <label className="flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-gray-500"><Gauge className="h-3 w-3" /> Số km đã đi</label>
+                  <p className="mt-1 font-medium text-slate-800 dark:text-gray-200">{vehicle.odometerKm.toLocaleString("vi-VN")} km</p>
                 </div>
               )}
               <div>
-                <label className="flex items-center gap-1 text-xs font-medium text-slate-400"><User className="h-3 w-3" /> Chủ xe</label>
-                <p className="mt-1 font-medium text-slate-800">{vehicle.ownerName || `Chủ xe #${vehicle.ownerId}`}</p>
+                <label className="flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-gray-500"><User className="h-3 w-3" /> Chủ xe</label>
+                <p className="mt-1 font-medium text-slate-800 dark:text-gray-200">{vehicle.ownerName || `Chủ xe #${vehicle.ownerId}`}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400">Loại xe</label>
+                <label className="block text-xs font-medium text-slate-400 dark:text-gray-500">Loại xe</label>
                 <p className="mt-1">
                   {vehicle.vehicleType === "Car" ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700"><Car className="h-3 w-3" /> Ô tô</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-900/30 px-2.5 py-1 text-xs font-medium text-sky-700 dark:text-sky-400"><Car className="h-3 w-3" /> Ô tô</span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700"><Bike className="h-3 w-3" /> Xe máy</span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 dark:bg-violet-900/30 px-2.5 py-1 text-xs font-medium text-violet-700 dark:text-violet-400"><Bike className="h-3 w-3" /> Xe máy</span>
                   )}
                 </p>
               </div>
               <div className="col-span-2">
-                <label className="flex items-center gap-1 text-xs font-medium text-slate-400"><MapPin className="h-3 w-3" /> Địa điểm</label>
-                <p className="mt-1 text-sm text-slate-800">{vehicle.address}</p>
-                {vehicle.areaName && <p className="mt-0.5 text-xs text-slate-500">{vehicle.areaName}</p>}
+                <label className="flex items-center gap-1 text-xs font-medium text-slate-400 dark:text-gray-500"><MapPin className="h-3 w-3" /> Địa điểm</label>
+                <p className="mt-1 text-sm text-slate-800 dark:text-gray-200">{vehicle.address}</p>
+                {vehicle.areaName && <p className="mt-0.5 text-xs text-slate-500 dark:text-gray-400">{vehicle.areaName}</p>}
               </div>
               {vehicle.description && (
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-slate-400">Mô tả</label>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{vehicle.description}</p>
+                  <label className="block text-xs font-medium text-slate-400 dark:text-gray-500">Mô tả</label>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-gray-400">{vehicle.description}</p>
                 </div>
               )}
             </div>
             {vehicle.features.length > 0 && (
               <>
-                <hr className="my-4 border-slate-100" />
+                <hr className="my-4 border-slate-100 dark:border-white/5" />
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100">
-                    <BadgeInfo className="h-3 w-3 text-slate-500" />
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5">
+                    <BadgeInfo className="h-3 w-3 text-slate-500 dark:text-gray-400" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-900">Tính năng ({vehicle.features.length})</span>
+                  <span className="text-xs font-semibold text-slate-900 dark:text-white">Tính năng ({vehicle.features.length})</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {vehicle.features.map((f) => (
-                    <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+                    <span key={f.id} className="inline-flex items-center gap-1 rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/30 px-3 py-1.5 text-xs font-medium text-brand-700 dark:text-brand-400">
                       <CheckCircle className="h-3 w-3" /> {f.name}
                     </span>
                   ))}
@@ -450,23 +450,23 @@ export default function VehicleDetailPage() {
           </div>
 
           {vehicle.latitude != null && vehicle.longitude != null && (
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                  <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5">
+                  <MapPin className="h-3.5 w-3.5 text-slate-500 dark:text-gray-400" />
                 </div>
-                <h2 className="text-sm font-semibold text-slate-900">Vị trí</h2>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Vị trí</h2>
               </div>
-              <p className="mb-3 text-sm text-slate-700">{vehicle.address}</p>
+              <p className="mb-3 text-sm text-slate-700 dark:text-gray-300">{vehicle.address}</p>
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vehicle.address)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-white/10 px-3 py-2 text-xs font-medium text-slate-700 dark:text-gray-300 transition-colors hover:bg-slate-50 dark:bg-white/10 hover:text-slate-900 dark:text-white"
               >
                 <MapPin className="h-3.5 w-3.5" />
                 Mở Google Maps
-                <ExternalLink className="h-3 w-3 text-slate-400" />
+                <ExternalLink className="h-3 w-3 text-slate-400 dark:text-gray-500" />
               </a>
               <MapWithPin
                 latitude={Number(vehicle.latitude)}
@@ -477,15 +477,15 @@ export default function VehicleDetailPage() {
             </div>
           )}
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-6">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5">
                 <Star className="h-3.5 w-3.5 text-yellow-500" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
                 Đánh giá khách hàng
                 {!reviewsLoading && avgRating != null && (
-                  <span className="ml-2 text-sm font-normal text-slate-500">
+                  <span className="ml-2 text-sm font-normal text-slate-500 dark:text-gray-400">
                     <Star className="mr-0.5 inline h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                     {avgRating.toFixed(1)} ({reviews.length} đánh giá)
                   </span>
@@ -495,7 +495,7 @@ export default function VehicleDetailPage() {
             {reviewsLoading ? (
               <div className="space-y-3">
                 {[1, 2].map((i) => (
-                  <div key={i} className="space-y-2 rounded-lg bg-slate-50 p-4">
+                  <div key={i} className="space-y-2 rounded-lg bg-slate-50 dark:bg-white/10 p-4">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-48" />
                     <Skeleton className="h-12 w-full" />
@@ -509,37 +509,37 @@ export default function VehicleDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Chưa có đánh giá nào.</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">Chưa có đánh giá nào.</p>
             )}
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">Giá thuê</h2>
-              <p className="text-2xl font-bold text-brand-700">
-                {displayPrice.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400">/ngày</span>
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Giá thuê</h2>
+              <p className="text-2xl font-bold text-brand-700 dark:text-brand-400">
+                {displayPrice.toLocaleString("vi-VN")}đ<span className="text-sm font-normal text-slate-400 dark:text-gray-500">/ngày</span>
               </p>
             </div>
             <p className="mt-1 text-xs text-emerald-700">Giá đã bao gồm phí nền tảng.</p>
-            <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 space-y-1.5">
+            <div className="mt-2 rounded-lg bg-slate-50 dark:bg-white/10 p-3 text-xs text-slate-600 dark:text-gray-400 space-y-1.5">
               <div>
-                <span className="font-semibold text-slate-700">Tiền cọc: </span>
+                <span className="font-semibold text-slate-700 dark:text-gray-300">Tiền cọc: </span>
                 {vehicle.depositPercent > 0 ? `${vehicle.depositPercent}% tổng tiền thuê` : "Không yêu cầu"}
               </div>
               {vehicle.securityRequiresDeposit && (
                 <div>
-                  <span className="font-semibold text-slate-700">Thế chấp: </span>
+                  <span className="font-semibold text-slate-700 dark:text-gray-300">Thế chấp: </span>
                   {vehicle.securityDepositAmount > 0 ? `${vehicle.securityDepositAmount.toLocaleString("vi-VN")} VNĐ` : "Không yêu cầu"}
                 </div>
               )}
             </div>
 
-            <hr className="my-4 border-slate-100" />
+            <hr className="my-4 border-slate-100 dark:border-white/5" />
 
             {availabilityLoading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-5">
+              <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
                 <Skeleton className="mb-3 h-5 w-28" />
                 <div className="flex items-center justify-between mb-3">
                   <Skeleton className="h-6 w-6 rounded" />
@@ -564,33 +564,33 @@ export default function VehicleDetailPage() {
               />
             )}
 
-            <hr className="my-4 border-slate-100" />
+            <hr className="my-4 border-slate-100 dark:border-white/5" />
 
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Ngày nhận xe</span>
-                <span className="font-medium text-slate-800">
+                <span className="text-slate-500 dark:text-gray-400">Ngày nhận xe</span>
+                <span className="font-medium text-slate-800 dark:text-gray-200">
                   {selection.start ? formatShort(selection.start) : "Chưa chọn"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Ngày trả xe</span>
-                <span className="font-medium text-slate-800">
+                <span className="text-slate-500 dark:text-gray-400">Ngày trả xe</span>
+                <span className="font-medium text-slate-800 dark:text-gray-200">
                   {selection.end ? formatShort(selection.end) : "Chưa chọn"}
                 </span>
               </div>
-              <hr className="border-slate-100" />
+              <hr className="border-slate-100 dark:border-white/5" />
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Số ngày</span>
-                <span className="font-medium text-slate-800">{totalDays > 0 ? `${totalDays} ngày` : "-"}</span>
+                <span className="text-slate-500 dark:text-gray-400">Số ngày</span>
+                <span className="font-medium text-slate-800 dark:text-gray-200">{totalDays > 0 ? `${totalDays} ngày` : "-"}</span>
               </div>
-              <div className="flex items-center justify-between text-lg font-bold text-brand-700">
+              <div className="flex items-center justify-between text-lg font-bold text-brand-700 dark:text-brand-400">
                 <span>Tổng</span>
                 <span>{(displayPrice * totalDays).toLocaleString("vi-VN")}đ</span>
               </div>
             </div>
 
-            <hr className="my-4 border-slate-100" />
+            <hr className="my-4 border-slate-100 dark:border-white/5" />
 
             {token && user ? (
               <Button type="button" onClick={handleBooking} className="w-full">
@@ -604,12 +604,12 @@ export default function VehicleDetailPage() {
           </div>
 
           {vehicleImages.length > 1 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-                  <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/5">
+                  <ImageIcon className="h-3.5 w-3.5 text-slate-500 dark:text-gray-400" />
                 </div>
-                <h2 className="text-sm font-semibold text-slate-900">Tất cả ảnh ({vehicleImages.length})</h2>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Tất cả ảnh ({vehicleImages.length})</h2>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {vehicleImages.map((img, idx) => (
@@ -617,7 +617,7 @@ export default function VehicleDetailPage() {
                     key={img.id}
                     type="button"
                     onClick={() => openPreview(previewItems, idx)}
-                    className="overflow-hidden rounded-lg bg-slate-100"
+                    className="overflow-hidden rounded-lg bg-slate-100 dark:bg-white/5"
                   >
                     <img src={img.imageUrl} alt="" className="aspect-square w-full object-cover transition-transform duration-300 hover:scale-105" />
                   </button>

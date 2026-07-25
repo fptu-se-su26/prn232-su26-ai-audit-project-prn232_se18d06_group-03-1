@@ -26,19 +26,34 @@ const navItems = [
   { href: "/vehicle", label: "Thuê xe" },
   { href: "/how-it-works", label: "Cách hoạt động" },
   { href: "/for-owners", label: "Chủ xe" },
+  { href: "/blog", label: "Cẩm nang" },
   { href: "/support", label: "Hỗ trợ" },
 ];
 
 export default function PublicLayout() {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("theme") === "dark";
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [cmsNav, setCmsNav] = useState<CmsPageNavigationItem[]>([]);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useEffect(() => {
     getCmsPageNavigation().then(setCmsNav).catch(() => {});
+
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 20;
+      setIsScrolled((prev) => (prev !== scrolled ? scrolled : prev));
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   const accountRef = useRef<HTMLDivElement>(null);
   const dashboardPath = getDashboardPath(user?.roles ?? []);
@@ -69,14 +84,18 @@ export default function PublicLayout() {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="flex min-h-screen flex-col bg-white text-slate-900 transition-colors duration-300 dark:bg-black dark:text-gray-100">
-        <nav className="sticky top-0 z-40 border-b border-slate-100 bg-white/95 backdrop-blur-md transition-colors duration-300 dark:border-neutral-900 dark:bg-black/95">
-          <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen flex-col bg-white text-slate-900 transition-colors duration-300 dark:bg-[#0d0b14] dark:text-gray-100">
+        <nav className={`sticky top-0 z-40 border-b transition-all duration-300 transform-gpu py-2.5 sm:py-3 ${
+          isScrolled
+            ? "border-slate-200/80 bg-white/95 shadow-md backdrop-blur-xl dark:border-neutral-800 dark:bg-[#0d0b14]/95"
+            : "border-slate-100 bg-white/90 backdrop-blur-md dark:border-neutral-800 dark:bg-[#0d0b14]/90"
+        }`}>
+          <div className="mx-auto flex w-full items-center justify-between px-4 sm:px-6 lg:px-12 2xl:px-16">
             <Link to="/" className="flex shrink-0 items-center" aria-label="MoveVN">
               <img
                 src={darkMode ? logoDark : logoLight}
                 alt="MoveVN"
-                className="h-16 w-auto object-contain sm:h-[4.5rem]"
+                className={`w-auto object-contain origin-left h-12 sm:h-14 transition-transform duration-300 ${darkMode ? "scale-[1.2]" : ""}`}
               />
             </Link>
 
@@ -197,7 +216,7 @@ export default function PublicLayout() {
           </div>
 
           {menuOpen ? (
-            <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg dark:border-neutral-900 dark:bg-black lg:hidden">
+            <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg dark:border-neutral-800 dark:bg-[#0d0b14] lg:hidden">
               <div className="flex flex-col gap-2">
                 {navItems.map((item) => (
                   <Link
@@ -248,14 +267,14 @@ export default function PublicLayout() {
 
         <footer
           id="contact"
-          className="border-t border-slate-100 bg-white py-12 text-slate-600 transition-colors duration-300 dark:border-neutral-900 dark:bg-black dark:text-gray-400"
+          className="border-t border-slate-100 bg-white py-12 text-slate-600 transition-colors duration-300 dark:border-neutral-800 dark:bg-[#0d0b14] dark:text-gray-300"
         >
           <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
             <div>
               <img
                 src={darkMode ? logoDark : logoLight}
                 alt="MoveVN"
-                className="h-16 w-auto object-contain"
+                className={`h-16 w-auto object-contain origin-left ${darkMode ? "scale-[1.2]" : ""}`}
               />
               <p className="mt-4 text-sm leading-6">
                 Nền tảng thuê xe giúp kết nối khách hàng và chủ xe minh bạch, nhanh gọn.
@@ -328,9 +347,7 @@ export default function PublicLayout() {
             </div>
           </div>
 
-          <div className="mx-auto mt-10 w-full max-w-7xl px-4 text-sm text-slate-500 sm:px-6 lg:px-8">
-            © 2026 MoveVN. All rights reserved.
-          </div>
+
         </footer>
       </div>
     </div>

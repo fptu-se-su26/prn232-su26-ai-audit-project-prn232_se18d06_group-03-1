@@ -174,15 +174,15 @@ export default function CustomerHomePage() {
         <SectionPanel
           title="Dòng chi tiêu"
           description="Tổng chi phí theo tháng, tính trên các booking đã có giá trị giao dịch."
-          action={<span className="text-xs font-semibold text-slate-500">6 tháng gần nhất</span>}
+          action={<span className="text-xs font-semibold text-slate-500 dark:text-gray-400">6 tháng gần nhất</span>}
           contentClassName="pt-6"
         >
           <div className="h-72 w-full">
             <svg viewBox="0 0 520 220" className="h-full w-full" role="img" aria-label="Biểu đồ chi tiêu theo tháng">
-              <line x1="44" y1="36" x2="500" y2="36" stroke="#e2e8f0" strokeDasharray="5 5" />
-              <line x1="44" y1="88" x2="500" y2="88" stroke="#e2e8f0" strokeDasharray="5 5" />
-              <line x1="44" y1="140" x2="500" y2="140" stroke="#e2e8f0" strokeDasharray="5 5" />
-              <line x1="44" y1="178" x2="500" y2="178" stroke="#cbd5e1" />
+              <line x1="44" y1="36" x2="500" y2="36" stroke="#e2e8f0" strokeDasharray="5 5" className="dark:stroke-[#3b3348]" />
+              <line x1="44" y1="88" x2="500" y2="88" stroke="#e2e8f0" strokeDasharray="5 5" className="dark:stroke-[#3b3348]" />
+              <line x1="44" y1="140" x2="500" y2="140" stroke="#e2e8f0" strokeDasharray="5 5" className="dark:stroke-[#3b3348]" />
+              <line x1="44" y1="178" x2="500" y2="178" stroke="#cbd5e1" className="dark:stroke-[#4a4058]" />
               {monthlySpendData.map((item, index) => {
                 const barWidth = 38;
                 const x = 58 + index * 76;
@@ -192,10 +192,10 @@ export default function CustomerHomePage() {
                 return (
                   <g key={item.label}>
                     <rect x={x} y={y} width={barWidth} height={barHeight} rx="6" fill="#6d28d9" />
-                    <text x={x + barWidth / 2} y={y - 9} textAnchor="middle" className="fill-slate-500 text-[10px] font-semibold">
+                    <text x={x + barWidth / 2} y={y - 9} textAnchor="middle" className="fill-slate-500 text-[10px] font-semibold dark:fill-gray-300">
                       {item.value > 0 ? `${Math.round(item.value / 1000)}k` : "0"}
                     </text>
-                    <text x={x + barWidth / 2} y="202" textAnchor="middle" className="fill-slate-500 text-[11px] font-semibold">
+                    <text x={x + barWidth / 2} y="202" textAnchor="middle" className="fill-slate-500 text-[11px] font-semibold dark:fill-gray-300">
                       {item.label}
                     </text>
                   </g>
@@ -209,9 +209,9 @@ export default function CustomerHomePage() {
           <div className="flex min-h-[272px] flex-col items-center justify-center">
             {bookings.length > 0 ? (
               <>
-                <div className="relative grid h-40 w-40 place-items-center rounded-full bg-slate-50 ring-1 ring-slate-100">
+                <div className="relative grid h-40 w-40 place-items-center rounded-full bg-slate-50 ring-1 ring-slate-100 dark:bg-neutral-800/50 dark:ring-neutral-800">
                   <svg width="150" height="150" viewBox="0 0 36 36" className="absolute inset-1/2 h-[150px] w-[150px] -translate-x-1/2 -translate-y-1/2">
-                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" strokeWidth="3.8" />
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="currentColor" className="text-slate-200 dark:text-neutral-800" strokeWidth="3.8" />
                     <circle
                       cx="18"
                       cy="18"
@@ -225,23 +225,23 @@ export default function CustomerHomePage() {
                     />
                   </svg>
                   <div className="text-center">
-                    <p className="text-3xl font-semibold tracking-tight text-slate-950">{completionRate}%</p>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Hoàn tất</p>
+                    <p className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">{completionRate}%</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-gray-400">Hoàn tất</p>
                   </div>
                 </div>
                 <div className="mt-5 grid w-full gap-2 text-sm">
-                  <div className="flex items-center justify-between text-slate-600">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-gray-300">
                     <span>Đã hoàn thành</span>
-                    <span className="font-semibold text-slate-950">{stats.completedCount} chuyến</span>
+                    <span className="font-semibold text-slate-950 dark:text-white">{stats.completedCount} chuyến</span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-600">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-gray-300">
                     <span>Còn lại</span>
-                    <span className="font-semibold text-slate-950">{bookings.length - stats.completedCount} chuyến</span>
+                    <span className="font-semibold text-slate-950 dark:text-white">{bookings.length - stats.completedCount} chuyến</span>
                   </div>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-slate-500">Chưa có dữ liệu chuyến đi.</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">Chưa có dữ liệu chuyến đi.</p>
             )}
           </div>
         </SectionPanel>
@@ -251,7 +251,7 @@ export default function CustomerHomePage() {
         title="Lịch sử đặt xe gần đây"
         description="Theo dõi nhanh những booking mới nhất và mở chi tiết khi cần xử lý."
         action={
-          <Link to="/customer/bookings" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800">
+          <Link to="/customer/bookings" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200">
             Xem tất cả
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -259,11 +259,11 @@ export default function CustomerHomePage() {
         contentClassName="p-0"
       >
         {recentTrips.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-slate-500">Chưa có chuyến đi nào được đặt.</div>
+          <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-gray-400">Chưa có chuyến đi nào được đặt.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-neutral-900 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Ngày nhận</th>
@@ -273,19 +273,19 @@ export default function CustomerHomePage() {
                   <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
                 {recentTrips.map((booking) => (
-                  <tr key={booking.id} className="transition hover:bg-slate-50/70">
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950">{booking.bookingCode}</td>
-                    <td className="px-5 py-4 text-slate-600">{new Date(booking.startDate).toLocaleDateString("vi-VN")}</td>
-                    <td className="px-5 py-4 text-slate-600">{new Date(booking.endDate).toLocaleDateString("vi-VN")}</td>
-                    <td className="px-5 py-4 font-semibold text-slate-950">{formatCurrency(booking.totalAmount)}</td>
+                  <tr key={booking.id} className="transition hover:bg-slate-50/70 dark:hover:bg-neutral-900/50">
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950 dark:text-white">{booking.bookingCode}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{new Date(booking.startDate).toLocaleDateString("vi-VN")}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{new Date(booking.endDate).toLocaleDateString("vi-VN")}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-950 dark:text-white">{formatCurrency(booking.totalAmount)}</td>
                     <td className="px-5 py-4">
                       <StatusBadge tone={getBookingTone(booking.status)}>{booking.status}</StatusBadge>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <Link to={`/customer/bookings/${booking.id}`}>
-                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1 dark:text-gray-300 dark:hover:text-white">
                           <Eye className="h-3.5 w-3.5" />
                           Chi tiết
                         </Button>

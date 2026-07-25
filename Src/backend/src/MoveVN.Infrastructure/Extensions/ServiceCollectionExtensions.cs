@@ -140,6 +140,7 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<MongoMigrationRunner>();
             services.AddScoped<ILoginSessionService, LoginSessionService>();
             services.AddScoped<IChatRepository, ChatRepository>();
+            services.AddScoped<IBroadcastNotificationLogService, BroadcastNotificationLogService>();
 
             foreach (var migrationType in typeof(IMongoMigration).Assembly.GetTypes()
                 .Where(type => typeof(IMongoMigration).IsAssignableFrom(type)

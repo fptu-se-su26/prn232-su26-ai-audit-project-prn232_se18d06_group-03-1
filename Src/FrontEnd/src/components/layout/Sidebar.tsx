@@ -121,30 +121,33 @@ const staffUserManagementItems = [
 ];
 
 const navBaseClass = "flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-150";
-const navActiveClass = "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200";
-const navInactiveClass = "text-slate-700 hover:bg-slate-50 hover:text-slate-950";
-const nestedNavClass = "ml-4 space-y-1 border-l border-brand-100 pl-2";
-const expandButtonClass = "inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700";
+const navActiveClass =
+  "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200 dark:from-brand-950/70 dark:via-[#211b2b] dark:to-fuchsia-950/40 dark:text-brand-200 dark:ring-brand-800";
+const navInactiveClass =
+  "text-slate-700 hover:bg-slate-50 hover:text-slate-950 dark:text-gray-300 dark:hover:bg-white/[0.07] dark:hover:text-white";
+const nestedNavClass = "ml-4 space-y-1 border-l border-brand-100 pl-2 dark:border-[#3b3348]";
+const expandButtonClass =
+  "inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-brand-200";
 const sectionToneClasses = {
   amber: {
     dot: "bg-amber-500 shadow-amber-500/30",
-    text: "text-amber-700",
+    text: "text-amber-700 dark:text-amber-400",
   },
   brand: {
     dot: "bg-brand-500 shadow-brand-500/30",
-    text: "text-brand-700",
+    text: "text-brand-700 dark:text-brand-400",
   },
   emerald: {
     dot: "bg-emerald-500 shadow-emerald-500/30",
-    text: "text-emerald-700",
+    text: "text-emerald-700 dark:text-emerald-400",
   },
   rose: {
     dot: "bg-rose-500 shadow-rose-500/30",
-    text: "text-rose-700",
+    text: "text-rose-700 dark:text-rose-400",
   },
   sky: {
     dot: "bg-sky-500 shadow-sky-500/30",
-    text: "text-sky-700",
+    text: "text-sky-700 dark:text-sky-400",
   },
 } as const;
 
@@ -326,7 +329,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <aside
-      className={`hidden border-r border-slate-200 bg-gradient-to-b from-white via-white to-brand-50/20 shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-200 md:sticky md:top-16 md:flex md:h-[calc(100vh-4rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
+      className={`hidden border-r border-slate-200 bg-gradient-to-b from-white via-white to-brand-50/20 shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-200 dark:border-[#30283d] dark:from-[#131019] dark:via-[#131019] dark:to-[#17131f] dark:shadow-none md:sticky md:top-16 md:flex md:h-[calc(100vh-4rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
     >
       <nav className="flex min-h-0 flex-1 flex-col p-3">
         <div className="sidebar-scrollbar -mr-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto overflow-x-hidden pr-2 pb-3">
@@ -868,11 +871,11 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           )}
         </div>
 
-        <div className="shrink-0 border-t border-slate-100 pt-2">
+        <div className="shrink-0 border-t border-slate-100 pt-2 dark:border-[#30283d]">
           <button
             type="button"
             onClick={onToggle}
-            className="flex h-8 w-full items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700"
+            className="flex h-8 w-full items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-brand-200"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>

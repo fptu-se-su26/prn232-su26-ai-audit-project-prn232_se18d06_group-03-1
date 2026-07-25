@@ -73,6 +73,8 @@ import OwnerVehicleDetailPage from "@/pages/owner/OwnerVehicleDetailPage";
 import OwnerVehicleAddPage from "@/pages/owner/OwnerVehicleAddPage";
 import OwnerVehicleEditPage from "@/pages/owner/OwnerVehicleEditPage";
 import AboutPage from "@/pages/public/AboutPage";
+import BlogDetailPage from "@/pages/public/BlogDetailPage";
+import BlogListPage from "@/pages/public/BlogListPage";
 import ForOwnersPage from "@/pages/public/ForOwnersPage";
 import HomePage from "@/pages/public/HomePage";
 import HowItWorksPage from "@/pages/public/HowItWorksPage";
@@ -105,6 +107,8 @@ export default function AppRoutes() {
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/for-owners" element={<ForOwnersPage />} />
         <Route path="/support" element={<SupportPage />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogDetailPage />} />
         <Route path="/privacy" element={<Navigate to="/policies/privacy-policy" replace />} />
         <Route path="/terms" element={<Navigate to="/policies/terms-of-service" replace />} />
         <Route path="/policies/:slug" element={<PolicyPage />} />
