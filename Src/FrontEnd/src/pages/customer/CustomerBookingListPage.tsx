@@ -141,8 +141,8 @@ export default function CustomerBookingListPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+            <table className="w-full text-left text-sm dark:text-gray-200">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-[#211b2b] dark:text-gray-300">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Xe</th>
@@ -153,25 +153,25 @@ export default function CustomerBookingListPage() {
                   <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#30283d]">
                 {items.map((item) => (
-                  <tr key={item.id} className="transition hover:bg-slate-50/70">
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950">{item.bookingCode}</td>
+                  <tr key={item.id} className="transition hover:bg-slate-50/70 dark:hover:bg-white/[0.04]">
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950 dark:text-gray-100">{item.bookingCode}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {item.vehicleImage ? (
                           <img src={item.vehicleImage} alt={item.vehicleName ?? "Xe"} className="h-10 w-14 rounded-md object-cover" />
                         ) : (
-                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500">
+                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-[#2a2236] dark:text-gray-300">
                             <CalendarCheck className="h-4 w-4" />
                           </span>
                         )}
-                        <span className="font-semibold text-slate-950">{item.vehicleName ?? `Xe #${item.vehicleId}`}</span>
+                        <span className="font-semibold text-slate-950 dark:text-gray-100">{item.vehicleName ?? `Xe #${item.vehicleId}`}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-slate-600">{formatDate(item.startDate)}</td>
-                    <td className="px-5 py-4 text-slate-600">{formatDate(item.endDate)}</td>
-                    <td className="px-5 py-4 font-semibold text-slate-950">{formatCurrency(item.totalAmount)}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{formatDate(item.startDate)}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{formatDate(item.endDate)}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-950 dark:text-gray-100">{formatCurrency(item.totalAmount)}</td>
                     <td className="px-5 py-4">
                       <StatusBadge tone={getStatusTone(item.status)}>{statusLabels[item.status] ?? item.status}</StatusBadge>
                     </td>

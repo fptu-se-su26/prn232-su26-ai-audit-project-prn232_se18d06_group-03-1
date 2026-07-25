@@ -1,4 +1,4 @@
-import { Bell, CheckCheck } from "lucide-react";
+﻿import { Bell, CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -170,8 +170,8 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
         >
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-neutral-800">
             <div>
-              <p className="text-sm font-semibold text-slate-950 dark:text-white">Thông báo</p>
-              <p className="text-xs text-slate-500 dark:text-gray-400">{notificationUnreadCount} chưa đọc</p>
+              <p className="text-base font-bold text-slate-950 dark:text-white">Thông báo</p>
+              <p className="text-xs font-medium text-slate-500 dark:text-gray-400 mt-0.5">{notificationUnreadCount > 0 ? `Bạn có ${notificationUnreadCount} thông báo chưa đọc` : "Không có thông báo mới"}</p>
             </div>
             <button
               type="button"
@@ -180,11 +180,11 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
               className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent dark:text-brand-200 dark:hover:bg-brand-950/40 dark:disabled:text-neutral-600"
             >
               <CheckCheck className="h-4 w-4" />
-              Đọc hết
+              Đánh dấu đã đọc
             </button>
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[28rem] overflow-y-auto custom-scrollbar">
             {notificationsLoading && (
               <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-gray-400">Đang tải thông báo...</div>
             )}

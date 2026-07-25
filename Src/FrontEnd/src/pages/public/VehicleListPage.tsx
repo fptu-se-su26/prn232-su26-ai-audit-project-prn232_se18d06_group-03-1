@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { fuelTypeOptions, motorbikeTypeOptions } from "@/features/vehicleModelVariants/options";
@@ -59,16 +59,16 @@ function FilterDropdown({
         onClick={() => setOpen((prev) => !prev)}
         className={
           isMinimal
-            ? "flex w-full items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800"
+            ? "flex w-full items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-gray-300 dark:hover:text-white"
             : cx(
-                "inline-flex h-10 items-center gap-1.5 rounded-full border bg-white px-4 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50",
-                value ? "border-brand-300 bg-brand-50/80 text-brand-800" : "border-slate-300"
+                "inline-flex h-10 items-center gap-1.5 rounded-full border bg-white px-4 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/20 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20",
+                value ? "border-brand-300 bg-brand-50/80 text-brand-800 dark:bg-brand-900/30 dark:text-brand-400" : "border-slate-300"
               )
         }
       >
         {label && <span className="text-xs text-slate-400">{label}:</span>}
         <span className={isMinimal ? "" : "font-semibold"}>{current?.label ?? "Đà Nẵng"}</span>
-        <ChevronDown className="h-4 w-4 text-slate-400" />
+        <ChevronDown className="h-4 w-4 text-slate-400 dark:text-gray-500" />
       </button>
       {open && (
         <div className="dropdown-scrollbar absolute left-0 top-full z-30 mt-1 max-h-72 w-52 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
@@ -131,12 +131,29 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function normalizeVehicleType(value: string | null) {
+  if (!value) return "";
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "car" || normalized === "oto" || normalized === "ô tô") return "Car";
+  if (normalized === "motorbike" || normalized === "bike" || normalized === "xe may" || normalized === "xe máy") return "Motorbike";
+  return "";
+}
+
+function toDateTimeLocalValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+}
+
 function formatPriceNumber(value: number) {
   return value.toLocaleString("vi-VN");
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="text-xs font-semibold text-slate-600">{children}</label>;
+  return <label className="text-xs font-semibold text-slate-600 dark:text-gray-300">{children}</label>;
 }
 
 function PanelSelect({
@@ -159,8 +176,8 @@ function PanelSelect({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className={cx(
-          "h-10 w-full rounded-md border bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15",
-          value ? "border-brand-300 bg-brand-50/70" : "border-slate-200",
+          "h-10 w-full rounded-md border bg-white px-3 text-sm font-medium text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:border-white/10 dark:bg-white/5 dark:text-white",
+          value ? "border-brand-300 bg-brand-50/70 dark:bg-brand-900/30 dark:border-brand-700" : "border-slate-200",
         )}
       >
         <option value="">{placeholder}</option>
@@ -176,6 +193,7 @@ function PanelSelect({
 
 export default function VehicleListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
 
@@ -189,16 +207,16 @@ export default function VehicleListPage() {
   const [models, setModels] = useState<CatalogModel[]>([]);
   const [areas, setAreas] = useState<CatalogArea[]>([]);
 
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(() => searchParams.get("keyword")?.trim() ?? "");
   const [sortBy, setSortBy] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState(() => normalizeVehicleType(searchParams.get("type")));
   const [brandFilter, setBrandFilter] = useState("");
   const [modelFilter, setModelFilter] = useState("");
-  const [areaFilter, setAreaFilter] = useState("");
+  const [areaFilter, setAreaFilter] = useState(() => searchParams.get("areaId") ?? "");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [pickupDate, setPickupDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
+  const [pickupDate, setPickupDate] = useState(() => toDateTimeLocalValue(searchParams.get("startDate")));
+  const [returnDate, setReturnDate] = useState(() => toDateTimeLocalValue(searchParams.get("endDate")));
   const [fuelTypeFilter, setFuelTypeFilter] = useState("");
   const [seatCountFilter, setSeatCountFilter] = useState("");
   const [transmissionFilter, setTransmissionFilter] = useState("");
@@ -210,6 +228,15 @@ export default function VehicleListPage() {
     getCatalogBrands().then(setBrands).catch(() => setBrands([]));
     getCatalogAreas().then(setAreas).catch(() => setAreas([]));
   }, []);
+
+  useEffect(() => {
+    setKeyword(searchParams.get("keyword")?.trim() ?? "");
+    setTypeFilter(normalizeVehicleType(searchParams.get("type")));
+    setAreaFilter(searchParams.get("areaId") ?? "");
+    setPickupDate(toDateTimeLocalValue(searchParams.get("startDate")));
+    setReturnDate(toDateTimeLocalValue(searchParams.get("endDate")));
+    setPage(1);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!brandFilter) {
@@ -440,14 +467,16 @@ export default function VehicleListPage() {
   }, [page, totalPages]);
 
   return (
-    <div className="min-h-screen bg-white pb-16 text-slate-950">
-      <section className="border-b border-slate-100 bg-white px-4 pb-5 pt-4 shadow-[0_1px_14px_rgba(15,23,42,0.06)] sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white pb-16 text-slate-950 dark:bg-transparent dark:text-gray-100">
+      <section className="border-b border-slate-100 bg-white px-4 pb-5 pt-4 shadow-[0_1px_14px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-transparent sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1280px]">
-          <div className="mx-auto flex max-w-3xl items-center rounded-full border border-slate-200 bg-slate-50 shadow-[0_10px_32px_rgba(15,23,42,0.14)]">
-            <div className="flex min-w-0 flex-1 items-center gap-3 border-r border-slate-200 px-5 py-3">
-              <MapPin className="h-5 w-5 shrink-0 text-slate-500" />
+          <div className="mx-auto flex max-w-5xl items-center rounded-full border border-slate-200 bg-slate-50 shadow-[0_10px_32px_rgba(15,23,42,0.14)] dark:border-white/10 dark:bg-white/5">
+            <div className="flex min-w-[230px] flex-[1.2] items-center gap-3 border-r border-slate-200 px-5 py-3 dark:border-white/20">
+              <MapPin className="h-5 w-5 shrink-0 text-slate-500 dark:text-gray-400" />
               <span className="min-w-0 flex-1">
-                <span className="block text-xs font-semibold text-slate-900">Địa điểm</span>
+                <span className="block whitespace-nowrap text-xs font-semibold text-slate-900 dark:text-white">
+                  Địa điểm nhận xe
+                </span>
                 <FilterDropdown
                   label=""
                   value={areaFilter}
@@ -465,29 +494,33 @@ export default function VehicleListPage() {
               </span>
             </div>
 
-            <label className="hidden min-w-[220px] items-center gap-3 border-r border-slate-200 px-5 py-3 md:flex">
-              <CalendarDays className="h-5 w-5 shrink-0 text-slate-500" />
-              <span>
-                <span className="block text-xs font-semibold text-slate-900">Ngày thuê</span>
+            <label className="hidden min-w-[220px] items-center gap-3 border-r border-slate-200 px-5 py-3 md:flex dark:border-white/20">
+              <CalendarDays className="h-5 w-5 shrink-0 text-slate-500 dark:text-gray-400" />
+              <span className="min-w-0">
+                <span className="block whitespace-nowrap text-xs font-semibold text-slate-900 dark:text-white">
+                  Ngày nhận xe
+                </span>
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={pickupDate}
                   onChange={(event) => updateFilter(setPickupDate, event.target.value)}
-                  className="mt-0.5 bg-transparent text-sm font-medium text-slate-500 outline-none"
+                  className="mt-0.5 w-full min-w-0 bg-transparent text-sm font-medium text-slate-500 outline-none dark:text-gray-300 dark:[color-scheme:dark]"
                 />
               </span>
             </label>
 
             <label className="hidden min-w-[220px] items-center gap-3 px-5 py-3 md:flex">
-              <CalendarDays className="h-5 w-5 shrink-0 text-slate-500" />
-              <span>
-                <span className="block text-xs font-semibold text-slate-900">Ngày trả</span>
+              <CalendarDays className="h-5 w-5 shrink-0 text-slate-500 dark:text-gray-400" />
+              <span className="min-w-0">
+                <span className="block whitespace-nowrap text-xs font-semibold text-slate-900 dark:text-white">
+                  Ngày trả xe
+                </span>
                 <input
-                  type="date"
+                  type="datetime-local"
                   min={pickupDate || undefined}
                   value={returnDate}
                   onChange={(event) => updateFilter(setReturnDate, event.target.value)}
-                  className="mt-0.5 bg-transparent text-sm font-medium text-slate-500 outline-none"
+                  className="mt-0.5 w-full min-w-0 bg-transparent text-sm font-medium text-slate-500 outline-none dark:text-gray-300 dark:[color-scheme:dark]"
                 />
               </span>
             </label>
@@ -504,14 +537,14 @@ export default function VehicleListPage() {
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 px-4 py-2.5 shadow-sm backdrop-blur sm:px-6 lg:px-8">
+      <section className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 px-4 py-2.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#090416]/95 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-[1720px] flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={clearAllFilters}
               disabled={!hasActiveFilters}
-              className="inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20"
               aria-label="Xóa bộ lọc"
             >
               <RotateCcw className="h-4 w-4" />
@@ -564,8 +597,8 @@ export default function VehicleListPage() {
               className={cx(
                 "inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium shadow-sm transition",
                 advancedOpen || activeFilterCount > 0
-                  ? "border-brand-300 bg-brand-50 text-brand-800"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+                  ? "border-brand-300 bg-brand-50 text-brand-800 dark:bg-brand-900/30 dark:text-brand-400"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/20 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20",
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -594,11 +627,11 @@ export default function VehicleListPage() {
           ) : null}
 
           {advancedOpen ? (
-            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.10)] sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-transparent sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
               <div className="space-y-1.5 sm:col-span-2">
                 <FieldLabel>Từ khóa</FieldLabel>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
                   <input
                     type="text"
                     value={keyword}
@@ -607,7 +640,7 @@ export default function VehicleListPage() {
                       if (event.key === "Enter") handleSearch();
                     }}
                     placeholder="Tìm theo tên xe, hãng xe..."
-                    className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm font-medium outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
+                    className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm font-medium outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:border-white/20 dark:bg-white/5 dark:text-white"
                   />
                 </div>
               </div>
@@ -655,7 +688,7 @@ export default function VehicleListPage() {
                   value={minPrice}
                   onChange={(event) => updateFilter(setMinPrice, event.target.value)}
                   placeholder="0"
-                  className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
+                  className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:border-white/20 dark:bg-white/5 dark:text-white"
                 />
               </div>
 
@@ -669,7 +702,7 @@ export default function VehicleListPage() {
                   value={maxPrice}
                   onChange={(event) => updateFilter(setMaxPrice, event.target.value)}
                   placeholder={String(MAX_PRICE_LIMIT)}
-                  className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
+                  className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 dark:border-white/20 dark:bg-white/5 dark:text-white"
                 />
               </div>
 
@@ -678,7 +711,7 @@ export default function VehicleListPage() {
                   type="button"
                   onClick={clearAllFilters}
                   disabled={!hasActiveFilters}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Reset
@@ -699,7 +732,7 @@ export default function VehicleListPage() {
 
       <main className="mx-auto max-w-[1720px] px-4 py-5 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center justify-between px-1">
-          <div className="text-sm font-semibold text-slate-700">
+          <div className="text-sm font-semibold text-slate-700 dark:text-gray-200">
             {totalCount} xe sẵn có
             <span className="ml-2 font-medium text-slate-400">{selectedAreaLabel}</span>
           </div>
@@ -710,16 +743,16 @@ export default function VehicleListPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {Array.from({ length: PAGE_SIZE }).map((_, index) => (
               <div key={index} className="animate-pulse">
-                <div className="aspect-[4/3] rounded-md bg-slate-100" />
-                <div className="mt-3 h-4 w-2/3 rounded bg-slate-100" />
-                <div className="mt-2 h-3 w-1/2 rounded bg-slate-100" />
-                <div className="mt-2 h-3 w-1/3 rounded bg-slate-100" />
+                <div className="aspect-[4/3] rounded-md bg-slate-100 dark:bg-white/10" />
+                <div className="mt-3 h-4 w-2/3 rounded bg-slate-100 dark:bg-white/10" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-slate-100 dark:bg-white/10" />
+                <div className="mt-2 h-3 w-1/3 rounded bg-slate-100 dark:bg-white/10" />
               </div>
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="flex min-h-[360px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white p-12 text-center shadow-sm">
-            <Car className="h-16 w-16 text-slate-300" />
+          <div className="flex min-h-[360px] flex-col items-center justify-center rounded-md border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
+            <Car className="h-16 w-16 text-slate-300 dark:text-neutral-600" />
             <p className="mt-4 text-sm font-semibold text-slate-600">Chưa có xe phù hợp</p>
             <p className="mt-2 text-xs text-slate-400">Hãy điều chỉnh bộ lọc hoặc mở rộng khoảng giá/ngày thuê.</p>
             <button
@@ -738,11 +771,11 @@ export default function VehicleListPage() {
               const bookingTarget = token && user ? `/booking/new?vehicleId=${vehicle.id}` : `/vehicle/${vehicle.id}`;
 
               return (
-                <article key={vehicle.id} className="group min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:border-slate-400 hover:shadow-md">
+                <article key={vehicle.id} className="group min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:border-white/30">
                   <button
                     type="button"
                     onClick={() => navigate(`/vehicle/${vehicle.id}`)}
-                    className="block w-full overflow-hidden rounded-md bg-slate-100 text-left"
+                    className="block w-full overflow-hidden rounded-md bg-slate-100 text-left dark:bg-white/10"
                   >
                     <div className="relative aspect-[4/3] overflow-hidden">
                       {vehicle.featuredImage ? (
@@ -752,11 +785,11 @@ export default function VehicleListPage() {
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center bg-slate-100">
+                        <div className="flex h-full items-center justify-center bg-slate-100 dark:bg-white/10">
                           {vehicle.vehicleType === "Car" ? (
-                            <Car className="h-12 w-12 text-slate-300" />
+                            <Car className="h-12 w-12 text-slate-300 dark:text-neutral-600" />
                           ) : (
-                            <Bike className="h-12 w-12 text-slate-300" />
+                            <Bike className="h-12 w-12 text-slate-300 dark:text-neutral-600" />
                           )}
                         </div>
                       )}
@@ -769,23 +802,23 @@ export default function VehicleListPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/vehicle/${vehicle.id}`)}
-                        className="min-w-0 truncate text-left text-sm font-bold text-slate-950 hover:text-[#315df4]"
+                        className="min-w-0 truncate text-left text-sm font-bold text-slate-950 hover:text-[#315df4] dark:text-white dark:hover:text-brand-400"
                       >
                         {title}
                       </button>
-                      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-700">
-                        <Star className="h-3.5 w-3.5 fill-current text-slate-950" />
+                      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-700 dark:text-gray-300">
+                        <Star className="h-3.5 w-3.5 fill-current text-slate-950 dark:text-yellow-500" />
                         Mới
                       </span>
                     </div>
 
-                    <div className="mt-2 space-y-0.5 text-xs font-medium text-slate-500">
+                    <div className="mt-2 space-y-0.5 text-xs font-medium text-slate-500 dark:text-gray-400">
                       <p className="truncate">{area ? `${area.province}${area.ward ? `, ${area.ward}` : ""}` : "Đà Nẵng"}</p>
                       <p>Cách 0.0km</p>
                     </div>
 
                     <div className="mt-2 flex items-end justify-between gap-3">
-                      <p className="text-sm font-bold text-slate-950">
+                      <p className="text-sm font-bold text-slate-950 dark:text-white">
                         {formatPriceNumber(vehicle.pricePerDay)}đ/ngày
                       </p>
                       <button
@@ -804,8 +837,8 @@ export default function VehicleListPage() {
         )}
 
         {totalPages > 1 ? (
-          <div className="mt-10 flex items-center justify-between border-t border-slate-200 px-1 pt-6">
-            <div className="text-xs font-medium text-slate-500">
+          <div className="mt-10 flex items-center justify-between border-t border-slate-200 px-1 pt-6 dark:border-white/10">
+            <div className="text-xs font-medium text-slate-500 dark:text-gray-400">
               Trang {page} / {totalPages}
             </div>
             <div className="flex items-center gap-1">
@@ -813,7 +846,7 @@ export default function VehicleListPage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => goToPage(page - 1)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10"
               >
                 <ChevronLeft className="h-4.5 w-4.5" />
               </button>
@@ -831,7 +864,7 @@ export default function VehicleListPage() {
                       "inline-flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium transition",
                       item === page
                         ? "bg-[#315df4] text-white shadow-md shadow-blue-600/15"
-                        : "border border-slate-200 text-slate-600 hover:bg-slate-50",
+                        : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10",
                     )}
                   >
                     {item}
@@ -842,7 +875,7 @@ export default function VehicleListPage() {
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => goToPage(page + 1)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10"
               >
                 <ChevronRight className="h-4.5 w-4.5" />
               </button>

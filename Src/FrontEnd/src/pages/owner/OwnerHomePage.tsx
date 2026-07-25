@@ -247,12 +247,12 @@ export default function OwnerHomePage() {
               const percent = bookings.length > 0 ? Math.round((item.value / bookings.length) * 100) : 0;
 
               return (
-                <div key={item.label} className="rounded-md border border-slate-100 bg-slate-50/70 p-3">
+                <div key={item.label} className="rounded-md border border-slate-100 bg-slate-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-900/50">
                   <div className="flex items-center justify-between gap-3">
                     <StatusBadge tone={item.tone}>{item.label}</StatusBadge>
-                    <span className="font-semibold text-slate-950">{item.value} chuyến</span>
+                    <span className="font-semibold text-slate-950 dark:text-white">{item.value} chuyến</span>
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white dark:bg-neutral-800">
                     <div className="h-full rounded-full bg-brand-700" style={{ width: `${percent}%` }} />
                   </div>
                 </div>
@@ -274,11 +274,11 @@ export default function OwnerHomePage() {
         contentClassName="p-0"
       >
         {recentBookings.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-slate-500">Chưa có yêu cầu đặt xe nào.</div>
+          <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-gray-400">Chưa có yêu cầu đặt xe nào.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-neutral-900 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Ngày nhận</th>
@@ -288,19 +288,19 @@ export default function OwnerHomePage() {
                   <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
                 {recentBookings.map((booking) => (
-                  <tr key={booking.id} className="transition hover:bg-slate-50/70">
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950">{booking.bookingCode}</td>
-                    <td className="px-5 py-4 text-slate-600">{new Date(booking.startDate).toLocaleDateString("vi-VN")}</td>
-                    <td className="px-5 py-4 text-slate-600">{new Date(booking.endDate).toLocaleDateString("vi-VN")}</td>
-                    <td className="px-5 py-4 font-semibold text-slate-950">{formatCurrency(booking.totalAmount)}</td>
+                  <tr key={booking.id} className="transition hover:bg-slate-50/70 dark:hover:bg-neutral-900/50">
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950 dark:text-white">{booking.bookingCode}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{new Date(booking.startDate).toLocaleDateString("vi-VN")}</td>
+                    <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{new Date(booking.endDate).toLocaleDateString("vi-VN")}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-950 dark:text-white">{formatCurrency(booking.totalAmount)}</td>
                     <td className="px-5 py-4">
                       <StatusBadge tone={getBookingTone(booking.status)}>{booking.status}</StatusBadge>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <Link to={`/booking/${booking.id}`}>
-                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1 dark:text-gray-300 dark:hover:text-white">
                           <Eye className="h-3.5 w-3.5" />
                           Chi tiết
                         </Button>

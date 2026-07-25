@@ -35,24 +35,24 @@ export function BookingListFilters({
         event.preventDefault();
         onApply();
       }}
-      className="rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5"
+      className="rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none"
     >
       <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_160px_160px_auto]">
         <label className="relative">
           <span className="sr-only">Tìm kiếm</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-400" />
           <input
             value={value.keyword}
             onChange={(event) => onChange({ ...value, keyword: event.target.value })}
             placeholder={searchPlaceholder}
-            className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-brand-500 dark:focus:ring-brand-950"
           />
         </label>
 
         <select
           value={value.status}
           onChange={(event) => onChange({ ...value, status: event.target.value })}
-          className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-gray-100 dark:[color-scheme:dark] dark:focus:border-brand-500 dark:focus:ring-brand-950"
           aria-label="Lọc trạng thái"
         >
           {statusOptions.map((option) => (
@@ -64,13 +64,13 @@ export function BookingListFilters({
 
         <label className="relative">
           <span className="sr-only">Từ ngày</span>
-          <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <CalendarRange className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-gray-400" />
           <input
             type="date"
             value={value.fromDate}
             max={value.toDate || undefined}
             onChange={(event) => onChange({ ...value, fromDate: event.target.value })}
-            className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-gray-100 dark:[color-scheme:dark] dark:focus:border-brand-500 dark:focus:ring-brand-950"
             title="Từ ngày"
           />
         </label>
@@ -82,7 +82,7 @@ export function BookingListFilters({
             value={value.toDate}
             min={value.fromDate || undefined}
             onChange={(event) => onChange({ ...value, toDate: event.target.value })}
-            className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-gray-100 dark:[color-scheme:dark] dark:focus:border-brand-500 dark:focus:ring-brand-950"
             title="Đến ngày"
           />
         </label>
@@ -93,7 +93,7 @@ export function BookingListFilters({
             <button
               type="button"
               onClick={onClear}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-50"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-50 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
               title="Xóa bộ lọc"
             >
               <FilterX className="h-4 w-4" />
@@ -101,8 +101,8 @@ export function BookingListFilters({
           ) : null}
         </div>
       </div>
-      <p className="mt-3 text-sm text-slate-500">
-        Tìm thấy <span className="font-semibold text-slate-700">{resultCount}</span> kết quả
+      <p className="mt-3 text-sm text-slate-500 dark:text-gray-400">
+        Tìm thấy <span className="font-semibold text-slate-700 dark:text-gray-200">{resultCount}</span> kết quả
       </p>
     </form>
   );
@@ -122,31 +122,33 @@ export function BookingPagination({ onPageChange, page, totalPages }: Pagination
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 shadow-sm shadow-slate-950/5"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none"
       aria-label="Phân trang"
     >
-      <p className="text-sm text-slate-500">
-        Trang <span className="font-semibold text-slate-800">{page}</span> / {totalPages}
+      <p className="text-sm text-slate-500 dark:text-gray-400">
+        Trang <span className="font-semibold text-slate-800 dark:text-gray-100">{page}</span> / {totalPages}
       </p>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
           aria-label="Trang trước"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
         {pages.map((item, index) => (
           <span key={item} className="contents">
-            {index > 0 && item - pages[index - 1] > 1 ? <span className="px-1 text-slate-400">...</span> : null}
+            {index > 0 && item - pages[index - 1] > 1 ? <span className="px-1 text-slate-400 dark:text-gray-500">...</span> : null}
             <button
               type="button"
               onClick={() => onPageChange(item)}
               aria-current={item === page ? "page" : undefined}
               className={`inline-flex h-9 min-w-9 items-center justify-center rounded-md px-2 text-sm font-semibold ${
-                item === page ? "bg-brand-700 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                item === page
+                  ? "bg-brand-700 text-white"
+                  : "border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
               }`}
             >
               {item}
@@ -157,7 +159,7 @@ export function BookingPagination({ onPageChange, page, totalPages }: Pagination
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
           aria-label="Trang sau"
         >
           <ChevronRight className="h-4 w-4" />
