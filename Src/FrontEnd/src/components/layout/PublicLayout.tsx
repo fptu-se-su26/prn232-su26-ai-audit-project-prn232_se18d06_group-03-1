@@ -18,10 +18,12 @@ import NotificationMenu from "@/components/layout/NotificationMenu";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import useClickOutside from "@/hooks/useClickOutside";
+import { usePresenceConnection } from "@/features/presence/usePresenceConnection";
 import moveVnLogo from "../../../Logo/movevn_wordmark.svg";
 
 
 export default function PublicLayout() {
+  usePresenceConnection();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const [darkMode, setDarkMode] = useState(() => {

@@ -9,6 +9,7 @@ import {
   sendChatMessage,
 } from "@/features/chat/chatService";
 import type { ChatMessage, ChatRoom } from "@/features/chat/types";
+import { usePresenceStore } from "@/features/presence/usePresence";
 import { getApiErrorMessage } from "@/services/apiClient";
 
 function formatTime(value: string) {
@@ -18,8 +19,21 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatPresence(isOnline: boolean, lastSeenAt?: string | null) {
+  if (isOnline) return "Đang hoạt động";
+  if (!lastSeenAt) return "Ngoại tuyến";
+
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(lastSeenAt).getTime()) / 60_000));
+  if (minutes < 1) return "Vừa mới hoạt động";
+  if (minutes < 60) return `Hoạt động ${minutes} phút trước`;
+  if (minutes < 1_440) return `Hoạt động ${Math.floor(minutes / 60)} giờ trước`;
+  return `Hoạt động ${Math.floor(minutes / 1_440)} ngày trước`;
+}
+
 export default function HomeChatWidget() {
   const user = useAuthStore((state) => state.user);
+  const presenceUsers = usePresenceStore((state) => state.users);
+  const hydratePresenceUsers = usePresenceStore((state) => state.hydrateUsers);
   const [isOpen, setIsOpen] = useState(false);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -36,6 +50,12 @@ export default function HomeChatWidget() {
     [rooms, selectedRoomId],
   );
   const participant = selectedRoom?.participants.find((item) => item.userId !== user?.userId);
+  const participantPresence = participant
+    ? presenceUsers[participant.userId] ?? {
+        isOnline: participant.isOnline,
+        lastSeenAt: participant.lastSeenAt ?? null,
+      }
+    : null;
 
   const loadMessages = useCallback(async (roomId: string, showLoading = true) => {
     if (showLoading) setIsLoading(true);
@@ -57,11 +77,20 @@ export default function HomeChatWidget() {
     getChatRooms({ page: 1, pageSize: 20 })
       .then((page) => {
         setRooms(page.items);
+        hydratePresenceUsers(
+          page.items.flatMap((room) =>
+            room.participants.map((item) => ({
+              userId: item.userId,
+              isOnline: item.isOnline,
+              lastSeenAt: item.lastSeenAt ?? null,
+            })),
+          ),
+        );
         setSelectedRoomId(page.items.length === 1 ? page.items[0].id : null);
       })
       .catch((err) => setError(getApiErrorMessage(err, "Không thể tải danh sách trò chuyện.")))
       .finally(() => setIsLoading(false));
-  }, [canChat, isOpen, rooms.length]);
+  }, [canChat, hydratePresenceUsers, isOpen, rooms.length]);
 
   useEffect(() => {
     if (!isOpen || !selectedRoomId) return;
@@ -113,7 +142,10 @@ export default function HomeChatWidget() {
                 </p>
                 <p className="truncate text-xs text-white/75">
                   {selectedRoom
-                    ? `Booking ${selectedRoom.bookingCode}`
+                    ? formatPresence(
+                        participantPresence?.isOnline ?? false,
+                        participantPresence?.lastSeenAt,
+                      )
                     : rooms.length > 0
                       ? `${rooms.length} cuộc trò chuyện`
                       : "Trao đổi nhanh ngay tại đây"}
@@ -156,6 +188,12 @@ export default function HomeChatWidget() {
               ) : (
                 rooms.map((room) => {
                   const other = room.participants.find((item) => item.userId !== user.userId);
+                  const presence = other
+                    ? presenceUsers[other.userId] ?? {
+                        isOnline: other.isOnline,
+                        lastSeenAt: other.lastSeenAt ?? null,
+                      }
+                    : null;
                   return (
                     <button
                       key={room.id}
@@ -163,8 +201,15 @@ export default function HomeChatWidget() {
                       onClick={() => setSelectedRoomId(room.id)}
                       className="mb-1 flex w-full items-center gap-3 rounded-xl border border-transparent bg-white p-3 text-left shadow-sm transition hover:border-brand-200 hover:bg-brand-50 dark:bg-neutral-900 dark:hover:border-brand-700 dark:hover:bg-neutral-800"
                     >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 font-bold text-white">
-                        {(other?.fullName ?? "?").trim().charAt(0).toUpperCase()}
+                      <div className="relative shrink-0">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 font-bold text-white">
+                          {(other?.fullName ?? "?").trim().charAt(0).toUpperCase()}
+                        </div>
+                        <span
+                          className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${
+                            presence?.isOnline ? "bg-emerald-500" : "bg-slate-300"
+                          }`}
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
@@ -177,7 +222,12 @@ export default function HomeChatWidget() {
                             </span>
                           ) : null}
                         </div>
-                        <p className="truncate text-xs text-slate-400">Booking {room.bookingCode}</p>
+                        <p className={`truncate text-xs ${
+                          presence?.isOnline ? "text-emerald-600" : "text-slate-400"
+                        }`}>
+                          {formatPresence(presence?.isOnline ?? false, presence?.lastSeenAt)}
+                        </p>
+                        <p className="truncate text-[11px] text-slate-400">Booking {room.bookingCode}</p>
                         <p className="mt-0.5 truncate text-xs text-slate-500">
                           {room.lastMessage?.text ?? "Chưa có tin nhắn"}
                         </p>
