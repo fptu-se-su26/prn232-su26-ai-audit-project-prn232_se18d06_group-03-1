@@ -68,7 +68,7 @@ export default function PublicProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16">
+    <div className="min-h-screen bg-gradient-to-br from-app-page-start via-white to-app-page-end pb-16">
       <div className="mx-auto max-w-6xl px-4 pt-6">
         <div className="flex items-center gap-3 mb-6">
           <button type="button" onClick={() => navigate(-1)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700">

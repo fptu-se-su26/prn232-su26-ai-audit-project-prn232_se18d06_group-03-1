@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, X, FileQuestion } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export type ImagePreviewItem = {
   url: string;

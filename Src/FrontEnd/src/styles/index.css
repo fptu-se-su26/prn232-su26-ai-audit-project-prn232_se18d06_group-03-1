@@ -5,8 +5,110 @@
 @tailwind utilities;
 
 :root {
-  font-family: "Quicksand", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
+  /* Typography */
+  --font-family-sans: "Be Vietnam Pro", "Quicksand", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-size-caption: 0.875rem;
+  --font-size-small: 0.9375rem;
+  --font-size-body: 1rem;
+  --font-size-body-lg: 1.125rem;
+  --font-size-section: 1.25rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h1: 2.5rem;
+  --font-size-display: 3rem;
+  --line-height-heading: 1.2;
+  --line-height-body: 1.6;
+  --line-height-paragraph: 1.7;
+
+  /* Text hierarchy */
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-disabled: #9ca3af;
+
+  /* 8px-based spacing scale, with 4px half steps where needed */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.5rem;
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layering and layout */
+  --z-dropdown: 40;
+  --z-sticky: 50;
+  --z-overlay: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --container-content: 75rem;
+  --container-wide: 90rem;
+
+  /* Shared component geometry */
+  --control-radius: 0.75rem;
+  --card-radius: 1rem;
+  --card-padding: 1.5rem;
+
+  /* Light-mode fallbacks for semantic surface utilities. */
+  --color-surface-base: #f3f6fb;
+  --color-surface-subtle: #f8fafc;
+  --color-surface-card: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-modal: #ffffff;
+  --color-surface-hover: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-elevated: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --shadow-modal: 0 24px 64px rgba(15, 23, 42, 0.2);
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 14px 34px rgba(15, 23, 42, 0.12);
+  --shadow-xl: 0 24px 54px rgba(15, 23, 42, 0.16);
+
+  /* Semantic color roles */
+  --color-primary: #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-primary-soft: #8b5cf6;
+  --color-primary-subtle: #f3e8ff;
+  --color-success: #059669;
+  --color-success-foreground: #065f46;
+  --color-success-surface: #ecfdf5;
+  --color-success-border: #a7f3d0;
+  --color-warning: #d97706;
+  --color-warning-foreground: #92400e;
+  --color-warning-surface: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-danger: #e11d48;
+  --color-danger-foreground: #9f1239;
+  --color-danger-surface: #fff1f2;
+  --color-danger-border: #fecdd3;
+  --color-info: #0284c7;
+  --color-info-foreground: #075985;
+  --color-info-surface: #f0f9ff;
+  --color-info-border: #bae6fd;
+
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-body);
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,36 +121,523 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #f3f6fb;
-  color: #0f172a;
+  color: var(--color-text-primary);
+}
+
+.dark {
+  color-scheme: dark;
+  --color-surface-base: #0b0b0f;
+  --color-surface-subtle: #111116;
+  --color-surface-card: #16161d;
+  --color-surface-elevated: #1c1c24;
+  --color-surface-modal: #202029;
+  --color-surface-hover: #24242d;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-text-disabled: #52525b;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 20px rgba(0, 0, 0, 0.16);
+  --shadow-elevated: 0 2px 4px rgba(0, 0, 0, 0.26), 0 12px 28px rgba(0, 0, 0, 0.22);
+  --shadow-modal: 0 4px 8px rgba(0, 0, 0, 0.3), 0 20px 48px rgba(0, 0, 0, 0.34);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.34);
+  --shadow-xl: 0 28px 72px rgba(0, 0, 0, 0.42);
+  --color-primary: #7c3aed;
+  --color-primary-hover: #8b5cf6;
+  --color-primary-soft: #a78bfa;
+  --color-primary-subtle: rgba(139, 92, 246, 0.16);
+  --color-success: #22c55e;
+  --color-success-foreground: #86efac;
+  --color-success-surface: rgba(16, 185, 129, 0.14);
+  --color-success-border: rgba(52, 211, 153, 0.28);
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #fcd34d;
+  --color-warning-surface: rgba(245, 158, 11, 0.14);
+  --color-warning-border: rgba(251, 191, 36, 0.28);
+  --color-danger: #ef4444;
+  --color-danger-foreground: #fda4af;
+  --color-danger-surface: rgba(244, 63, 94, 0.14);
+  --color-danger-border: rgba(251, 113, 133, 0.28);
+  --color-info: #38bdf8;
+  --color-info-foreground: #7dd3fc;
+  --color-info-surface: rgba(14, 165, 233, 0.14);
+  --color-info-border: rgba(56, 189, 248, 0.28);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: inherit;
+    line-height: var(--line-height-heading);
+    text-wrap: balance;
+  }
+
+  h1 { font-weight: 800; }
+  h2,
+  h3,
+  h4 { font-weight: 700; }
+
+  p {
+    line-height: var(--line-height-paragraph);
+  }
+
+  label,
+  legend {
+    font-size: var(--font-size-small);
+    font-weight: 500;
+    line-height: var(--line-height-body);
+    color: var(--color-text-secondary);
+  }
+
+  input,
+  select,
+  textarea {
+    box-sizing: border-box;
+    font: inherit;
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    color: var(--color-text-primary);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),
+  select {
+    min-height: 2.75rem;
+  }
+
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"] {
+    line-height: normal;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-text-muted);
+    opacity: 1;
+  }
+
+  button,
+  [role="button"] {
+    font-family: inherit;
+    font-size: var(--font-size-small);
+    font-weight: 500;
+    line-height: var(--line-height-body);
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    transition-timing-function: var(--ease-standard);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  button:disabled {
+    color: var(--color-text-disabled);
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-primary);
+  }
+
+  :focus-visible {
+    scroll-margin: var(--space-4);
+  }
+
+  th {
+    font-size: var(--font-size-caption);
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  td {
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background-color: var(--color-surface-subtle);
+    color: var(--color-text-secondary);
+  }
+
+  tbody tr {
+    border-top: 1px solid var(--color-border);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+  }
+
+  tbody tr:hover {
+    background-color: var(--color-surface-hover);
+  }
+}
+
+@layer components {
+  .ui-container {
+    width: 100%;
+    max-width: var(--container-content);
+    margin-inline: auto;
+    padding-inline: var(--space-4);
+  }
+
+  .ui-section {
+    padding-block: var(--space-12);
+  }
+
+  .ui-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .ui-card {
+    border-radius: var(--card-radius);
+    padding: var(--card-padding);
+  }
+
+  .ui-card-title {
+    font-size: var(--font-size-section);
+    font-weight: 700;
+    line-height: var(--line-height-heading);
+    color: var(--color-text-primary);
+  }
+
+  .ui-card-description {
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+    color: var(--color-text-secondary);
+  }
+
+  .ui-control {
+    min-height: 2.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-card);
+    color: var(--color-text-primary);
+    transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .ui-control:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+
+  .ui-table-shell {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-card);
+    box-shadow: var(--shadow-xs);
+  }
+}
+
+@media (min-width: 640px) {
+  .ui-container {
+    padding-inline: var(--space-6);
+  }
+
+  .ui-section {
+    padding-block: var(--space-16);
+  }
 }
 
 /*
- * Shared light-theme text hierarchy.
- * Many screens use Tailwind's slate-400/500/600 utilities for readable copy,
- * not only decorative metadata. Raising each level by one step keeps those
- * screens consistent and meets contrast expectations without changing
- * placeholders, disabled states, borders, or dark-theme variants.
+ * Dark surface compatibility layer
+ *
+ * The application historically mixed slate, neutral, and literal purple-black
+ * surfaces. These rules map that vocabulary onto one semantic hierarchy while
+ * leaving every light-mode declaration untouched.
  */
-#root > :not(.dark) .text-slate-400 {
-  color: #64748b;
+:where(.dark) > *,
+:where(.dark) .dashboard-shell {
+  color: var(--color-text-primary);
 }
 
-#root > :not(.dark) .text-slate-500 {
-  color: #475569;
+:where(.dark) .dashboard-shell,
+:where(.dark) [class*="dark:bg-[#0d0b14]"],
+:where(.dark) [class*="dark:bg-[#0e0e0e]"],
+:where(.dark) [class*="dark:bg-[#121212]"] {
+  background-color: var(--color-surface-base);
 }
 
-#root > :not(.dark) .text-slate-600 {
-  color: #334155;
+:where(.dark) [class*="dark:bg-[#131019]"],
+:where(.dark) [class*="dark:bg-[#17121f]"],
+:where(.dark) [class*="dark:bg-[#151515]"],
+:where(.dark) [class*="dark:bg-[#17131e]"],
+:where(.dark) .dark\:bg-neutral-950,
+:where(.dark) .dark\:bg-slate-950 {
+  background-color: var(--color-surface-subtle);
 }
 
-#root > :not(.dark) .text-gray-400,
-#root > :not(.dark) .text-neutral-400 {
-  color: #6b7280;
+:where(.dark) [class*="dark:bg-[#17131f]"],
+:where(.dark) [class*="dark:bg-[#181818]"],
+:where(.dark) [class*="dark:bg-[#1d1426]"],
+:where(.dark) .dark\:bg-neutral-900,
+:where(.dark) .dark\:bg-slate-900 {
+  background-color: var(--color-surface-card);
 }
 
-#root > :not(.dark) .text-gray-500,
-#root > :not(.dark) .text-neutral-500 {
-  color: #4b5563;
+:where(.dark) [class*="dark:bg-[#211b2b]"],
+:where(.dark) .dark\:bg-neutral-800,
+:where(.dark) .dark\:bg-slate-800 {
+  background-color: var(--color-surface-elevated);
+}
+
+:where(.dark) [class*="dark:bg-[#2a2236]"] {
+  background-color: var(--color-surface-hover);
+}
+
+:where(.dark) .dark\:bg-white\/5 {
+  background-color: var(--color-surface-card);
+}
+
+:where(.dark) .dark\:bg-white\/10 {
+  background-color: var(--color-surface-elevated);
+}
+
+:where(.dark) .dark\:hover\:bg-white\/20:hover {
+  background-color: var(--color-surface-hover);
+}
+
+:where(.dark) .bg-white:not([class*="dark:bg-"]),
+:where(.dark) .bg-white\/70:not([class*="dark:bg-"]),
+:where(.dark) .bg-white\/80:not([class*="dark:bg-"]),
+:where(.dark) .bg-white\/90:not([class*="dark:bg-"]),
+:where(.dark) .bg-white\/95:not([class*="dark:bg-"]) {
+  background-color: var(--color-surface-card);
+}
+
+:where(.dark) .bg-slate-50:not([class*="dark:bg-"]),
+:where(.dark) .bg-slate-50\/50:not([class*="dark:bg-"]),
+:where(.dark) .bg-slate-50\/70:not([class*="dark:bg-"]),
+:where(.dark) .bg-slate-100:not([class*="dark:bg-"]) {
+  background-color: var(--color-surface-elevated);
+}
+
+:where(.dark) :is(.border-slate-100, .border-slate-200, .border-slate-300, .border-neutral-800, .dark\:border-neutral-800, .dark\:border-slate-700),
+:where(.dark) [class*="dark:border-[#30283d]"],
+:where(.dark) [class*="dark:border-[#3b3348]"],
+:where(.dark) [class*="dark:border-[#4a4058]"] {
+  border-color: var(--color-border);
+}
+
+:where(.dark) .dark\:border-white\/10 {
+  border-color: var(--color-border);
+}
+
+:where(.dark) .dark\:border-white\/20,
+:where(.dark) .dark\:hover\:border-white\/30:hover {
+  border-color: var(--color-border-strong);
+}
+
+:where(.dark) :is(.divide-slate-100, .divide-slate-200) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--color-border);
+}
+
+:where(.dark) :is(.text-white, .text-slate-950, .text-slate-900, .dark\:text-white, .dark\:text-gray-100, .dark\:text-slate-100) {
+  color: var(--color-text-primary);
+}
+
+:where(.dark) :is(.text-slate-800, .text-slate-700, .text-slate-600, .dark\:text-gray-200, .dark\:text-gray-300, .dark\:text-slate-200, .dark\:text-slate-300) {
+  color: var(--color-text-secondary);
+}
+
+:where(.dark) :is(.text-slate-500, .text-slate-400, .dark\:text-gray-400, .dark\:text-slate-400) {
+  color: var(--color-text-muted);
+}
+
+:where(.dark) :is(.text-slate-300, .dark\:text-gray-500, .dark\:text-slate-500) {
+  color: var(--color-text-disabled);
+}
+
+:where(.dark) :is(article, .ui-card),
+:where(.dark) .dashboard-shell .bg-white:not([class*="dark:bg-"]),
+:where(.dark) div[class*="rounded"][class*="border"].dark\:bg-white\/5 {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+:where(.dark) :is(article, .ui-card):hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+:where(.dark) :is(input, select, textarea) {
+  background-color: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+:where(.dark) :is(input, textarea)::placeholder {
+  color: var(--color-text-muted);
+}
+
+:where(.dark) :is(input, select, textarea):focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
+}
+
+:where(.dark) [role="dialog"] {
+  background-color: var(--color-surface-modal);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-modal);
+}
+
+:where(.dark) :is(button, [role="button"], a) {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity, filter;
+  transition-duration: 160ms;
+}
+
+:where(.dark) :is(button, [role="button"]):focus-visible {
+  outline: 2px solid rgba(167, 139, 250, 0.9);
+  outline-offset: 2px;
+}
+
+:where(.dark) :is(button, [role="button"])[class*="bg-brand-"],
+:where(.dark) :is(button, [role="button"])[class*="from-brand-"] {
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.24);
+}
+
+:where(.dark) :is(button, [role="button"])[class*="bg-brand-"]:hover,
+:where(.dark) :is(button, [role="button"])[class*="from-brand-"]:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.32);
+}
+
+/* Progress tracks and fills remain visible on every dashboard surface. */
+:where(.dark) :is(.h-1\.5, .h-2).overflow-hidden.rounded-full:is(.bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-white) {
+  background-color: #302a39;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+}
+
+:where(.dark) :is(.h-1\.5, .h-2).overflow-hidden.rounded-full > * {
+  filter: saturate(1.12) brightness(1.08);
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* Legacy light-only status pills receive comfortable dark treatments. */
+:where(.dark) [class*="rounded-full"]:is(.bg-emerald-50, .bg-emerald-100, .bg-emerald-900\/30, .bg-emerald-950\/30),
+:where(.dark) [class*="rounded-full"]:is(.bg-green-50, .bg-green-100, .bg-green-900\/30, .bg-green-950\/30) {
+  background-color: rgba(16, 185, 129, 0.14);
+  border-color: rgba(52, 211, 153, 0.26);
+  color: #86efac;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.18);
+}
+
+:where(.dark) [class*="rounded-full"]:is(.bg-amber-50, .bg-amber-100, .bg-amber-900\/30, .bg-amber-950\/30),
+:where(.dark) [class*="rounded-full"]:is(.bg-yellow-50, .bg-yellow-100, .bg-yellow-900\/30, .bg-yellow-950\/30) {
+  background-color: rgba(245, 158, 11, 0.14);
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fcd34d;
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.18);
+}
+
+:where(.dark) [class*="rounded-full"]:is(.bg-red-50, .bg-red-100, .bg-red-900\/30, .bg-red-950\/30),
+:where(.dark) [class*="rounded-full"]:is(.bg-rose-50, .bg-rose-100, .bg-rose-900\/30, .bg-rose-950\/30) {
+  background-color: rgba(244, 63, 94, 0.14);
+  border-color: rgba(251, 113, 133, 0.28);
+  color: #fda4af;
+  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.16);
+}
+
+:where(.dark) [class*="rounded-full"]:is(.bg-slate-50, .bg-slate-100, .bg-slate-200) {
+  background-color: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: var(--color-text-secondary);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+@layer utilities {
+  .text-display {
+    font-size: var(--font-size-display);
+    font-weight: 800;
+    line-height: var(--line-height-heading);
+  }
+
+  .text-section-title {
+    font-size: var(--font-size-section);
+    font-weight: 700;
+    line-height: var(--line-height-heading);
+  }
+
+  .text-body-large {
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+  }
+
+  .text-small {
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-body);
+  }
+
+  .text-caption {
+    font-size: var(--font-size-caption);
+    line-height: 1.5;
+  }
+
+  /* Legacy arbitrary sizes were used for readable copy and metadata. */
+  .text-\[8px\],
+  .text-\[9px\],
+  .text-\[10px\],
+  .text-\[11px\],
+  .text-\[12px\],
+  .text-\[13px\],
+  .text-\[14px\] {
+    font-size: var(--font-size-caption);
+    line-height: 1.5;
+  }
+}
+
+/*
+ * Shared light-theme text hierarchy. Status colors remain untouched; neutral
+ * copy maps to the four semantic text tokens requested by the design system.
+ */
+#root > :not(.dark) :is(.text-slate-950, .text-slate-900, .text-gray-900, .text-neutral-900) {
+  color: var(--color-text-primary);
+}
+
+#root > :not(.dark) :is(.text-slate-800, .text-slate-700, .text-slate-600, .text-gray-800, .text-gray-700, .text-gray-600, .text-neutral-800, .text-neutral-700, .text-neutral-600) {
+  color: var(--color-text-secondary);
+}
+
+#root > :not(.dark) :is(.text-slate-500, .text-slate-400, .text-gray-500, .text-gray-400, .text-neutral-500, .text-neutral-400) {
+  color: var(--color-text-muted);
+}
+
+#root > :not(.dark) :is(.text-slate-300, .text-gray-300, .text-neutral-300) {
+  color: var(--color-text-disabled);
+}
+
+@media (max-width: 639px) {
+  :root {
+    --font-size-display: 2.5rem;
+    --font-size-h1: 2rem;
+    --font-size-h2: 1.75rem;
+    --font-size-h3: 1.375rem;
+  }
+
+  .text-\[52px\],
+  .text-\[56px\] {
+    font-size: var(--font-size-display);
+    line-height: var(--line-height-heading);
+  }
 }
 
 /*
@@ -63,58 +652,58 @@ body {
 :where(.dark) .dashboard-shell .bg-white:not([class*="dark:bg-"]),
 :where(.dark) .dashboard-shell .bg-white\/70:not([class*="dark:bg-"]),
 :where(.dark) .dashboard-shell .bg-white\/95:not([class*="dark:bg-"]) {
-  background-color: #17131f;
+  background-color: var(--color-surface-card);
 }
 
 :where(.dark) .dashboard-shell .bg-slate-50:not([class*="dark:bg-"]),
 :where(.dark) .dashboard-shell .bg-slate-50\/50:not([class*="dark:bg-"]),
 :where(.dark) .dashboard-shell .bg-slate-50\/70:not([class*="dark:bg-"]) {
-  background-color: #211b2b;
+  background-color: var(--color-surface-elevated);
 }
 
 :where(.dark) .dashboard-shell .bg-slate-100:not([class*="dark:bg-"]) {
-  background-color: #2a2236;
+  background-color: var(--color-surface-hover);
 }
 
 :where(.dark) .dashboard-shell .border-slate-100:not([class*="dark:border-"]),
 :where(.dark) .dashboard-shell .border-slate-200:not([class*="dark:border-"]),
 :where(.dark) .dashboard-shell .border-slate-300:not([class*="dark:border-"]) {
-  border-color: #3b3348;
+  border-color: var(--color-border);
 }
 
 :where(.dark) .dashboard-shell .divide-slate-100:not([class*="dark:divide-"]) > :not([hidden]) ~ :not([hidden]) {
-  border-color: #30283d;
+  border-color: var(--color-border);
 }
 
 :where(.dark) .dashboard-shell .text-slate-950:not([class*="dark:text-"]),
 :where(.dark) .dashboard-shell .text-slate-900:not([class*="dark:text-"]) {
-  color: #f8fafc;
+  color: var(--color-text-primary);
 }
 
 :where(.dark) .dashboard-shell .text-slate-800:not([class*="dark:text-"]),
 :where(.dark) .dashboard-shell .text-slate-700:not([class*="dark:text-"]) {
-  color: #e5e7eb;
+  color: var(--color-text-secondary);
 }
 
 :where(.dark) .dashboard-shell .text-slate-600:not([class*="dark:text-"]) {
-  color: #d1d5db;
+  color: var(--color-text-secondary);
 }
 
 :where(.dark) .dashboard-shell .text-slate-500:not([class*="dark:text-"]) {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 :where(.dark) .dashboard-shell input:not([class*="dark:bg-"]),
 :where(.dark) .dashboard-shell select:not([class*="dark:bg-"]),
 :where(.dark) .dashboard-shell textarea:not([class*="dark:bg-"]) {
-  background-color: #211b2b;
-  border-color: #4a4058;
-  color: #f3f4f6;
+  background-color: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 :where(.dark) .dashboard-shell input::placeholder,
 :where(.dark) .dashboard-shell textarea::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 ::selection {
@@ -238,4 +827,173 @@ body {
   background: linear-gradient(135deg, #8118f5 0%, #d946ef 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/*
+ * Authoritative dark-theme mappings.
+ *
+ * Tailwind cannot apply opacity modifiers such as `/95` to raw CSS-variable
+ * colors in this configuration. These scoped rules guarantee that semantic
+ * dark classes always resolve, including legacy alpha variants. Nothing in
+ * this block affects light mode.
+ */
+:where(.dark) {
+  background-color: var(--color-surface-base);
+  color: var(--color-text-primary);
+}
+
+:where(.dark) > div {
+  background-color: var(--color-surface-base);
+}
+
+:where(.dark) .dashboard-shell aside {
+  background-color: var(--color-surface-subtle) !important;
+  background-image: none !important;
+  border-color: var(--color-border) !important;
+}
+
+:where(.dark) .dark\:bg-surface-base,
+:where(.dark) .dark\:bg-surface-base\/90,
+:where(.dark) .dark\:bg-surface-base\/95 {
+  background-color: var(--color-surface-base) !important;
+}
+
+:where(.dark) .dark\:bg-surface-subtle,
+:where(.dark) .dark\:bg-surface-subtle\/95 {
+  background-color: var(--color-surface-subtle) !important;
+}
+
+:where(.dark) .dark\:bg-surface-card,
+:where(.dark) .dark\:bg-surface-card\/95 {
+  background-color: var(--color-surface-card) !important;
+}
+
+:where(.dark) .dark\:bg-surface-elevated {
+  background-color: var(--color-surface-elevated) !important;
+}
+
+:where(.dark) .dark\:bg-surface-modal {
+  background-color: var(--color-surface-modal) !important;
+}
+
+:where(.dark) .dark\:bg-surface-hover,
+:where(.dark) .dark\:hover\:bg-surface-hover:hover {
+  background-color: var(--color-surface-hover) !important;
+}
+
+/* Marketing page gradients use the same dark surfaces as the application. */
+:where(.dark) .dark\:from-app-dark-start {
+  --tw-gradient-from: var(--color-surface-base) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(11 11 15 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+:where(.dark) .dark\:via-black {
+  --tw-gradient-to: rgb(17 17 22 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--color-surface-subtle) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+:where(.dark) .dark\:to-app-dark-end {
+  --tw-gradient-to: var(--color-surface-base) var(--tw-gradient-to-position) !important;
+}
+
+/* Light utilities that lack a dark counterpart inherit semantic surfaces. */
+:where(.dark) :is(section, main, footer).bg-white,
+:where(.dark) :is(section, main, footer).bg-slate-50,
+:where(.dark) :is(section, main, footer).bg-slate-100 {
+  background-color: var(--color-surface-base) !important;
+}
+
+:where(.dark) :is(.bg-white, .bg-white\/70, .bg-white\/80, .bg-white\/90, .bg-white\/95):not(.dark\:bg-white) {
+  background-color: var(--color-surface-card);
+}
+
+:where(.dark) :is(.bg-slate-50, .bg-slate-50\/50, .bg-slate-50\/70, .bg-slate-100) {
+  background-color: var(--color-surface-subtle);
+}
+
+/* Brand purple remains recognizable without becoming fluorescent. */
+:where(.dark) :is(.bg-brand-500, .bg-brand-600, .bg-brand-700) {
+  background-color: var(--color-primary);
+}
+
+:where(.dark) :is(.hover\:bg-brand-500, .hover\:bg-brand-600, .hover\:bg-brand-700):hover,
+:where(.dark) :is(.dark\:hover\:bg-brand-400, .dark\:hover\:bg-brand-500, .dark\:hover\:bg-brand-600):hover {
+  background-color: var(--color-primary-hover) !important;
+}
+
+:where(.dark) :is(.text-brand-300, .text-brand-400, .dark\:text-brand-200, .dark\:text-brand-300, .dark\:text-brand-400) {
+  color: var(--color-primary-soft);
+}
+
+/* Cards and panels share quiet elevation with no glow. */
+:where(.dark) :is(article, .ui-card),
+:where(.dark) div[class*="rounded"][class*="border"]:is(.bg-white, .dark\:bg-white\/5, .dark\:bg-surface-card) {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+:where(.dark) :is(article, .ui-card):hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Controls, popovers, dropdowns, dialogs and tooltips. */
+:where(.dark) :is(input, select, textarea) {
+  background-color: var(--color-surface-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+:where(.dark) :is(input, textarea)::placeholder {
+  color: var(--color-text-muted) !important;
+  opacity: 1;
+}
+
+:where(.dark) :is(input, select, textarea):focus {
+  border-color: var(--color-primary-hover) !important;
+  box-shadow: 0 0 0 3px rgb(124 58 237 / 0.24) !important;
+}
+
+:where(.dark) [role="dialog"],
+:where(.dark) [role="menu"],
+:where(.dark) [role="listbox"],
+:where(.dark) [role="tooltip"] {
+  background-color: var(--color-surface-modal);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-modal);
+}
+
+/* Dark tables use readable separators, zebra rows and a clear hover state. */
+:where(.dark) thead {
+  background-color: var(--color-surface-elevated) !important;
+  color: var(--color-text-secondary);
+}
+
+:where(.dark) tbody tr {
+  border-color: var(--color-border);
+  background-color: var(--color-surface-card);
+}
+
+:where(.dark) tbody tr:nth-child(even) {
+  background-color: var(--color-surface-subtle);
+}
+
+:where(.dark) tbody tr:hover {
+  background-color: var(--color-surface-hover);
+}
+
+/* SVG chart labels and neutral icons remain legible. */
+:where(.dark) :is(.fill-slate-400, .fill-slate-500, .dark\:fill-gray-300) {
+  fill: var(--color-text-secondary);
+}
+
+:where(.dark) :is(.stroke-slate-200, .stroke-slate-300) {
+  stroke: var(--color-border-strong);
+}
+
+:where(.dark) :is(button, [role="button"], a) {
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
 }

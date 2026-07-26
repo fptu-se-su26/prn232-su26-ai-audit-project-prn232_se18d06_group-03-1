@@ -163,7 +163,7 @@ function AvailabilityCalendar({ busyPeriods, month, year, onPrev, onNext, select
 
 function VehicleDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-app-page-start via-white to-app-page-end pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-app-dark-start dark:via-black dark:to-app-dark-end dark:text-white">
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-6">
         <div className="flex items-center gap-3">
           <Skeleton className="h-9 w-9 rounded-xl" />
@@ -428,7 +428,7 @@ export default function VehicleDetailPage() {
   if (!vehicle) {
     if (vehicleLoadError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+        <div className="min-h-screen bg-gradient-to-br from-app-page-start via-white to-app-page-end pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-app-dark-start dark:via-black dark:to-app-dark-end dark:text-white">
           <div className="mx-auto max-w-6xl px-4 pt-6">
             <div className="flex min-h-[400px] items-center justify-center">
               <div className="text-center">
@@ -463,7 +463,7 @@ export default function VehicleDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-app-page-start via-white to-app-page-end pb-16 text-slate-900 dark:text-white transition-colors duration-300 dark:from-app-dark-start dark:via-black dark:to-app-dark-end dark:text-white">
       <div className="mx-auto max-w-6xl space-y-4 px-4 pt-6">
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => navigate("/vehicle")} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 transition-all hover:bg-slate-100 dark:bg-white/5 hover:text-slate-700 dark:text-gray-300">

@@ -35,7 +35,7 @@ export default function FormField({
           aria-describedby={[errorId, helperId].filter(Boolean).join(" ") || undefined}
           aria-invalid={Boolean(error)}
           className={cn(
-            "h-11 w-full rounded-md border bg-white px-3 text-sm text-slate-950 outline-none transition",
+            "ui-control min-h-11 w-full px-3 py-2 text-sm leading-normal outline-none",
             leftIcon ? "pl-10" : "",
             "placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-100",
             "focus:border-brand-500 focus:ring-4 focus:ring-brand-100",

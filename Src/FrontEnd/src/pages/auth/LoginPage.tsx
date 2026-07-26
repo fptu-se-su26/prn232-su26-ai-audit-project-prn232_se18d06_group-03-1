@@ -193,14 +193,14 @@ export default function LoginPage() {
             className="inline-flex h-12 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed"
             title="Backend hiện chưa hỗ trợ đăng nhập Facebook"
           >
-            <Facebook className="h-6 w-6 text-[#1877f2]" />
+            <Facebook className="h-6 w-6 text-app-facebook" />
             Facebook
           </button>
         </div>
 
         <p className="pt-2 text-center text-sm font-medium text-slate-600">
           Chưa có tài khoản?{" "}
-          <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/register">
+          <Link className="font-bold text-app-purple hover:text-app-purple-deep transition-colors" to="/register">
             Đăng ký ngay
           </Link>
         </p>

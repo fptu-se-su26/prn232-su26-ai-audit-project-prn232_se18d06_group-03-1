@@ -15,7 +15,7 @@ export default function MainLayout() {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="dashboard-shell min-h-screen bg-slate-100/70 text-slate-950 transition-colors duration-300 dark:bg-[#0d0b14] dark:text-gray-100">
+      <div className="dashboard-shell min-h-screen bg-slate-100/70 text-slate-950 transition-colors duration-300 dark:bg-surface-base dark:text-text-primary">
         <Header darkMode={darkMode} onToggleTheme={() => setDarkMode((current) => !current)} />
         <div className="flex">
           <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((prev) => !prev)} />

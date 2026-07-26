@@ -124,10 +124,10 @@ const staffUserManagementItems = [
 
 const navBaseClass = "flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-150";
 const navActiveClass =
-  "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200 dark:from-brand-950/70 dark:via-[#211b2b] dark:to-fuchsia-950/40 dark:text-brand-200 dark:ring-brand-800";
+  "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200 dark:bg-brand-950/50 dark:bg-none dark:text-brand-200 dark:ring-brand-800";
 const navInactiveClass =
   "text-slate-700 hover:bg-slate-50 hover:text-slate-950 dark:text-gray-300 dark:hover:bg-white/[0.07] dark:hover:text-white";
-const nestedNavClass = "ml-4 space-y-1 border-l border-brand-100 pl-2 dark:border-[#3b3348]";
+const nestedNavClass = "ml-4 space-y-1 border-l border-brand-100 pl-2 dark:border-ui-border";
 const expandButtonClass =
   "inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-brand-200";
 const sectionToneClasses = {
@@ -155,6 +155,19 @@ const sectionToneClasses = {
 
 type SectionTone = keyof typeof sectionToneClasses;
 
+const customerIconToneByPath: Record<string, string> = {
+  "/customer": "text-brand-600 dark:text-brand-400",
+  "/customer/bookings": "text-sky-600 dark:text-sky-400",
+  "/customer/voucher-hunt": "text-amber-600 dark:text-amber-400",
+  "/customer/voucher-wallet": "text-emerald-600 dark:text-emerald-400",
+  "/customer/promotions": "text-rose-600 dark:text-rose-400",
+  "/chat": "text-blue-600 dark:text-blue-400",
+  "/become-owner": "text-orange-600 dark:text-orange-400",
+  "/customer/disputes": "text-rose-600 dark:text-rose-400",
+  "/customer/support-tickets": "text-teal-600 dark:text-teal-400",
+  "/": "text-sky-600 dark:text-sky-400",
+};
+
 function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; collapsed: boolean; end?: boolean }) {
   const currentLocation = useLocation();
   const [targetPath, targetQuery] = to.split("?");
@@ -175,7 +188,7 @@ function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label:
       }
       title={collapsed ? label : undefined}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className={`h-4 w-4 shrink-0 ${customerIconToneByPath[to] ?? ""}`} />
       {!collapsed && label}
     </NavLink>
   );
@@ -335,7 +348,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <aside
-      className={`hidden border-r border-slate-200 bg-gradient-to-b from-white via-white to-brand-50/20 shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-200 dark:border-[#30283d] dark:from-[#131019] dark:via-[#131019] dark:to-[#17131f] dark:shadow-none md:sticky md:top-16 md:flex md:h-[calc(100vh-4rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
+      className={`hidden border-r border-slate-200 bg-gradient-to-b from-white via-white to-brand-50/20 shadow-[10px_0_30px_rgba(15,23,42,0.05)] transition-all duration-200 dark:border-ui-border dark:bg-surface-subtle dark:bg-none dark:shadow-sm md:sticky md:top-16 md:flex md:h-[calc(100vh-4rem)] md:flex-col md:self-start ${collapsed ? "w-16" : "w-60"}`}
     >
       <nav className="flex min-h-0 flex-1 flex-col p-3">
         <div className="sidebar-scrollbar -mr-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto overflow-x-hidden pr-2 pb-3">
@@ -605,7 +618,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               {!collapsed && postMgmtOpen && (
                 <div className={nestedNavClass}>
                   {adminPostMgmtItems.map((item) => (
-                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} end={(item as any).end} />
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} end={"end" in item ? item.end : undefined} />
                   ))}
                 </div>
               )}
@@ -877,11 +890,11 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           )}
         </div>
 
-        <div className="shrink-0 border-t border-slate-100 pt-2 dark:border-[#30283d]">
+        <div className="shrink-0 border-t border-slate-100 pt-2 dark:border-ui-border">
           <button
             type="button"
             onClick={onToggle}
-            className="flex h-8 w-full items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-brand-200"
+            className="flex h-9 w-full items-center justify-center rounded-md border border-brand-200/80 bg-brand-50 text-brand-700 shadow-sm transition-all duration-150 hover:border-brand-300 hover:bg-brand-100 hover:text-brand-800 active:scale-[0.98] dark:border-brand-800/70 dark:bg-brand-950/50 dark:text-brand-300 dark:hover:border-brand-700 dark:hover:bg-brand-900/60 dark:hover:text-brand-200"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>

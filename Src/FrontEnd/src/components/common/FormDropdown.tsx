@@ -30,7 +30,7 @@ export default function FormDropdown({ value, options, onChange, placeholder = "
         type="button"
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-10 w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+        className="ui-control flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm leading-normal outline-none hover:border-ui-border-strong hover:bg-surface-hover focus:border-primary focus:ring-4 focus:ring-primary-subtle disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={current ? "truncate" : "truncate text-slate-400"}>{current?.label ?? placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />

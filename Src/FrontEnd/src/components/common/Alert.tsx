@@ -11,10 +11,10 @@ type AlertProps = {
 };
 
 const styles: Record<AlertVariant, string> = {
-  info: "border-sky-200 bg-sky-50 text-sky-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-900",
-  error: "border-rose-200 bg-rose-50 text-rose-900",
+  info: "border-info-border bg-info-surface text-info-foreground",
+  success: "border-success-border bg-success-surface text-success-foreground",
+  warning: "border-warning-border bg-warning-surface text-warning-foreground",
+  error: "border-danger-border bg-danger-surface text-danger-foreground",
 };
 
 const icons = {
@@ -28,7 +28,7 @@ export default function Alert({ children, title, variant = "info" }: AlertProps)
   const Icon = icons[variant];
 
   return (
-    <div className={cn("flex gap-3 rounded-md border px-4 py-3 text-sm shadow-sm shadow-slate-950/5", styles[variant])} role="alert">
+    <div className={cn("flex gap-3 rounded-lg border px-4 py-3 text-sm shadow-xs", styles[variant])} role="alert">
       <Icon className="mt-0.5 h-4 w-4 flex-none" />
       <div>
         {title ? <div className="font-semibold">{title}</div> : null}

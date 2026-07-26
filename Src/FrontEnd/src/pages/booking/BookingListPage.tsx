@@ -100,7 +100,7 @@ export default function BookingListPage() {
         }
       />
 
-      <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 dark:border-ui-border dark:bg-surface-card dark:shadow-none sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <select
             value={statusFilter}
@@ -108,7 +108,7 @@ export default function BookingListPage() {
               setStatusFilter(event.target.value);
               setPage(1);
             }}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-gray-100 dark:[color-scheme:dark] dark:focus:border-brand-500 dark:focus:ring-brand-950"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-ui-border-strong dark:bg-surface-elevated dark:text-gray-100 dark:[color-scheme:dark] dark:focus:border-brand-500 dark:focus:ring-brand-950"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -132,7 +132,7 @@ export default function BookingListPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm dark:text-gray-200">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-[#211b2b] dark:text-gray-300">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-surface-elevated dark:text-gray-300">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Xe</th>
@@ -152,7 +152,7 @@ export default function BookingListPage() {
                         {item.vehicleImage ? (
                           <img src={item.vehicleImage} alt={item.vehicleName ?? "Xe"} className="h-10 w-14 rounded-md object-cover" />
                         ) : (
-                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-[#2a2236] dark:text-gray-300">
+                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-surface-hover dark:text-gray-300">
                             <CalendarCheck className="h-4 w-4" />
                           </span>
                         )}
@@ -187,7 +187,7 @@ export default function BookingListPage() {
             type="button"
             onClick={() => goToPage(page - 1)}
             disabled={page <= 1}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-ui-border-strong dark:text-gray-300 dark:hover:bg-white/10"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -198,7 +198,7 @@ export default function BookingListPage() {
             type="button"
             onClick={() => goToPage(page + 1)}
             disabled={page >= totalPages}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#4a4058] dark:text-gray-300 dark:hover:bg-white/10"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-ui-border-strong dark:text-gray-300 dark:hover:bg-white/10"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

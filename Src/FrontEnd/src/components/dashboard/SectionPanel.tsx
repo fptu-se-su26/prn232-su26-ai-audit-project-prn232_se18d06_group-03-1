@@ -21,11 +21,11 @@ export default function SectionPanel({
   return (
     <section
       className={cn(
-        "min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm shadow-slate-950/5 dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none",
+        "min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm shadow-slate-950/5 dark:border-ui-border dark:bg-surface-card dark:shadow-none",
         className,
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-[#30283d]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-ui-border">
         <div className="min-w-0">
           <h2 className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">{title}</h2>
           {description ? <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-gray-300">{description}</p> : null}

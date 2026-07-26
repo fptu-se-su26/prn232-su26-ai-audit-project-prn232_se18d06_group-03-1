@@ -176,21 +176,21 @@ export default function CustomerSupportTicketListPage() {
             <div className="overflow-hidden rounded-md border border-slate-200">
               <table className="w-full table-fixed text-left text-sm">
                 <colgroup>
-                  <col className="w-[19%]" />
-                  <col className="w-[31%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[29%]" />
                   <col className="w-[12%]" />
-                  <col className="w-[14%]" />
+                  <col className="w-[15%]" />
                   <col className="w-[16%]" />
-                  <col className="w-[8%]" />
+                  <col className="w-[11%]" />
                 </colgroup>
                 <thead className="bg-gradient-to-r from-brand-50 via-white to-sky-50 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-700">
                   <tr>
-                    <th className="whitespace-nowrap px-3 py-4">Mã ticket</th>
-                    <th className="whitespace-nowrap px-3 py-4">Tiêu đề</th>
-                    <th className="whitespace-nowrap px-3 py-4">Ưu tiên</th>
-                    <th className="whitespace-nowrap px-3 py-4">Trạng thái</th>
-                    <th className="whitespace-nowrap px-3 py-4">Cập nhật</th>
-                    <th className="whitespace-nowrap px-3 py-4 text-right">Chi tiết</th>
+                    <th className="whitespace-nowrap px-2 py-4">Mã ticket</th>
+                    <th className="whitespace-nowrap px-2 py-4">Tiêu đề</th>
+                    <th className="whitespace-nowrap px-2 py-4">Ưu tiên</th>
+                    <th className="whitespace-nowrap px-2 py-4">Trạng thái</th>
+                    <th className="whitespace-nowrap px-2 py-4">Cập nhật</th>
+                    <th className="whitespace-nowrap px-2 py-4 text-right">Chi tiết</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

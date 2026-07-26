@@ -346,7 +346,7 @@ export default function ChatPage() {
                             {participant?.fullName ?? "Người dùng"}
                           </p>
                           {room.unreadCount > 0 ? (
-                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white">
+                            <span className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold leading-none text-white">
                               {room.unreadCount}
                             </span>
                           ) : null}
@@ -395,7 +395,7 @@ export default function ChatPage() {
               </div>
 
               {/* Messages */}
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#f7f8fc] px-4 py-4">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-app-canvas-cool px-4 py-4">
                 {isLoadingMessages ? (
                   <div className="flex h-full items-center justify-center">
                     <LoadingSpinner />

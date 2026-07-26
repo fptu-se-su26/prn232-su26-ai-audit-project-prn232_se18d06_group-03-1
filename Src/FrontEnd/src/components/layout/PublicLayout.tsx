@@ -5,7 +5,6 @@ import type { CmsPageNavigationItem } from "@/features/cms/types";
 import {
   CalendarDays,
   ChevronDown,
-  Globe,
   LogOut,
   Menu,
   Moon,
@@ -19,8 +18,7 @@ import NotificationMenu from "@/components/layout/NotificationMenu";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import useClickOutside from "@/hooks/useClickOutside";
-import logoDark from "../../../Logo/movevn_horizontal_dark.png";
-import logoLight from "../../../Logo/movevn_horizontal_light.png";
+import moveVnLogo from "../../../Logo/movevn_wordmark.svg";
 
 
 export default function PublicLayout() {
@@ -38,7 +36,6 @@ export default function PublicLayout() {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  const isCustomer = user?.roles?.includes("Customer");
   const navItems = [
     { href: "/", label: "Trang chủ" },
     { href: "/vehicle", label: "Thuê xe" },
@@ -89,18 +86,18 @@ export default function PublicLayout() {
 
   return (
     <div className={darkMode ? "dark" : ""}>
-      <div className="flex min-h-screen flex-col bg-white text-slate-900 transition-colors duration-300 dark:bg-[#0d0b14] dark:text-gray-100">
+      <div className="flex min-h-screen flex-col bg-white text-slate-900 transition-colors duration-300 dark:bg-surface-base dark:text-text-primary">
         <nav className={`sticky top-0 z-40 border-b transition-all duration-300 transform-gpu py-2.5 sm:py-3 ${
           isScrolled
-            ? "border-slate-200/80 bg-white/95 shadow-md backdrop-blur-xl dark:border-neutral-800 dark:bg-[#0d0b14]/95"
-            : "border-slate-100 bg-white/90 backdrop-blur-md dark:border-neutral-800 dark:bg-[#0d0b14]/90"
+            ? "border-slate-200/80 bg-white/95 shadow-md backdrop-blur-xl dark:border-ui-border dark:bg-surface-base"
+            : "border-slate-100 bg-white/90 backdrop-blur-md dark:border-ui-border dark:bg-surface-base"
         }`}>
           <div className="mx-auto flex w-full items-center justify-between px-4 sm:px-6 lg:px-12 2xl:px-16">
             <Link to="/" className="flex shrink-0 items-center" aria-label="MoveVN">
               <img
-                src={darkMode ? logoDark : logoLight}
+                src={darkMode ? `${moveVnLogo}#dark` : moveVnLogo}
                 alt="MoveVN"
-                className={`w-auto object-contain origin-left h-12 sm:h-14 transition-transform duration-300 ${darkMode ? "scale-[1.2]" : ""}`}
+                className="h-7 w-auto origin-left object-contain"
               />
             </Link>
 
@@ -116,16 +113,7 @@ export default function PublicLayout() {
               ))}
             </div>
 
-            <div className="hidden items-center gap-3 lg:flex">
-              <button
-                type="button"
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-neutral-800 dark:text-gray-300 dark:hover:border-brand-600 dark:hover:text-brand-200"
-                aria-label="Ngôn ngữ"
-              >
-                <Globe className="h-4 w-4" />
-                VI
-              </button>
-
+            <div className="hidden items-center gap-2.5 lg:flex">
               <button
                 type="button"
                 onClick={() => setDarkMode((value) => !value)}
@@ -143,7 +131,7 @@ export default function PublicLayout() {
                     <button
                       type="button"
                       onClick={() => setAccountOpen((value) => !value)}
-                      className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-100 dark:hover:border-brand-600"
+                      className="inline-flex h-11 items-center gap-3 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-100 dark:hover:border-brand-600"
                     >
                       {user?.avatarUrl ? (
                         <img
@@ -221,7 +209,7 @@ export default function PublicLayout() {
           </div>
 
           {menuOpen ? (
-            <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg dark:border-neutral-800 dark:bg-[#0d0b14] lg:hidden">
+            <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg dark:border-neutral-800 dark:bg-surface-base lg:hidden">
               <div className="flex flex-col gap-2">
                 {navItems.map((item) => (
                   <Link
@@ -272,14 +260,14 @@ export default function PublicLayout() {
 
         <footer
           id="contact"
-          className="border-t border-slate-100 bg-white py-12 text-slate-600 transition-colors duration-300 dark:border-neutral-800 dark:bg-[#0d0b14] dark:text-gray-300"
+          className="border-t border-slate-100 bg-white py-12 text-slate-600 transition-colors duration-300 dark:border-ui-border dark:bg-surface-subtle dark:text-text-secondary dark:shadow-[0_-16px_40px_rgba(0,0,0,0.18)]"
         >
           <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-3 lg:grid-cols-5 lg:px-8">
             <div>
               <img
-                src={darkMode ? logoDark : logoLight}
+                src={darkMode ? `${moveVnLogo}#dark` : moveVnLogo}
                 alt="MoveVN"
-                className={`h-16 w-auto object-contain origin-left ${darkMode ? "scale-[1.2]" : ""}`}
+                className="h-8 w-auto origin-left object-contain"
               />
               <p className="mt-4 text-sm leading-6">
                 Nền tảng thuê xe giúp kết nối khách hàng và chủ xe minh bạch, nhanh gọn.

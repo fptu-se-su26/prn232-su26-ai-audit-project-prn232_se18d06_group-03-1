@@ -19,7 +19,7 @@ export default function DashboardHeader({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm shadow-slate-950/5 dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none",
+        "overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm shadow-slate-950/5 dark:border-ui-border dark:bg-surface-card dark:shadow-none",
         className,
       )}
     >

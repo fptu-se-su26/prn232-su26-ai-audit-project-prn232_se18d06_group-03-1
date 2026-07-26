@@ -135,7 +135,7 @@ export default function PolicyPage() {
   }, [hasToc, sections, tocItems]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] text-slate-900 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-app-page-start via-white to-app-page-end text-slate-900 dark:from-app-dark-start dark:via-black dark:to-app-dark-end dark:text-white transition-colors duration-300">
       {/* Hero Banner */}
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pt-10">
         <div

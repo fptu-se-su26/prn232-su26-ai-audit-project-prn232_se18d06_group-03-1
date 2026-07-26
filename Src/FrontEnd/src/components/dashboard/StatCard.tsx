@@ -58,8 +58,8 @@ export default function StatCard({
   return (
     <article
       className={cn(
-        "group relative min-h-[132px] overflow-hidden rounded-md border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/5 transition dark:border-[#30283d] dark:bg-[#17131f] dark:shadow-none",
-        "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md hover:shadow-slate-950/10 dark:hover:border-[#4a4058] dark:hover:bg-[#211b2b]",
+        "group relative min-h-[132px] overflow-hidden rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition duration-fast ease-standard dark:border-ui-border dark:bg-surface-card dark:shadow-dark-card",
+        "hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:hover:border-ui-border-strong dark:hover:bg-surface-elevated dark:hover:shadow-dark-elevated",
         className,
       )}
     >

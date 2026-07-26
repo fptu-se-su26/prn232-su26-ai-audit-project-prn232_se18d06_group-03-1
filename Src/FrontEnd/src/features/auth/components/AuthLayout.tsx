@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import heroUrl from "@/assets/auth-hero-movevn.png";
-import logoUrl from "../../../../Logo/movevn_horizontal_light.png";
-import logoFullUrl from "../../../../Logo/LOGO_UILIGH.png";
+import moveVnLogo from "../../../../Logo/movevn_wordmark.svg";
 
 type AuthLayoutProps = {
   children: ReactNode;
@@ -14,14 +13,14 @@ export default function AuthLayout({ children, description, title }: AuthLayoutP
   return (
     <>
       {/* ── MOBILE LAYOUT (< lg) ── */}
-      <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#faf6ff] lg:hidden">
+      <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-app-violet-25 lg:hidden">
         {/* Beautiful Gradient Background */}
         <div className="absolute inset-0 -z-20 bg-[linear-gradient(145deg,#ffffff_0%,#fff7fc_30%,#f6eeff_70%,#eedfff_100%)]" />
         
         {/* Soft Background Glows (Static) */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute -left-16 top-10 h-64 w-64 rounded-full bg-[#ffb6db]/20 blur-[80px]" />
-          <div className="absolute -right-20 top-60 h-80 w-80 rounded-full bg-[#cfa9ff]/25 blur-[90px]" />
+          <div className="absolute -left-16 top-10 h-64 w-64 rounded-full bg-app-blush/20 blur-[80px]" />
+          <div className="absolute -right-20 top-60 h-80 w-80 rounded-full bg-app-lavender/25 blur-[90px]" />
         </div>
 
         {/* Clean Static Route & Travel SVG Patterns */}
@@ -57,20 +56,20 @@ export default function AuthLayout({ children, description, title }: AuthLayoutP
             <Link to="/" className="inline-flex flex-col items-center">
               <img
                 alt="MoveVN"
-                className="h-48 w-auto object-contain drop-shadow-sm"
-                src={logoFullUrl}
+                className="h-9 w-auto object-contain"
+                src={moveVnLogo}
               />
             </Link>
           </div>
 
           {/* Page title and description - margin bottom increased to push form down */}
           <div className="mb-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#101936]">{title}</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-app-ink">{title}</h1>
             <p className="mt-2 text-sm font-medium text-slate-500">
               {description.split("MoveVN").length > 1 ? (
                 <>
                   {description.split("MoveVN")[0]}
-                  <span className="font-bold text-[#6b19ff]">MoveVN</span>
+                  <span className="font-bold text-app-purple">MoveVN</span>
                   {description.split("MoveVN")[1]}
                 </>
               ) : (
@@ -87,7 +86,7 @@ export default function AuthLayout({ children, description, title }: AuthLayoutP
 
 
       {/* ── DESKTOP LAYOUT (≥ lg) — UNCHANGED ── */}
-      <div className="relative hidden h-screen place-items-center overflow-hidden bg-[#f6f2ff] p-5 lg:grid">
+      <div className="relative hidden h-screen place-items-center overflow-hidden bg-app-violet-75 p-5 lg:grid">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(147,59,255,0.18),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(91,0,255,0.14),transparent_28%),linear-gradient(135deg,#fff_0%,#f7f1ff_48%,#eee5ff_100%)]" />
         <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(67,21,130,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(67,21,130,0.18)_1px,transparent_1px)] [background-size:32px_32px]" />
 
@@ -95,11 +94,11 @@ export default function AuthLayout({ children, description, title }: AuthLayoutP
           <section className="min-h-0 overflow-y-auto bg-white/70 px-12 py-7 [scrollbar-width:none] lg:order-1 [&::-webkit-scrollbar]:hidden">
             <div className="mx-auto w-full max-w-md">
               <Link to="/" className="mb-8 inline-flex sm:mb-10">
-                <img alt="MoveVN" className="h-20 w-auto sm:h-24" src={logoUrl} />
+                <img alt="MoveVN" className="h-9 w-auto" src={moveVnLogo} />
               </Link>
 
               <div className="mb-6">
-                <h1 className="text-4xl font-extrabold tracking-tight text-[#101936]">{title}</h1>
+                <h1 className="text-4xl font-extrabold tracking-tight text-app-ink">{title}</h1>
                 <p className="mt-3 text-base font-medium text-slate-500">{description}</p>
               </div>
 
@@ -109,7 +108,7 @@ export default function AuthLayout({ children, description, title }: AuthLayoutP
 
           <section
             aria-hidden="true"
-            className="relative min-h-0 overflow-hidden bg-[#6b19ff] lg:order-2 lg:block"
+            className="relative min-h-0 overflow-hidden bg-app-purple lg:order-2 lg:block"
           >
             <img
               alt=""
@@ -123,5 +122,3 @@ export default function AuthLayout({ children, description, title }: AuthLayoutP
     </>
   );
 }
-
-

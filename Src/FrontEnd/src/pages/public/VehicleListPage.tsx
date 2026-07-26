@@ -537,7 +537,7 @@ export default function VehicleListPage() {
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 px-4 py-2.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#090416]/95 sm:px-6 lg:px-8">
+      <section className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 px-4 py-2.5 shadow-sm backdrop-blur dark:border-ui-border dark:bg-surface-base sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-[1720px] flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -719,7 +719,7 @@ export default function VehicleListPage() {
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-[#315df4] px-4 text-sm font-semibold text-white shadow-md shadow-blue-600/15 transition hover:bg-blue-700"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-app-blue px-4 text-sm font-semibold text-white shadow-md shadow-blue-600/15 transition hover:bg-blue-700"
                 >
                   <Search className="h-4 w-4" />
                   Áp dụng
@@ -758,7 +758,7 @@ export default function VehicleListPage() {
             <button
               type="button"
               onClick={clearAllFilters}
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-md bg-[#315df4] px-5 text-xs font-semibold text-white shadow-md transition hover:bg-blue-700"
+              className="mt-6 inline-flex h-10 items-center justify-center rounded-md bg-app-blue px-5 text-xs font-semibold text-white shadow-md transition hover:bg-blue-700"
             >
               Xóa bộ lọc
             </button>
@@ -802,7 +802,7 @@ export default function VehicleListPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/vehicle/${vehicle.id}`)}
-                        className="min-w-0 truncate text-left text-sm font-bold text-slate-950 hover:text-[#315df4] dark:text-white dark:hover:text-brand-400"
+                        className="min-w-0 truncate text-left text-sm font-bold text-slate-950 hover:text-app-blue dark:text-white dark:hover:text-brand-400"
                       >
                         {title}
                       </button>
@@ -824,7 +824,7 @@ export default function VehicleListPage() {
                       <button
                         type="button"
                         onClick={() => navigate(bookingTarget)}
-                        className="rounded-full bg-[#315df4] px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-md shadow-blue-600/15 transition group-hover:opacity-100"
+                        className="rounded-full bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-brand-600/20 transition-all duration-150 hover:bg-brand-700 hover:shadow-lg active:scale-[0.98] dark:bg-brand-600 dark:hover:bg-brand-500"
                       >
                         {token && user ? "Đặt ngay" : "Thuê ngay"}
                       </button>
@@ -863,7 +863,7 @@ export default function VehicleListPage() {
                     className={cx(
                       "inline-flex h-9 w-9 items-center justify-center rounded-md text-xs font-medium transition",
                       item === page
-                        ? "bg-[#315df4] text-white shadow-md shadow-blue-600/15"
+                        ? "bg-app-blue text-white shadow-md shadow-blue-600/15"
                         : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10",
                     )}
                   >

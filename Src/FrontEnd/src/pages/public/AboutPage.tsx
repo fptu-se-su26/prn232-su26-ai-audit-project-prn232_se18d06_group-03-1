@@ -21,7 +21,7 @@ const values = [
 
 export default function AboutPage() {
   return (
-    <div className="bg-gradient-to-br from-[#faf7ff] via-white to-[#f5efff] text-slate-900 dark:from-[#0e0720] dark:via-black dark:to-[#05030f] dark:text-white min-h-screen transition-colors duration-300">
+    <div className="bg-gradient-to-br from-app-page-start via-white to-app-page-end text-slate-900 dark:from-app-dark-start dark:via-black dark:to-app-dark-end dark:text-white min-h-screen transition-colors duration-300">
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <p className="text-sm sm:text-base font-black uppercase tracking-[0.25em] text-brand-600 dark:text-brand-400">

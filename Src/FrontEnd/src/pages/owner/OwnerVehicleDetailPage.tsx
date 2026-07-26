@@ -591,7 +591,7 @@ export default function OwnerVehicleDetailPage() {
           </div>
 
           {vehicle.images.length > 0 && (
-            <div className="rounded-xl border border-slate-100 bg-[#FAFAFA] p-5 shadow-sm">
+            <div className="rounded-xl border border-slate-100 bg-app-canvas p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
                   <ImageIcon className="h-3.5 w-3.5 text-slate-500" />

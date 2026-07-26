@@ -153,7 +153,7 @@ export default function OwnerRegisterPage() {
 
         <p className="pt-2 text-center text-sm font-medium text-slate-600">
           Đã có tài khoản?{" "}
-          <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/login">
+          <Link className="font-bold text-app-purple hover:text-app-purple-deep transition-colors" to="/login">
             Đăng nhập ngay
           </Link>
         </p>

@@ -142,7 +142,7 @@ export default function CustomerBookingListPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm dark:text-gray-200">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-[#211b2b] dark:text-gray-300">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:bg-surface-elevated dark:text-gray-300">
                 <tr>
                   <th className="px-5 py-4">Mã booking</th>
                   <th className="px-5 py-4">Xe</th>
@@ -162,7 +162,7 @@ export default function CustomerBookingListPage() {
                         {item.vehicleImage ? (
                           <img src={item.vehicleImage} alt={item.vehicleName ?? "Xe"} className="h-10 w-14 rounded-md object-cover" />
                         ) : (
-                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-[#2a2236] dark:text-gray-300">
+                          <span className="grid h-10 w-14 place-items-center rounded-md bg-slate-100 text-slate-500 dark:bg-surface-hover dark:text-gray-300">
                             <CalendarCheck className="h-4 w-4" />
                           </span>
                         )}

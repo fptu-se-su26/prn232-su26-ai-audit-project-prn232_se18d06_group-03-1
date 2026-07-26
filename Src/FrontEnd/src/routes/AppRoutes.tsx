@@ -180,6 +180,8 @@ export default function AppRoutes() {
             <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
             <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
             <Route path="/customer/promotions" element={<CustomerPromotionsPage />} />
+            <Route path="/customer/voucher-hunt" element={<CustomerVoucherHuntPage />} />
+            <Route path="/customer/voucher-wallet" element={<CustomerVoucherWalletPage />} />
             <Route path="/become-owner" element={<BecomeOwnerPage />} />
             <Route path="/become-owner/cccd" element={<CccdVerificationPage />} />
             <Route path="/become-owner/bank" element={<BankInfoPage />} />
@@ -266,12 +268,6 @@ export default function AppRoutes() {
           </Route>
         </Route>
 
-        <Route element={<PublicLayout />}>
-          <Route element={<RoleRoute roles={["Customer"]} />}>
-            <Route path="/customer/voucher-hunt" element={<CustomerVoucherHuntPage />} />
-            <Route path="/customer/voucher-wallet" element={<CustomerVoucherWalletPage />} />
-          </Route>
-        </Route>
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

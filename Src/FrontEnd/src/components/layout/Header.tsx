@@ -9,8 +9,7 @@ import { usePresenceStore } from "@/features/presence/usePresence";
 import useClickOutside from "@/hooks/useClickOutside";
 import NotificationMenu from "@/components/layout/NotificationMenu";
 import { getMyWallet } from "@/features/wallets/services/walletService";
-import logoLight from "../../../Logo/movevn_horizontal_light.png";
-import logoDark from "../../../Logo/movevn_horizontal_dark.png";
+import moveVnLogo from "../../../Logo/movevn_wordmark.svg";
 
 const roleSwitchLabels: Record<UserRole, string> = {
   Admin: "Quản trị",
@@ -62,14 +61,14 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-950/5 backdrop-blur transition-colors duration-300 dark:border-[#30283d] dark:bg-[#0d0b14]/95 dark:shadow-none">
+    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-950/5 backdrop-blur transition-colors duration-300 dark:border-ui-border dark:bg-surface-subtle dark:shadow-sm">
       <div className="flex h-16 items-center">
         <div className="flex w-60 shrink-0 items-center px-4">
           <Link to="/" className="flex items-center">
             <img
               alt={APP_NAME}
-              className={`h-14 w-auto origin-left object-contain ${darkMode ? "scale-[1.12]" : ""}`}
-              src={darkMode ? logoDark : logoLight}
+              className="h-7 w-auto origin-left object-contain"
+              src={darkMode ? `${moveVnLogo}#dark` : moveVnLogo}
             />
           </Link>
         </div>
@@ -80,7 +79,7 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
             onClick={onToggleTheme}
             aria-label={darkMode ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
             title={darkMode ? "Giao diện sáng" : "Giao diện tối"}
-            className="grid h-10 w-10 place-items-center rounded-md border border-slate-200 text-slate-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-[#3b3348] dark:text-gray-300 dark:hover:border-brand-700 dark:hover:bg-white/10 dark:hover:text-white"
+            className="grid h-10 w-10 place-items-center rounded-md border border-slate-200 text-slate-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-ui-border dark:text-gray-300 dark:hover:border-brand-700 dark:hover:bg-white/10 dark:hover:text-white"
           >
             {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
           </button>
@@ -92,7 +91,7 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
               className={`hidden h-10 items-center gap-2 rounded-md border px-2.5 text-sm transition-colors sm:flex ${
                 open
                   ? "border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-200"
-                  : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950 dark:text-gray-300 dark:hover:border-[#3b3348] dark:hover:bg-white/10 dark:hover:text-white"
+                  : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950 dark:text-gray-300 dark:hover:border-ui-border dark:hover:bg-white/10 dark:hover:text-white"
               }`}
             >
               <span className="relative inline-flex shrink-0">
@@ -104,7 +103,7 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
                   )}
                 </span>
                 {selfOnline && (
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-[#0d0b14]" />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-surface-base" />
                 )}
               </span>
               <span className="max-w-32 truncate">{user?.fullName ?? "Tài khoản"}</span>
@@ -112,7 +111,7 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
             </button>
 
             {open && (
-              <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10 dark:border-[#3b3348] dark:bg-[#17131f] dark:shadow-black/30">
+              <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-xl shadow-slate-950/10 dark:border-ui-border dark:bg-surface-card dark:shadow-black/30">
                 <Link
                   to="/account"
                   onClick={() => setOpen(false)}
@@ -133,7 +132,7 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
                   </button>
                 )}
 
-                <span className="my-1 block border-t border-slate-100 dark:border-[#30283d]" />
+                <span className="my-1 block border-t border-slate-100 dark:border-ui-border" />
                 <Link
                   to="/logout"
                   onClick={() => setOpen(false)}
@@ -149,7 +148,7 @@ export default function Header({ darkMode, onToggleTheme }: HeaderProps) {
           {walletBalance !== null && (
             <Link
               to="/account/wallet"
-              className="hidden items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:border-[#3b3348] dark:bg-[#17131f] dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30 sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:border-ui-border dark:bg-surface-card dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30 sm:inline-flex"
             >
               <Wallet className="h-3.5 w-3.5" />
               <span>{new Intl.NumberFormat("vi-VN").format(walletBalance)}đ</span>

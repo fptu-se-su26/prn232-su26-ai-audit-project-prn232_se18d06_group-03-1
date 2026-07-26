@@ -171,7 +171,7 @@ export default function RegisterPage() {
 
         <p className="pt-2 text-center text-sm font-medium text-slate-600">
           Đã có tài khoản?{" "}
-          <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/login">
+          <Link className="font-bold text-app-purple hover:text-app-purple-deep transition-colors" to="/login">
             Đăng nhập ngay
           </Link>
         </p>
@@ -179,7 +179,7 @@ export default function RegisterPage() {
 
       <p className="mt-4 text-center text-sm font-medium text-slate-600">
         Hoặc{" "}
-        <Link className="font-bold text-[#6b19ff] hover:text-[#5215a2] transition-colors" to="/register-owner">
+        <Link className="font-bold text-app-purple hover:text-app-purple-deep transition-colors" to="/register-owner">
           đăng ký làm chủ xe
         </Link>
       </p>

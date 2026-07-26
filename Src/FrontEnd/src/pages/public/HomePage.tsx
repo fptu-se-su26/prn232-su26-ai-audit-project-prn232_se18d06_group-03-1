@@ -5,7 +5,6 @@ import {
   MapPin,
   Car,
   Bike,
-  ArrowUpRight,
   Star,
   TicketPercent,
   Search,
@@ -238,10 +237,20 @@ export default function HomePage() {
     navigate(`/vehicle?${params.toString()}`);
   };
 
+  const focusVehicleSearch = () => {
+    document.getElementById("homepage-vehicle-search")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    window.setTimeout(() => {
+      document.getElementById("homepage-search-location")?.focus();
+    }, 450);
+  };
+
   return (
-    <div className="bg-slate-50 dark:bg-[#0e0e0e] text-slate-800 dark:text-neutral-200 transition-colors duration-300 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="bg-slate-50 dark:bg-surface-base text-slate-800 dark:text-neutral-200 transition-colors duration-300 font-sans selection:bg-brand-500 selection:text-white">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[440px] md:min-h-[490px] lg:min-h-[520px] flex flex-col justify-center overflow-hidden bg-neutral-900 pb-24 pt-12 md:pb-28">
+      <section className="relative flex min-h-[760px] flex-col justify-center overflow-hidden bg-neutral-900 pb-16 pt-8 sm:min-h-[650px] sm:pb-20 sm:pt-10 lg:h-[clamp(620px,72vh,700px)] lg:min-h-0 lg:py-0">
         {/* Background slider with polite scrim overlay */}
         <div className="absolute inset-0 z-0">
           {heroSlides.map((slide, index) => (
@@ -258,28 +267,28 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/80 pointer-events-none" />
         </div>
 
-        <div className="relative z-10 mx-auto flex min-h-[760px] w-full max-w-7xl items-center px-4 py-24 sm:px-6 lg:min-h-[860px] lg:px-8">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-10 sm:px-6 sm:py-12 lg:h-full lg:flex-none lg:px-8 lg:py-10">
           <div className="w-full max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-md border border-brand-200 bg-white/80 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-lg shadow-brand-500/10 backdrop-blur">
               <CarFront className="h-4 w-4" />
               Đặt xe siêu nhanh
             </div>
 
-            <h1 className="mt-8 max-w-3xl text-4xl font-black leading-[1.1] tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-[56px]">
+            <h1 className="mt-6 max-w-3xl text-3xl font-black leading-[1.2] tracking-tight text-slate-950 dark:text-white sm:text-4xl lg:text-[52px]">
               Đặt xe trong vài phút
-              <span className="mt-2 block bg-gradient-to-r from-brand-700 via-violet-600 to-fuchsia-500 bg-clip-text text-transparent">
+              <span className="mt-2 block bg-gradient-to-r from-brand-700 via-violet-600 to-fuchsia-500 bg-clip-text pb-[0.12em] text-transparent">
                 nhận xe cực dễ dàng
               </span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
+            <p className="mt-4 max-w-xl text-base font-medium leading-7 text-slate-700 sm:text-lg sm:leading-8">
               Tìm xe, xác nhận chủ xe và hoàn tất đặt chỗ nhanh chóng chỉ với vài thao tác trên MOVEVN.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
-                onClick={handleSearch}
+                onClick={focusVehicleSearch}
                 className="inline-flex h-12 items-center justify-center gap-3 rounded-md bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 px-7 text-sm font-bold text-white shadow-xl shadow-brand-600/25 transition hover:from-brand-700 hover:via-violet-700 hover:to-fuchsia-600 active:scale-[0.99]"
               >
                 Bắt đầu đặt xe
@@ -300,55 +309,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="mt-8 w-full max-w-3xl rounded-md border border-white/80 bg-white/75 p-3 shadow-2xl shadow-brand-950/10 backdrop-blur-xl">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="grid grid-cols-2 gap-1 rounded-md border border-slate-200 bg-slate-50 p-1 md:w-48">
-                  <button
-                    type="button"
-                    onClick={() => setSearchTab("car")}
-                    className={`h-11 rounded-md text-xs font-bold uppercase tracking-[0.12em] transition ${
-                      searchTab === "car"
-                        ? "bg-gradient-to-r from-brand-600 to-fuchsia-500 text-white shadow-lg shadow-brand-500/25"
-                        : "text-slate-500 hover:bg-white hover:text-slate-900"
-                    }`}
-                  >
-                    Ô tô
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSearchTab("motorbike")}
-                    className={`h-11 rounded-md text-xs font-bold uppercase tracking-[0.12em] transition ${
-                      searchTab === "motorbike"
-                        ? "bg-gradient-to-r from-brand-600 to-fuchsia-500 text-white shadow-lg shadow-brand-500/25"
-                        : "text-slate-500 hover:bg-white hover:text-slate-900"
-                    }`}
-                  >
-                    Xe máy
-                  </button>
-                </div>
-
-                <div className="relative min-w-0 flex-1">
-                  <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-600" />
-                  <input
-                    type="text"
-                    value={searchLoc}
-                    onChange={(event) => setSearchLoc(event.target.value)}
-                    placeholder="Nhập địa điểm, thành phố..."
-                    className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSearch}
-                  className="h-12 shrink-0 rounded-md bg-slate-950 px-7 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-lg shadow-slate-950/15 transition hover:bg-brand-700 active:scale-[0.99]"
-                >
-                  Tìm xe
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-8 grid max-w-3xl gap-3 rounded-md border border-white/70 bg-white/60 p-3 shadow-xl shadow-brand-950/5 backdrop-blur md:grid-cols-4">
+            <div className="mt-7 grid max-w-3xl grid-cols-2 gap-2 rounded-md border border-white/70 bg-white/70 p-2 shadow-xl shadow-brand-950/5 backdrop-blur md:grid-cols-4 md:gap-3 md:p-3">
               {[
                 { icon: CheckCircle2, title: "Nhanh chóng", text: "Đặt xe chỉ trong vài phút" },
                 { icon: MapPin, title: "Thuận tiện", text: "Nhận xe mọi lúc, mọi nơi" },
@@ -357,8 +318,8 @@ export default function HomePage() {
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.title} className="flex items-start gap-3 rounded-md p-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
+                  <div key={item.title} className="flex items-start gap-2 rounded-md p-2 sm:gap-3 sm:p-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700 sm:h-10 sm:w-10">
                       <Icon className="h-5 w-5" />
                     </span>
                     <span>
@@ -370,7 +331,7 @@ export default function HomePage() {
               })}
             </div>
 
-            <div className="mt-5 flex items-center gap-2">
+            <div className="mt-4 flex items-center gap-2">
               {heroSlides.map((slide, index) => (
                 <button
                   key={slide.src}
@@ -389,14 +350,17 @@ export default function HomePage() {
       </section>
 
       {/* OVERLAPPING SEARCH BOX (Half on Banner, Half on Page Background) */}
-      <div className="relative z-20 max-w-[1280px] xl:max-w-[1360px] w-[96%] sm:w-[94%] mx-auto -mt-20 md:-mt-24 mb-8">
-        <div className="rounded-3xl bg-white/95 dark:bg-[#181818]/95 backdrop-blur-2xl p-5 md:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-slate-200/80 dark:border-neutral-800 text-left">
+      <div
+        id="homepage-vehicle-search"
+        className="relative z-20 mx-auto -mt-10 mb-8 w-[calc(100%-2rem)] max-w-6xl scroll-mt-28 sm:-mt-12 sm:w-[92%]"
+      >
+        <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-left shadow-[0_18px_44px_rgba(0,0,0,0.14)] backdrop-blur-2xl dark:border-ui-border dark:bg-surface-card dark:shadow-md md:p-5">
           {/* Type Selector Tabs */}
-          <div className="flex max-w-xs mx-auto sm:mx-0 gap-1.5 p-1 bg-slate-100 dark:bg-neutral-900 rounded-2xl mb-5 shadow-inner">
+          <div className="mx-auto mb-4 flex max-w-[280px] gap-1.5 rounded-xl bg-slate-100 p-1 shadow-inner dark:bg-neutral-900 sm:mx-0">
             <button
               type="button"
               onClick={() => setSearchTab("car")}
-              className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-black transition-all sm:text-sm ${
                 searchTab === "car"
                   ? "bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/35"
                   : "text-gray-500 hover:text-slate-900 dark:hover:text-white"
@@ -407,7 +371,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setSearchTab("motorbike")}
-              className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-black transition-all sm:text-sm ${
                 searchTab === "motorbike"
                   ? "bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/35"
                   : "text-gray-500 hover:text-slate-900 dark:hover:text-white"
@@ -419,19 +383,20 @@ export default function HomePage() {
 
           {/* Inputs Grid (Explicit single-row horizontal distribution on Desktop) */}
           <form
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.35fr_1.35fr_180px] gap-3 sm:gap-4 items-stretch"
+            className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-[1.05fr_1.25fr_1.25fr_150px]"
             onSubmit={(event) => {
               event.preventDefault();
               handleSearch();
             }}
           >
             {/* Location Input */}
-            <div className="relative group">
-              <label className="block text-[11px] font-bold text-brand-400 dark:text-brand-300 absolute top-1.5 left-10 z-10 pointer-events-none">
+            <div className="relative grid min-w-0 gap-1.5 group">
+              <label htmlFor="homepage-search-location" className="block text-[11px] font-bold text-brand-500 dark:text-brand-300">
                 Địa điểm nhận xe
               </label>
-              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-brand-500 transition-colors z-10 pointer-events-none" />
+              <MapPin className="pointer-events-none absolute left-3.5 top-[52px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
               <input
+                id="homepage-search-location"
                 type="text"
                 value={searchLoc}
                 onChange={(e) => {
@@ -444,7 +409,7 @@ export default function HomePage() {
                 onFocus={() => setLocationMenuOpen(searchLoc.trim().length >= 2)}
                 onBlur={() => setLocationMenuOpen(false)}
                 placeholder="Nhập thành phố, quận/huyện..."
-                className="w-full bg-slate-50/90 dark:bg-neutral-900/90 hover:bg-slate-100 dark:hover:bg-neutral-800/80 border border-slate-200/80 dark:border-neutral-800 rounded-2xl h-14 pl-10 pr-10 pt-3.5 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-400 focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all truncate"
+                className="min-h-12 w-full truncate rounded-xl border border-slate-200/80 bg-slate-50/90 py-2.5 pl-10 pr-10 text-sm font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900"
               />
               {searchLoc && (
                 <button
@@ -455,7 +420,7 @@ export default function HomePage() {
                     setSearchAreaId(null);
                     setLocationMenuOpen(false);
                   }}
-                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-neutral-700 dark:hover:text-white"
+                  className="absolute right-3 top-[52px] z-10 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-neutral-700 dark:hover:text-white"
                   aria-label="Xóa địa điểm"
                   title="Xóa địa điểm"
                 >
@@ -492,29 +457,31 @@ export default function HomePage() {
             </div>
 
             {/* Start Date */}
-            <div className="relative group">
-              <label className="block text-[11px] font-bold text-brand-400 dark:text-brand-300 absolute top-1.5 left-10 z-10 pointer-events-none">
+            <div className="relative grid min-w-0 gap-1.5 group">
+              <label htmlFor="homepage-search-start" className="block text-[11px] font-bold text-brand-500 dark:text-brand-300">
                 Ngày nhận xe
               </label>
-              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-brand-500 transition-colors z-10 pointer-events-none" />
+              <Calendar className="pointer-events-none absolute left-3.5 top-[52px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
               <input
+                id="homepage-search-start"
                 type="datetime-local"
                 value={searchStartDate}
                 onChange={(event) => {
                   setSearchStartDate(event.target.value);
                   setSearchError("");
                 }}
-                className="w-full bg-slate-50/90 dark:bg-neutral-900/90 hover:bg-slate-100 dark:hover:bg-neutral-800/80 border border-slate-200/80 dark:border-neutral-800 rounded-2xl h-14 pl-10 pr-3 pt-3.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-400 focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all cursor-pointer"
+                className="min-h-12 w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/90 py-2.5 pl-10 pr-3 text-xs font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900 sm:text-sm"
               />
             </div>
 
             {/* End Date */}
-            <div className="relative group">
-              <label className="block text-[11px] font-bold text-brand-400 dark:text-brand-300 absolute top-1.5 left-10 z-10 pointer-events-none">
+            <div className="relative grid min-w-0 gap-1.5 group">
+              <label htmlFor="homepage-search-end" className="block text-[11px] font-bold text-brand-500 dark:text-brand-300">
                 Ngày trả xe
               </label>
-              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-brand-500 transition-colors z-10 pointer-events-none" />
+              <Calendar className="pointer-events-none absolute left-3.5 top-[52px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
               <input
+                id="homepage-search-end"
                 type="datetime-local"
                 min={searchStartDate || undefined}
                 value={searchEndDate}
@@ -522,15 +489,15 @@ export default function HomePage() {
                   setSearchEndDate(event.target.value);
                   setSearchError("");
                 }}
-                className="w-full bg-slate-50/90 dark:bg-neutral-900/90 hover:bg-slate-100 dark:hover:bg-neutral-800/80 border border-slate-200/80 dark:border-neutral-800 rounded-2xl h-14 pl-10 pr-3 pt-3.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-400 focus:bg-white dark:focus:bg-neutral-900 outline-none transition-all cursor-pointer"
+                className="min-h-12 w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/90 py-2.5 pl-10 pr-3 text-xs font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900 sm:text-sm"
               />
             </div>
 
             {/* Submit Button */}
-            <div className="flex">
+            <div className="flex items-end">
               <button
                 type="submit"
-                className="w-full h-14 px-6 rounded-2xl bg-gradient-to-r from-brand-500 via-purple-500 to-fuchsia-500 hover:from-brand-400 hover:via-purple-400 hover:to-fuchsia-400 text-white font-black text-sm tracking-wide shadow-xl shadow-brand-500/40 transition-all hover:scale-[1.01] active:scale-95 flex justify-center items-center gap-2 cursor-pointer"
+                className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 via-purple-500 to-fuchsia-500 px-5 py-2.5 text-sm font-black tracking-wide text-white shadow-lg shadow-brand-500/30 transition-all hover:scale-[1.01] hover:from-brand-400 hover:via-purple-400 hover:to-fuchsia-400 active:scale-95"
               >
                 <Search className="h-4 w-4 stroke-[2.5]" /> TÌM XE
               </button>
@@ -581,7 +548,7 @@ export default function HomePage() {
       </section>
 
       {/* 3. DESTINATIONS */}
-      <section className="border-y border-slate-200/70 bg-white py-20 dark:border-neutral-800/80 dark:bg-[#121212]">
+      <section className="border-y border-slate-200/70 bg-white py-20 dark:border-neutral-800/80 dark:bg-surface-subtle">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
           <div className="mb-10 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
             <div className="max-w-xl">
@@ -636,7 +603,7 @@ export default function HomePage() {
       </section>
 
       {/* 5. FEATURES */}
-      <section className="relative overflow-hidden bg-[#f5f3ff] py-20 transition-colors dark:bg-[#17121f] sm:py-24">
+      <section className="relative overflow-hidden bg-app-violet-100 py-20 transition-colors dark:bg-surface-subtle sm:py-24">
         <div className="absolute inset-x-0 top-0 h-px bg-brand-200 dark:bg-brand-900" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-14 max-w-2xl text-center sm:mb-16">
@@ -654,15 +621,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((item) => (
               <article key={item.title} className="group flex flex-col items-center text-center">
-                <div className="relative aspect-square w-full max-w-[235px] sm:max-w-[250px]">
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-x-5 bottom-3 top-9 rounded-lg border border-white/80 bg-white/70 shadow-[0_20px_35px_-28px_rgba(76,29,149,0.55)] dark:border-white/10 dark:bg-white/5"
-                  />
+                <div className="relative aspect-square w-full max-w-[220px] sm:max-w-[235px]">
                   <img
                     src={item.image}
                     alt=""
-                    className="relative h-full w-full rounded-lg object-cover shadow-[0_26px_38px_-28px_rgba(76,29,149,0.6)] transition duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_30px_45px_-28px_rgba(76,29,149,0.7)]"
+                    className="relative h-full w-full object-contain drop-shadow-[0_22px_18px_rgba(91,33,182,0.18)] transition duration-500 group-hover:-translate-y-1 group-hover:drop-shadow-[0_26px_22px_rgba(91,33,182,0.25)]"
                   />
                 </div>
                 <div className="max-w-[300px] px-2 pt-5">
@@ -747,7 +710,7 @@ export default function HomePage() {
       </section>
 
       {/* 7. HOW IT WORKS */}
-      <section className="border-y border-slate-200/80 bg-[#f7f5ff] py-20 transition-colors dark:border-neutral-800 dark:bg-[#121212] sm:py-24">
+      <section className="border-y border-slate-200/80 bg-app-violet-50 py-20 transition-colors dark:border-neutral-800 dark:bg-surface-subtle sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-12 max-w-2xl text-center sm:mb-14">
             <span className="text-[11px] font-black tracking-widest text-brand-500 dark:text-brand-400 uppercase block mb-1">
@@ -761,7 +724,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_22px_40px_-34px_rgba(76,29,149,0.45)] dark:border-neutral-800 dark:bg-[#17131e]">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_22px_40px_-34px_rgba(76,29,149,0.45)] dark:border-neutral-800 dark:bg-surface-subtle">
             <div className="grid grid-cols-1 divide-y divide-slate-200 dark:divide-neutral-800 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
               {steps.map((s) => {
                 const IconComponent = s.icon;
@@ -818,7 +781,7 @@ export default function HomePage() {
             </div>
           ) : vehicles.length === 0 ? (
             [1, 2, 3].map((_, idx) => (
-              <div key={idx} className="rounded-2xl border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-[#151515] p-5 shadow-sm">
+              <div key={idx} className="rounded-2xl border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-surface-subtle p-5 shadow-sm">
                 <div className="aspect-[16/10] bg-slate-100 dark:bg-neutral-800 rounded-xl overflow-hidden relative mb-4">
                   <img src={`https://images.unsplash.com/photo-${idx === 0 ? '1549317661-bd32c8ce0db2' : idx === 1 ? '1502877338535-766e1452684a' : '1541899481282-d53bffe3c35d'}?auto=format&fit=crop&w=600&q=80`} alt="Car" className="w-full h-full object-cover" />
                 </div>
@@ -843,7 +806,7 @@ export default function HomePage() {
             vehicles.map((v) => (
               <div
                 key={v.id}
-                className="group rounded-2xl border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-[#151515] p-5 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-brand-500/40 transition-all duration-300 flex flex-col justify-between"
+                className="group rounded-2xl border border-slate-200/80 dark:border-neutral-800 bg-white dark:bg-surface-subtle p-5 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-brand-500/40 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
                   <div className="aspect-[16/10] bg-slate-100 dark:bg-neutral-800 rounded-xl overflow-hidden relative mb-4">
@@ -889,7 +852,7 @@ export default function HomePage() {
       {/* 9. DUAL CTA BANNERS */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
         <div className="grid gap-5 lg:grid-cols-2">
-          <article className="group overflow-hidden rounded-lg border border-brand-100 bg-[#fbf9ff] shadow-[0_20px_45px_-32px_rgba(109,40,217,0.38)] transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_24px_52px_-30px_rgba(109,40,217,0.46)] dark:border-brand-900/60 dark:bg-[#17131f]">
+          <article className="group overflow-hidden rounded-lg border border-brand-100 bg-app-violet-175 shadow-[0_20px_45px_-32px_rgba(109,40,217,0.38)] transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_24px_52px_-30px_rgba(109,40,217,0.46)] dark:border-brand-900/60 dark:bg-surface-card">
             <div className="grid min-h-[300px] sm:grid-cols-[minmax(0,1fr)_220px]">
               <div className="flex flex-col justify-center px-7 py-8 sm:px-9 sm:py-10">
                 <span className="text-[11px] font-black uppercase tracking-widest text-brand-700 dark:text-brand-300">
@@ -919,7 +882,7 @@ export default function HomePage() {
             </div>
           </article>
 
-          <article className="group overflow-hidden rounded-lg border border-fuchsia-100 bg-[#f7f2ff] shadow-[0_20px_45px_-32px_rgba(192,38,211,0.34)] transition hover:-translate-y-0.5 hover:border-fuchsia-200 hover:shadow-[0_24px_52px_-30px_rgba(192,38,211,0.42)] dark:border-fuchsia-900/50 dark:bg-[#1d1426]">
+          <article className="group overflow-hidden rounded-lg border border-fuchsia-100 bg-app-violet-150 shadow-[0_20px_45px_-32px_rgba(192,38,211,0.34)] transition hover:-translate-y-0.5 hover:border-fuchsia-200 hover:shadow-[0_24px_52px_-30px_rgba(192,38,211,0.42)] dark:border-fuchsia-900/50 dark:bg-surface-card">
             <div className="grid min-h-[300px] sm:grid-cols-[minmax(0,1fr)_220px]">
               <div className="flex flex-col justify-center px-7 py-8 sm:px-9 sm:py-10">
                 <span className="text-[11px] font-black uppercase tracking-widest text-fuchsia-700 dark:text-fuchsia-300">
@@ -953,7 +916,7 @@ export default function HomePage() {
 
       {/* 10. APP DOWNLOAD BANNER */}
       <section className="mx-auto mb-14 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-lg border border-brand-100 bg-[#f5f2ff] shadow-[0_24px_54px_-36px_rgba(109,40,217,0.46)] dark:border-brand-900/60 dark:bg-[#17131f]">
+        <div className="overflow-hidden rounded-lg border border-brand-100 bg-app-violet-125 shadow-[0_24px_54px_-36px_rgba(109,40,217,0.46)] dark:border-brand-900/60 dark:bg-surface-card">
           <div className="grid items-center gap-10 px-7 py-10 sm:px-10 lg:grid-cols-[1.15fr_0.85fr] lg:px-14 lg:py-12">
             <div className="max-w-xl text-center lg:text-left">
               <span className="text-[11px] font-black uppercase tracking-widest text-brand-700 dark:text-brand-300">
@@ -983,7 +946,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => alert("Ứng dụng App Store đang trong quá trình phát hành!")}
-                  className="flex items-center gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 text-left text-slate-900 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-white dark:hover:border-brand-700 dark:hover:bg-[#2a2236]"
+                  className="flex items-center gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 text-left text-slate-900 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-ui-border-strong dark:bg-surface-elevated dark:text-white dark:hover:border-brand-700 dark:hover:bg-app-dark-hover"
                 >
                   <Smartphone className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
                   <span>
@@ -994,7 +957,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => alert("Ứng dụng Google Play đang trong quá trình phát hành!")}
-                  className="flex items-center gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 text-left text-slate-900 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-[#4a4058] dark:bg-[#211b2b] dark:text-white dark:hover:border-brand-700 dark:hover:bg-[#2a2236]"
+                  className="flex items-center gap-3 rounded-lg border border-brand-200 bg-white px-4 py-3 text-left text-slate-900 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 dark:border-ui-border-strong dark:bg-surface-elevated dark:text-white dark:hover:border-brand-700 dark:hover:bg-app-dark-hover"
                 >
                   <Smartphone className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-300" />
                   <span>
@@ -1006,7 +969,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex justify-center lg:justify-end">
-              <div className="w-[220px] overflow-hidden rounded-[28px] border-[7px] border-brand-200 bg-white shadow-[0_24px_50px_-24px_rgba(109,40,217,0.55)] dark:border-brand-800 dark:bg-[#211b2b] sm:w-[240px]">
+              <div className="w-[220px] overflow-hidden rounded-[28px] border-[7px] border-brand-200 bg-white shadow-[0_24px_50px_-24px_rgba(109,40,217,0.55)] dark:border-brand-800 dark:bg-surface-elevated sm:w-[240px]">
                 <div className="mx-auto h-5 w-24 rounded-b-xl bg-brand-200 dark:bg-brand-800" />
                 <img
                   src={featureDigitalPaperwork}
