@@ -1,4 +1,4 @@
-import { MessageCircle, Send, X } from "lucide-react";
+import { ChevronLeft, MessageCircle, Send, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -57,7 +57,7 @@ export default function HomeChatWidget() {
     getChatRooms({ page: 1, pageSize: 20 })
       .then((page) => {
         setRooms(page.items);
-        setSelectedRoomId(page.items[0]?.id ?? null);
+        setSelectedRoomId(page.items.length === 1 ? page.items[0].id : null);
       })
       .catch((err) => setError(getApiErrorMessage(err, "Không thể tải danh sách trò chuyện.")))
       .finally(() => setIsLoading(false));
@@ -96,11 +96,29 @@ export default function HomeChatWidget() {
       {isOpen ? (
         <section className="fixed bottom-24 left-4 right-4 z-50 flex h-[min(560px,70vh)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:left-auto sm:right-7 sm:w-[390px] dark:border-neutral-700 dark:bg-neutral-900">
           <header className="flex items-center justify-between bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-3 text-white">
-            <div>
-              <p className="text-sm font-bold">Tin nhắn MoveVN</p>
-              <p className="text-xs text-white/75">
-                {participant?.fullName ?? "Trao đổi nhanh ngay tại đây"}
-              </p>
+            <div className="flex min-w-0 items-center gap-2">
+              {selectedRoomId && rooms.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedRoomId(null)}
+                  aria-label="Quay lại danh sách trò chuyện"
+                  className="rounded-full p-1.5 transition hover:bg-white/15"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              ) : null}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">
+                  {participant?.fullName ?? "Tin nhắn MoveVN"}
+                </p>
+                <p className="truncate text-xs text-white/75">
+                  {selectedRoom
+                    ? `Booking ${selectedRoom.bookingCode}`
+                    : rooms.length > 0
+                      ? `${rooms.length} cuộc trò chuyện`
+                      : "Trao đổi nhanh ngay tại đây"}
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -131,21 +149,46 @@ export default function HomeChatWidget() {
               <p className="font-semibold text-slate-700 dark:text-slate-200">Chưa có cuộc trò chuyện</p>
               <p className="text-sm text-slate-500">Phòng chat sẽ xuất hiện sau khi bạn có booking.</p>
             </div>
+          ) : !selectedRoomId ? (
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-2 dark:bg-neutral-950">
+              {isLoading ? (
+                <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>
+              ) : (
+                rooms.map((room) => {
+                  const other = room.participants.find((item) => item.userId !== user.userId);
+                  return (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => setSelectedRoomId(room.id)}
+                      className="mb-1 flex w-full items-center gap-3 rounded-xl border border-transparent bg-white p-3 text-left shadow-sm transition hover:border-brand-200 hover:bg-brand-50 dark:bg-neutral-900 dark:hover:border-brand-700 dark:hover:bg-neutral-800"
+                    >
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 font-bold text-white">
+                        {(other?.fullName ?? "?").trim().charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                            {other?.fullName ?? "Người dùng"}
+                          </p>
+                          {room.unreadCount > 0 ? (
+                            <span className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white">
+                              {room.unreadCount}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-xs text-slate-400">Booking {room.bookingCode}</p>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {room.lastMessage?.text ?? "Chưa có tin nhắn"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           ) : (
             <>
-              {rooms.length > 1 ? (
-                <select
-                  value={selectedRoomId ?? ""}
-                  onChange={(event) => setSelectedRoomId(event.target.value)}
-                  className="m-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-brand-400 dark:border-neutral-700 dark:bg-neutral-800"
-                >
-                  {rooms.map((room) => {
-                    const other = room.participants.find((item) => item.userId !== user.userId);
-                    return <option key={room.id} value={room.id}>{other?.fullName ?? "Người dùng"} · {room.bookingCode}</option>;
-                  })}
-                </select>
-              ) : null}
-
               <div className="flex-1 space-y-2 overflow-y-auto bg-slate-50 p-3 dark:bg-neutral-950">
                 {isLoading ? (
                   <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>
