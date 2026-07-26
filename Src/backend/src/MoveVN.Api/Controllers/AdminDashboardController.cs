@@ -19,31 +19,71 @@ public class AdminDashboardController : BaseApiController
     }
 
     [HttpGet("stats")]
-    public async Task<ActionResult<ApiResponse<object>>> GetStats(CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<object>>> GetStats(
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        CancellationToken ct)
     {
+        if (fromDate.HasValue != toDate.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.Failed(
+                "DASHBOARD_DATE_RANGE_REQUIRED",
+                "fromDate and toDate must be provided together."));
+        }
+
+        if (fromDate > toDate)
+        {
+            return BadRequest(ApiResponse<object>.Failed(
+                "DASHBOARD_DATE_RANGE_INVALID",
+                "fromDate must be earlier than or equal to toDate."));
+        }
+
+        if (fromDate.HasValue && toDate!.Value.DayNumber - fromDate.Value.DayNumber > 61)
+        {
+            return BadRequest(ApiResponse<object>.Failed(
+                "DASHBOARD_DATE_RANGE_TOO_LARGE",
+                "Dashboard date range must not exceed 62 days."));
+        }
+
         var now = DateTime.UtcNow;
         var today = now.Date;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var trendStart = today.AddDays(-13);
-        var revenueTrendStart = monthStart.AddMonths(-5);
+        var rangeStart = fromDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var rangeEndExclusive = toDate?.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var trendStart = rangeStart ?? today.AddDays(-13);
+        var trendEnd = rangeEndExclusive ?? today.AddDays(1);
+        var revenueTrendStart = rangeStart is null
+            ? monthStart.AddMonths(-5)
+            : new DateTime(rangeStart.Value.Year, rangeStart.Value.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var revenueTrendEnd = rangeEndExclusive ?? monthStart.AddMonths(1);
 
-        var totalCompletedBookings = await _context.Bookings.CountAsync(b => b.Status == "Completed", ct);
-        var totalBookings = await _context.Bookings.CountAsync(ct);
-        var pendingBookings = await _context.Bookings.CountAsync(b => b.Status == "Pending", ct);
-        var activeBookings = await _context.Bookings.CountAsync(
+        var bookingQuery = _context.Bookings.AsNoTracking();
+        if (rangeStart.HasValue)
+        {
+            bookingQuery = bookingQuery.Where(b => b.CreatedAt >= rangeStart && b.CreatedAt < rangeEndExclusive);
+        }
+
+        var completedBookingQuery = _context.Bookings.AsNoTracking().Where(b => b.Status == "Completed");
+        if (rangeStart.HasValue)
+        {
+            completedBookingQuery = completedBookingQuery.Where(
+                b => b.UpdatedAt >= rangeStart && b.UpdatedAt < rangeEndExclusive);
+        }
+
+        var totalCompletedBookings = await completedBookingQuery.CountAsync(ct);
+        var totalBookings = await bookingQuery.CountAsync(ct);
+        var pendingBookings = await bookingQuery.CountAsync(b => b.Status == "Pending", ct);
+        var activeBookings = await bookingQuery.CountAsync(
             b => b.Status == "Approved" || b.Status == "DepositPaid" || b.Status == "Confirmed" || b.Status == "InProgress",
             ct);
 
-        var totalRevenue = await _context.Bookings
-            .Where(b => b.Status == "Completed")
+        var totalRevenue = await completedBookingQuery
             .SumAsync(b => (decimal?)b.PlatformFee, ct) ?? 0;
 
-        var totalBookingValue = await _context.Bookings
-            .Where(b => b.Status == "Completed")
+        var totalBookingValue = await completedBookingQuery
             .SumAsync(b => (decimal?)b.TotalAmount, ct) ?? 0;
 
-        var totalDeposit = await _context.Bookings
-            .Where(b => b.Status == "Completed")
+        var totalDeposit = await completedBookingQuery
             .SumAsync(b => (decimal?)b.DepositAmount, ct) ?? 0;
 
         var monthlyRevenue = await _context.Bookings
@@ -53,6 +93,12 @@ public class AdminDashboardController : BaseApiController
         var monthlyBookingValue = await _context.Bookings
             .Where(b => b.Status == "Completed" && b.UpdatedAt >= monthStart)
             .SumAsync(b => (decimal?)b.TotalAmount, ct) ?? 0;
+
+        if (rangeStart.HasValue)
+        {
+            monthlyRevenue = totalRevenue;
+            monthlyBookingValue = totalBookingValue;
+        }
 
         var pendingWithdrawalAmount = await _context.WithdrawalRequests
             .Where(w => w.Status == "Pending")
@@ -69,12 +115,17 @@ public class AdminDashboardController : BaseApiController
         var approvedVehicles = await _context.Vehicles.CountAsync(v => v.Status == "Approved", ct);
         var pendingVehicles = await _context.Vehicles.CountAsync(v => v.Status == "Pending", ct);
         var openDisputes = await _context.Disputes.CountAsync(d => d.Status != "Resolved", ct);
-        var totalDisputes = await _context.Disputes.CountAsync(ct);
+        var disputeQuery = _context.Disputes.AsNoTracking();
+        if (rangeStart.HasValue)
+        {
+            disputeQuery = disputeQuery.Where(d => d.CreatedAt >= rangeStart && d.CreatedAt < rangeEndExclusive);
+        }
+        var totalDisputes = await disputeQuery.CountAsync(ct);
         var supportTicketsOpen = await _context.SupportTickets.CountAsync(t => t.Status == "Open" || t.Status == "InProgress", ct);
         var unreadNotifications = await _context.Notifications.CountAsync(n => !n.IsRead, ct);
-        var todayBookings = await _context.Bookings.CountAsync(b => b.CreatedAt >= today, ct);
+        var todayBookings = await bookingQuery.CountAsync(b => b.CreatedAt >= today, ct);
 
-        var bookingStatusBreakdown = await _context.Bookings
+        var bookingStatusBreakdown = await bookingQuery
             .GroupBy(b => b.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
@@ -87,12 +138,13 @@ public class AdminDashboardController : BaseApiController
             .ToListAsync(ct);
 
         var bookingTrendRaw = await _context.Bookings
-            .Where(b => b.CreatedAt >= trendStart)
+            .Where(b => b.CreatedAt >= trendStart && b.CreatedAt < trendEnd)
             .GroupBy(b => b.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync(ct);
 
-        var bookingTrend = Enumerable.Range(0, 14)
+        var trendDayCount = (trendEnd.Date - trendStart.Date).Days;
+        var bookingTrend = Enumerable.Range(0, trendDayCount)
             .Select(index =>
             {
                 var date = trendStart.AddDays(index);
@@ -105,7 +157,9 @@ public class AdminDashboardController : BaseApiController
             .ToList();
 
         var revenueTrendRaw = await _context.Bookings
-            .Where(b => b.Status == "Completed" && b.UpdatedAt >= revenueTrendStart)
+            .Where(b => b.Status == "Completed"
+                && b.UpdatedAt >= revenueTrendStart
+                && b.UpdatedAt < revenueTrendEnd)
             .GroupBy(b => new { b.UpdatedAt.Year, b.UpdatedAt.Month })
             .Select(g => new
             {
@@ -116,7 +170,11 @@ public class AdminDashboardController : BaseApiController
             })
             .ToListAsync(ct);
 
-        var revenueTrend = Enumerable.Range(0, 6)
+        var revenueMonthCount = Math.Max(
+            1,
+            (revenueTrendEnd.Year - revenueTrendStart.Year) * 12
+                + revenueTrendEnd.Month - revenueTrendStart.Month);
+        var revenueTrend = Enumerable.Range(0, revenueMonthCount)
             .Select(index =>
             {
                 var month = revenueTrendStart.AddMonths(index);
@@ -130,7 +188,7 @@ public class AdminDashboardController : BaseApiController
             })
             .ToList();
 
-        var recentBookings = await _context.Bookings
+        var recentBookings = await bookingQuery
             .OrderByDescending(b => b.UpdatedAt)
             .Take(10)
             .Select(b => new
@@ -174,7 +232,10 @@ public class AdminDashboardController : BaseApiController
             VehicleStatusBreakdown = vehicleStatusBreakdown,
             BookingTrend = bookingTrend,
             RevenueTrend = revenueTrend,
-            RecentBookings = recentBookings
+            RecentBookings = recentBookings,
+            FromDate = fromDate?.ToString("yyyy-MM-dd"),
+            ToDate = toDate?.ToString("yyyy-MM-dd"),
+            IsFiltered = fromDate.HasValue
         });
     }
 }

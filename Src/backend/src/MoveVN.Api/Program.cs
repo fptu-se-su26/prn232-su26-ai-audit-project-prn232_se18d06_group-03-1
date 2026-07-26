@@ -7,6 +7,8 @@ using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Infrastructure.Extensions;
 using DotNetEnv;
 using FluentValidation.AspNetCore;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
@@ -43,6 +45,18 @@ builder.Configuration["AI_VERIFICATION_API_KEY"] = GetRequiredEnvironmentVariabl
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+        options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")!)));
+builder.Services.AddHangfireServer(options =>
+{
+    options.ServerName = $"{Environment.MachineName}:movevn";
+    options.WorkerCount = 2;
+});
+builder.Services.AddScoped<BookingAutoCancelJob>();
 
 builder.Services.AddFluentValidationAutoValidation(config => config.DisableDataAnnotationsValidation = true);
 builder.Services.AddFluentValidationClientsideAdapters();
@@ -57,7 +71,7 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 });
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
-builder.Services.AddHostedService<BookingAutoCancelBackgroundService>();
+builder.Services.AddHostedService<EmailDeliveryBackgroundService>();
 builder.Services.AddHostedService<BookingReminderBackgroundService>();
 
 const string frontendCorsPolicy = "Frontend";
@@ -176,6 +190,13 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 await app.ApplyDatabaseMigrationsAsync();
+
+var recurringJobManager = app.Services.GetRequiredService<IRecurringJobManager>();
+recurringJobManager.AddOrUpdate<BookingAutoCancelJob>(
+    "booking-auto-cancel",
+    job => job.RunAsync(CancellationToken.None),
+    "*/5 * * * *",
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
 app.UseGlobalExceptionMiddleware();
 

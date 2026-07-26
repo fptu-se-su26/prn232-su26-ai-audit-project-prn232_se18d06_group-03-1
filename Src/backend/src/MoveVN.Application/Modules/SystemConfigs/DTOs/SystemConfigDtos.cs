@@ -10,6 +10,8 @@ public static class SystemConfigKeys
     public const string BookingReminderScanMinutes = "booking_reminder_scan_minutes";
     public const string NotificationEmailEnabled = "notification_email_enabled";
     public const string RiskThreshold = "risk_threshold";
+    public const string PlatformFeePercent = "platform_fee_pct";
+    public const string DepositRatePercent = "deposit_rate_pct";
 
     public static readonly IReadOnlyList<SystemConfigDefinition> Definitions =
     [
@@ -20,7 +22,9 @@ public static class SystemConfigKeys
         new(CheckInReminderHours, "Reminder", "Nhac check-in truoc", "int", "2", "So gio truoc thoi diem nhan xe de gui nhac."),
         new(CheckOutReminderHours, "Reminder", "Nhac check-out truoc", "int", "2", "So gio truoc thoi diem tra xe de gui nhac."),
         new(NotificationEmailEnabled, "Notification", "Gui email notification", "bool", "true", "Bat/tat email di kem notification he thong."),
-        new(RiskThreshold, "Risk", "Nguong risk score", "decimal", "70", "Nguong diem rui ro de danh dau booking can theo doi.")
+        new(RiskThreshold, "Risk", "Nguong risk score", "decimal", "70", "Nguong diem rui ro de danh dau booking can theo doi.", 0, 100),
+        new(PlatformFeePercent, "Finance", "Phi nen tang mac dinh (%)", "decimal", "10", "Ty le phi nen tang mac dinh khi khong co quy tac phi phu hop.", 0, 100),
+        new(DepositRatePercent, "Finance", "Ty le coc mac dinh (%)", "decimal", "20", "Ty le tien coc mac dinh khi xe khong co ty le coc rieng.", 0, 100)
     ];
 }
 
@@ -30,7 +34,9 @@ public record SystemConfigDefinition(
     string DisplayName,
     string DataType,
     string DefaultValue,
-    string Description);
+    string Description,
+    decimal? MinValue = null,
+    decimal? MaxValue = null);
 
 public class SystemConfigResponse
 {

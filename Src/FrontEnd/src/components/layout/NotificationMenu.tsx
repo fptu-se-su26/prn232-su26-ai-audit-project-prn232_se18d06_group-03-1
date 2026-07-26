@@ -32,12 +32,30 @@ function formatNotificationTime(value: string) {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function getNotificationTargetPath(notification: NotificationItem) {
+function getNotificationTargetPath(notification: NotificationItem, roles: string[]) {
   if (!notification.dataJson) return null;
 
   try {
-    const data = JSON.parse(notification.dataJson) as { targetPath?: unknown };
-    return typeof data.targetPath === "string" && data.targetPath.startsWith("/") ? data.targetPath : null;
+    const data = JSON.parse(notification.dataJson) as {
+      targetPath?: unknown;
+      ticketId?: unknown;
+    };
+    if (typeof data.targetPath === "string" && data.targetPath.startsWith("/")) {
+      return data.targetPath;
+    }
+
+    if (
+      notification.type === "SupportTicket"
+      && typeof data.ticketId === "number"
+      && Number.isSafeInteger(data.ticketId)
+      && data.ticketId > 0
+    ) {
+      return roles.some((role) => role === "Staff" || role === "Admin")
+        ? `/support-tickets/${data.ticketId}`
+        : `/customer/support-tickets/${data.ticketId}`;
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -102,7 +120,7 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
   }
 
   async function handleNotificationClick(notification: NotificationItem) {
-    const targetPath = getNotificationTargetPath(notification);
+    const targetPath = getNotificationTargetPath(notification, user.roles);
 
     if (!notification.isRead) {
       markNotificationReadLocal(notification.id);
@@ -142,7 +160,7 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
         className={
           isPublic
             ? cx(
-                "relative inline-flex h-11 w-11 items-center justify-center rounded-full border transition",
+                "relative inline-flex h-10 w-10 items-center justify-center rounded-md border transition",
                 notificationsOpen
                   ? "border-brand-300 text-brand-700 dark:border-brand-600 dark:text-brand-200"
                   : "border-slate-200 text-slate-700 hover:border-brand-300 hover:text-brand-700 dark:border-neutral-800 dark:text-gray-300 dark:hover:border-brand-600 dark:hover:text-brand-200",
@@ -164,27 +182,29 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
       {notificationsOpen && (
         <div
           className={cx(
-            "absolute right-0 z-50 w-[22rem] overflow-hidden border border-slate-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-950",
+            "absolute right-0 z-50 w-[20rem] max-w-[calc(100vw-1rem)] overflow-hidden border border-slate-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-950",
             isPublic ? "mt-3 rounded-2xl" : "top-full mt-1 rounded-md",
           )}
         >
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-neutral-800">
-            <div>
-              <p className="text-base font-bold text-slate-950 dark:text-white">Thông báo</p>
-              <p className="text-xs font-medium text-slate-500 dark:text-gray-400 mt-0.5">{notificationUnreadCount > 0 ? `Bạn có ${notificationUnreadCount} thông báo chưa đọc` : "Không có thông báo mới"}</p>
+          <div className="flex min-h-12 items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 dark:border-neutral-800">
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="shrink-0 text-sm font-bold text-slate-950 dark:text-white">Thông báo</p>
+              <span className="truncate text-xs font-medium text-slate-500 dark:text-gray-400">
+                {notificationUnreadCount > 0 ? `${notificationUnreadCount} chưa đọc` : "Đã đọc hết"}
+              </span>
             </div>
             <button
               type="button"
               onClick={handleMarkAllRead}
               disabled={notificationUnreadCount === 0}
-              className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent dark:text-brand-200 dark:hover:bg-brand-950/40 dark:disabled:text-neutral-600"
+              className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent dark:text-brand-200 dark:hover:bg-brand-950/40 dark:disabled:text-neutral-600"
             >
-              <CheckCheck className="h-4 w-4" />
-              Đánh dấu đã đọc
+              <CheckCheck className="h-3.5 w-3.5" />
+              Đọc tất cả
             </button>
           </div>
 
-          <div className="max-h-[28rem] overflow-y-auto custom-scrollbar">
+          <div className="max-h-[22rem] overflow-y-auto custom-scrollbar">
             {notificationsLoading && (
               <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-gray-400">Đang tải thông báo...</div>
             )}
@@ -203,15 +223,15 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
                 type="button"
                 onClick={() => void handleNotificationClick(notification)}
                 className={cx(
-                  "flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-neutral-800 dark:hover:bg-neutral-900/80",
+                  "flex w-full gap-2.5 border-b border-slate-100 px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-neutral-800 dark:hover:bg-neutral-900/80",
                   notification.isRead ? "bg-white dark:bg-neutral-950" : "bg-brand-50/60 dark:bg-brand-950/30",
                 )}
               >
-                <span className={cx("mt-1 h-2 w-2 shrink-0 rounded-full", notification.isRead ? "bg-slate-200 dark:bg-neutral-700" : "bg-brand-600")} />
+                <span className={cx("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", notification.isRead ? "bg-slate-200 dark:bg-neutral-700" : "bg-brand-600")} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-slate-900 dark:text-white">{notification.title}</span>
-                  <span className="mt-0.5 block text-sm leading-5 text-slate-600 dark:text-gray-300">{notification.body}</span>
-                  <span className="mt-1 block text-xs text-slate-400 dark:text-gray-500">{formatNotificationTime(notification.createdAt)}</span>
+                  <span className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-600 dark:text-gray-300">{notification.body}</span>
+                  <span className="mt-1 block text-[11px] font-medium text-slate-400 dark:text-gray-500">{formatNotificationTime(notification.createdAt)}</span>
                 </span>
               </button>
             ))}

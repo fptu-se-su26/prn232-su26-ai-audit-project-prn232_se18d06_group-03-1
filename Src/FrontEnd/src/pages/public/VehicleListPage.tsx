@@ -15,11 +15,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import HomeChatWidget from "@/components/chat/HomeChatWidget";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { fuelTypeOptions, motorbikeTypeOptions } from "@/features/vehicleModelVariants/options";
 import { getCatalogAreas, getCatalogBrands, getCatalogModels } from "@/features/vehicles/services/vehicleService";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
+import {
+  addFavoriteVehicle,
+  getFavoriteVehicleIds,
+  removeFavoriteVehicle,
+} from "@/features/vehicles/services/favoriteVehicleService";
 import type { CatalogArea, CatalogBrand, CatalogModel, VehicleListItemResponse } from "@/features/vehicles/types";
 
 import { useRef } from "react";
@@ -45,6 +51,8 @@ function FilterDropdown({
   label,
   options,
   onChange,
+  onOpen,
+  closeSignal,
   className,
   isMinimal = false,
 }: {
@@ -52,6 +60,8 @@ function FilterDropdown({
   label: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
+  onOpen?: () => void;
+  closeSignal?: number;
   className?: string;
   isMinimal?: boolean;
 }) {
@@ -59,6 +69,11 @@ function FilterDropdown({
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
+  useEffect(() => {
+    if (closeSignal === undefined) return;
+    setOpen(false);
+    setQuery("");
+  }, [closeSignal]);
   const current = options.find((o) => o.value === value);
   const searchable = isMinimal && options.length > 8;
   const normalizedQuery = normalizeSearchText(query);
@@ -71,7 +86,10 @@ function FilterDropdown({
       <button
         type="button"
         onClick={() => {
-          setOpen((prev) => !prev);
+          setOpen((prev) => {
+            if (!prev) onOpen?.();
+            return !prev;
+          });
           setQuery("");
         }}
         className={
@@ -237,6 +255,8 @@ export default function VehicleListPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState<number | null>(null);
 
   const [brands, setBrands] = useState<CatalogBrand[]>([]);
   const [models, setModels] = useState<CatalogModel[]>([]);
@@ -258,6 +278,7 @@ export default function VehicleListPage() {
   const [bodyTypeFilter, setBodyTypeFilter] = useState("");
   const [bikeTypeFilter, setBikeTypeFilter] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [quickFilterCloseSignal, setQuickFilterCloseSignal] = useState(0);
 
   useEffect(() => {
     getCatalogBrands().then(setBrands).catch(() => setBrands([]));
@@ -452,6 +473,46 @@ export default function VehicleListPage() {
     void load(1);
   }, [load]);
 
+  useEffect(() => {
+    if (!token || !user?.roles.includes("Customer")) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    void getFavoriteVehicleIds()
+      .then((ids) => setFavoriteIds(new Set(ids)))
+      .catch(() => setFavoriteIds(new Set()));
+  }, [token, user]);
+
+  async function toggleFavorite(vehicleId: number) {
+    if (!token || !user?.roles.includes("Customer")) {
+      navigate("/login");
+      return;
+    }
+
+    const wasFavorite = favoriteIds.has(vehicleId);
+    setFavoriteLoadingId(vehicleId);
+    setFavoriteIds((current) => {
+      const next = new Set(current);
+      if (wasFavorite) next.delete(vehicleId);
+      else next.add(vehicleId);
+      return next;
+    });
+
+    try {
+      if (wasFavorite) await removeFavoriteVehicle(vehicleId);
+      else await addFavoriteVehicle(vehicleId);
+    } catch {
+      setFavoriteIds((current) => {
+        const next = new Set(current);
+        if (wasFavorite) next.add(vehicleId);
+        else next.delete(vehicleId);
+        return next;
+      });
+    } finally {
+      setFavoriteLoadingId(null);
+    }
+  }
+
   function updateFilter(setter: (value: string) => void, value: string) {
     setter(value);
     setPage(1);
@@ -588,6 +649,8 @@ export default function VehicleListPage() {
 
             <FilterDropdown
               label="Loại xe"
+              onOpen={() => setAdvancedOpen(false)}
+              closeSignal={quickFilterCloseSignal}
               value={typeFilter}
               onChange={(value) => {
                 updateFilter(setTypeFilter, value);
@@ -604,24 +667,32 @@ export default function VehicleListPage() {
             />
             <FilterDropdown
               label="Hãng xe"
+              onOpen={() => setAdvancedOpen(false)}
+              closeSignal={quickFilterCloseSignal}
               value={brandFilter}
               onChange={(value) => updateFilter(setBrandFilter, value)}
               options={[{ value: "", label: "Tất cả" }, ...visibleBrands.map((brand) => ({ value: String(brand.id), label: brand.name }))]}
             />
             <FilterDropdown
               label="Nhiên liệu"
+              onOpen={() => setAdvancedOpen(false)}
+              closeSignal={quickFilterCloseSignal}
               value={fuelTypeFilter}
               onChange={(value) => updateFilter(setFuelTypeFilter, value)}
               options={[{ value: "", label: "Tất cả" }, ...fuelTypeOptions]}
             />
             <FilterDropdown
               label="Hộp số"
+              onOpen={() => setAdvancedOpen(false)}
+              closeSignal={quickFilterCloseSignal}
               value={transmissionFilter}
               onChange={(value) => updateFilter(setTransmissionFilter, value)}
               options={[{ value: "", label: "Tất cả" }, ...transmissionOptions]}
             />
             <FilterDropdown
               label="Số chỗ"
+              onOpen={() => setAdvancedOpen(false)}
+              closeSignal={quickFilterCloseSignal}
               value={seatCountFilter}
               onChange={(value) => updateFilter(setSeatCountFilter, value)}
               options={[{ value: "", label: "Tất cả" }, ...seatCounts.map((count) => ({ value: count, label: `${count} chỗ` }))]}
@@ -629,7 +700,10 @@ export default function VehicleListPage() {
 
             <button
               type="button"
-              onClick={() => setAdvancedOpen((value) => !value)}
+              onClick={() => {
+                setQuickFilterCloseSignal((value) => value + 1);
+                setAdvancedOpen((value) => !value);
+              }}
               className={cx(
                 "inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium shadow-sm transition",
                 advancedOpen || activeFilterCount > 0
@@ -739,7 +813,7 @@ export default function VehicleListPage() {
                   type="button"
                   onClick={clearAllFilters}
                   disabled={!hasActiveFilters}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10"
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Reset
@@ -747,7 +821,7 @@ export default function VehicleListPage() {
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-app-blue px-4 text-sm font-semibold text-white shadow-md shadow-blue-600/15 transition hover:bg-blue-700"
+                  className="inline-flex h-10 min-w-[7.5rem] flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-app-blue px-3 text-sm font-semibold text-white shadow-md shadow-blue-600/15 transition hover:bg-blue-700"
                 >
                   <Search className="h-4 w-4" />
                   Áp dụng
@@ -825,6 +899,9 @@ export default function VehicleListPage() {
                   onOpen={() => navigate(`/vehicle/${vehicle.id}`)}
                   onBook={() => navigate(bookingTarget)}
                   bookLabel={token && user ? "Đặt ngay" : "Thuê ngay"}
+                  isFavorite={favoriteIds.has(vehicle.id)}
+                  favoriteLoading={favoriteLoadingId === vehicle.id}
+                  onToggleFavorite={() => void toggleFavorite(vehicle.id)}
                 />
               );
             })}
@@ -878,6 +955,7 @@ export default function VehicleListPage() {
           </div>
         ) : null}
       </main>
+      <HomeChatWidget />
     </div>
   );
 }

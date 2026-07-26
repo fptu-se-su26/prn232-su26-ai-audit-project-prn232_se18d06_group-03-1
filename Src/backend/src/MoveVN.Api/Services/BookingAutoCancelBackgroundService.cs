@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Hangfire;
+using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Bookings.Interfaces;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
@@ -8,19 +10,18 @@ using MoveVN.Domain.Entities;
 
 namespace MoveVN.Api.Services;
 
-public class BookingAutoCancelBackgroundService : BackgroundService
+public class BookingAutoCancelJob
 {
-    private static readonly TimeSpan DefaultScanInterval = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan DefaultPendingTimeout = TimeSpan.FromHours(24);
     private const int DefaultBatchSize = 50;
 
     private readonly IConfiguration _configuration;
-    private readonly ILogger<BookingAutoCancelBackgroundService> _logger;
+    private readonly ILogger<BookingAutoCancelJob> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public BookingAutoCancelBackgroundService(
+    public BookingAutoCancelJob(
         IConfiguration configuration,
-        ILogger<BookingAutoCancelBackgroundService> logger,
+        ILogger<BookingAutoCancelJob> logger,
         IServiceScopeFactory scopeFactory)
     {
         _configuration = configuration;
@@ -28,39 +29,23 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         _scopeFactory = scopeFactory;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    [AutomaticRetry(Attempts = 3, DelaysInSeconds = [60, 300, 900], OnAttemptsExceeded = AttemptsExceededAction.Fail)]
+    [DisableConcurrentExecution(timeoutInSeconds: 600)]
+    public async Task RunAsync(CancellationToken cancellationToken)
     {
         if (!GetBool("BOOKING_AUTO_CANCEL_ENABLED", "BookingAutoCancel:Enabled", true))
         {
-            _logger.LogInformation("Booking auto-cancel background service is disabled.");
+            _logger.LogInformation("Booking auto-cancel job is disabled by environment configuration.");
             return;
         }
 
-        await RunSafelyAsync(stoppingToken);
-
-        using var timer = new PeriodicTimer(GetScanInterval());
-        try
-        {
-            while (await timer.WaitForNextTickAsync(stoppingToken))
-            {
-                await RunSafelyAsync(stoppingToken);
-            }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            // Normal host shutdown.
-        }
-    }
-
-    private async Task RunSafelyAsync(CancellationToken cancellationToken)
-    {
         try
         {
             using var scope = _scopeFactory.CreateScope();
             var systemConfig = scope.ServiceProvider.GetRequiredService<ISystemConfigService>();
             var enabled = await systemConfig.GetBoolAsync(
                 SystemConfigKeys.BookingAutoCancelEnabled,
-                GetBool("BOOKING_AUTO_CANCEL_ENABLED", "BookingAutoCancel:Enabled", true),
+                true,
                 cancellationToken);
 
             if (!enabled)
@@ -77,7 +62,8 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         }
         catch (Exception exception)
         {
-            _logger.LogWarning(exception, "Booking auto-cancel job failed.");
+            _logger.LogError(exception, "Booking auto-cancel job failed and will be retried by Hangfire.");
+            throw;
         }
     }
 
@@ -85,6 +71,7 @@ public class BookingAutoCancelBackgroundService : BackgroundService
     {
         var bookingRepository = serviceProvider.GetRequiredService<IBookingRepository>();
         var notificationService = serviceProvider.GetRequiredService<INotificationService>();
+        var auditLogRepository = serviceProvider.GetRequiredService<IAuditLogRepository>();
         var now = DateTime.UtcNow;
         var expiredBookings = (await bookingRepository.GetExpiredApprovedAsync(now, cancellationToken))
             .Take(GetBatchSize())
@@ -107,6 +94,23 @@ public class BookingAutoCancelBackgroundService : BackgroundService
                 Note = reason,
                 CreatedAt = now
             }, cancellationToken);
+            await auditLogRepository.AddAsync(new AuditLog
+            {
+                ActorId = null,
+                ActorRole = "System",
+                Action = "BookingAutoCancelled",
+                EntityType = nameof(Booking),
+                EntityId = booking.Id,
+                OldValue = JsonSerializer.Serialize(new { Status = "Approved" }),
+                NewValue = JsonSerializer.Serialize(new
+                {
+                    booking.Status,
+                    booking.CancelReason,
+                    booking.CancellationSource,
+                    booking.CancelledAt
+                }),
+                CreatedAt = now
+            }, cancellationToken);
         }
 
         if (expiredBookings.Count == 0) return;
@@ -127,6 +131,7 @@ public class BookingAutoCancelBackgroundService : BackgroundService
     {
         var bookingRepository = serviceProvider.GetRequiredService<IBookingRepository>();
         var notificationService = serviceProvider.GetRequiredService<INotificationService>();
+        var auditLogRepository = serviceProvider.GetRequiredService<IAuditLogRepository>();
 
         var now = DateTime.UtcNow;
         var pendingTimeout = await GetPendingTimeoutAsync(systemConfig, cancellationToken);
@@ -160,6 +165,22 @@ public class BookingAutoCancelBackgroundService : BackgroundService
                 ToStatus = "Rejected",
                 ChangedBy = null,
                 Note = reason,
+                CreatedAt = now
+            }, cancellationToken);
+            await auditLogRepository.AddAsync(new AuditLog
+            {
+                ActorId = null,
+                ActorRole = "System",
+                Action = "BookingAutoRejected",
+                EntityType = nameof(Booking),
+                EntityId = booking.Id,
+                OldValue = JsonSerializer.Serialize(new { Status = previousStatus }),
+                NewValue = JsonSerializer.Serialize(new
+                {
+                    booking.Status,
+                    booking.CancelReason,
+                    booking.CancelledAt
+                }),
                 CreatedAt = now
             }, cancellationToken);
         }
@@ -216,18 +237,6 @@ public class BookingAutoCancelBackgroundService : BackgroundService
         {
             _logger.LogWarning(exception, "Failed to send auto-reject notification for booking {BookingId} to user {UserId}.", booking.Id, userId);
         }
-    }
-
-    private TimeSpan GetScanInterval()
-    {
-        var seconds = GetPositiveInt("BOOKING_AUTO_CANCEL_INTERVAL_SECONDS", "BookingAutoCancel:IntervalSeconds");
-        return seconds.HasValue ? TimeSpan.FromSeconds(seconds.Value) : DefaultScanInterval;
-    }
-
-    private TimeSpan GetPendingTimeout()
-    {
-        var minutes = GetPositiveInt("BOOKING_AUTO_CANCEL_PENDING_MINUTES", "BookingAutoCancel:PendingMinutes");
-        return minutes.HasValue ? TimeSpan.FromMinutes(minutes.Value) : DefaultPendingTimeout;
     }
 
     private async Task<TimeSpan> GetPendingTimeoutAsync(ISystemConfigService systemConfig, CancellationToken cancellationToken)

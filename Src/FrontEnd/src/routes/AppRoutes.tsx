@@ -66,6 +66,7 @@ import CustomerVoucherHuntPage from "@/pages/customer/CustomerVoucherHuntPage";
 import CustomerVoucherWalletPage from "@/pages/customer/CustomerVoucherWalletPage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
+import CustomerFavoriteVehiclesPage from "@/pages/customer/CustomerFavoriteVehiclesPage";
 import DisputePage from "@/pages/disputes/DisputePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -166,6 +167,10 @@ export default function AppRoutes() {
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
 
+          <Route element={<RoleRoute roles={["Staff", "Admin"]} />}>
+            <Route path="/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
+          </Route>
+
           <Route element={<RoleRoute roles={["Customer", "Owner"]} />}>
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/chat/booking/:bookingId" element={<ChatPage />} />
@@ -176,6 +181,7 @@ export default function AppRoutes() {
             <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
             <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
             <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
+            <Route path="/customer/favorites" element={<CustomerFavoriteVehiclesPage />} />
             <Route path="/customer/disputes" element={<DisputePage />} />
             <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
             <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />
@@ -227,6 +233,7 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
             <Route path="/admin" element={<AdminHomePage />} />
+            <Route path="/admin/support-tickets" element={<StaffSupportTicketListPage />} />
             <Route path="/admin/moderation" element={<AdminModerationDashboardPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/users/customers" element={<AdminCustomerListPage />} />

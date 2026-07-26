@@ -3,8 +3,10 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Infrastructure.Caching;
+using MoveVN.Infrastructure.Persistence;
 
 namespace MoveVN.Infrastructure.Services;
 
@@ -14,15 +16,18 @@ public class RedisPresenceService : IPresenceService
     private const int OnlineTtlSeconds = 90;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly AppDbContext _dbContext;
     private readonly ILogger<RedisPresenceService> _logger;
 
     public RedisPresenceService(
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
+        AppDbContext dbContext,
         ILogger<RedisPresenceService> logger)
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -93,7 +98,7 @@ public class RedisPresenceService : IPresenceService
 
         if (!IsConfigured() || distinctUserIds.Length == 0)
         {
-            return statuses;
+            return await GetDatabaseStatusesAsync(distinctUserIds, cancellationToken);
         }
 
         try
@@ -121,6 +126,7 @@ public class RedisPresenceService : IPresenceService
         catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
         {
             _logger.LogWarning(exception, "Upstash Redis is unavailable. Falling back to database presence.");
+            return await GetDatabaseStatusesAsync(distinctUserIds, cancellationToken);
         }
 
         return statuses;
@@ -130,7 +136,7 @@ public class RedisPresenceService : IPresenceService
     {
         if (!IsConfigured())
         {
-            return null;
+            return await GetDatabaseStatusAsync(userId, cancellationToken);
         }
 
         try
@@ -146,8 +152,43 @@ public class RedisPresenceService : IPresenceService
         catch (Exception exception) when (IsUpstashFailure(exception, cancellationToken))
         {
             _logger.LogWarning(exception, "Upstash Redis is unavailable. Falling back to database presence.");
-            return null;
+            return await GetDatabaseStatusAsync(userId, cancellationToken);
         }
+    }
+
+    private async Task<IReadOnlyDictionary<long, bool>> GetDatabaseStatusesAsync(
+        long[] userIds,
+        CancellationToken cancellationToken)
+    {
+        if (userIds.Length == 0)
+        {
+            return new Dictionary<long, bool>();
+        }
+
+        var databaseStatuses = await _dbContext.Users
+            .AsNoTracking()
+            .Where(user => userIds.Contains(user.Id))
+            .Select(user => new { user.Id, user.IsOnline })
+            .ToDictionaryAsync(user => user.Id, user => user.IsOnline, cancellationToken);
+
+        return userIds.ToDictionary(
+            userId => userId,
+            userId => databaseStatuses.GetValueOrDefault(userId));
+    }
+
+    private async Task<PresenceStatus?> GetDatabaseStatusAsync(
+        long userId,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.Id == userId)
+            .Select(user => new PresenceStatus
+            {
+                IsOnline = user.IsOnline,
+                LastSeenAt = user.LastSeenAt
+            })
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     private bool IsConfigured()

@@ -5,6 +5,7 @@ using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.SystemConfigs.DTOs;
 using MoveVN.Application.Modules.SystemConfigs.Interfaces;
 using MoveVN.Domain.Entities;
+using MoveVN.Domain.Enums;
 using MoveVN.Infrastructure.Persistence;
 
 namespace MoveVN.Api.Services;
@@ -163,11 +164,39 @@ public class BookingReminderBackgroundService : BackgroundService
         string body,
         CancellationToken cancellationToken)
     {
+        var staffRole = UserRoleType.Staff.ToString();
+        var staffIds = await dbContext.UserRoles
+            .AsNoTracking()
+            .Join(
+                dbContext.Roles.AsNoTracking(),
+                userRole => userRole.RoleId,
+                role => role.Id,
+                (userRole, role) => new { userRole.UserId, role.Name })
+            .Join(
+                dbContext.Users.AsNoTracking(),
+                row => row.UserId,
+                user => user.Id,
+                (row, user) => new { row.UserId, row.Name, user.Status })
+            .Where(row => row.Name == staffRole && row.Status == "Active")
+            .Select(row => row.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
         var recipients = new[]
             {
-                new { UserId = booking.CustomerId, RoleTarget = "customer", TargetPath = $"/customer/bookings/{booking.Id}" },
-                new { UserId = booking.OwnerId, RoleTarget = "owner", TargetPath = $"/owner/bookings/{booking.Id}" }
+                new
+                {
+                    UserId = booking.CustomerId,
+                    RoleTarget = "customer",
+                    TargetPath = $"/customer/bookings/{booking.Id}"
+                }
             }
+            .Concat(staffIds.Select(staffId => new
+            {
+                UserId = staffId,
+                RoleTarget = "staff",
+                TargetPath = $"/staff/bookings/{booking.Id}"
+            }))
             .Where(x => x.UserId > 0)
             .GroupBy(x => x.UserId)
             .Select(x => x.First())
@@ -176,18 +205,6 @@ public class BookingReminderBackgroundService : BackgroundService
         foreach (var recipient in recipients)
         {
             var dedupeKey = $"booking:{booking.Id}:{reminderType}:{scheduledTime:yyyyMMddHHmm}:{recipient.UserId}";
-            var alreadySent = await dbContext.Notifications
-                .AsNoTracking()
-                .AnyAsync(notification => notification.UserId == recipient.UserId
-                    && notification.Type == "BookingReminder"
-                    && notification.DataJson != null
-                    && notification.DataJson.Contains(dedupeKey), cancellationToken);
-
-            if (alreadySent)
-            {
-                continue;
-            }
-
             await notificationService.CreateAsync(new CreateNotificationRequest
             {
                 UserId = recipient.UserId,

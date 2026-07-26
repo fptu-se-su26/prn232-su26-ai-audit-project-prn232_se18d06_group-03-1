@@ -23,4 +23,10 @@ public class BroadcastNotificationLogDocument
 
     public string? IpAddress { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
+    public int TotalTargeted { get; set; }
+    public int SuccessCount { get; set; }
+    public int FailedCount { get; set; }
+    public string Status { get; set; } = "Completed";
+    public List<string> Errors { get; set; } = [];
 }

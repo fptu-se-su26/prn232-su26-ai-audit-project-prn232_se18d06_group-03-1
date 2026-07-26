@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
@@ -19,7 +18,6 @@ public class ChatService : IChatService
 {
     private const int MaxPageSize = 50;
     private const int MaxMessageLength = 2000;
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> RoomCreationLocks = new();
     private readonly IBookingRepository _bookingRepository;
     private readonly IUserRepository _userRepository;
     private readonly IChatRepository _chatRepository;
@@ -70,55 +68,38 @@ public class ChatService : IChatService
     public async Task<ChatRoomResponse> GetOrCreateRoomByBookingAsync(long bookingId, long userId, CancellationToken cancellationToken = default)
     {
         var booking = await GetAccessibleBookingAsync(bookingId, userId, cancellationToken);
-        ChatRoomDocument? room;
-        var roomLock = RoomCreationLocks.GetOrAdd(bookingId, _ => new SemaphoreSlim(1, 1));
-
-        await roomLock.WaitAsync(cancellationToken);
-        try
+        var room = SelectCanonicalRoom(await _chatRepository.GetRoomsByBookingIdAsync(bookingId, cancellationToken));
+        if (room is null)
         {
-            room = SelectCanonicalRoom(await _chatRepository.GetRoomsByBookingIdAsync(bookingId, cancellationToken));
-            if (room is null)
+            var now = DateTime.UtcNow;
+            room = await _chatRepository.GetOrCreateRoomAsync(new ChatRoomDocument
             {
-                var now = DateTime.UtcNow;
-                room = new ChatRoomDocument
-                {
-                    BookingId = booking.Id.ToString(),
-                    RoomType = "booking",
-                    Participants =
-                    [
-                        new ChatParticipantDocument
-                        {
-                            UserId = booking.CustomerId.ToString(),
-                            Role = "Customer",
-                            JoinedAt = now
-                        },
-                        new ChatParticipantDocument
-                        {
-                            UserId = booking.OwnerId.ToString(),
-                            Role = "Owner",
-                            JoinedAt = now
-                        }
-                    ],
-                    UnreadCount = new Dictionary<string, int>
+                BookingId = booking.Id.ToString(),
+                RoomType = "booking",
+                Participants =
+                [
+                    new ChatParticipantDocument
                     {
-                        [booking.CustomerId.ToString()] = 0,
-                        [booking.OwnerId.ToString()] = 0
+                        UserId = booking.CustomerId.ToString(),
+                        Role = "Customer",
+                        JoinedAt = now
                     },
-                    IsActive = true,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                };
-
-                await _chatRepository.AddRoomAsync(room, cancellationToken);
-            }
-        }
-        finally
-        {
-            roomLock.Release();
-            if (roomLock.CurrentCount == 1)
-            {
-                RoomCreationLocks.TryRemove(bookingId, out _);
-            }
+                    new ChatParticipantDocument
+                    {
+                        UserId = booking.OwnerId.ToString(),
+                        Role = "Owner",
+                        JoinedAt = now
+                    }
+                ],
+                UnreadCount = new Dictionary<string, int>
+                {
+                    [booking.CustomerId.ToString()] = 0,
+                    [booking.OwnerId.ToString()] = 0
+                },
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            }, cancellationToken);
         }
 
         return await MapRoomAsync(room, userId, cancellationToken, booking);

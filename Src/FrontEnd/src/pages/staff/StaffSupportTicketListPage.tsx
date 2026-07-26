@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Button from "@/components/common/Button";
 import EmptyState from "@/components/common/EmptyState";
+import FormDropdown from "@/components/common/FormDropdown";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { showToast } from "@/components/common/toastStore";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -218,50 +219,36 @@ export default function StaffSupportTicketListPage() {
       >
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <select
+            <FormDropdown
               value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value);
+              onChange={(value) => {
+                setStatusFilter(value);
                 setPage(1);
               }}
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            >
-              {supportTicketStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
+              options={supportTicketStatusOptions}
+              className="!mt-0 w-44"
+              triggerClassName="h-10 !min-h-10 font-medium"
+            />
+            <FormDropdown
               value={categoryFilter}
-              onChange={(event) => {
-                setCategoryFilter(event.target.value);
+              onChange={(value) => {
+                setCategoryFilter(value);
                 setPage(1);
               }}
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            >
-              <option value="">Tất cả danh mục</option>
-              {supportTicketCategoryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
+              options={[{ value: "", label: "Tất cả danh mục" }, ...supportTicketCategoryOptions]}
+              className="!mt-0 w-48"
+              triggerClassName="h-10 !min-h-10 font-medium"
+            />
+            <FormDropdown
               value={priorityFilter}
-              onChange={(event) => {
-                setPriorityFilter(event.target.value);
+              onChange={(value) => {
+                setPriorityFilter(value);
                 setPage(1);
               }}
-              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            >
-              <option value="">Tất cả ưu tiên</option>
-              {supportTicketPriorityOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              options={[{ value: "", label: "Tất cả ưu tiên" }, ...supportTicketPriorityOptions]}
+              className="!mt-0 w-44"
+              triggerClassName="h-10 !min-h-10 font-medium"
+            />
           </div>
 
           <form onSubmit={submitSearch} className="flex w-full gap-2 xl:w-auto">
@@ -347,7 +334,7 @@ export default function StaffSupportTicketListPage() {
                     </td>
                     <td className="px-3 py-4 text-center align-top text-slate-700">{item.messageCount}</td>
                     <td className="px-3 py-4 text-right align-top">
-                      <Link to={`/staff/support-tickets/${item.id}`}>
+                      <Link to={`/support-tickets/${item.id}`}>
                         <Button variant="ghost" size="sm" className="px-2" title="Xử lý ticket">
                           <Eye className="h-4 w-4" />
                           <span className="sr-only">Xử lý</span>

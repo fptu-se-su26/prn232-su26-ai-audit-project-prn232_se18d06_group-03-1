@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { getCmsPageNavigation } from "@/features/cms/services/cmsService";
 import type { CmsPageNavigationItem } from "@/features/cms/types";
 import {
@@ -18,10 +18,12 @@ import NotificationMenu from "@/components/layout/NotificationMenu";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { getDashboardPath } from "@/features/auth/utils/roleRedirect";
 import useClickOutside from "@/hooks/useClickOutside";
+import { usePresenceConnection } from "@/features/presence/usePresenceConnection";
 import moveVnLogo from "../../../Logo/movevn_wordmark.svg";
 
 
 export default function PublicLayout() {
+  usePresenceConnection();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const [darkMode, setDarkMode] = useState(() => {
@@ -87,12 +89,12 @@ export default function PublicLayout() {
   return (
     <div className={darkMode ? "dark" : ""}>
       <div className="flex min-h-screen flex-col bg-white text-slate-900 transition-colors duration-300 dark:bg-surface-base dark:text-text-primary">
-        <nav className={`sticky top-0 z-40 border-b transition-all duration-300 transform-gpu py-2.5 sm:py-3 ${
+        <nav className={`sticky top-0 z-40 h-16 border-b transition-all duration-300 transform-gpu ${
           isScrolled
             ? "border-slate-200/80 bg-white/95 shadow-md backdrop-blur-xl dark:border-ui-border dark:bg-surface-base"
             : "border-slate-100 bg-white/90 backdrop-blur-md dark:border-ui-border dark:bg-surface-base"
         }`}>
-          <div className="mx-auto flex w-full items-center justify-between px-4 sm:px-6 lg:px-12 2xl:px-16">
+          <div className="mx-auto flex h-full w-full items-center justify-between px-4 sm:px-6 lg:px-12 2xl:px-16">
             <Link to="/" className="flex shrink-0 items-center" aria-label="MoveVN">
               <img
                 src={darkMode ? `${moveVnLogo}#dark` : moveVnLogo}
@@ -101,15 +103,22 @@ export default function PublicLayout() {
               />
             </Link>
 
-            <div className="hidden items-center gap-8 text-sm font-medium text-slate-700 dark:text-gray-300 lg:flex">
+            <div className="hidden translate-x-10 items-center gap-6 text-sm font-medium text-slate-700 dark:text-gray-300 lg:flex">
               {navItems.map((item) => (
-                <Link
+                <NavLink
                   key={item.href}
                   to={item.href}
-                  className="transition hover:text-brand-600 dark:hover:text-brand-300"
+                  end={item.href === "/"}
+                  className={({ isActive }) =>
+                    `relative rounded-md px-2.5 py-2 transition ${
+                      isActive
+                        ? "bg-brand-50 font-semibold text-brand-700 dark:bg-brand-950/40 dark:text-brand-200"
+                        : "hover:bg-slate-50 hover:text-brand-600 dark:hover:bg-white/5 dark:hover:text-brand-300"
+                    }`
+                  }
                 >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
             </div>
 
@@ -117,7 +126,7 @@ export default function PublicLayout() {
               <button
                 type="button"
                 onClick={() => setDarkMode((value) => !value)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-neutral-800 dark:text-gray-300 dark:hover:border-brand-600 dark:hover:text-brand-200"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-neutral-800 dark:text-gray-300 dark:hover:border-brand-600 dark:hover:text-brand-200"
                 aria-label={darkMode ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
               >
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -131,16 +140,16 @@ export default function PublicLayout() {
                     <button
                       type="button"
                       onClick={() => setAccountOpen((value) => !value)}
-                      className="inline-flex h-11 items-center gap-3 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-100 dark:hover:border-brand-600"
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white py-1 pl-1 pr-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-gray-100 dark:hover:border-brand-600"
                     >
                       {user?.avatarUrl ? (
                         <img
                           src={user.avatarUrl}
                           alt={user.fullName}
-                          className="h-9 w-9 rounded-full object-cover"
+                          className="h-7 w-7 rounded-md object-cover"
                         />
                       ) : (
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-xs font-bold text-white">
                           {initials}
                         </span>
                       )}
@@ -188,7 +197,7 @@ export default function PublicLayout() {
               ) : (
                 <Link
                   to="/login"
-                  className="inline-flex h-11 items-center rounded-full bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 px-5 text-sm font-bold text-white shadow-lg shadow-brand-600/20 transition hover:from-brand-700 hover:via-brand-600 hover:to-fuchsia-600"
+                  className="inline-flex h-10 items-center rounded-md bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-500 px-4 text-sm font-bold text-white shadow-md shadow-brand-600/20 transition hover:from-brand-700 hover:via-brand-600 hover:to-fuchsia-600"
                 >
                   Đăng nhập
                 </Link>
@@ -200,7 +209,7 @@ export default function PublicLayout() {
               <button
                 type="button"
                 onClick={() => setMenuOpen((value) => !value)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-800 dark:border-neutral-800 dark:text-gray-100"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-800 dark:border-neutral-800 dark:text-gray-100"
                 aria-label="Mở menu"
               >
                 {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -212,14 +221,21 @@ export default function PublicLayout() {
             <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-lg dark:border-neutral-800 dark:bg-surface-base lg:hidden">
               <div className="flex flex-col gap-2">
                 {navItems.map((item) => (
-                  <Link
+                  <NavLink
                     key={item.href}
                     to={item.href}
+                    end={item.href === "/"}
                     onClick={() => setMenuOpen(false)}
-                    className="rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
+                    className={({ isActive }: { isActive: boolean }) =>
+                      `rounded-md px-4 py-2.5 text-sm font-bold transition ${
+                        isActive
+                          ? "bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200"
+                          : "text-slate-700 hover:bg-brand-50 hover:text-brand-700 dark:text-gray-300 dark:hover:bg-brand-950/40 dark:hover:text-brand-200"
+                      }`
+                    }
                   >
                     {item.label}
-                  </Link>
+                  </NavLink>
                 ))}
               </div>
 

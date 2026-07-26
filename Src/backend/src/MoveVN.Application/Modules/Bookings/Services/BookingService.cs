@@ -14,6 +14,8 @@ using MoveVN.Application.Modules.Notifications.Interfaces;
 using MoveVN.Application.Modules.Payments.Interfaces;
 using MoveVN.Application.Modules.Promotions.Interfaces;
 using MoveVN.Application.Modules.Promotions.DTOs;
+using MoveVN.Application.Modules.SystemConfigs.DTOs;
+using MoveVN.Application.Modules.SystemConfigs.Interfaces;
 using Microsoft.Extensions.Logging;
 using MoveVN.Domain.Entities;
 using MoveVN.Domain.Enums;
@@ -36,6 +38,7 @@ public class BookingService : IBookingService
     private readonly IVehicleCatalogRepository _catalogRepository;
     private readonly IPromotionRepository _promoRepo;
     private readonly ILogger<BookingService> _logger;
+    private readonly ISystemConfigService _systemConfigService;
 
     private static readonly (int MinDays, int MaxDays, decimal DiscountPercent)[] RentalDiscountTiers =
     {
@@ -58,6 +61,7 @@ public class BookingService : IBookingService
         ICloudinaryService cloudinaryService,
         IVehicleCatalogRepository catalogRepository,
         IPromotionRepository promoRepo,
+        ISystemConfigService systemConfigService,
         ILogger<BookingService> logger)
     {
         _repo = repo;
@@ -72,6 +76,7 @@ public class BookingService : IBookingService
         _cloudinaryService = cloudinaryService;
         _catalogRepository = catalogRepository;
         _promoRepo = promoRepo;
+        _systemConfigService = systemConfigService;
         _logger = logger;
     }
 
@@ -147,12 +152,13 @@ public class BookingService : IBookingService
         // customer-facing total unchanged and only split the fee internally.
         var totalAmount = afterDiscount;
         var feeRule = await _catalogRepository.GetActivePlatformFeeRuleAsync(vehicle.OwnerId, DateTime.UtcNow, cancellationToken);
-        if (feeRule is null)
-            throw new ValidationException(new[] { "Chua cau hinh quy tac phi nen tang dang hoat dong." });
-        var platformFeeType = feeRule.FeeType;
-        var platformFeeValue = feeRule.FeeValue;
-        var platformFee = CalculatePlatformFee(totalAmount, platformFeeType, platformFeeValue, feeRule.MinFee, feeRule.MaxFee);
-        var effectiveDepositPercent = Math.Clamp(vehicle.DepositPercent, 20, 100);
+        var platformFeeType = feeRule?.FeeType ?? "Percent";
+        var platformFeeValue = feeRule?.FeeValue
+            ?? await _systemConfigService.GetDecimalAsync(SystemConfigKeys.PlatformFeePercent, 10m, cancellationToken);
+        var platformFee = CalculatePlatformFee(totalAmount, platformFeeType, platformFeeValue, feeRule?.MinFee, feeRule?.MaxFee);
+        var configuredDepositPercent = await _systemConfigService.GetDecimalAsync(
+            SystemConfigKeys.DepositRatePercent, 20m, cancellationToken);
+        var effectiveDepositPercent = Math.Clamp(configuredDepositPercent, 0m, 100m);
         var depositAmount = Math.Round(totalAmount * effectiveDepositPercent / 100, 0);
 
         long? promoId = null;
@@ -233,7 +239,7 @@ public class BookingService : IBookingService
             RiskScore = risk.Score,
             CreatedAt = createdAt,
             UpdatedAt = createdAt,
-            PlatformFeeRuleId = feeRule.Id,
+            PlatformFeeRuleId = feeRule?.Id,
             PlatformFeeType = platformFeeType,
             PlatformFeeValue = platformFeeValue,
             EscrowStatus = "None",

@@ -18,6 +18,7 @@ import {
 } from "@/features/supportTickets/supportTicketConstants";
 import { addSupportTicketMessage, getSupportTicketById, updateSupportTicketStatus } from "@/features/supportTickets/supportTicketService";
 import type { SupportTicketDetailResponse, TicketMessageResponse } from "@/features/supportTickets/types";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
 
 function isStaffMessage(message: TicketMessageResponse) {
   return message.senderRoles.some((role) => role === "Staff" || role === "Admin");
@@ -38,6 +39,7 @@ function getPriorityTone(priority: string) {
 
 export default function StaffSupportTicketDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const user = useAuthStore((state) => state.user);
   const [ticket, setTicket] = useState<SupportTicketDetailResponse | null>(null);
   const [selectedStatus, setSelectedStatus] = useState("Open");
   const [message, setMessage] = useState("");
@@ -114,10 +116,13 @@ export default function StaffSupportTicketDetailPage() {
   if (!ticket) return <p className="text-sm text-red-600">Không tìm thấy ticket hỗ trợ.</p>;
 
   const isClosed = ticket.status === "Closed" || ticket.status === "Resolved";
+  const ticketListPath = user?.roles.includes("Admin")
+    ? "/admin/support-tickets"
+    : "/staff/support-tickets";
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <Link to="/staff/support-tickets">
+      <Link to={ticketListPath}>
         <Button variant="ghost" size="sm">
           <ArrowLeft className="h-4 w-4" />
           Quay lại

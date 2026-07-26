@@ -67,6 +67,34 @@ public class ChatRepository : IChatRepository
         return bookingIds.Distinct(StringComparer.Ordinal).Count();
     }
 
+    public async Task<ChatRoomDocument> GetOrCreateRoomAsync(
+        ChatRoomDocument room,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<ChatRoomDocument>.Filter.And(
+            Builders<ChatRoomDocument>.Filter.Eq(existing => existing.BookingId, room.BookingId),
+            Builders<ChatRoomDocument>.Filter.Eq(existing => existing.IsActive, true));
+        var update = Builders<ChatRoomDocument>.Update
+            .SetOnInsert(existing => existing.BookingId, room.BookingId)
+            .SetOnInsert(existing => existing.RoomType, room.RoomType)
+            .SetOnInsert(existing => existing.Participants, room.Participants)
+            .SetOnInsert(existing => existing.LastMessage, room.LastMessage)
+            .SetOnInsert(existing => existing.UnreadCount, room.UnreadCount)
+            .SetOnInsert(existing => existing.IsActive, true)
+            .SetOnInsert(existing => existing.CreatedAt, room.CreatedAt)
+            .SetOnInsert(existing => existing.UpdatedAt, room.UpdatedAt);
+
+        return await _context.ChatRooms.FindOneAndUpdateAsync(
+            filter,
+            update,
+            new FindOneAndUpdateOptions<ChatRoomDocument>
+            {
+                IsUpsert = true,
+                ReturnDocument = ReturnDocument.After
+            },
+            cancellationToken);
+    }
+
     public async Task AddRoomAsync(ChatRoomDocument room, CancellationToken cancellationToken = default)
         => await _context.ChatRooms.InsertOneAsync(room, cancellationToken: cancellationToken);
 
