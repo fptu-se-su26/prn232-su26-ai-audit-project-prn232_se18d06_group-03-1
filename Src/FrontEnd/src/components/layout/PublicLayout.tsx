@@ -101,7 +101,7 @@ export default function PublicLayout() {
               />
             </Link>
 
-            <div className="hidden items-center gap-8 text-sm font-semibold text-slate-700 dark:text-gray-300 lg:flex">
+            <div className="hidden items-center gap-8 text-sm font-medium text-slate-700 dark:text-gray-300 lg:flex">
               {navItems.map((item) => (
                 <Link
                   key={item.href}

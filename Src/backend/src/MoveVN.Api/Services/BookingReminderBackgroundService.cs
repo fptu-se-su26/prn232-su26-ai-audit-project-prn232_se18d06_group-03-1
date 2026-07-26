@@ -205,7 +205,8 @@ public class BookingReminderBackgroundService : BackgroundService
                     dedupeKey,
                     action = "BookingReminder"
                 }),
-                Channel = "InApp"
+                Channel = "InApp",
+                DeduplicationKey = dedupeKey
             }, cancellationToken);
         }
     }

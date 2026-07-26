@@ -32,6 +32,7 @@ import featureDigitalPaperwork from "@/assets/feature-digital-paperwork.png";
 import featurePayment from "@/assets/feature-payment.png";
 import featureDelivery from "@/assets/feature-delivery.png";
 import featureVehicleVariety from "@/assets/feature-vehicle-variety.png";
+import HomeChatWidget from "@/components/chat/HomeChatWidget";
 
 const promotions = [
   {
@@ -309,7 +310,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="mt-7 grid max-w-3xl grid-cols-2 gap-2 rounded-md border border-white/70 bg-white/70 p-2 shadow-xl shadow-brand-950/5 backdrop-blur md:grid-cols-4 md:gap-3 md:p-3">
+            <div className="mt-7 grid max-w-4xl grid-cols-2 gap-2 rounded-md border border-white/70 bg-white/70 p-2 shadow-xl shadow-brand-950/5 backdrop-blur md:grid-cols-4 md:gap-2 md:p-3">
               {[
                 { icon: CheckCircle2, title: "Nhanh chóng", text: "Đặt xe chỉ trong vài phút" },
                 { icon: MapPin, title: "Thuận tiện", text: "Nhận xe mọi lúc, mọi nơi" },
@@ -352,15 +353,15 @@ export default function HomePage() {
       {/* OVERLAPPING SEARCH BOX (Half on Banner, Half on Page Background) */}
       <div
         id="homepage-vehicle-search"
-        className="relative z-20 mx-auto -mt-10 mb-8 w-[calc(100%-2rem)] max-w-6xl scroll-mt-28 sm:-mt-12 sm:w-[92%]"
+        className="relative z-20 mx-auto -mt-9 mb-8 w-[calc(100%-2rem)] max-w-5xl scroll-mt-28 sm:-mt-10 sm:w-[90%]"
       >
-        <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-left shadow-[0_18px_44px_rgba(0,0,0,0.14)] backdrop-blur-2xl dark:border-ui-border dark:bg-surface-card dark:shadow-md md:p-5">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-3 text-left shadow-[0_18px_44px_rgba(0,0,0,0.14)] backdrop-blur-2xl dark:border-ui-border dark:bg-surface-card dark:shadow-md md:p-4">
           {/* Type Selector Tabs */}
-          <div className="mx-auto mb-4 flex max-w-[280px] gap-1.5 rounded-xl bg-slate-100 p-1 shadow-inner dark:bg-neutral-900 sm:mx-0">
+          <div className="mx-auto mb-3 flex max-w-[260px] gap-1.5 rounded-xl bg-slate-100 p-1 shadow-inner dark:bg-neutral-900 sm:mx-0">
             <button
               type="button"
               onClick={() => setSearchTab("car")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-black transition-all sm:text-sm ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-black transition-all sm:text-sm ${
                 searchTab === "car"
                   ? "bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/35"
                   : "text-gray-500 hover:text-slate-900 dark:hover:text-white"
@@ -371,7 +372,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setSearchTab("motorbike")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-black transition-all sm:text-sm ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-xs font-black transition-all sm:text-sm ${
                 searchTab === "motorbike"
                   ? "bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-md shadow-brand-500/35"
                   : "text-gray-500 hover:text-slate-900 dark:hover:text-white"
@@ -394,7 +395,7 @@ export default function HomePage() {
               <label htmlFor="homepage-search-location" className="block text-[11px] font-bold text-brand-500 dark:text-brand-300">
                 Địa điểm nhận xe
               </label>
-              <MapPin className="pointer-events-none absolute left-3.5 top-[52px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
+              <MapPin className="pointer-events-none absolute left-3.5 top-[48px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
               <input
                 id="homepage-search-location"
                 type="text"
@@ -409,7 +410,7 @@ export default function HomePage() {
                 onFocus={() => setLocationMenuOpen(searchLoc.trim().length >= 2)}
                 onBlur={() => setLocationMenuOpen(false)}
                 placeholder="Nhập thành phố, quận/huyện..."
-                className="min-h-12 w-full truncate rounded-xl border border-slate-200/80 bg-slate-50/90 py-2.5 pl-10 pr-10 text-sm font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900"
+                className="min-h-11 w-full truncate rounded-xl border border-slate-200/80 bg-slate-50/90 py-2 pl-10 pr-10 text-sm font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900"
               />
               {searchLoc && (
                 <button
@@ -420,7 +421,7 @@ export default function HomePage() {
                     setSearchAreaId(null);
                     setLocationMenuOpen(false);
                   }}
-                  className="absolute right-3 top-[52px] z-10 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-neutral-700 dark:hover:text-white"
+                  className="absolute right-3 top-[48px] z-10 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-neutral-700 dark:hover:text-white"
                   aria-label="Xóa địa điểm"
                   title="Xóa địa điểm"
                 >
@@ -461,7 +462,7 @@ export default function HomePage() {
               <label htmlFor="homepage-search-start" className="block text-[11px] font-bold text-brand-500 dark:text-brand-300">
                 Ngày nhận xe
               </label>
-              <Calendar className="pointer-events-none absolute left-3.5 top-[52px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
+              <Calendar className="pointer-events-none absolute left-3.5 top-[48px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
               <input
                 id="homepage-search-start"
                 type="datetime-local"
@@ -470,7 +471,7 @@ export default function HomePage() {
                   setSearchStartDate(event.target.value);
                   setSearchError("");
                 }}
-                className="min-h-12 w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/90 py-2.5 pl-10 pr-3 text-xs font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900 sm:text-sm"
+                className="min-h-11 w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/90 py-2 pl-10 pr-3 text-xs font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900 sm:text-sm"
               />
             </div>
 
@@ -479,7 +480,7 @@ export default function HomePage() {
               <label htmlFor="homepage-search-end" className="block text-[11px] font-bold text-brand-500 dark:text-brand-300">
                 Ngày trả xe
               </label>
-              <Calendar className="pointer-events-none absolute left-3.5 top-[52px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
+              <Calendar className="pointer-events-none absolute left-3.5 top-[48px] z-10 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-brand-500" />
               <input
                 id="homepage-search-end"
                 type="datetime-local"
@@ -489,7 +490,7 @@ export default function HomePage() {
                   setSearchEndDate(event.target.value);
                   setSearchError("");
                 }}
-                className="min-h-12 w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/90 py-2.5 pl-10 pr-3 text-xs font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900 sm:text-sm"
+                className="min-h-11 w-full cursor-pointer rounded-xl border border-slate-200/80 bg-slate-50/90 py-2 pl-10 pr-3 text-xs font-bold leading-normal text-slate-900 outline-none transition-all hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-400 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-white dark:hover:bg-neutral-800/80 dark:focus:bg-neutral-900 sm:text-sm"
               />
             </div>
 
@@ -497,7 +498,7 @@ export default function HomePage() {
             <div className="flex items-end">
               <button
                 type="submit"
-                className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 via-purple-500 to-fuchsia-500 px-5 py-2.5 text-sm font-black tracking-wide text-white shadow-lg shadow-brand-500/30 transition-all hover:scale-[1.01] hover:from-brand-400 hover:via-purple-400 hover:to-fuchsia-400 active:scale-95"
+                className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 via-purple-500 to-fuchsia-500 px-5 py-2 text-sm font-black tracking-wide text-white shadow-lg shadow-brand-500/30 transition-all hover:scale-[1.01] hover:from-brand-400 hover:via-purple-400 hover:to-fuchsia-400 active:scale-95"
               >
                 <Search className="h-4 w-4 stroke-[2.5]" /> TÌM XE
               </button>
@@ -1051,6 +1052,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <HomeChatWidget />
     </div>
   );
 }

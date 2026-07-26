@@ -11,7 +11,11 @@ public class CreateNotificationRequestValidator : AbstractValidator<CreateNotifi
         RuleFor(x => x.Type).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Body).NotEmpty().MaximumLength(1000);
-        RuleFor(x => x.Channel).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.Channel)
+            .NotEmpty()
+            .Must(channel => channel is "InApp" or "Email" or "Both")
+            .WithMessage("Channel must be InApp, Email, or Both.");
         RuleFor(x => x.DataJson).MaximumLength(4000);
+        RuleFor(x => x.DeduplicationKey).MaximumLength(200);
     }
 }

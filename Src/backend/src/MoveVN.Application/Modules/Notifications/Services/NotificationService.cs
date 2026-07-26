@@ -18,7 +18,6 @@ namespace MoveVN.Application.Modules.Notifications.Services;
 public class NotificationService : INotificationService
 {
     private const int MaxPageSize = 50;
-    private static readonly HashSet<string> ValidChannels = new(StringComparer.OrdinalIgnoreCase) { "InApp", "Email", "Both" };
     private static readonly HashSet<string> ValidTargetTypes = new(StringComparer.OrdinalIgnoreCase) { "All", "ByRole", "ByUser" };
     private static readonly HashSet<string> ValidRoles = new(StringComparer.OrdinalIgnoreCase) { "Customer", "Owner", "Staff", "Admin" };
     private readonly ICurrentUserContext _currentUserContext;
@@ -58,7 +57,7 @@ public class NotificationService : INotificationService
 
         var query = _notificationRepository.Notifications
             .AsNoTracking()
-            .Where(x => x.UserId == userId);
+            .Where(x => x.UserId == userId && (x.Channel == "InApp" || x.Channel == "Both"));
 
         if (unreadOnly == true)
         {
@@ -113,7 +112,9 @@ public class NotificationService : INotificationService
         var userId = GetCurrentUserId();
         var now = DateTime.UtcNow;
         var unread = await _notificationRepository.Notifications
-            .Where(x => x.UserId == userId && !x.IsRead)
+            .Where(x => x.UserId == userId
+                && !x.IsRead
+                && (x.Channel == "InApp" || x.Channel == "Both"))
             .ToListAsync(cancellationToken);
 
         foreach (var notification in unread)
@@ -136,6 +137,22 @@ public class NotificationService : INotificationService
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
+        var channel = NormalizeChannel(request.Channel);
+        var sendsInApp = channel is "InApp" or "Both";
+        var sendsEmail = channel is "Email" or "Both";
+        var deduplicationKey = string.IsNullOrWhiteSpace(request.DeduplicationKey)
+            ? null
+            : request.DeduplicationKey.Trim();
+
+        if (deduplicationKey is not null)
+        {
+            var existing = await _notificationRepository.GetByDeduplicationKeyAsync(user.Id, deduplicationKey, cancellationToken);
+            if (existing is not null)
+            {
+                return Map(existing);
+            }
+        }
+
         var now = DateTime.UtcNow;
         var notification = new Notification
         {
@@ -144,18 +161,42 @@ public class NotificationService : INotificationService
             Title = request.Title.Trim(),
             Body = request.Body.Trim(),
             DataJson = string.IsNullOrWhiteSpace(request.DataJson) ? null : request.DataJson.Trim(),
-            Channel = string.IsNullOrWhiteSpace(request.Channel) ? "InApp" : request.Channel.Trim(),
-            IsRead = false,
+            Channel = channel,
+            DeduplicationKey = deduplicationKey,
+            IsRead = !sendsInApp,
+            ReadAt = sendsInApp ? null : now,
             SentAt = now,
             CreatedAt = now
         };
 
         await _notificationRepository.AddAsync(notification, cancellationToken);
-        await _notificationRepository.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _notificationRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException) when (deduplicationKey is not null)
+        {
+            _notificationRepository.Detach(notification);
+            var existing = await _notificationRepository.GetByDeduplicationKeyAsync(user.Id, deduplicationKey, cancellationToken);
+            if (existing is not null)
+            {
+                return Map(existing);
+            }
+
+            throw;
+        }
 
         var response = Map(notification);
-        await _realtimeDispatcher.SendCreatedAsync(user.Id, response, await GetUnreadCountAsync(user.Id, cancellationToken), cancellationToken);
-        await SendEmailNotificationIfAllowedAsync(user, notification, cancellationToken);
+        if (sendsInApp)
+        {
+            await _realtimeDispatcher.SendCreatedAsync(user.Id, response, await GetUnreadCountAsync(user.Id, cancellationToken), cancellationToken);
+        }
+
+        if (sendsEmail)
+        {
+            await SendEmailNotificationIfAllowedAsync(user, notification, cancellationToken);
+        }
+
         return response;
     }
 
@@ -168,8 +209,9 @@ public class NotificationService : INotificationService
             throw new AppException(ErrorCode.VALIDATION_ERROR, ["Tiêu đề và nội dung thông báo không được để trống."]);
         }
 
-        var channel = ValidChannels.Contains(request.Channel) ? request.Channel : "InApp";
-        var targetType = ValidTargetTypes.Contains(request.TargetType) ? request.TargetType : "All";
+        var channel = NormalizeChannel(request.Channel);
+        var targetType = ValidTargetTypes.FirstOrDefault(value =>
+            string.Equals(value, request.TargetType, StringComparison.OrdinalIgnoreCase)) ?? "All";
         var sendInApp = channel is "InApp" or "Both";
         var sendEmail = channel is "Email" or "Both";
 
@@ -293,7 +335,19 @@ public class NotificationService : INotificationService
     }
 
     private async Task<int> GetUnreadCountAsync(long userId, CancellationToken cancellationToken)
-        => await _notificationRepository.Notifications.CountAsync(x => x.UserId == userId && !x.IsRead, cancellationToken);
+        => await _notificationRepository.Notifications.CountAsync(
+            x => x.UserId == userId
+                && !x.IsRead
+                && (x.Channel == "InApp" || x.Channel == "Both"),
+            cancellationToken);
+
+    private static string NormalizeChannel(string? channel)
+        => channel?.Trim() switch
+        {
+            "Email" => "Email",
+            "Both" => "Both",
+            _ => "InApp"
+        };
 
     private async Task SendEmailNotificationIfAllowedAsync(User user, Notification notification, CancellationToken cancellationToken)
     {

@@ -1248,6 +1248,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("data_json");
 
+                    b.Property<string>("DeduplicationKey")
+                        .HasColumnType("text")
+                        .HasColumnName("deduplication_key");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean")
                         .HasColumnName("is_read");
@@ -1275,6 +1279,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DeduplicationKey")
+                        .IsUnique()
+                        .HasFilter("deduplication_key IS NOT NULL");
 
                     b.ToTable("Notifications");
                 });

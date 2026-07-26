@@ -17,6 +17,8 @@ public class ChatParticipantResponse
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
+    public bool IsOnline { get; set; }
+    public DateTime? LastSeenAt { get; set; }
 }
 
 public class ChatLastMessageResponse

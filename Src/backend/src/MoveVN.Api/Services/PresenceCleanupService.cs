@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using MoveVN.Api.Hubs;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Infrastructure.Persistence;
 
@@ -9,11 +11,16 @@ public class PresenceCleanupService : BackgroundService
     private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan StaleSessionAge = TimeSpan.FromMinutes(2);
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IHubContext<PresenceHub> _hubContext;
     private readonly ILogger<PresenceCleanupService> _logger;
 
-    public PresenceCleanupService(IServiceScopeFactory scopeFactory, ILogger<PresenceCleanupService> logger)
+    public PresenceCleanupService(
+        IServiceScopeFactory scopeFactory,
+        IHubContext<PresenceHub> hubContext,
+        ILogger<PresenceCleanupService> logger)
     {
         _scopeFactory = scopeFactory;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -90,6 +97,12 @@ public class PresenceCleanupService : BackgroundService
                     .SetProperty(user => user.UpdatedAt, now), cancellationToken);
 
             await presenceService.MarkOfflineAsync(userId, cancellationToken);
+            await _hubContext.Clients.All.SendAsync(
+                "UserPresenceChanged",
+                userId,
+                false,
+                now,
+                cancellationToken);
         }
     }
 }

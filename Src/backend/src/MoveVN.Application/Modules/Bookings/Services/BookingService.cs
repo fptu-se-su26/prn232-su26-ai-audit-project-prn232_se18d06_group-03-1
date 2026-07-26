@@ -928,7 +928,8 @@ public class BookingService : IBookingService
                 targetPath,
                 action
             }),
-            Channel = "InApp"
+            Channel = "InApp",
+            DeduplicationKey = $"booking:{booking.Id}:{action}:{userId}"
         }, cancellationToken);
     }
 

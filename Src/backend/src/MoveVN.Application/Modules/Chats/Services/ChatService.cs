@@ -202,7 +202,7 @@ public class ChatService : IChatService
             Room = roomResponse
         }, cancellationToken);
 
-        await NotifyRecipientsAsync(room, senderId, content, cancellationToken);
+        await NotifyRecipientsAsync(room, message.Id!, senderId, content, cancellationToken);
         return messageResponse;
     }
 
@@ -296,7 +296,9 @@ public class ChatService : IChatService
                 UserId = parsedUserId,
                 FullName = user?.FullName ?? participant.Role,
                 Role = participant.Role,
-                AvatarUrl = user?.AvatarUrl
+                AvatarUrl = user?.AvatarUrl,
+                IsOnline = user?.IsOnline ?? false,
+                LastSeenAt = user?.LastSeenAt
             });
         }
 
@@ -332,7 +334,12 @@ public class ChatService : IChatService
             .ToList();
     }
 
-    private async Task NotifyRecipientsAsync(ChatRoomDocument room, long senderId, string content, CancellationToken cancellationToken)
+    private async Task NotifyRecipientsAsync(
+        ChatRoomDocument room,
+        string messageId,
+        long senderId,
+        string content,
+        CancellationToken cancellationToken)
     {
         var senderUser = await _userRepository.GetByIdAsync(senderId, cancellationToken);
         var senderName = senderUser?.FullName ?? "MoveVN user";
@@ -353,7 +360,8 @@ public class ChatService : IChatService
                     targetPath = $"/chat/booking/{bookingId}",
                     action = "OpenChat"
                 }),
-                Channel = "InApp"
+                Channel = "InApp",
+                DeduplicationKey = $"chat:{messageId}:{recipientId}"
             }, cancellationToken);
         }
     }

@@ -84,6 +84,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         builder.Entity<Wallet>();
         builder.Entity<WalletTransaction>().HasIndex(entity => entity.IdempotencyKey).IsUnique();
+        builder.Entity<Notification>()
+            .HasIndex(entity => new { entity.UserId, entity.DeduplicationKey })
+            .IsUnique()
+            .HasFilter("deduplication_key IS NOT NULL");
         builder.Entity<SystemConfig>().HasIndex(entity => entity.ConfigKey).IsUnique();
         builder.Entity<Booking>().Property(entity => entity.EscrowStatus).HasDefaultValue("None");
         builder.Entity<Booking>().HasIndex(entity => new { entity.Status, entity.PaymentDueAt });

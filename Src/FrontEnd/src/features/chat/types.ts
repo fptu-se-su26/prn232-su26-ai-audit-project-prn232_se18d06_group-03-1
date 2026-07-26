@@ -11,6 +11,8 @@ export interface ChatParticipant {
   fullName: string;
   role: string;
   avatarUrl?: string | null;
+  isOnline: boolean;
+  lastSeenAt?: string | null;
 }
 
 export interface ChatLastMessage {

@@ -22,6 +22,7 @@ public class CreateNotificationRequest
     public string Body { get; set; } = string.Empty;
     public string? DataJson { get; set; }
     public string Channel { get; set; } = "InApp";
+    public string? DeduplicationKey { get; set; }
 }
 
 public class NotificationUnreadCountResponse

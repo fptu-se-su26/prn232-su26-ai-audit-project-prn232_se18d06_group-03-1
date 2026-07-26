@@ -24,6 +24,18 @@ export default {
         "3xl": ["var(--font-size-h2)", { lineHeight: "var(--line-height-heading)" }],
         "4xl": ["var(--font-size-h1)", { lineHeight: "var(--line-height-heading)" }],
         "5xl": ["var(--font-size-display)", { lineHeight: "var(--line-height-heading)" }],
+        "6xl": ["var(--font-size-display)", { lineHeight: "var(--line-height-heading)" }],
+        "7xl": ["var(--font-size-display)", { lineHeight: "var(--line-height-heading)" }],
+        "8xl": ["var(--font-size-display)", { lineHeight: "var(--line-height-heading)" }],
+        "9xl": ["var(--font-size-display)", { lineHeight: "var(--line-height-heading)" }],
+      },
+      fontWeight: {
+        normal: "400",
+        medium: "500",
+        semibold: "600",
+        bold: "600",
+        extrabold: "700",
+        black: "700",
       },
       lineHeight: {
         heading: "var(--line-height-heading)",

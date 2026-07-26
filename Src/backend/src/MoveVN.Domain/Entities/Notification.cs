@@ -9,6 +9,7 @@ public class Notification
     public string Body { get; set; } = string.Empty;
     public string? DataJson { get; set; }
     public string Channel { get; set; } = string.Empty;
+    public string? DeduplicationKey { get; set; }
     public bool IsRead { get; set; }
     public DateTime? ReadAt { get; set; }
     public DateTime? SentAt { get; set; }
