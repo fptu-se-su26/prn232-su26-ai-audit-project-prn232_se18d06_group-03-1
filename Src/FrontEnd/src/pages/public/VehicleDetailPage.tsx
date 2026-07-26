@@ -794,7 +794,7 @@ export default function VehicleDetailPage() {
                       onChange={(e) => setPickupHour(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                     >
-                      {Array.from({ length: 17 }, (_, i) => i + 6).map((h) => (
+                      {Array.from({ length: 24 }, (_, i) => i).map((h) => (
                         <option key={h} value={`${String(h).padStart(2, "0")}:00`}>{`${String(h).padStart(2, "0")}:00`}</option>
                       ))}
                     </select>
@@ -806,7 +806,7 @@ export default function VehicleDetailPage() {
                       onChange={(e) => setReturnHour(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                     >
-                      {Array.from({ length: 17 }, (_, i) => i + 6).map((h) => (
+                      {Array.from({ length: 24 }, (_, i) => i).map((h) => (
                         <option key={h} value={`${String(h).padStart(2, "0")}:00`}>{`${String(h).padStart(2, "0")}:00`}</option>
                       ))}
                     </select>
