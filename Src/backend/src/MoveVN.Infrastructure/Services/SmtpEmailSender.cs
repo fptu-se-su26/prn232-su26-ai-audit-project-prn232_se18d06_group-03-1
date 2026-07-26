@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
+using MoveVN.Domain.Entities;
+using System.Text.Json;
 
 namespace MoveVN.Infrastructure.Services;
 
@@ -19,6 +21,46 @@ public class SmtpEmailSender : IEmailSender
         _logger = logger;
     }
 
+    public async Task DeliverQueuedAsync(EmailLog emailLog, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(emailLog.PayloadJson))
+        {
+            throw new InvalidOperationException($"Email log {emailLog.Id} has no delivery payload.");
+        }
+
+        switch (emailLog.EmailType)
+        {
+            case "Otp":
+                var otp = JsonSerializer.Deserialize<OtpEmailPayload>(emailLog.PayloadJson)
+                    ?? throw new InvalidOperationException($"Email log {emailLog.Id} has an invalid OTP payload.");
+                await SendOtpAsync(emailLog.RecipientEmail, otp.Otp, otp.Purpose, cancellationToken);
+                break;
+            case "DepositRequest":
+                var deposit = JsonSerializer.Deserialize<DepositEmailPayload>(emailLog.PayloadJson)
+                    ?? throw new InvalidOperationException($"Email log {emailLog.Id} has an invalid deposit payload.");
+                await SendDepositRequestAsync(
+                    emailLog.RecipientEmail,
+                    deposit.CustomerName,
+                    deposit.BookingCode,
+                    deposit.VehicleName,
+                    deposit.DepositAmount,
+                    cancellationToken);
+                break;
+            case "Notification":
+                var notification = JsonSerializer.Deserialize<NotificationEmailPayload>(emailLog.PayloadJson)
+                    ?? throw new InvalidOperationException($"Email log {emailLog.Id} has an invalid notification payload.");
+                await SendNotificationAsync(
+                    emailLog.RecipientEmail,
+                    notification.RecipientName,
+                    notification.Title,
+                    notification.Body,
+                    cancellationToken);
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported email type '{emailLog.EmailType}'.");
+        }
+    }
+
     public async Task SendDepositRequestAsync(string email, string customerName, string bookingCode, string vehicleName, decimal depositAmount, CancellationToken cancellationToken = default)
     {
         var host = _configuration["SMTP_HOST"];
@@ -27,7 +69,7 @@ public class SmtpEmailSender : IEmailSender
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(fromEmail))
         {
             _logger.LogWarning("SMTP is not configured. Skipped sending deposit email to {Email} for booking {BookingCode}", email, bookingCode);
-            return;
+            throw new EmailDeliverySkippedException("SMTP is not configured.");
         }
 
         var port = int.TryParse(_configuration["SMTP_PORT"], out var parsedPort) ? parsedPort : 587;
@@ -62,6 +104,7 @@ public class SmtpEmailSender : IEmailSender
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send deposit email to {Email}", email);
+            throw;
         }
     }
 
@@ -70,7 +113,7 @@ public class SmtpEmailSender : IEmailSender
         if (bool.TryParse(_configuration["NOTIFICATION_EMAIL_ENABLED"], out var enabled) && !enabled)
         {
             _logger.LogInformation("Notification email is disabled. Skipped email to {Email}", email);
-            return;
+            throw new EmailDeliverySkippedException("Notification email is disabled.");
         }
 
         var host = _configuration["SMTP_HOST"];
@@ -79,7 +122,7 @@ public class SmtpEmailSender : IEmailSender
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(fromEmail))
         {
             _logger.LogWarning("SMTP is not configured. Skipped notification email to {Email}", email);
-            return;
+            throw new EmailDeliverySkippedException("SMTP is not configured.");
         }
 
         var port = int.TryParse(_configuration["SMTP_PORT"], out var parsedPort) ? parsedPort : 587;
@@ -114,6 +157,7 @@ public class SmtpEmailSender : IEmailSender
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to send notification email to {Email}", email);
+            throw;
         }
     }
 
@@ -130,7 +174,7 @@ public class SmtpEmailSender : IEmailSender
             _logger.LogWarning("OTP Purpose: {Purpose}", purpose);
             _logger.LogWarning("OTP CODE: {Otp}", otp);
             _logger.LogWarning("==================================================");
-            return;
+            throw new EmailDeliverySkippedException("SMTP is not configured; OTP was written to the application log.");
         }
 
         var port = int.TryParse(_configuration["SMTP_PORT"], out var parsedPort) ? parsedPort : 587;
@@ -171,6 +215,7 @@ public class SmtpEmailSender : IEmailSender
             _logger.LogWarning("OTP Purpose: {Purpose}", purpose);
             _logger.LogWarning("OTP CODE: {Otp}", otp);
             _logger.LogWarning("==================================================");
+            throw;
         }
     }
 

@@ -33,6 +33,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<DisputeEvidenceSubmission> DisputeEvidenceSubmissions => Set<DisputeEvidenceSubmission>();
     public DbSet<DriverLicenseClass> DriverLicenseClasses => Set<DriverLicenseClass>();
     public DbSet<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => Set<DriverLicenseClassCompatibility>();
+    public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
     public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
     public DbSet<InspectionReport> InspectionReports => Set<InspectionReport>();
     public DbSet<MLPredictionLog> MLPredictionLogs => Set<MLPredictionLog>();
@@ -91,6 +92,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<SystemConfig>().HasIndex(entity => entity.ConfigKey).IsUnique();
         builder.Entity<Booking>().Property(entity => entity.EscrowStatus).HasDefaultValue("None");
         builder.Entity<Booking>().HasIndex(entity => new { entity.Status, entity.PaymentDueAt });
+        builder.Entity<EmailLog>().HasIndex(entity => new { entity.Status, entity.NextAttemptAt });
+        builder.Entity<EmailLog>().Property(entity => entity.EmailType).HasMaxLength(50);
+        builder.Entity<EmailLog>().Property(entity => entity.RecipientEmail).HasMaxLength(320);
+        builder.Entity<EmailLog>().Property(entity => entity.RecipientName).HasMaxLength(200);
+        builder.Entity<EmailLog>().Property(entity => entity.Subject).HasMaxLength(250);
+        builder.Entity<EmailLog>().Property(entity => entity.Status).HasMaxLength(20);
+        builder.Entity<EmailLog>().Property(entity => entity.PayloadJson).HasColumnType("text");
+        builder.Entity<EmailLog>().Property(entity => entity.LastError).HasColumnType("text");
         builder.Entity<WithdrawalRequest>();
         builder.Entity<VoucherClaim>().HasIndex(vc => new { vc.CustomerId, vc.PromotionId }).IsUnique();
         builder.Entity<VoucherClaim>().ToTable("voucher_claims");

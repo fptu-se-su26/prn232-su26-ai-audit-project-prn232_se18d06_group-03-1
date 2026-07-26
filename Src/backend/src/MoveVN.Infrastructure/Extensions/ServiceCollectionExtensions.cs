@@ -69,7 +69,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IUserManagementAuditLogService, UserManagementAuditLogService>();
         services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<SmtpEmailSender>();
+        services.AddScoped<IEmailSender, QueuedEmailSender>();
         services.AddScoped<ISystemConfigService, SystemConfigService>();
         services.AddHttpClient("UpstashRedis", client =>
         {

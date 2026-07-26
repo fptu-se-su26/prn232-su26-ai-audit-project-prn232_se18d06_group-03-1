@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
@@ -26,7 +25,6 @@ public class NotificationService : INotificationService
     private readonly INotificationRealtimeDispatcher _realtimeDispatcher;
     private readonly IEmailSender _emailSender;
     private readonly ISystemConfigService _systemConfigService;
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IBroadcastNotificationLogService _broadcastLogService;
 
     public NotificationService(
@@ -36,7 +34,6 @@ public class NotificationService : INotificationService
         INotificationRealtimeDispatcher realtimeDispatcher,
         IEmailSender emailSender,
         ISystemConfigService systemConfigService,
-        IServiceScopeFactory scopeFactory,
         IBroadcastNotificationLogService broadcastLogService)
     {
         _currentUserContext = currentUserContext;
@@ -45,7 +42,6 @@ public class NotificationService : INotificationService
         _realtimeDispatcher = realtimeDispatcher;
         _emailSender = emailSender;
         _systemConfigService = systemConfigService;
-        _scopeFactory = scopeFactory;
         _broadcastLogService = broadcastLogService;
     }
 
@@ -301,28 +297,22 @@ public class NotificationService : INotificationService
 
         if (emailTargets.Count > 0)
         {
-            _ = Task.Run(async () =>
+            foreach (var target in emailTargets)
             {
-                using var scope = _scopeFactory.CreateScope();
-                var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
-                var semaphore = new SemaphoreSlim(10);
-                var tasks = emailTargets.Select(async target =>
+                try
                 {
-                    await semaphore.WaitAsync();
-                    try
-                    {
-                        await emailSender.SendNotificationAsync(target.Email, target.FullName, title, body, CancellationToken.None);
-                    }
-                    catch
-                    {
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                });
-                await Task.WhenAll(tasks);
-            });
+                    await _emailSender.SendNotificationAsync(
+                        target.Email,
+                        target.FullName,
+                        title,
+                        body,
+                        cancellationToken);
+                }
+                catch (Exception exception)
+                {
+                    result.Errors.Add($"UserId={target.UserId}: email enqueue failed: {exception.Message}");
+                }
+            }
         }
 
         return result;

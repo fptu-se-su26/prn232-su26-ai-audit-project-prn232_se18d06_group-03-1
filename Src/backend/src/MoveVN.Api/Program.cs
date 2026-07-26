@@ -57,6 +57,7 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 });
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<PresenceCleanupService>();
+builder.Services.AddHostedService<EmailDeliveryBackgroundService>();
 builder.Services.AddHostedService<BookingAutoCancelBackgroundService>();
 builder.Services.AddHostedService<BookingReminderBackgroundService>();
 
