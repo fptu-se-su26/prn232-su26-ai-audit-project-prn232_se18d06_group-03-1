@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import HomeChatWidget from "@/components/chat/HomeChatWidget";
 import VehicleCard from "@/components/vehicles/VehicleCard";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { fuelTypeOptions, motorbikeTypeOptions } from "@/features/vehicleModelVariants/options";
@@ -878,6 +879,7 @@ export default function VehicleListPage() {
           </div>
         ) : null}
       </main>
+      <HomeChatWidget />
     </div>
   );
 }
