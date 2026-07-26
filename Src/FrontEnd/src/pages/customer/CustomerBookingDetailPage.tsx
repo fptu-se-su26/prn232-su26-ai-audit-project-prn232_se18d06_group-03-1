@@ -251,7 +251,7 @@ export default function CustomerBookingDetailPage() {
             {statusLabels[booking.status] ?? booking.status}
           </span>
           <Link to={`/chat/booking/${booking.id}`} className="mt-2">
-            <Button variant="secondary" size="sm"><MessageSquare className="h-4 w-4" /> Tin nhan</Button>
+            <Button variant="secondary" size="sm"><MessageSquare className="h-4 w-4" /> Tin nhắn</Button>
           </Link>
         </div>
       </section>
@@ -262,13 +262,13 @@ export default function CustomerBookingDetailPage() {
         </Card>
       )}
 
-      {checkInReport && (booking.status === "DepositPaid" || booking.status === "Confirmed") && (
+      {checkInReport && (
         <Card className="space-y-4 rounded-md border-2 border-cyan-200 bg-cyan-50 p-5">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-cyan-600" />
             <div>
-              <h2 className="text-lg font-bold text-slate-950">Xác nhận nhận xe</h2>
-              <p className="text-sm text-slate-600">Vui lòng kiểm tra biên bản check-in và ảnh xe trước khi xác nhận.</p>
+              <h2 className="text-lg font-bold text-slate-950">Biên bản nhận xe (Check-in)</h2>
+              <p className="text-sm text-slate-600">Thông tin biên bản check-in do chủ xe lập.</p>
             </div>
           </div>
           <div className="grid gap-3 rounded-md bg-white/70 p-3 text-sm sm:grid-cols-2">
@@ -285,26 +285,34 @@ export default function CustomerBookingDetailPage() {
               </a>
             ))}
           </div>
-          <Button variant="primary" className="bg-cyan-700 hover:bg-cyan-800" onClick={handleConfirmCheckIn} isLoading={isConfirmingCheckIn}>
-            <CheckCircle className="h-4 w-4" /> Xác nhận nhận xe
-          </Button>
+          {(booking.status === "DepositPaid" || booking.status === "Confirmed") && (
+            <>
+              <p className="text-sm text-slate-600">Vui lòng kiểm tra biên bản check-in và ảnh xe trước khi xác nhận.</p>
+              <Button variant="primary" className="bg-cyan-700 hover:bg-cyan-800" onClick={handleConfirmCheckIn} isLoading={isConfirmingCheckIn}>
+                <CheckCircle className="h-4 w-4" /> Xác nhận nhận xe
+              </Button>
+            </>
+          )}
+          {checkInReport.isCustomerConfirmed && (
+            <span className="inline-block rounded-full bg-cyan-100 px-3 py-1 text-xs font-medium text-cyan-700">Đã xác nhận</span>
+          )}
         </Card>
       )}
 
-      {checkOutReport && booking.status === "InProgress" && (
+      {checkOutReport && (
         <Card className="space-y-4 rounded-md border-2 border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-center gap-3">
             <CheckCircle className="h-6 w-6 text-emerald-600" />
             <div>
-              <h2 className="text-lg font-bold text-slate-950">Kết thúc chuyến đi</h2>
-              <p className="text-sm text-slate-600">Xác nhận bạn đã trả xe và hoàn tất chuyến thuê.</p>
+              <h2 className="text-lg font-bold text-slate-950">Biên bản trả xe (Check-out)</h2>
+              <p className="text-sm text-slate-600">Thông tin biên bản check-out do chủ xe lập.</p>
             </div>
           </div>
           <div className="grid gap-3 rounded-md bg-white/70 p-3 text-sm sm:grid-cols-2">
             <p><span className="font-semibold text-slate-700">Km:</span> {checkOutReport.odometerKm ?? "-"}</p>
-            <p><span className="font-semibold text-slate-700">Nhien lieu:</span> {checkOutReport.fuelLevel || "-"}</p>
-            <p><span className="font-semibold text-slate-700">Tinh trang:</span> {checkOutReport.damageNoted ? "Co ghi nhan hu hong" : "Khong ghi nhan hu hong"}</p>
-            <p><span className="font-semibold text-slate-700">Ngay lap:</span> {formatDateTime(checkOutReport.createdAt)}</p>
+            <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {checkOutReport.fuelLevel || "-"}</p>
+            <p><span className="font-semibold text-slate-700">Tình trạng:</span> {checkOutReport.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+            <p><span className="font-semibold text-slate-700">Ngày lập:</span> {formatDateTime(checkOutReport.createdAt)}</p>
           </div>
           {checkOutReport.damageDescription && <p className="text-sm text-slate-700">{checkOutReport.damageDescription}</p>}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -314,17 +322,24 @@ export default function CustomerBookingDetailPage() {
               </a>
             ))}
           </div>
-          <p className="text-sm text-slate-600">Nếu thông tin hoặc hình ảnh có sai sót, hãy mở tranh chấp trước khi xác nhận hoàn tất.</p>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
-              <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
-            </Button>
-            <Link to={damageDisputeUrl}>
-              <Button type="button" variant="secondary" className="border-red-200 text-red-700 hover:bg-red-50">
-                <ShieldAlert className="h-4 w-4" /> Có sai sót / Mở tranh chấp
-              </Button>
-            </Link>
-          </div>
+          {booking.status === "InProgress" && (
+            <>
+              <p className="text-sm text-slate-600">Nếu thông tin hoặc hình ảnh có sai sót, hãy mở tranh chấp trước khi xác nhận hoàn tất.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleConfirmCheckOut} isLoading={isConfirmingCheckOut}>
+                  <CheckCircle className="h-4 w-4" /> Xác nhận hoàn tất chuyến đi
+                </Button>
+                <Link to={damageDisputeUrl}>
+                  <Button type="button" variant="secondary" className="border-red-200 text-red-700 hover:bg-red-50">
+                    <ShieldAlert className="h-4 w-4" /> Có sai sót / Mở tranh chấp
+                  </Button>
+                </Link>
+              </div>
+            </>
+          )}
+          {checkOutReport.isCustomerConfirmed && (
+            <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Đã xác nhận</span>
+          )}
         </Card>
       )}
 

@@ -57,9 +57,9 @@ statusColors.DecisionIssued = "bg-cyan-50 text-cyan-700 ring-cyan-100";
 statusColors.AwaitingExternalSettlement = "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-100";
 
 const compensationDirectionLabels: Record<CompensationDirection, string> = {
-  CustomerPaysOwner: "Khach boi thuong cho chu xe",
-  OwnerRefundsCustomer: "Chu xe hoan/giam tien cho khach",
-  NoCompensation: "Khong phat sinh boi thuong",
+  CustomerPaysOwner: "Khách bồi thường cho chủ xe",
+  OwnerRefundsCustomer: "Chủ xe hoàn/giảm tiền cho khách",
+  NoCompensation: "Không phát sinh bồi thường",
 };
 
 const settlementMethodLabels: Record<DisputeSettlementMethod, string> = {
@@ -68,9 +68,9 @@ const settlementMethodLabels: Record<DisputeSettlementMethod, string> = {
 };
 
 const evidenceTargetLabels: Record<EvidenceRequestedFrom, string> = {
-  Customer: "Khach thue",
-  Owner: "Chu xe",
-  Both: "Ca hai ben",
+  Customer: "Khách thuê",
+  Owner: "Chủ xe",
+  Both: "Cả hai bên",
 };
 
 function formatDateTime(value?: string | null) {
@@ -305,7 +305,7 @@ export default function DisputePage() {
         updatedAt: selected.updatedAt,
       });
       setSelected(updated);
-      showToast({ type: "success", title: "Da yeu cau", message: "Yeu cau bo sung bang chung da duoc gui." });
+      showToast({ type: "success", title: "Đã yêu cầu", message: "Yêu cầu bổ sung bằng chứng đã được gửi." });
       await load(page, statusFilter, keyword);
     } catch (error) {
       showToast({ type: "error", title: "Lỗi", message: getApiErrorMessage(error, "Không thể yêu cầu bổ sung bằng chứng.") });
@@ -325,7 +325,7 @@ export default function DisputePage() {
       });
       setSelected(updated);
       setActionForm((prev) => ({ ...prev, evidenceMessage: "", evidenceUrls: "" }));
-      showToast({ type: "success", title: "Da bo sung", message: "Bang chung da duoc gui lai cho staff." });
+      showToast({ type: "success", title: "Đã bổ sung", message: "Bằng chứng đã được gửi lại cho staff." });
       await load(page, statusFilter, keyword);
     } catch (error) {
       showToast({ type: "error", title: "Lỗi", message: getApiErrorMessage(error, "Không thể bổ sung bằng chứng.") });
@@ -620,20 +620,20 @@ export default function DisputePage() {
 
               {selected.inspectionReports.length > 0 && (
                 <div className="space-y-3 border-t border-slate-100 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Bien ban giao/nhan xe</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Biên bản giao/nhận xe</p>
                   {selected.inspectionReports.map((report) => (
                     <div key={report.id} className="rounded-md border border-slate-200 bg-slate-50 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-semibold text-slate-900">{report.type === "CheckIn" ? "Truoc khi giao xe" : "Sau khi nhan/tra xe"}</p>
+                        <p className="font-semibold text-slate-900">{report.type === "CheckIn" ? "Trước khi giao xe" : "Sau khi nhận/trả xe"}</p>
                         <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
                           Biên bản {report.type === "CheckIn" ? "check-in" : "check-out"}
                         </span>
                       </div>
                       <div className="mt-2 grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
                         <p><span className="font-semibold">Km:</span> {report.odometerKm ?? "-"}</p>
-                        <p><span className="font-semibold">Nhien lieu:</span> {report.fuelLevel || "-"}</p>
-                        <p><span className="font-semibold">Tinh trang:</span> {report.damageNoted ? "Co ghi nhan hu hong" : "Khong ghi nhan hu hong"}</p>
-                        <p><span className="font-semibold">Ngay lap:</span> {formatDateTime(report.createdAt)}</p>
+                        <p><span className="font-semibold">Nhiên liệu:</span> {report.fuelLevel || "-"}</p>
+                        <p><span className="font-semibold">Tình trạng:</span> {report.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+                        <p><span className="font-semibold">Ngày lập:</span> {formatDateTime(report.createdAt)}</p>
                       </div>
                       {report.damageDescription && <p className="mt-2 whitespace-pre-line text-xs text-slate-700">{report.damageDescription}</p>}
                       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -656,7 +656,7 @@ export default function DisputePage() {
                   {selected.compensationDirection === "CustomerPaysOwner" && (
                     <p className="mt-1">Cách xử lý: {settlementMethodLabels[selected.settlementMethod]}</p>
                   )}
-                  {selected.finalCompensationAmount != null && <p className="mt-1">Boi thuong: {formatCurrency(selected.finalCompensationAmount)}</p>}
+                  {selected.finalCompensationAmount != null && <p className="mt-1">Bồi thường: {formatCurrency(selected.finalCompensationAmount)}</p>}
                   <p className="mt-1">Từ tiền cọc nền tảng giữ: {formatCurrency(selected.platformSettledAmount)}</p>
                   {selected.platformSettledAmount > 0 && (
                     <p className="mt-1">Trạng thái chuyển: {selected.platformSettlementCompletedAt ? `Đã chuyển lúc ${formatDateTime(selected.platformSettlementCompletedAt)}` : "Chờ khách chấp nhận"}</p>
@@ -706,25 +706,25 @@ export default function DisputePage() {
               {canCreate && selected.status === "NeedMoreEvidence" && (
                 <div className="space-y-3 rounded-md border border-orange-200 bg-orange-50 p-3">
                   <div>
-                    <p className="text-sm font-bold text-orange-900">Can bo sung bang chung</p>
+                    <p className="text-sm font-bold text-orange-900">Cần bổ sung bằng chứng</p>
                     {selected.evidenceRequestMessage && <p className="mt-1 whitespace-pre-line text-sm text-orange-800">{selected.evidenceRequestMessage}</p>}
                   </div>
                   <textarea
                     rows={3}
                     value={actionForm.evidenceMessage}
                     onChange={(event) => setActionForm((prev) => ({ ...prev, evidenceMessage: event.target.value }))}
-                    placeholder="Noi dung phan hoi..."
+                    placeholder="Nội dung phản hồi..."
                     className="w-full resize-y rounded-md border border-orange-200 px-3 py-2 text-sm"
                   />
                   <textarea
                     rows={2}
                     value={actionForm.evidenceUrls}
                     onChange={(event) => setActionForm((prev) => ({ ...prev, evidenceUrls: event.target.value }))}
-                    placeholder="Link anh/hoa don, moi dong mot link"
+                    placeholder="Link ảnh/hóa đơn, mỗi dòng một link"
                     className="w-full resize-y rounded-md border border-orange-200 px-3 py-2 text-sm"
                   />
                   <Button type="button" size="sm" onClick={() => void submitEvidence()} isLoading={isSubmitting} disabled={!actionForm.evidenceMessage.trim()}>
-                    Gui bo sung
+                    Gửi bổ sung
                   </Button>
                 </div>
               )}
@@ -778,7 +778,7 @@ export default function DisputePage() {
                     />
                   </label>
                   <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-sm font-semibold text-slate-800">Yeu cau bo sung bang chung</p>
+                    <p className="text-sm font-semibold text-slate-800">Yêu cầu bổ sung bằng chứng</p>
                     <select
                       value={actionForm.evidenceRequestedFrom}
                       onChange={(event) => setActionForm((prev) => ({ ...prev, evidenceRequestedFrom: event.target.value as EvidenceRequestedFrom }))}
@@ -792,11 +792,11 @@ export default function DisputePage() {
                       rows={2}
                       value={actionForm.evidenceRequestMessage}
                       onChange={(event) => setActionForm((prev) => ({ ...prev, evidenceRequestMessage: event.target.value }))}
-                      placeholder="Can bo sung anh, hoa don hoac giai trinh..."
+                      placeholder="Cần bổ sung ảnh, hóa đơn hoặc giải trình..."
                       className="w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm"
                     />
                     <Button type="button" variant="secondary" size="sm" onClick={() => void requestEvidence()} isLoading={isSubmitting} disabled={!actionForm.evidenceRequestMessage.trim()}>
-                      Yeu cau bo sung
+                      Yêu cầu bổ sung
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
