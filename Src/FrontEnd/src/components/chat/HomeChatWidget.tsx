@@ -1,4 +1,4 @@
-import { ChevronLeft, MessageCircle, Send, X } from "lucide-react";
+import { ChevronLeft, Heart, MessageCircle, Send, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -11,6 +11,8 @@ import {
 import type { ChatMessage, ChatRoom } from "@/features/chat/types";
 import { usePresenceStore } from "@/features/presence/usePresence";
 import { getApiErrorMessage } from "@/services/apiClient";
+import { getFavoriteVehicles } from "@/features/vehicles/services/favoriteVehicleService";
+import type { VehicleListItemResponse } from "@/features/vehicles/types";
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
@@ -42,6 +44,9 @@ export default function HomeChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [favorites, setFavorites] = useState<VehicleListItemResponse[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const canChat = Boolean(user?.roles.some((role) => role === "Customer" || role === "Owner"));
 
@@ -117,6 +122,22 @@ export default function HomeChatWidget() {
       setError(getApiErrorMessage(err, "Không thể gửi tin nhắn."));
     } finally {
       setIsSending(false);
+    }
+  }
+
+  async function toggleFavorites() {
+    const next = !favoritesOpen;
+    setFavoritesOpen(next);
+    setIsOpen(false);
+    if (!next) return;
+    setFavoritesLoading(true);
+    try {
+      const result = await getFavoriteVehicles(1, 5);
+      setFavorites(result.items);
+    } catch {
+      setFavorites([]);
+    } finally {
+      setFavoritesLoading(false);
     }
   }
 
@@ -289,9 +310,80 @@ export default function HomeChatWidget() {
         </section>
       ) : null}
 
+      {favoritesOpen ? (
+        <section className="fixed bottom-[9.5rem] left-4 right-4 z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:left-auto sm:right-7 sm:w-[360px] dark:border-neutral-700 dark:bg-neutral-900">
+          <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-neutral-800">
+            <div className="flex items-center gap-2">
+              <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">Xe yêu thích</p>
+                <p className="text-xs text-slate-500">Danh sách bạn đã lưu</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => setFavoritesOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800" aria-label="Đóng xe yêu thích">
+              <X className="h-4 w-4" />
+            </button>
+          </header>
+
+          <div className="max-h-72 overflow-y-auto p-2">
+            {favoritesLoading ? (
+              <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>
+            ) : favorites.length === 0 ? (
+              <div className="py-8 text-center">
+                <Heart className="mx-auto h-9 w-9 text-slate-200" />
+                <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">Chưa có xe yêu thích</p>
+                <Link to="/vehicle" onClick={() => setFavoritesOpen(false)} className="mt-3 inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700">
+                  Khám phá xe
+                </Link>
+              </div>
+            ) : (
+              favorites.map((vehicle) => (
+                <Link
+                  key={vehicle.id}
+                  to={`/vehicle/${vehicle.id}`}
+                  onClick={() => setFavoritesOpen(false)}
+                  className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-slate-50 dark:hover:bg-neutral-800"
+                >
+                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                    {vehicle.featuredImage ? <img src={vehicle.featuredImage} alt="" className="h-full w-full object-cover" /> : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{vehicle.brandName} {vehicle.modelName} {vehicle.year}</p>
+                    <p className="mt-1 text-xs font-semibold text-brand-600">{new Intl.NumberFormat("vi-VN").format(vehicle.pricePerDay)}đ/ngày</p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+
+          <Link
+            to="/customer/favorites"
+            onClick={() => setFavoritesOpen(false)}
+            className="flex h-11 items-center justify-center border-t border-slate-100 text-sm font-bold text-brand-600 transition hover:bg-brand-50 dark:border-neutral-800 dark:hover:bg-neutral-800"
+          >
+            Xem tất cả xe yêu thích
+          </Link>
+        </section>
+      ) : null}
+
+      {user?.roles.includes("Customer") && !isOpen ? (
+        <button
+          type="button"
+          onClick={() => void toggleFavorites()}
+          aria-label="Mở danh sách xe yêu thích"
+          title="Xe yêu thích"
+          className={`group fixed bottom-[5.75rem] right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full border text-rose-500 shadow-[0_10px_26px_-8px_rgba(244,63,94,0.55)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_14px_30px_-8px_rgba(244,63,94,0.65)] focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 sm:bottom-[6.5rem] sm:right-8 dark:border-rose-500/20 dark:text-rose-400 ${favoritesOpen ? "border-rose-200 bg-rose-50" : "border-rose-100 bg-white hover:bg-rose-50 dark:bg-neutral-900"}`}
+        >
+          {favoritesOpen ? <X className="h-5.5 w-5.5" /> : <Heart className="h-5.5 w-5.5 fill-current" />}
+        </button>
+      ) : null}
+
       <button
         type="button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => {
+          setFavoritesOpen(false);
+          setIsOpen((current) => !current);
+        }}
         aria-label={isOpen ? "Đóng tin nhắn" : "Mở tin nhắn"}
         title="Tin nhắn"
         className="group fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-[0_12px_30px_-8px_rgba(124,58,237,0.75)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_16px_34px_-8px_rgba(124,58,237,0.85)] focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-200 sm:bottom-7 sm:right-7"

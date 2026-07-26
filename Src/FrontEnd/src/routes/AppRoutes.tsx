@@ -66,6 +66,7 @@ import CustomerVoucherHuntPage from "@/pages/customer/CustomerVoucherHuntPage";
 import CustomerVoucherWalletPage from "@/pages/customer/CustomerVoucherWalletPage";
 import CustomerSupportTicketDetailPage from "@/pages/customer/CustomerSupportTicketDetailPage";
 import CustomerSupportTicketListPage from "@/pages/customer/CustomerSupportTicketListPage";
+import CustomerFavoriteVehiclesPage from "@/pages/customer/CustomerFavoriteVehiclesPage";
 import DisputePage from "@/pages/disputes/DisputePage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -180,6 +181,7 @@ export default function AppRoutes() {
             <Route path="/customer/bookings" element={<CustomerBookingListPage />} />
             <Route path="/customer/bookings/new" element={<CustomerCreateBookingPage />} />
             <Route path="/customer/bookings/:id" element={<CustomerBookingDetailPage />} />
+            <Route path="/customer/favorites" element={<CustomerFavoriteVehiclesPage />} />
             <Route path="/customer/disputes" element={<DisputePage />} />
             <Route path="/customer/support-tickets" element={<CustomerSupportTicketListPage />} />
             <Route path="/customer/support-tickets/:id" element={<CustomerSupportTicketDetailPage />} />

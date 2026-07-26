@@ -35,6 +35,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<DriverLicenseClassCompatibility> DriverLicenseClassCompatibility => Set<DriverLicenseClassCompatibility>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
     public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
+    public DbSet<FavoriteVehicle> FavoriteVehicles => Set<FavoriteVehicle>();
     public DbSet<InspectionReport> InspectionReports => Set<InspectionReport>();
     public DbSet<MLPredictionLog> MLPredictionLogs => Set<MLPredictionLog>();
     public DbSet<MotorbikeDetail> MotorbikeDetail => Set<MotorbikeDetail>();
@@ -100,6 +101,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<EmailLog>().Property(entity => entity.Status).HasMaxLength(20);
         builder.Entity<EmailLog>().Property(entity => entity.PayloadJson).HasColumnType("text");
         builder.Entity<EmailLog>().Property(entity => entity.LastError).HasColumnType("text");
+        builder.Entity<FavoriteVehicle>().ToTable("FavoriteVehicles");
+        builder.Entity<FavoriteVehicle>().HasIndex(entity => new { entity.CustomerId, entity.VehicleId }).IsUnique();
+        builder.Entity<FavoriteVehicle>().HasIndex(entity => entity.VehicleId);
+        builder.Entity<FavoriteVehicle>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(entity => entity.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<FavoriteVehicle>()
+            .HasOne<Vehicle>()
+            .WithMany()
+            .HasForeignKey(entity => entity.VehicleId)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.Entity<WithdrawalRequest>();
         builder.Entity<VoucherClaim>().HasIndex(vc => new { vc.CustomerId, vc.PromotionId }).IsUnique();
         builder.Entity<VoucherClaim>().ToTable("voucher_claims");

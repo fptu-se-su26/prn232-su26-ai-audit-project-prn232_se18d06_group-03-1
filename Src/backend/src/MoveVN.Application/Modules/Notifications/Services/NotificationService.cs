@@ -208,6 +208,8 @@ public class NotificationService : INotificationService
         var channel = NormalizeChannel(request.Channel);
         var targetType = ValidTargetTypes.FirstOrDefault(value =>
             string.Equals(value, request.TargetType, StringComparison.OrdinalIgnoreCase)) ?? "All";
+        var targetRoles = request.TargetRoles ?? [];
+        var targetUserIds = request.TargetUserIds ?? [];
         var sendInApp = channel is "InApp" or "Both";
         var sendEmail = channel is "Email" or "Both";
 
@@ -216,9 +218,8 @@ public class NotificationService : INotificationService
         var senderRole = "Unknown";
         if (senderUser != null)
         {
-            var userRoles = await _userRepository.GetUsersByRoleAsync(ValidRoles, cancellationToken);
-            // Just use a simple way to get role if possible, or fallback
-            senderRole = "Admin/Staff"; // Because only admin/staff can broadcast
+            var admins = await _userRepository.GetUsersByRoleAsync(["Admin"], cancellationToken);
+            senderRole = admins.Any(user => user.Id == currentUserId) ? "Admin" : "Staff";
         }
 
         // Log the broadcast to MongoDB
@@ -231,21 +232,19 @@ public class NotificationService : INotificationService
             Body = request.Body,
             Channel = request.Channel,
             TargetType = request.TargetType,
-            TargetRoles = request.TargetRoles?.ToList() ?? [],
-            TargetUserIds = request.TargetUserIds?.ToList() ?? [],
+            TargetRoles = targetRoles.ToList(),
+            TargetUserIds = targetUserIds.ToList(),
             IpAddress = null, // Can inject IHttpContextAccessor if needed
             Timestamp = DateTime.UtcNow
         };
-        await _broadcastLogService.LogBroadcastAsync(log, cancellationToken);
-
         List<User> targetUsers = targetType switch
         {
-            "ByRole" when request.TargetRoles.Count > 0 =>
+            "ByRole" when targetRoles.Count > 0 =>
                 await _userRepository.GetUsersByRoleAsync(
-                    request.TargetRoles.Where(r => ValidRoles.Contains(r)),
+                    targetRoles.Where(r => ValidRoles.Contains(r)),
                     cancellationToken),
-            "ByUser" when request.TargetUserIds.Count > 0 =>
-                await _userRepository.GetUsersByIdsAsync(request.TargetUserIds, cancellationToken),
+            "ByUser" when targetUserIds.Count > 0 =>
+                await _userRepository.GetUsersByIdsAsync(targetUserIds, cancellationToken),
             _ => await _userRepository.GetAllActiveUsersAsync(cancellationToken)
         };
 
@@ -311,9 +310,21 @@ public class NotificationService : INotificationService
                 catch (Exception exception)
                 {
                     result.Errors.Add($"UserId={target.UserId}: email enqueue failed: {exception.Message}");
+                    result.FailedCount++;
+                    result.SuccessCount = Math.Max(0, result.SuccessCount - 1);
                 }
             }
         }
+
+        log.TotalTargeted = result.TotalTargeted;
+        log.SuccessCount = result.SuccessCount;
+        log.FailedCount = result.FailedCount;
+        log.Errors = result.Errors.Take(100).ToList();
+        log.Status = result.FailedCount == 0
+            ? "Completed"
+            : result.SuccessCount == 0 ? "Failed" : "Partial";
+        log.CompletedAt = DateTime.UtcNow;
+        await _broadcastLogService.LogBroadcastAsync(log, cancellationToken);
 
         return result;
     }

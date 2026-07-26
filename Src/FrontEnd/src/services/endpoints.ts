@@ -80,6 +80,11 @@ export const endpoints = {
   owner: {
     dashboardStats: "/api/owner/dashboard/stats",
   },
+  favoriteVehicles: {
+    list: "/api/customer/favorite-vehicles",
+    ids: "/api/customer/favorite-vehicles/ids",
+    byVehicle: (vehicleId: number) => `/api/customer/favorite-vehicles/${vehicleId}`,
+  },
   driverLicenses: {
     me: "/api/driver-licenses/me",
     submit: "/api/driver-licenses/me/verification",

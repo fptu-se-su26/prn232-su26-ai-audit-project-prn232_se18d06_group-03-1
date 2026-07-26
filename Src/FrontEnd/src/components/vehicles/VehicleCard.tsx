@@ -1,4 +1,4 @@
-import { Bike, Car, MapPin, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { Bike, Car, Heart, MapPin, ShieldCheck, Sparkles, Star } from "lucide-react";
 import { useState } from "react";
 import type { VehicleListItemResponse } from "@/features/vehicles/types";
 
@@ -7,6 +7,9 @@ type VehicleCardProps = {
   onOpen: () => void;
   onBook: () => void;
   bookLabel: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
+  favoriteLoading?: boolean;
 };
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN");
@@ -36,7 +39,15 @@ function getStatusLabel(vehicle: VehicleListItemResponse) {
   return null;
 }
 
-export default function VehicleCard({ vehicle, onOpen, onBook, bookLabel }: VehicleCardProps) {
+export default function VehicleCard({
+  vehicle,
+  onOpen,
+  onBook,
+  bookLabel,
+  isFavorite = false,
+  onToggleFavorite,
+  favoriteLoading = false,
+}: VehicleCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const title = getVehicleTitle(vehicle);
   const statusLabel = getStatusLabel(vehicle);
@@ -44,7 +55,18 @@ export default function VehicleCard({ vehicle, onOpen, onBook, bookLabel }: Vehi
   const VehicleIcon = vehicle.vehicleType === "Car" ? Car : Bike;
 
   return (
-    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-slate-900/10 dark:border-white/10 dark:bg-surface-card dark:hover:border-brand-500/40 dark:hover:shadow-black/30">
+    <article className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-slate-900/10 dark:border-white/10 dark:bg-surface-card dark:hover:border-brand-500/40 dark:hover:shadow-black/30">
+      {onToggleFavorite ? (
+        <button
+          type="button"
+          disabled={favoriteLoading}
+          onClick={onToggleFavorite}
+          aria-label={isFavorite ? `Bỏ yêu thích ${title}` : `Yêu thích ${title}`}
+          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-md backdrop-blur transition hover:scale-105 hover:text-rose-500 disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:bg-slate-950/80"
+        >
+          <Heart className={`h-4.5 w-4.5 ${isFavorite ? "fill-rose-500 text-rose-500" : ""}`} />
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onOpen}

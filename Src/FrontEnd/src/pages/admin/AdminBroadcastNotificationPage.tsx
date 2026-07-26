@@ -3,6 +3,8 @@ import { useState } from "react";
 import Button from "@/components/common/Button";
 import { broadcastNotification, type BroadcastNotificationRequest } from "@/features/notifications/broadcastService";
 import { getApiErrorMessage } from "@/services/apiClient";
+import BroadcastLogPanel from "@/features/notifications/BroadcastLogPanel";
+import { useAuthStore } from "@/features/auth/hooks/useAuth";
 
 const CHANNEL_OPTIONS = [
   { value: "InApp", label: "In-app (chuông thông báo)" },
@@ -45,6 +47,8 @@ export default function AdminBroadcastNotificationPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
+  const [logRefreshKey, setLogRefreshKey] = useState(0);
+  const user = useAuthStore((state) => state.user);
 
   function handleRoleToggle(role: string) {
     setForm((prev) => ({
@@ -91,6 +95,7 @@ export default function AdminBroadcastNotificationPage() {
     try {
       const res = await broadcastNotification(payload);
       setResult(res);
+      setLogRefreshKey((value) => value + 1);
       if (res.successCount > 0) {
         setForm(defaultForm);
         setUserIdsInput("");
@@ -106,7 +111,7 @@ export default function AdminBroadcastNotificationPage() {
   const targetLabel = TARGET_OPTIONS.find((o) => o.value === form.targetType)?.label ?? form.targetType;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto w-full max-w-5xl">
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-700">Quản trị hệ thống</p>
@@ -342,6 +347,7 @@ export default function AdminBroadcastNotificationPage() {
           </Button>
         </div>
       </form>
+      {user?.roles.includes("Admin") ? <BroadcastLogPanel refreshKey={logRefreshKey} /> : null}
     </div>
   );
 }

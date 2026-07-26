@@ -14,6 +14,7 @@ import {
   FileText,
   FolderTree,
   Home,
+  Heart,
   IdCard,
   KeyRound,
   Landmark,
@@ -158,6 +159,7 @@ type SectionTone = keyof typeof sectionToneClasses;
 const navIconToneByPath: Record<string, string> = {
   "/customer": "text-brand-600 dark:text-brand-400",
   "/customer/bookings": "text-sky-600 dark:text-sky-400",
+  "/customer/favorites": "text-rose-500 dark:text-rose-400",
   "/customer/voucher-hunt": "text-amber-600 dark:text-amber-400",
   "/customer/voucher-wallet": "text-emerald-600 dark:text-emerald-400",
   "/customer/promotions": "text-rose-600 dark:text-rose-400",
@@ -254,6 +256,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     mainItems.push({ to: "/customer/voucher-hunt", label: "Săn mã", icon: TicketPercent });
     mainItems.push({ to: "/customer/voucher-wallet", label: "Ví voucher", icon: Wallet });
     mainItems.push({ to: "/customer/promotions", label: "Khuyến mãi", icon: TicketPercent });
+    mainItems.push({ to: "/customer/favorites", label: "Xe yêu thích", icon: Heart });
     mainItems.push({ to: "/chat", label: "Tin nhắn", icon: MessageSquare });
     if (!user?.roles?.includes("Owner")) {
       mainItems.push({ to: "/become-owner", label: "Đăng ký làm chủ xe", icon: UserPlus });

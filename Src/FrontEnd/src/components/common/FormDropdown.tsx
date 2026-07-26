@@ -15,9 +15,19 @@ type FormDropdownProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
+  triggerClassName?: string;
 };
 
-export default function FormDropdown({ value, options, onChange, placeholder = "Chọn", disabled = false }: FormDropdownProps) {
+export default function FormDropdown({
+  value,
+  options,
+  onChange,
+  placeholder = "Chọn",
+  disabled = false,
+  className,
+  triggerClassName,
+}: FormDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = options.find((option) => option.value === value);
@@ -25,12 +35,15 @@ export default function FormDropdown({ value, options, onChange, placeholder = "
   useClickOutside(ref, () => setOpen(false));
 
   return (
-    <div className="relative mt-1" ref={ref}>
+    <div className={cn("relative mt-1", className)} ref={ref}>
       <button
         type="button"
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
-        className="ui-control flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm leading-normal outline-none hover:border-ui-border-strong hover:bg-surface-hover focus:border-primary focus:ring-4 focus:ring-primary-subtle disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          "ui-control flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm leading-normal outline-none hover:border-ui-border-strong hover:bg-surface-hover focus:border-primary focus:ring-4 focus:ring-primary-subtle disabled:cursor-not-allowed disabled:opacity-50",
+          triggerClassName,
+        )}
       >
         <span className={current ? "truncate" : "truncate text-slate-400"}>{current?.label ?? placeholder}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
