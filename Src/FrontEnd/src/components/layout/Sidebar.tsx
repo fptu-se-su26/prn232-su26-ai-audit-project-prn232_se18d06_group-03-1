@@ -155,7 +155,7 @@ const sectionToneClasses = {
 
 type SectionTone = keyof typeof sectionToneClasses;
 
-const customerIconToneByPath: Record<string, string> = {
+const navIconToneByPath: Record<string, string> = {
   "/customer": "text-brand-600 dark:text-brand-400",
   "/customer/bookings": "text-sky-600 dark:text-sky-400",
   "/customer/voucher-hunt": "text-amber-600 dark:text-amber-400",
@@ -165,6 +165,12 @@ const customerIconToneByPath: Record<string, string> = {
   "/become-owner": "text-orange-600 dark:text-orange-400",
   "/customer/disputes": "text-rose-600 dark:text-rose-400",
   "/customer/support-tickets": "text-teal-600 dark:text-teal-400",
+  "/owner": "text-brand-600 dark:text-brand-400",
+  "/owner/bookings": "text-sky-600 dark:text-sky-400",
+  "/owner/disputes": "text-rose-600 dark:text-rose-400",
+  "/owner/promotions": "text-amber-600 dark:text-amber-400",
+  "/owner/vehicles/car": "text-blue-600 dark:text-blue-400",
+  "/owner/vehicles/motorbike": "text-emerald-600 dark:text-emerald-400",
   "/": "text-sky-600 dark:text-sky-400",
 };
 
@@ -188,7 +194,7 @@ function NavItem({ to, label, icon: Icon, collapsed, end }: { to: string; label:
       }
       title={collapsed ? label : undefined}
     >
-      <Icon className={`h-4 w-4 shrink-0 ${customerIconToneByPath[to] ?? ""}`} />
+      <Icon className={`h-4 w-4 shrink-0 ${navIconToneByPath[to] ?? ""}`} />
       {!collapsed && label}
     </NavLink>
   );
@@ -748,7 +754,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 ].join(" ")}
                 title="Quản lý xe"
               >
-                <FolderTree className="h-4 w-4 shrink-0" />
+                <FolderTree className={`h-4 w-4 shrink-0 ${isOwnerVehiclePath ? "" : "text-violet-600 dark:text-violet-400"}`} />
                 {!collapsed && (
                   <>
                     <span className="flex-1 text-left">Quản lý xe</span>
