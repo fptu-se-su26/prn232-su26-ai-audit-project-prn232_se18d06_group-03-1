@@ -319,13 +319,16 @@ export default function VehicleDetailPage() {
     });
   }, [busySet]);
 
-  const totalDays = useMemo(() => {
-    if (!selection.start || !selection.end) return 0;
-    return Math.round((selection.end.getTime() - selection.start.getTime()) / (1000 * 60 * 60 * 24));
-  }, [selection]);
-
   const startDateISO = useMemo(() => selection.start ? formatDate(selection.start) + "T" + pickupHour : "", [selection.start, pickupHour]);
   const endDateISO = useMemo(() => selection.end ? formatDate(selection.end) + "T" + returnHour : "", [selection.end, returnHour]);
+
+  const totalDays = useMemo(() => {
+    if (!startDateISO || !endDateISO) return 0;
+    const diffMs = new Date(endDateISO).getTime() - new Date(startDateISO).getTime();
+    if (diffMs <= 0) return 0;
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  }, [startDateISO, endDateISO]);
+
   const dateError = startDateISO && endDateISO && new Date(endDateISO) <= new Date(startDateISO) ? "Ngày trả phải sau ngày nhận." : null;
 
   const pricePreview = useMemo(() => {
@@ -685,6 +688,25 @@ export default function VehicleDetailPage() {
             </div>
 
             <hr className="my-4 border-slate-100 dark:border-white/5" />
+
+            {(selection.start || selection.end) && (
+              <div className="mb-3 flex items-center gap-2 text-[13px] text-slate-600 dark:text-slate-400">
+                <CalendarDays className="h-4 w-4 text-brand-600" />
+                <span>
+                  {selection.start && (
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {formatDisplay(selection.start)} {pickupHour}
+                    </span>
+                  )}
+                  {selection.start && selection.end && <span> → </span>}
+                  {selection.end && (
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {formatDisplay(selection.end)} {returnHour}
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
 
             {availabilityLoading ? (
               <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5 p-5">
