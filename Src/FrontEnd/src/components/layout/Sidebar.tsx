@@ -122,9 +122,9 @@ const staffUserManagementItems = [
   { to: "/staff/users/owners", label: "Chủ xe", icon: Car },
 ];
 
-const navBaseClass = "flex h-10 items-center rounded-md text-sm font-semibold transition-all duration-150";
+const navBaseClass = "flex h-10 items-center rounded-md text-sm font-medium transition-all duration-150";
 const navActiveClass =
-  "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200 dark:bg-brand-950/50 dark:bg-none dark:text-brand-200 dark:ring-brand-800";
+  "bg-gradient-to-r from-brand-100/90 via-white to-fuchsia-50 font-semibold text-brand-800 shadow-sm ring-1 ring-inset ring-brand-200 dark:bg-brand-950/50 dark:bg-none dark:text-brand-200 dark:ring-brand-800";
 const navInactiveClass =
   "text-slate-700 hover:bg-slate-50 hover:text-slate-950 dark:text-gray-300 dark:hover:bg-white/[0.07] dark:hover:text-white";
 const nestedNavClass = "ml-4 space-y-1 border-l border-brand-100 pl-2 dark:border-ui-border";

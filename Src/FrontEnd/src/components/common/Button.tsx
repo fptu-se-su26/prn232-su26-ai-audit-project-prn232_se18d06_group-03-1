@@ -45,7 +45,7 @@ export default function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-semibold shadow-xs transition-[color,background-color,border-color,box-shadow,transform,opacity,filter] duration-fast ease-standard active:translate-y-px",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium shadow-xs transition-[color,background-color,border-color,box-shadow,transform,opacity,filter] duration-fast ease-standard active:translate-y-px",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500",
         "disabled:cursor-not-allowed",
         sizeClasses[size],
