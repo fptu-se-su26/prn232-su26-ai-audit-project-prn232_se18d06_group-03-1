@@ -18,12 +18,22 @@ public class NotificationRepository : INotificationRepository
     public Task<Notification?> GetByUserAsync(long id, long userId, CancellationToken cancellationToken = default)
         => _context.Notifications.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
 
+    public Task<Notification?> GetByDeduplicationKeyAsync(long userId, string deduplicationKey, CancellationToken cancellationToken = default)
+        => _context.Notifications.FirstOrDefaultAsync(
+            x => x.UserId == userId && x.DeduplicationKey == deduplicationKey,
+            cancellationToken);
+
     public Task<NotificationPreference?> GetPreferenceByUserIdAsync(long userId, CancellationToken cancellationToken = default)
         => _context.NotificationPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken);
 
     public async Task AddAsync(Notification notification, CancellationToken cancellationToken = default)
     {
         await _context.Notifications.AddAsync(notification, cancellationToken);
+    }
+
+    public void Detach(Notification notification)
+    {
+        _context.Entry(notification).State = EntityState.Detached;
     }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

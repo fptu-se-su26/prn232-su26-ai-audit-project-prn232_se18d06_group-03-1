@@ -259,7 +259,8 @@ public class PaymentService : IPaymentService
                     Title = "Nạp tiền thành công",
                     Body = $"Bạn đã nạp thành công {data.Amount:N0}đ vào ví.",
                     DataJson = "{}",
-                    Channel = "InApp"
+                    Channel = "InApp",
+                    DeduplicationKey = $"payment:topup:{payment.Id}:{payment.PayerId}"
                 }, cancellationToken);
                 
                 return;
@@ -463,7 +464,8 @@ public class PaymentService : IPaymentService
                 targetPath,
                 action
             }),
-            Channel = "InApp"
+            Channel = "InApp",
+            DeduplicationKey = $"payment:booking:{booking.Id}:{action}:{userId}"
         }, cancellationToken);
     }
 

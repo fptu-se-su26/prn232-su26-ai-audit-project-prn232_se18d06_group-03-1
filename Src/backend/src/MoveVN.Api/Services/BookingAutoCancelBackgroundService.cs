@@ -208,7 +208,8 @@ public class BookingAutoCancelBackgroundService : BackgroundService
                         : $"/customer/bookings/{booking.Id}",
                     action = booking.Status == "Rejected" ? "BookingAutoRejected" : "BookingAutoCancelled"
                 }),
-                Channel = "InApp"
+                Channel = "InApp",
+                DeduplicationKey = $"booking:{booking.Id}:{booking.Status}:{roleTarget}"
             }, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
