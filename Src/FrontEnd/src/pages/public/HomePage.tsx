@@ -13,6 +13,7 @@ import {
   X,
   CarFront,
   ShieldCheck,
+  MessageCircle,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { getPublicVehicles } from "@/features/vehicles/services/publicVehicleService";
@@ -1051,6 +1052,18 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <Link
+        to="/chat"
+        aria-label="Mở tin nhắn"
+        title="Tin nhắn"
+        className="group fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-[0_12px_30px_-8px_rgba(124,58,237,0.75)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_16px_34px_-8px_rgba(124,58,237,0.85)] focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-200 sm:bottom-7 sm:right-7"
+      >
+        <MessageCircle className="h-6 w-6" strokeWidth={2.25} />
+        <span className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-lg bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          Tin nhắn
+        </span>
+      </Link>
     </div>
   );
 }
