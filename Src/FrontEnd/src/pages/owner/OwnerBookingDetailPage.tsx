@@ -182,11 +182,11 @@ export default function OwnerBookingDetailPage() {
       setInspectionImages([]);
       showToast({
         type: "success",
-        title: "Da tao bien ban",
-        message: type === "CheckIn" ? "Bien ban nhan xe dang cho khach xac nhan." : "Bien ban tra xe dang cho khach xac nhan.",
+        title: "Đã tạo biên bản",
+        message: type === "CheckIn" ? "Biên bản nhận xe đang chờ khách xác nhận." : "Biên bản trả xe đang chờ khách xác nhận.",
       });
     } catch {
-      showToast({ type: "error", title: "Loi", message: "Khong the tao bien ban." });
+      showToast({ type: "error", title: "Lỗi", message: "Không thể tạo biên bản." });
     } finally {
       setIsProcessing(false);
     }
@@ -282,8 +282,8 @@ export default function OwnerBookingDetailPage() {
         <div className="flex items-center gap-3">
           <ClipboardCheck className="h-5 w-5 text-brand-700" />
           <div>
-            <h2 className="text-lg font-bold text-slate-950">Bien ban nhan/tra xe</h2>
-            <p className="text-sm text-slate-600">Owner lap bien ban va khach xac nhan truoc khi doi trang thai booking.</p>
+            <h2 className="text-lg font-bold text-slate-950">Biên bản nhận/trả xe</h2>
+            <p className="text-sm text-slate-600">Chủ xe lập biên bản và khách xác nhận trước khi đổi trạng thái booking.</p>
           </div>
         </div>
 
@@ -294,14 +294,14 @@ export default function OwnerBookingDetailPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold text-slate-900">{report!.type === "CheckIn" ? "Check-in / nhan xe" : "Check-out / tra xe"}</p>
                   <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
-                    {report!.isCustomerConfirmed ? "Khach da xac nhan" : "Cho khach xac nhan"}
+                    {report!.isCustomerConfirmed ? "Khách đã xác nhận" : "Chờ khách xác nhận"}
                   </span>
                 </div>
                 <div className="grid gap-3 text-sm sm:grid-cols-2">
                   <p><span className="font-semibold text-slate-700">Km:</span> {report!.odometerKm ?? "-"}</p>
-                  <p><span className="font-semibold text-slate-700">Nhien lieu:</span> {report!.fuelLevel || "-"}</p>
-                  <p><span className="font-semibold text-slate-700">Tinh trang:</span> {report!.damageNoted ? "Co ghi nhan hu hong" : "Khong ghi nhan hu hong"}</p>
-                  <p><span className="font-semibold text-slate-700">Ngay lap:</span> {formatDateTime(report!.createdAt)}</p>
+                  <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {report!.fuelLevel || "-"}</p>
+                  <p><span className="font-semibold text-slate-700">Tình trạng:</span> {report!.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+                  <p><span className="font-semibold text-slate-700">Ngày lập:</span> {formatDateTime(report!.createdAt)}</p>
                 </div>
                 {report!.damageDescription && <p className="text-sm text-slate-700">{report!.damageDescription}</p>}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -319,26 +319,26 @@ export default function OwnerBookingDetailPage() {
         {(canCreateCheckIn || canCreateCheckOut) && (
           <div className="space-y-4 rounded-md border border-slate-200 p-4">
             <p className="text-sm font-semibold text-slate-900">
-              {canCreateCheckIn ? "Tao bien ban check-in" : "Tao bien ban check-out"}
+              {canCreateCheckIn ? "Tạo biên bản check-in" : "Tạo biên bản check-out"}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <input type="number" min="0" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} placeholder="So km hien tai" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-              <input type="text" value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder="Muc nhien lieu" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
+              <input type="number" min="0" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} placeholder="Số km hiện tại" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
+              <input type="text" value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder="Mức nhiên liệu" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
             </div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input type="checkbox" checked={damageNoted} onChange={(e) => setDamageNoted(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
-              Co ghi nhan hu hong/tinh trang can luu y
+              Co ghi nhận hư hỏng/tình trạng cần lưu ý
             </label>
-            <textarea value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} rows={3} placeholder="Mo ta tinh trang xe, vet xuoc, phu kien di kem..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <textarea value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} rows={3} placeholder="Mô tả tình trạng xe, vết xước, phụ kiện đi kèm..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 hover:bg-slate-100">
               <Camera className="mb-2 h-6 w-6 text-brand-700" />
-              <span className="font-semibold">{canCreateCheckIn ? "Chon anh before" : "Chon anh after"}</span>
-              <span className="mt-1 text-xs">JPG, PNG, WebP - toi da 12 anh</span>
+              <span className="font-semibold">{canCreateCheckIn ? "Chọn ảnh before" : "Chọn ảnh after"}</span>
+              <span className="mt-1 text-xs">JPG, PNG, WebP - tối đa 12 ảnh</span>
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => setInspectionImages(Array.from(e.target.files ?? []).slice(0, 12))} />
             </label>
-            {inspectionImages.length > 0 && <p className="text-xs font-medium text-slate-500">Da chon {inspectionImages.length} anh</p>}
+            {inspectionImages.length > 0 && <p className="text-xs font-medium text-slate-500">Đã chọn {inspectionImages.length} ảnh</p>}
             <Button variant="primary" onClick={() => handleCreateInspectionReport(canCreateCheckIn ? "CheckIn" : "CheckOut")} isLoading={isProcessing} disabled={inspectionImages.length === 0}>
-              {canCreateCheckIn ? "Tao bien ban check-in" : "Tao bien ban check-out"}
+              {canCreateCheckIn ? "Tạo biên bản check-in" : "Tạo biên bản check-out"}
             </Button>
           </div>
         )}

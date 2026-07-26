@@ -22,7 +22,7 @@ public class ResolveDisputeRequest
 {
     public string Resolution { get; set; } = string.Empty;
     public string CompensationDirection { get; set; } = "NoCompensation";
-    public string SettlementMethod { get; set; } = "DepositThenExternal";
+    public string SettlementMethod { get; set; } = "ExternalOnly";
     public decimal? CompensationAmount { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
