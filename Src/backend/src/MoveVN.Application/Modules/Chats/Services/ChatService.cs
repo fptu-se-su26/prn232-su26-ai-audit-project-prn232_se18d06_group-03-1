@@ -296,7 +296,9 @@ public class ChatService : IChatService
                 UserId = parsedUserId,
                 FullName = user?.FullName ?? participant.Role,
                 Role = participant.Role,
-                AvatarUrl = user?.AvatarUrl
+                AvatarUrl = user?.AvatarUrl,
+                IsOnline = user?.IsOnline ?? false,
+                LastSeenAt = user?.LastSeenAt
             });
         }
 

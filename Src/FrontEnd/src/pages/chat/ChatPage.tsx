@@ -13,6 +13,7 @@ import {
   sendChatMessage,
 } from "@/features/chat/chatService";
 import type { ChatMessage, ChatMessageCreatedPayload, ChatRoom } from "@/features/chat/types";
+import { usePresenceStore } from "@/features/presence/usePresence";
 import { getApiBaseUrl, getApiErrorMessage } from "@/services/apiClient";
 
 function formatTime(value: string) {
@@ -43,6 +44,25 @@ function getAvatarInitials(name: string) {
     .toUpperCase();
 }
 
+function formatPresence(isOnline: boolean, lastSeenAt?: string | null) {
+  if (isOnline) return "Đang hoạt động";
+  if (!lastSeenAt) return "Ngoại tuyến";
+
+  const lastSeen = new Date(lastSeenAt);
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - lastSeen.getTime()) / 60_000));
+  if (elapsedMinutes < 1) return "Vừa mới hoạt động";
+  if (elapsedMinutes < 60) return `Hoạt động ${elapsedMinutes} phút trước`;
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `Hoạt động ${elapsedHours} giờ trước`;
+
+  return `Hoạt động ${new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: lastSeen.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+  }).format(lastSeen)}`;
+}
+
 function moveRoomToTop(rooms: ChatRoom[], room: ChatRoom, unreadCount?: number) {
   const existing = rooms.find((item) => item.id === room.id);
   const nextRoom = {
@@ -67,6 +87,8 @@ function appendMessage(messages: ChatMessage[], message: ChatMessage) {
 export default function ChatPage() {
   const { bookingId } = useParams<{ bookingId?: string }>();
   const user = useAuthStore((state) => state.user);
+  const presenceUsers = usePresenceStore((state) => state.users);
+  const hydratePresenceUsers = usePresenceStore((state) => state.hydrateUsers);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -90,6 +112,12 @@ export default function ChatPage() {
     if (!selectedRoom || !user) return null;
     return selectedRoom.participants.find((participant) => participant.userId !== user.userId) ?? null;
   }, [selectedRoom, user]);
+  const otherPresence = otherParticipant
+    ? presenceUsers[otherParticipant.userId] ?? {
+        isOnline: otherParticipant.isOnline,
+        lastSeenAt: otherParticipant.lastSeenAt ?? null,
+      }
+    : null;
 
   const bookingDetailPath = selectedRoom
     ? user?.userId === selectedRoom.ownerId
@@ -116,13 +144,22 @@ export default function ChatPage() {
 
       const nextRooms = bookingRoom ? moveRoomToTop(roomPage.items, bookingRoom, 0) : roomPage.items;
       setRooms(nextRooms);
+      hydratePresenceUsers(
+        nextRooms.flatMap((room) =>
+          room.participants.map((participant) => ({
+            userId: participant.userId,
+            isOnline: participant.isOnline,
+            lastSeenAt: participant.lastSeenAt ?? null,
+          })),
+        ),
+      );
       setSelectedRoomId((current) => bookingRoom?.id ?? current ?? nextRooms[0]?.id ?? null);
     } catch (err) {
       setError(getApiErrorMessage(err, "Không thể tải danh sách chat."));
     } finally {
       setIsLoadingRooms(false);
     }
-  }, [bookingId]);
+  }, [bookingId, hydratePresenceUsers]);
 
   useEffect(() => {
     void loadRooms();
@@ -322,6 +359,12 @@ export default function ChatPage() {
             ) : (
               rooms.map((room) => {
                 const participant = room.participants.find((item) => item.userId !== user?.userId);
+                const participantPresence = participant
+                  ? presenceUsers[participant.userId] ?? {
+                      isOnline: participant.isOnline,
+                      lastSeenAt: participant.lastSeenAt ?? null,
+                    }
+                  : null;
                 const isActive = room.id === selectedRoomId;
                 const initials = getAvatarInitials(participant?.fullName ?? "?");
                 return (
@@ -337,8 +380,16 @@ export default function ChatPage() {
                     ].join(" ")}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-sm font-semibold text-white shadow-sm">
-                        {initials}
+                      <div className="relative shrink-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-sm font-semibold text-white shadow-sm">
+                          {initials}
+                        </div>
+                        <span
+                          className={[
+                            "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white",
+                            participantPresence?.isOnline ? "bg-emerald-500" : "bg-slate-300",
+                          ].join(" ")}
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
@@ -373,12 +424,27 @@ export default function ChatPage() {
               {/* Chat header */}
               <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-sm font-semibold text-white shadow-sm">
-                    {getAvatarInitials(otherParticipant?.fullName ?? "?")}
+                  <div className="relative shrink-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-sm font-semibold text-white shadow-sm">
+                      {getAvatarInitials(otherParticipant?.fullName ?? "?")}
+                    </div>
+                    <span
+                      className={[
+                        "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white",
+                        otherPresence?.isOnline ? "bg-emerald-500" : "bg-slate-300",
+                      ].join(" ")}
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-950">
                       {otherParticipant?.fullName ?? "Người dùng"}
+                    </p>
+                    <p
+                      className={`truncate text-xs ${
+                        otherPresence?.isOnline ? "text-emerald-600" : "text-slate-400"
+                      }`}
+                    >
+                      {formatPresence(otherPresence?.isOnline ?? false, otherPresence?.lastSeenAt)}
                     </p>
                     <p className="truncate text-xs text-slate-500">
                       {selectedRoom.bookingCode}
