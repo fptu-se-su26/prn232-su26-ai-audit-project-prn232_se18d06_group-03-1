@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -17,10 +17,10 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import SectionPanel from "@/components/dashboard/SectionPanel";
 import StatCard from "@/components/dashboard/StatCard";
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { getOwnerBookings } from "@/features/booking/bookingService";
-import type { BookingResponse } from "@/features/booking/types";
-import { getMyVehicles } from "@/features/vehicles/services/vehicleService";
-import type { VehicleListItemResponse } from "@/features/vehicles/types";
+import {
+  getOwnerDashboardStats,
+  type OwnerDashboardStats,
+} from "@/features/owner/services/ownerDashboardService";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value) + "đ";
@@ -35,20 +35,14 @@ function getBookingTone(status: string) {
 }
 
 export default function OwnerHomePage() {
-  const [bookings, setBookings] = useState<BookingResponse[]>([]);
-  const [vehicles, setVehicles] = useState<VehicleListItemResponse[]>([]);
+  const [stats, setStats] = useState<OwnerDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [bookingsRes, vehiclesRes] = await Promise.all([
-          getOwnerBookings({ page: 1, pageSize: 100 }),
-          getMyVehicles({ page: 1, pageSize: 100 }),
-        ]);
-        setBookings(bookingsRes.items ?? []);
-        setVehicles(vehiclesRes.items ?? []);
+        setStats(await getOwnerDashboardStats());
       } catch (err) {
         console.error("Failed to load owner data:", err);
       } finally {
@@ -59,57 +53,6 @@ export default function OwnerHomePage() {
     void loadData();
   }, []);
 
-  const stats = useMemo(() => {
-    let totalRevenue = 0;
-    let pendingCount = 0;
-    let activeCount = 0;
-    let completedCount = 0;
-
-    bookings.forEach((booking) => {
-      if (["Completed", "Confirmed", "InProgress", "Approved", "DepositPaid"].includes(booking.status)) {
-        totalRevenue += booking.totalAmount;
-      }
-      if (booking.status === "Pending") pendingCount++;
-      if (["Confirmed", "InProgress", "Approved", "DepositPaid"].includes(booking.status)) activeCount++;
-      if (booking.status === "Completed") completedCount++;
-    });
-
-    return {
-      activeCount,
-      approvedVehicles: vehicles.filter((vehicle) => vehicle.status === "Approved").length,
-      completedCount,
-      pendingCount,
-      totalRevenue,
-      totalVehicles: vehicles.length,
-    };
-  }, [bookings, vehicles]);
-
-  const monthlyRevenueData = useMemo(() => {
-    const monthNames = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
-    const monthStats = Array.from({ length: 6 }, (_, index) => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - (5 - index));
-      return {
-        label: monthNames[date.getMonth()],
-        monthIndex: date.getMonth(),
-        value: 0,
-      };
-    });
-
-    bookings.forEach((booking) => {
-      if (["Completed", "Confirmed", "InProgress", "Approved", "DepositPaid"].includes(booking.status)) {
-        const bookingDate = new Date(booking.startDate);
-        const match = monthStats.find((month) => month.monthIndex === bookingDate.getMonth());
-        if (match) match.value += booking.totalAmount;
-      }
-    });
-
-    return monthStats;
-  }, [bookings]);
-
-  const maxRevenueValue = Math.max(...monthlyRevenueData.map((item) => item.value), 1000000);
-  const recentBookings = bookings.slice(0, 5);
-
   if (isLoading) {
     return (
       <div className="flex min-h-[420px] items-center justify-center">
@@ -117,6 +60,16 @@ export default function OwnerHomePage() {
       </div>
     );
   }
+
+  if (!stats) {
+    return (
+      <SectionPanel title="Không thể tải dashboard" description="API Owner Dashboard chưa trả về dữ liệu.">
+        <p className="text-sm text-slate-600">Vui lòng làm mới trang hoặc kiểm tra kết nối backend.</p>
+      </SectionPanel>
+    );
+  }
+
+  const maxRevenueValue = Math.max(...stats.monthlyRevenue.map((item) => item.value), 1000000);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -137,13 +90,13 @@ export default function OwnerHomePage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={DollarSign}
-          label="Doanh thu tạm tính"
+          label="Doanh thu đã hoàn thành"
           tone="brand"
           value={formatCurrency(stats.totalRevenue)}
           description={
             <span className="inline-flex items-center gap-1">
               <TrendingUp className="h-3.5 w-3.5" />
-              Từ booking đã xác nhận
+              Chỉ từ booking hoàn thành
             </span>
           }
         />
@@ -182,7 +135,7 @@ export default function OwnerHomePage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
         <SectionPanel
           title="Xu hướng doanh thu"
-          description="Doanh thu theo tháng từ các booking có giá trị giao dịch."
+          description="Doanh thu theo tháng chỉ từ các booking đã hoàn thành."
           action={<span className="text-xs font-semibold text-slate-500">6 tháng gần nhất</span>}
           contentClassName="pt-6"
         >
@@ -199,7 +152,7 @@ export default function OwnerHomePage() {
               <line x1="44" y1="140" x2="500" y2="140" stroke="#e2e8f0" strokeDasharray="5 5" />
               <line x1="44" y1="178" x2="500" y2="178" stroke="#cbd5e1" />
               {(() => {
-                const points = monthlyRevenueData.map((item, index) => ({
+                const points = stats.monthlyRevenue.map((item, index) => ({
                   label: item.label,
                   value: item.value,
                   x: 58 + index * 78,
@@ -241,10 +194,10 @@ export default function OwnerHomePage() {
               {
                 label: "Khác",
                 tone: "slate" as const,
-                value: bookings.length - stats.completedCount - stats.activeCount - stats.pendingCount,
+                value: stats.otherCount,
               },
             ].map((item) => {
-              const percent = bookings.length > 0 ? Math.round((item.value / bookings.length) * 100) : 0;
+              const percent = stats.totalBookings > 0 ? Math.round((item.value / stats.totalBookings) * 100) : 0;
 
               return (
                 <div key={item.label} className="rounded-md border border-slate-100 bg-slate-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-900/50">
@@ -273,7 +226,7 @@ export default function OwnerHomePage() {
         }
         contentClassName="p-0"
       >
-        {recentBookings.length === 0 ? (
+        {stats.recentBookings.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-gray-400">Chưa có yêu cầu đặt xe nào.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -289,7 +242,7 @@ export default function OwnerHomePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
-                {recentBookings.map((booking) => (
+                {stats.recentBookings.map((booking) => (
                   <tr key={booking.id} className="transition hover:bg-slate-50/70 dark:hover:bg-neutral-900/50">
                     <td className="px-5 py-4 font-mono text-xs font-bold text-slate-950 dark:text-white">{booking.bookingCode}</td>
                     <td className="px-5 py-4 text-slate-600 dark:text-gray-300">{new Date(booking.startDate).toLocaleDateString("vi-VN")}</td>
@@ -299,7 +252,7 @@ export default function OwnerHomePage() {
                       <StatusBadge tone={getBookingTone(booking.status)}>{booking.status}</StatusBadge>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <Link to={`/booking/${booking.id}`}>
+                      <Link to={`/owner/bookings/${booking.id}`}>
                         <Button variant="ghost" size="sm" className="inline-flex items-center gap-1 dark:text-gray-300 dark:hover:text-white">
                           <Eye className="h-3.5 w-3.5" />
                           Chi tiết

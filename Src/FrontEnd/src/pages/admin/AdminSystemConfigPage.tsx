@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, RefreshCw, Save, ShieldAlert, SlidersHorizontal, Timer, ToggleLeft } from "lucide-react";
+import { BadgeDollarSign, Mail, RefreshCw, Save, ShieldAlert, SlidersHorizontal, Timer, ToggleLeft } from "lucide-react";
 import Button from "@/components/common/Button";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { showToast } from "@/components/common/toastStore";
@@ -16,6 +16,7 @@ const categoryIcons = {
   Notification: Mail,
   Reminder: ToggleLeft,
   Risk: ShieldAlert,
+  Finance: BadgeDollarSign,
 } as const;
 
 function formatDate(value: string) {

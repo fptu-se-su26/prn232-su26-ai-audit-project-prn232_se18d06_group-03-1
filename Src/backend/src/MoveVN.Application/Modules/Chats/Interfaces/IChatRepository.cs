@@ -10,6 +10,7 @@ public interface IChatRepository
     Task<List<ChatRoomDocument>> GetRoomsByUserIdAsync(long userId, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<List<ChatRoomDocument>> GetAllRoomsByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<int> CountRoomsByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<ChatRoomDocument> GetOrCreateRoomAsync(ChatRoomDocument room, CancellationToken cancellationToken = default);
     Task AddRoomAsync(ChatRoomDocument room, CancellationToken cancellationToken = default);
     Task ReplaceRoomAsync(ChatRoomDocument room, CancellationToken cancellationToken = default);
     Task AddMessageAsync(ChatMessageDocument message, CancellationToken cancellationToken = default);

@@ -3,6 +3,9 @@ import { endpoints } from "@/services/endpoints";
 import type { ApiResponse } from "@/features/auth/types";
 
 export interface DashboardStats {
+  fromDate?: string | null;
+  toDate?: string | null;
+  isFiltered: boolean;
   totalCompletedBookings: number;
   totalRevenue: number;
   totalBookingValue: number;
@@ -54,7 +57,14 @@ export interface DashboardStats {
   }>;
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const res = await apiClient.get<ApiResponse<DashboardStats>>(endpoints.admin.dashboardStats);
+export interface DashboardDateFilter {
+  fromDate: string;
+  toDate: string;
+}
+
+export async function getDashboardStats(filter?: DashboardDateFilter): Promise<DashboardStats> {
+  const res = await apiClient.get<ApiResponse<DashboardStats>>(endpoints.admin.dashboardStats, {
+    params: filter,
+  });
   return res.data.data!;
 }

@@ -246,6 +246,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   if (primaryRole === "Admin") {
     mainItems.push({ to: "/admin/system-config", label: "Cấu hình hệ thống", icon: Settings });
+    mainItems.push({ to: "/admin/support-tickets", label: "Hỗ trợ", icon: MessageSquare });
   }
 
   if (primaryRole === "Customer") {

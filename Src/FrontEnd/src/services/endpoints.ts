@@ -77,6 +77,9 @@ export const endpoints = {
     userLogs: (id: number) => `/api/staff/users/${id}/logs`,
     userSessions: (id: number) => `/api/staff/users/${id}/sessions`,
   },
+  owner: {
+    dashboardStats: "/api/owner/dashboard/stats",
+  },
   driverLicenses: {
     me: "/api/driver-licenses/me",
     submit: "/api/driver-licenses/me/verification",

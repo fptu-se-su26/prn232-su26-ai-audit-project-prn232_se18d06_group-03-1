@@ -32,12 +32,30 @@ function formatNotificationTime(value: string) {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function getNotificationTargetPath(notification: NotificationItem) {
+function getNotificationTargetPath(notification: NotificationItem, roles: string[]) {
   if (!notification.dataJson) return null;
 
   try {
-    const data = JSON.parse(notification.dataJson) as { targetPath?: unknown };
-    return typeof data.targetPath === "string" && data.targetPath.startsWith("/") ? data.targetPath : null;
+    const data = JSON.parse(notification.dataJson) as {
+      targetPath?: unknown;
+      ticketId?: unknown;
+    };
+    if (typeof data.targetPath === "string" && data.targetPath.startsWith("/")) {
+      return data.targetPath;
+    }
+
+    if (
+      notification.type === "SupportTicket"
+      && typeof data.ticketId === "number"
+      && Number.isSafeInteger(data.ticketId)
+      && data.ticketId > 0
+    ) {
+      return roles.some((role) => role === "Staff" || role === "Admin")
+        ? `/support-tickets/${data.ticketId}`
+        : `/customer/support-tickets/${data.ticketId}`;
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -102,7 +120,7 @@ export default function NotificationMenu({ variant = "dashboard" }: Notification
   }
 
   async function handleNotificationClick(notification: NotificationItem) {
-    const targetPath = getNotificationTargetPath(notification);
+    const targetPath = getNotificationTargetPath(notification, user.roles);
 
     if (!notification.isRead) {
       markNotificationReadLocal(notification.id);

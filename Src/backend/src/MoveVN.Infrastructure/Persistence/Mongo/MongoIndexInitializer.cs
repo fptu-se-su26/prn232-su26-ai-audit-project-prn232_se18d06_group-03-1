@@ -14,8 +14,9 @@ public class MongoIndexInitializer
 
     public async Task CreateIndexesAsync(CancellationToken cancellationToken = default)
     {
+        await EnsureUniqueActiveBookingRoomIndexAsync(cancellationToken);
+
         await _context.ChatRooms.Indexes.CreateManyAsync([
-            new CreateIndexModel<ChatRoomDocument>(Builders<ChatRoomDocument>.IndexKeys.Ascending(x => x.BookingId)),
             new CreateIndexModel<ChatRoomDocument>(Builders<ChatRoomDocument>.IndexKeys.Ascending("participants.userId"))
         ], cancellationToken);
 
@@ -92,5 +93,73 @@ public class MongoIndexInitializer
             new CreateIndexModel<BroadcastNotificationLogDocument>(Builders<BroadcastNotificationLogDocument>.IndexKeys.Ascending(x => x.SenderId).Descending(x => x.Timestamp)),
             new CreateIndexModel<BroadcastNotificationLogDocument>(Builders<BroadcastNotificationLogDocument>.IndexKeys.Ascending(x => x.Timestamp), new CreateIndexOptions { ExpireAfter = TimeSpan.FromDays(365) })
         ], cancellationToken);
+    }
+
+    private async Task EnsureUniqueActiveBookingRoomIndexAsync(CancellationToken cancellationToken)
+    {
+        var activeRooms = await _context.ChatRooms
+            .Find(room => room.IsActive && room.BookingId != string.Empty)
+            .ToListAsync(cancellationToken);
+
+        foreach (var duplicateGroup in activeRooms
+                     .GroupBy(room => room.BookingId, StringComparer.Ordinal)
+                     .Where(group => group.Count() > 1))
+        {
+            var canonical = duplicateGroup
+                .OrderByDescending(room => room.LastMessage?.SentAt ?? room.UpdatedAt)
+                .ThenByDescending(room => room.UpdatedAt)
+                .First();
+            var duplicateIds = duplicateGroup
+                .Where(room => room.Id != canonical.Id)
+                .Select(room => room.Id)
+                .Where(id => id is not null)
+                .ToList();
+
+            if (duplicateIds.Count == 0)
+            {
+                continue;
+            }
+
+            await _context.ChatMessages.UpdateManyAsync(
+                Builders<ChatMessageDocument>.Filter.In(message => message.RoomId, duplicateIds!),
+                Builders<ChatMessageDocument>.Update.Set(message => message.RoomId, canonical.Id!),
+                cancellationToken: cancellationToken);
+            await _context.ChatRooms.UpdateManyAsync(
+                Builders<ChatRoomDocument>.Filter.In(room => room.Id, duplicateIds),
+                Builders<ChatRoomDocument>.Update
+                    .Set(room => room.IsActive, false)
+                    .Set(room => room.UpdatedAt, DateTime.UtcNow),
+                cancellationToken: cancellationToken);
+        }
+
+        using var indexes = await _context.ChatRooms.Indexes.ListAsync(cancellationToken);
+        var existingIndexes = await indexes.ToListAsync(cancellationToken);
+        foreach (var index in existingIndexes)
+        {
+            var indexName = index["name"].AsString;
+            if (indexName is "_id_" or "ux_chat_rooms_active_booking")
+            {
+                continue;
+            }
+
+            var key = index["key"].AsBsonDocument;
+            if (key.ElementCount == 1 && key.Contains(nameof(ChatRoomDocument.BookingId)))
+            {
+                await _context.ChatRooms.Indexes.DropOneAsync(indexName, cancellationToken);
+            }
+        }
+
+        await _context.ChatRooms.Indexes.CreateOneAsync(
+            new CreateIndexModel<ChatRoomDocument>(
+                Builders<ChatRoomDocument>.IndexKeys.Ascending(room => room.BookingId),
+                new CreateIndexOptions<ChatRoomDocument>
+                {
+                    Name = "ux_chat_rooms_active_booking",
+                    Unique = true,
+                    PartialFilterExpression = Builders<ChatRoomDocument>.Filter.And(
+                        Builders<ChatRoomDocument>.Filter.Eq(room => room.IsActive, true),
+                        Builders<ChatRoomDocument>.Filter.Gt(room => room.BookingId, string.Empty))
+                }),
+            cancellationToken: cancellationToken);
     }
 }

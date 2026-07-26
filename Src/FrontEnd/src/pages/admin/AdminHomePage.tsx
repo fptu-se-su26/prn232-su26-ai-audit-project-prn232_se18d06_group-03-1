@@ -23,7 +23,11 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import SectionPanel from "@/components/dashboard/SectionPanel";
 import StatCard from "@/components/dashboard/StatCard";
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { getDashboardStats, type DashboardStats } from "@/features/admin/services/adminDashboardService";
+import {
+  getDashboardStats,
+  type DashboardDateFilter,
+  type DashboardStats,
+} from "@/features/admin/services/adminDashboardService";
 
 const statusLabels: Record<string, string> = {
   Approved: "Đã duyệt",
@@ -95,13 +99,18 @@ export default function AdminHomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterMode, setFilterMode] = useState<"all" | "month" | "range">("all");
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [appliedFilter, setAppliedFilter] = useState<DashboardDateFilter | undefined>();
 
-  async function loadStats(silent = false) {
+  async function loadStats(silent = false, filter = appliedFilter) {
     if (silent) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const data = await getDashboardStats();
+      const data = await getDashboardStats(filter);
       setStats(data);
     } catch {
       showToast({ type: "error", title: "Không thể tải dashboard", message: "Vui lòng kiểm tra backend hoặc thử làm mới lại." });
@@ -113,7 +122,41 @@ export default function AdminHomePage() {
 
   useEffect(() => {
     void loadStats();
+    // Initial dashboard load intentionally uses the default all-time view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function applyDateFilter() {
+    let nextFilter: DashboardDateFilter | undefined;
+    if (filterMode === "month") {
+      const [year, monthNumber] = month.split("-").map(Number);
+      const lastDay = new Date(year, monthNumber, 0).getDate();
+      nextFilter = {
+        fromDate: `${month}-01`,
+        toDate: `${month}-${String(lastDay).padStart(2, "0")}`,
+      };
+    } else if (filterMode === "range") {
+      if (!fromDate || !toDate) {
+        showToast({ type: "error", title: "Thiếu khoảng ngày", message: "Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc." });
+        return;
+      }
+      if (fromDate > toDate) {
+        showToast({ type: "error", title: "Khoảng ngày không hợp lệ", message: "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." });
+        return;
+      }
+      const dayCount = Math.round(
+        (new Date(`${toDate}T00:00:00Z`).getTime() - new Date(`${fromDate}T00:00:00Z`).getTime()) / 86_400_000,
+      ) + 1;
+      if (dayCount > 62) {
+        showToast({ type: "error", title: "Khoảng ngày quá dài", message: "Dashboard hỗ trợ tối đa 62 ngày cho mỗi lần lọc." });
+        return;
+      }
+      nextFilter = { fromDate, toDate };
+    }
+
+    setAppliedFilter(nextFilter);
+    void loadStats(true, nextFilter);
+  }
 
   const maxBookingTrend = useMemo(
     () => Math.max(0, ...(stats?.bookingTrend.map((item) => item.count) ?? [])),
@@ -124,6 +167,7 @@ export default function AdminHomePage() {
     () => Math.max(0, ...(stats?.revenueTrend.map((item) => item.revenue) ?? [])),
     [stats],
   );
+  const periodLabel = stats?.isFiltered ? "Trong khoảng đã chọn" : "Tháng này";
 
   if (loading) {
     return (
@@ -153,6 +197,68 @@ export default function AdminHomePage() {
         }
       />
 
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+          <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+            Thời gian thống kê
+            <select
+              value={filterMode}
+              onChange={(event) => setFilterMode(event.target.value as "all" | "month" | "range")}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            >
+              <option value="all">Toàn bộ thời gian</option>
+              <option value="month">Theo tháng</option>
+              <option value="range">Khoảng ngày</option>
+            </select>
+          </label>
+
+          {filterMode === "month" ? (
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+              Tháng
+              <input
+                type="month"
+                value={month}
+                onChange={(event) => setMonth(event.target.value)}
+                className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-normal outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              />
+            </label>
+          ) : null}
+
+          {filterMode === "range" ? (
+            <>
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                Từ ngày
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(event) => setFromDate(event.target.value)}
+                  className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-normal outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+                Đến ngày
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(event) => setToDate(event.target.value)}
+                  className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-normal outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+            </>
+          ) : null}
+
+          <Button type="button" onClick={applyDateFilter}>
+            Áp dụng bộ lọc
+          </Button>
+
+          {stats?.isFiltered ? (
+            <p className="pb-2 text-sm text-slate-500">
+              Đang xem từ <strong>{stats.fromDate}</strong> đến <strong>{stats.toDate}</strong>
+            </p>
+          ) : null}
+        </div>
+      </section>
+
       {stats ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -164,7 +270,7 @@ export default function AdminHomePage() {
               description={
                 <span className="inline-flex items-center gap-1">
                   <Percent className="h-3.5 w-3.5" />
-                  Tháng này {formatCurrency(stats.monthlyRevenue)}
+                  {periodLabel} {formatCurrency(stats.monthlyRevenue)}
                 </span>
               }
             />
@@ -204,7 +310,7 @@ export default function AdminHomePage() {
               label="Giá trị booking"
               tone="emerald"
               value={formatCurrency(stats.totalBookingValue)}
-              description={`Tháng này ${formatCurrency(stats.monthlyBookingValue)}`}
+              description={`${periodLabel} ${formatCurrency(stats.monthlyBookingValue)}`}
             />
             <StatCard
               icon={LifeBuoy}
@@ -247,11 +353,17 @@ export default function AdminHomePage() {
           ) : null}
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <SectionPanel title="Booking 14 ngày gần nhất" description="Số booking mới theo ngày.">
+            <SectionPanel
+              title={stats.isFiltered ? "Booking trong khoảng đã chọn" : "Booking 14 ngày gần nhất"}
+              description="Số booking mới theo ngày."
+            >
               <TrendBars items={stats.bookingTrend} maxValue={maxBookingTrend} valueKey="count" />
             </SectionPanel>
 
-            <SectionPanel title="Doanh thu 6 tháng" description="Phí nền tảng ghi nhận từ booking hoàn thành.">
+            <SectionPanel
+              title={stats.isFiltered ? "Doanh thu trong khoảng đã chọn" : "Doanh thu 6 tháng"}
+              description="Phí nền tảng ghi nhận từ booking hoàn thành."
+            >
               <TrendBars items={stats.revenueTrend} maxValue={maxRevenueTrend} valueKey="revenue" />
             </SectionPanel>
           </div>

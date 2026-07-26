@@ -166,6 +166,10 @@ export default function AppRoutes() {
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/khong-co-quyen" element={<ForbiddenPage />} />
 
+          <Route element={<RoleRoute roles={["Staff", "Admin"]} />}>
+            <Route path="/support-tickets/:id" element={<StaffSupportTicketDetailPage />} />
+          </Route>
+
           <Route element={<RoleRoute roles={["Customer", "Owner"]} />}>
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/chat/booking/:bookingId" element={<ChatPage />} />
@@ -227,6 +231,7 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute roles={["Admin"]} />}>
             <Route path="/admin" element={<AdminHomePage />} />
+            <Route path="/admin/support-tickets" element={<StaffSupportTicketListPage />} />
             <Route path="/admin/moderation" element={<AdminModerationDashboardPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/users/customers" element={<AdminCustomerListPage />} />

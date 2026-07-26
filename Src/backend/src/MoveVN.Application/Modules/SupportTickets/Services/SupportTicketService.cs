@@ -5,6 +5,7 @@ using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Notifications.DTOs;
 using MoveVN.Application.Modules.Notifications.Interfaces;
+using MoveVN.Application.Modules.SupportTickets;
 using MoveVN.Application.Modules.SupportTickets.DTOs;
 using MoveVN.Application.Modules.SupportTickets.Interfaces;
 using MoveVN.Domain.Entities;
@@ -127,7 +128,13 @@ public class SupportTicketService : ISupportTicketService
 
         if (isStaffOrAdmin)
         {
-            await NotifyUserAsync(ticket.UserId, ticket, "Staff đã phản hồi ticket", $"{ticket.TicketNumber}: {ticket.Subject}", cancellationToken);
+            await NotifyUserAsync(
+                ticket.UserId,
+                ticket,
+                "Staff đã phản hồi ticket",
+                $"{ticket.TicketNumber}: {ticket.Subject}",
+                SupportTicketNotificationTarget.ForCustomer(ticket.Id),
+                cancellationToken);
         }
         else
         {
@@ -149,7 +156,13 @@ public class SupportTicketService : ISupportTicketService
         _repository.Update(ticket);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        await NotifyUserAsync(ticket.UserId, ticket, "Ticket hỗ trợ đã cập nhật", $"{ticket.TicketNumber} chuyển sang {ticket.Status}.", cancellationToken);
+        await NotifyUserAsync(
+            ticket.UserId,
+            ticket,
+            "Ticket hỗ trợ đã cập nhật",
+            $"{ticket.TicketNumber} chuyển sang {ticket.Status}.",
+            SupportTicketNotificationTarget.ForCustomer(ticket.Id),
+            cancellationToken);
 
         return await GetDetailOrThrowAsync(ticket.Id, cancellationToken);
     }
@@ -169,7 +182,13 @@ public class SupportTicketService : ISupportTicketService
     {
         if (ticket.AssignedStaffId.HasValue)
         {
-            await NotifyUserAsync(ticket.AssignedStaffId.Value, ticket, title, body, cancellationToken);
+            await NotifyUserAsync(
+                ticket.AssignedStaffId.Value,
+                ticket,
+                title,
+                body,
+                SupportTicketNotificationTarget.ForStaff(ticket.Id),
+                cancellationToken);
             return;
         }
 
@@ -181,11 +200,23 @@ public class SupportTicketService : ISupportTicketService
         var staffIds = await _repository.GetStaffAndAdminUserIdsAsync(cancellationToken);
         foreach (var staffId in staffIds.Distinct())
         {
-            await NotifyUserAsync(staffId, ticket, title, body, cancellationToken);
+            await NotifyUserAsync(
+                staffId,
+                ticket,
+                title,
+                body,
+                SupportTicketNotificationTarget.ForStaff(ticket.Id),
+                cancellationToken);
         }
     }
 
-    private async Task NotifyUserAsync(long userId, SupportTicket ticket, string title, string body, CancellationToken cancellationToken)
+    private async Task NotifyUserAsync(
+        long userId,
+        SupportTicket ticket,
+        string title,
+        string body,
+        string targetPath,
+        CancellationToken cancellationToken)
     {
         await _notificationService.CreateAsync(new CreateNotificationRequest
         {
@@ -197,7 +228,8 @@ public class SupportTicketService : ISupportTicketService
             {
                 ticketId = ticket.Id,
                 ticketNumber = ticket.TicketNumber,
-                status = ticket.Status
+                status = ticket.Status,
+                targetPath
             }),
             Channel = "InApp"
         }, cancellationToken);

@@ -347,7 +347,7 @@ export default function StaffSupportTicketListPage() {
                     </td>
                     <td className="px-3 py-4 text-center align-top text-slate-700">{item.messageCount}</td>
                     <td className="px-3 py-4 text-right align-top">
-                      <Link to={`/staff/support-tickets/${item.id}`}>
+                      <Link to={`/support-tickets/${item.id}`}>
                         <Button variant="ghost" size="sm" className="px-2" title="Xử lý ticket">
                           <Eye className="h-4 w-4" />
                           <span className="sr-only">Xử lý</span>
