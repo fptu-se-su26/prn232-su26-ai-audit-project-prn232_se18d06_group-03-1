@@ -6,3 +6,5 @@ dist/
 .vs/
 .keys/
 *.log
+.vercel
+.env*

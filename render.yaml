@@ -57,9 +57,9 @@ services:
       - key: PAYOS__ChecksumKey
         sync: false
       - key: PAYOS__ReturnUrl
-        sync: false
+        value: https://movevn.top/account/wallet
       - key: PAYOS__CancelUrl
-        sync: false
+        value: https://movevn.top/account/wallet
       - key: GOONG_API_KEY
         sync: false
       - key: SMTP_HOST
