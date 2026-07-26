@@ -2,3 +2,7 @@
 **/.env
 bin/
 obj/
+dist/
+.vs/
+.keys/
+*.log

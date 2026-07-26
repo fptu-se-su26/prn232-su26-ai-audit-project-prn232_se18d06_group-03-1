@@ -1,0 +1,112 @@
+services:
+  - type: web
+    name: movevn-backend
+    runtime: image
+    repo: https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    region: singapore
+    plan: starter
+    image:
+      url: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/backend:latest
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DB_CONNECTION
+        sync: false
+      - key: JWT_KEY
+        sync: false
+      - key: JWT_ISSUER
+        value: MoveVN
+      - key: JWT_AUDIENCE
+        value: MoveVN
+      - key: JWT_EXPIRE_MINUTES
+        value: "60"
+      - key: MONGO_CONNECTION
+        sync: false
+      - key: MONGO_DATABASE
+        value: movevn
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FPT_AI_API_KEY
+        sync: false
+      - key: FPT_AI_ID_RECOGNITION_URL
+        value: https://api.fpt.ai/vision/idr/vnm
+      - key: FPT_AI_TIMEOUT_SECONDS
+        value: "30"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: AI_VERIFICATION_BASE_URL
+        value: https://movevn-ai-verification.onrender.com
+      - key: AI_VERIFICATION_API_KEY
+        sync: false
+      - key: AI_VERIFICATION_TIMEOUT_SECONDS
+        value: "60"
+      - key: PAYOS__ClientId
+        sync: false
+      - key: PAYOS__ApiKey
+        sync: false
+      - key: PAYOS__ChecksumKey
+        sync: false
+      - key: PAYOS__ReturnUrl
+        sync: false
+      - key: PAYOS__CancelUrl
+        sync: false
+      - key: GOONG_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: MoveVN
+      - key: SMTP_ENABLE_SSL
+        value: "true"
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+
+  - type: web
+    name: movevn-ai-verification
+    runtime: image
+    repo: https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+    region: singapore
+    plan: starter
+    image:
+      url: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/ai-verification:latest
+    envVars:
+      - key: SERVICE_NAME
+        value: ai-verification
+      - key: SERVICE_VERSION
+        value: 0.1.0
+      - key: INTERNAL_API_KEY
+        sync: false
+      - key: OCR_LANGUAGE
+        value: vi
+      - key: OCR_MODEL_NAME
+        value: PP-OCRv6
+      - key: OCR_SPACE_API_KEY
+        sync: false
+      - key: FACE_MATCH_PASS_THRESHOLD
+        value: "0.75"
+      - key: FACE_MATCH_MANUAL_THRESHOLD
+        value: "0.55"
+      - key: LOW_OCR_CONFIDENCE_THRESHOLD
+        value: "0.65"
+      - key: GOOD_OCR_CONFIDENCE_THRESHOLD
+        value: "0.80"

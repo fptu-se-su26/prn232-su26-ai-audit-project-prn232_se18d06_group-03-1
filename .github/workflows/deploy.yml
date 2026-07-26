@@ -1,0 +1,104 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-backend:
+    name: Backend - Build & Push
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Src/backend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}
+
+  build-ai:
+    name: AI Verification - Build & Push
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ env.REGISTRY }}/${{ github.repository }}/ai-verification:${{ env.IMAGE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Src/ai-verification
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/ai-verification:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/ai-verification:${{ env.IMAGE_TAG }}
+
+  deploy-render:
+    name: Deploy to Render
+    needs: [build-backend, build-ai]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Backend Deploy
+        run: curl -X POST "${{ secrets.RENDER_BACKEND_HOOK }}"
+
+      - name: Trigger AI Verification Deploy
+        run: curl -X POST "${{ secrets.RENDER_AI_HOOK }}"
+
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./Src/FrontEnd
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: ./Src/FrontEnd/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: --prod
+          working-directory: ./Src/FrontEnd
