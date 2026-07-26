@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare, Tag } from "lucide-react";
+import { ArrowLeft, CalendarDays, DollarSign, MapPin, TicketPercent, ExternalLink, CheckCircle, Star, ShieldAlert, MessageSquare, Tag, ClipboardCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import Button from "@/components/common/Button";
@@ -339,6 +339,69 @@ export default function CustomerBookingDetailPage() {
           )}
           {checkOutReport.isCustomerConfirmed && (
             <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Đã xác nhận</span>
+          )}
+        </Card>
+      )}
+
+      {(checkInReport || checkOutReport) && (
+        <Card className="space-y-4 rounded-md p-5">
+          <div className="flex items-center gap-3">
+            <ClipboardCheck className="h-5 w-5 text-brand-700" />
+            <h2 className="text-lg font-bold text-slate-950">Biên bản nhận/trả xe</h2>
+          </div>
+
+          {checkInReport && (
+            <div className="space-y-3 rounded-md border border-cyan-200 bg-cyan-50/50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-slate-900">Biên bản check-in / nhận xe</p>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${checkInReport.isCustomerConfirmed ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-700 ring-amber-200"}`}>
+                  {checkInReport.isCustomerConfirmed ? "Khách đã xác nhận" : "Chờ khách xác nhận"}
+                </span>
+              </div>
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                <p><span className="font-semibold text-slate-700">Km:</span> {checkInReport.odometerKm ?? "-"}</p>
+                <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {checkInReport.fuelLevel || "-"}</p>
+                <p><span className="font-semibold text-slate-700">Tình trạng:</span> {checkInReport.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+                <p><span className="font-semibold text-slate-700">Ngày lập:</span> {formatDateTime(checkInReport.createdAt)}</p>
+              </div>
+              {checkInReport.damageDescription && <p className="text-sm text-slate-700">{checkInReport.damageDescription}</p>}
+              {checkInReport.images.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {checkInReport.images.map((image) => (
+                    <a key={image.id} href={image.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-cyan-100 bg-white">
+                      <img src={image.imageUrl} alt="Check-in" className="aspect-square w-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {checkOutReport && (
+            <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-slate-900">Biên bản check-out / trả xe</p>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${checkOutReport.isCustomerConfirmed ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-700 ring-amber-200"}`}>
+                  {checkOutReport.isCustomerConfirmed ? "Khách đã xác nhận" : "Chờ khách xác nhận"}
+                </span>
+              </div>
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                <p><span className="font-semibold text-slate-700">Km:</span> {checkOutReport.odometerKm ?? "-"}</p>
+                <p><span className="font-semibold text-slate-700">Nhiên liệu:</span> {checkOutReport.fuelLevel || "-"}</p>
+                <p><span className="font-semibold text-slate-700">Tình trạng:</span> {checkOutReport.damageNoted ? "Có ghi nhận hư hỏng" : "Không ghi nhận hư hỏng"}</p>
+                <p><span className="font-semibold text-slate-700">Ngày lập:</span> {formatDateTime(checkOutReport.createdAt)}</p>
+              </div>
+              {checkOutReport.damageDescription && <p className="text-sm text-slate-700">{checkOutReport.damageDescription}</p>}
+              {checkOutReport.images.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {checkOutReport.images.map((image) => (
+                    <a key={image.id} href={image.imageUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-md border border-emerald-100 bg-white">
+                      <img src={image.imageUrl} alt="Check-out" className="aspect-square w-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </Card>
       )}

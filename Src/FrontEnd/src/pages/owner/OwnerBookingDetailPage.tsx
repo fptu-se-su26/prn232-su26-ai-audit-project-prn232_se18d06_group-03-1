@@ -327,7 +327,7 @@ export default function OwnerBookingDetailPage() {
             </div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input type="checkbox" checked={damageNoted} onChange={(e) => setDamageNoted(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
-              Có ghi nhận hư hỏng/tình trạng cần lưu ý
+              Co ghi nhận hư hỏng/tình trạng cần lưu ý
             </label>
             <textarea value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} rows={3} placeholder="Mô tả tình trạng xe, vết xước, phụ kiện đi kèm..." className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 hover:bg-slate-100">

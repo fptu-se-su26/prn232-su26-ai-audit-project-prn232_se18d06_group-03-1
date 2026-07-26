@@ -290,7 +290,6 @@ public class DisputeService : IDisputeService
             if (dispute.Status == "Resolved")
             {
                 await ApplyPlatformFeeRevenueAsync(booking, DateTime.UtcNow, ct);
-                await ApplyRemainingDepositRefundAsync(dispute, booking, DateTime.UtcNow, ct);
             }
             dispute.AssignedStaffId ??= actorId;
             _repository.Update(dispute);
@@ -363,7 +362,6 @@ public class DisputeService : IDisputeService
             if (dispute.Status == "Resolved")
             {
                 await ApplyPlatformFeeRevenueAsync(booking, DateTime.UtcNow, ct);
-                await ApplyRemainingDepositRefundAsync(dispute, booking, DateTime.UtcNow, ct);
             }
             _repository.Update(dispute);
             await _repository.SaveChangesAsync(ct);
@@ -430,7 +428,6 @@ public class DisputeService : IDisputeService
         var oldStatus = dispute.Status;
         var platformPayoutCompleted = false;
         var platformFeeCredited = 0m;
-        var refundedDepositAmount = 0m;
         await _repository.ExecuteInTransactionAsync(async ct =>
         {
             if (confirmationRole == "Customer")
@@ -442,7 +439,6 @@ public class DisputeService : IDisputeService
                     await ApplyPlatformPayoutAsync(dispute, booking, now, ct);
                     platformPayoutCompleted = !wasCompleted && dispute.PlatformSettlementCompletedAt.HasValue;
                 }
-                refundedDepositAmount = await ApplyRemainingDepositRefundAsync(dispute, booking, now, ct);
                 if (dispute.PlatformSettledAmount > 0m && dispute.ExternalSettlementAmount == 0m)
                 {
                     dispute.OwnerExternalConfirmed = true;
@@ -481,15 +477,6 @@ public class DisputeService : IDisputeService
                 break;
             }
         }
-        if (refundedDepositAmount > 0m)
-        {
-            await NotifyUserAsync(
-                booking.CustomerId,
-                dispute,
-                "Đã hoàn phần tiền cọc còn dư",
-                $"Nền tảng đã hoàn {refundedDepositAmount:N0}đ tiền cọc còn dư của booking {booking.BookingCode} vào ví của bạn.",
-                cancellationToken);
-        }
         return await GetDetailOrThrowAsync(dispute.Id, cancellationToken);
     }
 
@@ -514,7 +501,6 @@ public class DisputeService : IDisputeService
             {
                 await ApplyPlatformPayoutAsync(dispute, booking, now, ct);
             }
-            await ApplyRemainingDepositRefundAsync(dispute, booking, now, ct);
             CloseDispute(dispute, adminId, reason, now);
             _repository.Update(dispute);
             await _repository.SaveChangesAsync(ct);
@@ -774,9 +760,7 @@ public class DisputeService : IDisputeService
         var now = DateTime.UtcNow;
         dispute.Resolution = RequireText(request.Resolution, "Resolution is required.");
         dispute.CompensationDirection = Normalize(request.CompensationDirection, CompensationDirections, "NoCompensation");
-        dispute.SettlementMethod = dispute.CompensationDirection == "CustomerPaysOwner"
-            ? Normalize(request.SettlementMethod, SettlementMethods, "DepositThenExternal")
-            : "ExternalOnly";
+        dispute.SettlementMethod = "ExternalOnly";
         var decisionAmount = dispute.CompensationDirection == "NoCompensation" ? 0m : request.CompensationAmount ?? 0m;
         if (dispute.CompensationDirection == "NoCompensation")
         {
@@ -871,15 +855,6 @@ public class DisputeService : IDisputeService
         if (request.CompensationAmount.Value < 0)
         {
             throw new ValidationException(["Compensation amount cannot be negative."]);
-        }
-
-        var heldSecurityAmount = DisputeDepositCalculator.GetAvailableAmount(
-            booking.DepositAmount,
-            booking.PlatformFee,
-            completedDisputePayouts: 0m);
-        if (request.CompensationAmount.Value > heldSecurityAmount && !isAdmin)
-        {
-            throw new ValidationException(["Staff cannot set compensation above the held security amount after platform fee."]);
         }
 
         if (useAdminAmount && !isAdmin)
