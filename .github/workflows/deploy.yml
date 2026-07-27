@@ -12,11 +12,32 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build-backend:
-    name: Backend - Build & Push
+  changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}
+      backend: ${{ steps.filter.outputs.backend }}
+      ai: ${{ steps.filter.outputs.ai }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'Src/backend/**'
+            ai:
+              - 'Src/ai-verification/**'
+            frontend:
+              - 'Src/FrontEnd/**'
+              - 'Src/FrontEnd/vercel.json'
+
+  backend:
+    name: Backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -36,11 +57,14 @@ jobs:
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:latest
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}
 
-  build-ai:
-    name: AI Verification - Build & Push
+      - name: Deploy to Render
+        run: curl -X POST "${{ secrets.RENDER_BACKEND_HOOK }}"
+
+  ai:
+    name: AI Verification
+    needs: changes
+    if: needs.changes.outputs.ai == 'true'
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ env.REGISTRY }}/${{ github.repository }}/ai-verification:${{ env.IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,19 +84,13 @@ jobs:
             ${{ env.REGISTRY }}/${{ github.repository }}/ai-verification:latest
             ${{ env.REGISTRY }}/${{ github.repository }}/ai-verification:${{ env.IMAGE_TAG }}
 
-  deploy-render:
-    name: Deploy to Render
-    needs: [build-backend, build-ai]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Backend Deploy
-        run: curl -X POST "${{ secrets.RENDER_BACKEND_HOOK }}"
-
-      - name: Trigger AI Verification Deploy
+      - name: Deploy to Render
         run: curl -X POST "${{ secrets.RENDER_AI_HOOK }}"
 
-  deploy-frontend:
-    name: Deploy Frontend to Vercel
+  frontend:
+    name: Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
