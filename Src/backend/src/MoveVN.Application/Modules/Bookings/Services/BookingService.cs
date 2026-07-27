@@ -156,9 +156,7 @@ public class BookingService : IBookingService
         var platformFeeValue = feeRule?.FeeValue
             ?? await _systemConfigService.GetDecimalAsync(SystemConfigKeys.PlatformFeePercent, 10m, cancellationToken);
         var platformFee = CalculatePlatformFee(totalAmount, platformFeeType, platformFeeValue, feeRule?.MinFee, feeRule?.MaxFee);
-        var configuredDepositPercent = await _systemConfigService.GetDecimalAsync(
-            SystemConfigKeys.DepositRatePercent, 20m, cancellationToken);
-        var effectiveDepositPercent = Math.Clamp(configuredDepositPercent, 0m, 100m);
+        var effectiveDepositPercent = Math.Clamp(Math.Max(20m, vehicle.DepositPercent), 0m, 100m);
         var depositAmount = Math.Round(totalAmount * effectiveDepositPercent / 100, 0);
 
         long? promoId = null;
