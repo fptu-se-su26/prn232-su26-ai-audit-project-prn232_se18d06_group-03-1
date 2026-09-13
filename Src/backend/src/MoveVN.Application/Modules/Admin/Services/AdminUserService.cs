@@ -5,6 +5,7 @@ using System.Net.Mail;
 using AutoMapper;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Encryption;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
@@ -32,6 +33,7 @@ public class AdminUserService : IAdminUserService
     private readonly INationalIdVerificationClient _nationalIdVerificationClient;
     private readonly IDriverLicenseVerificationClient _driverLicenseVerificationClient;
     private readonly ICustomerDriverLicenseRepository _customerDriverLicenseRepository;
+    private readonly IEncryptionService _encryption;
 
     public AdminUserService(
         IUserRepository userRepository,
@@ -45,7 +47,8 @@ public class AdminUserService : IAdminUserService
         ICloudinaryService cloudinaryService,
         INationalIdVerificationClient nationalIdVerificationClient,
         IDriverLicenseVerificationClient driverLicenseVerificationClient,
-        ICustomerDriverLicenseRepository customerDriverLicenseRepository)
+        ICustomerDriverLicenseRepository customerDriverLicenseRepository,
+        IEncryptionService encryption)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
@@ -59,6 +62,7 @@ public class AdminUserService : IAdminUserService
         _nationalIdVerificationClient = nationalIdVerificationClient;
         _driverLicenseVerificationClient = driverLicenseVerificationClient;
         _customerDriverLicenseRepository = customerDriverLicenseRepository;
+        _encryption = encryption;
     }
 
     public async Task<PagedResult<AdminUserListItem>> GetUsersAsync(string? keyword, string? sortBy, string? role, string? status, bool? isOnline, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -125,7 +129,7 @@ public class AdminUserService : IAdminUserService
             CustomerProfile = customerProfile != null ? new CustomerProfileDto
             {
                 DateOfBirth = customerProfile.DateOfBirth,
-                Address = customerProfile.Address,
+                Address = _encryption.Decrypt(customerProfile.Address),
                 NationalIdMasked = customerProfile.NationalIdMasked,
                 NationalIdVerified = customerProfile.NationalIdVerified,
                 DriverLicenseVerified = customerProfile.DriverLicenseVerified,
@@ -388,8 +392,8 @@ public class AdminUserService : IAdminUserService
             {
                 UserId = user.Id,
                 DateOfBirth = request.DateOfBirth,
-                Address = request.Address?.Trim(),
-                NationalId = request.NationalId.Trim(),
+                Address = _encryption.Encrypt(request.Address?.Trim()),
+                NationalId = _encryption.Encrypt(request.NationalId.Trim()),
                 NationalIdHash = HashNationalId(request.NationalId.Trim()),
                 NationalIdMasked = MaskNationalId(request.NationalId.Trim()),
                 NationalIdVerified = true,
@@ -406,8 +410,8 @@ public class AdminUserService : IAdminUserService
                 FrontImageUrl = nationalFront.Url,
                 Status = "Verified",
                 ExternalProvider = provider,
-                ExternalResultJson = nationalOcrResult?.RawResponse
-                    ?? JsonSerializer.Serialize(new { method = provider, confirmedByAdmin = true }),
+                ExternalResultJson = FieldProtector.ToStoredJson(_encryption, nationalOcrResult?.RawResponse
+                    ?? JsonSerializer.Serialize(new { method = provider, confirmedByAdmin = true })),
                 Confidence = nationalOcrResult is null ? null : (decimal)nationalOcrResult.Confidence,
                 DecisionReason = "Admin đã kiểm tra và xác nhận thông tin CCCD.",
                 ProcessedAt = now,
@@ -426,7 +430,7 @@ public class AdminUserService : IAdminUserService
                 FrontImageUrl = licenseFront.Url,
                 Status = "Verified",
                 ExternalProvider = provider,
-                ExternalResultJson = driverLicenseOcrResult?.RawResponse
+                ExternalResultJson = FieldProtector.ToStoredJson(_encryption, driverLicenseOcrResult?.RawResponse
                     ?? JsonSerializer.Serialize(new
                     {
                         method = provider,
@@ -436,7 +440,7 @@ public class AdminUserService : IAdminUserService
                             driverLicenseNumber = request.DriverLicenseNumber.Trim(),
                             licenseClass = request.DriverLicenseClass.Trim()
                         }
-                    }),
+                    })),
                 Confidence = driverLicenseOcrResult?.OcrConfidence,
                 DecisionReason = "Admin đã kiểm tra và xác nhận thông tin GPLX.",
                 ProcessedAt = now,
@@ -452,7 +456,7 @@ public class AdminUserService : IAdminUserService
             {
                 UserId = user.Id,
                 VehicleType = request.DriverLicenseVehicleType,
-                LicenseNumber = request.DriverLicenseNumber.Trim(),
+                LicenseNumber = _encryption.Encrypt(request.DriverLicenseNumber.Trim()),
                 LicenseClass = request.DriverLicenseClass.Trim(),
                 FrontImageUrl = licenseFront.Url,
                 FrontImagePublicId = licenseFront.PublicId,

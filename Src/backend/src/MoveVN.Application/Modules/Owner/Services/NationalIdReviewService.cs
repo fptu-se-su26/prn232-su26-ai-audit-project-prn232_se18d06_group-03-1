@@ -21,17 +21,20 @@ public class NationalIdReviewService : INationalIdReviewService
     private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IEncryptionService _encryption;
 
     public NationalIdReviewService(
         ICurrentUserContext currentUserContext,
         IUserRepository userRepository,
         INotificationService notificationService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IEncryptionService encryption)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
+        _encryption = encryption;
     }
 
     public async Task<PagedResult<NationalIdVerificationListItem>> GetListAsync(
@@ -67,12 +70,18 @@ public class NationalIdReviewService : INationalIdReviewService
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
 
         // === Check duplicate CCCD before approving ===
-        var nationalId = customerProfile.NationalId;
+        var nationalId = _encryption.Decrypt(customerProfile.NationalId);
         if (string.IsNullOrWhiteSpace(nationalId) && !string.IsNullOrWhiteSpace(request.ExternalResultJson))
         {
             try
             {
-                using var doc = JsonDocument.Parse(request.ExternalResultJson);
+                var rawJson = _encryption.Decrypt(request.ExternalResultJson);
+                if (string.IsNullOrWhiteSpace(rawJson))
+                {
+                    throw new JsonException("Decrypted external result is empty.");
+                }
+
+                using var doc = JsonDocument.Parse(rawJson);
                 if (doc.RootElement.TryGetProperty("extracted", out var extracted)
                     && extracted.TryGetProperty("nationalIdNumber", out var idProp))
                 {
@@ -94,7 +103,7 @@ public class NationalIdReviewService : INationalIdReviewService
                     throw new AppException(ErrorCode.OWNER_NATIONAL_ID_DUPLICATED);
                 }
             }
-            customerProfile.NationalId ??= nationalId;
+            customerProfile.NationalId = _encryption.Encrypt(nationalId);
             customerProfile.NationalIdHash ??= hash;
             customerProfile.NationalIdMasked ??= MaskNationalId(nationalId);
         }

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Encryption;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
@@ -32,6 +33,7 @@ public class DriverLicenseService : IDriverLicenseService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<DriverLicenseService> _logger;
     private readonly INotificationService _notificationService;
+    private readonly IEncryptionService _encryption;
 
     public DriverLicenseService(
         ICurrentUserContext currentUserContext,
@@ -45,7 +47,8 @@ public class DriverLicenseService : IDriverLicenseService
         ICloudinaryService cloudinaryService,
         IUnitOfWork unitOfWork,
         ILogger<DriverLicenseService> logger,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IEncryptionService encryption)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
@@ -59,6 +62,7 @@ public class DriverLicenseService : IDriverLicenseService
         _unitOfWork = unitOfWork;
         _logger = logger;
         _notificationService = notificationService;
+        _encryption = encryption;
     }
 
     public async Task<DriverLicenseStatusResponse> GetCurrentAsync(CancellationToken cancellationToken = default)
@@ -78,7 +82,7 @@ public class DriverLicenseService : IDriverLicenseService
         {
             Verified = verifiedVehicleTypes.Count > 0 || profile?.DriverLicenseVerified == true,
             Status = latest?.Status ?? (verifiedVehicleTypes.Count > 0 || profile?.DriverLicenseVerified == true ? "Verified" : "None"),
-            DriverLicenseNumber = latestLicense?.LicenseNumber,
+            DriverLicenseNumber = _encryption.Decrypt(latestLicense?.LicenseNumber),
             LicenseClass = latestLicense?.LicenseClass,
             VerifiedVehicleTypes = verifiedVehicleTypes,
             Licenses = licenseDtos,
@@ -208,7 +212,7 @@ public class DriverLicenseService : IDriverLicenseService
             RequestedVehicleType = requestedVehicleType,
             Status = "Processing",
             ExternalProvider = "AI_VERIFICATION",
-            ExternalResultJson = aiResult.RawResponse,
+            ExternalResultJson = FieldProtector.ToStoredJson(_encryption, aiResult.RawResponse),
             Confidence = aiResult.OcrConfidence,
             ProcessedAt = DateTime.UtcNow,
             DecisionReason = aiResult.Message,
@@ -299,7 +303,7 @@ public class DriverLicenseService : IDriverLicenseService
 
         var profile = await _userRepository.GetCustomerProfileByUserIdAsync(request.UserId, cancellationToken)
             ?? throw new AppException(ErrorCode.USER_NOT_FOUND);
-        var result = ParseResult(request.ExternalResultJson);
+        var result = ParseResult(_encryption.Decrypt(request.ExternalResultJson));
         var hasManualOverride = HasManualOverride(approveRequest);
         var canManualOverride = CanManualOverrideOcr(result);
 
@@ -326,7 +330,8 @@ public class DriverLicenseService : IDriverLicenseService
             : "Nhân viên đã duyệt xác minh GPLX.";
         if (hasManualOverride)
         {
-            request.ExternalResultJson = JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            request.ExternalResultJson = FieldProtector.ToStoredJson(_encryption,
+                JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
         }
 
         _verificationRepository.Update(request);
@@ -428,7 +433,7 @@ public class DriverLicenseService : IDriverLicenseService
             {
                 UserId = request.UserId,
                 VehicleType = requestedVehicleType,
-                LicenseNumber = result.Extracted.DriverLicenseNumber,
+                LicenseNumber = _encryption.Encrypt(result.Extracted.DriverLicenseNumber),
                 LicenseClass = result.Extracted.LicenseClass,
                 FrontImageUrl = request.FrontImageUrl,
                 FrontImagePublicId = request.FrontImagePublicId,
@@ -439,7 +444,7 @@ public class DriverLicenseService : IDriverLicenseService
         }
         else
         {
-            existing.LicenseNumber = result.Extracted.DriverLicenseNumber;
+            existing.LicenseNumber = _encryption.Encrypt(result.Extracted.DriverLicenseNumber);
             existing.LicenseClass = result.Extracted.LicenseClass;
             existing.FrontImageUrl = request.FrontImageUrl;
             existing.FrontImagePublicId = request.FrontImagePublicId;
@@ -572,7 +577,7 @@ public class DriverLicenseService : IDriverLicenseService
         }
     }
 
-    private static DriverLicenseVerificationRequestDto ToDto(VerificationRequest request)
+    private DriverLicenseVerificationRequestDto ToDto(VerificationRequest request)
     {
         return new DriverLicenseVerificationRequestDto
         {
@@ -583,7 +588,7 @@ public class DriverLicenseService : IDriverLicenseService
             FrontImageUrl = request.FrontImageUrl,
             RequestedVehicleType = request.RequestedVehicleType,
             ExternalProvider = request.ExternalProvider,
-            ExternalResultJson = request.ExternalResultJson,
+            ExternalResultJson = FieldProtector.FromStoredJson(_encryption, request.ExternalResultJson),
             Confidence = request.Confidence,
             DecisionReason = request.DecisionReason,
             ProcessedAt = request.ProcessedAt,
@@ -594,12 +599,12 @@ public class DriverLicenseService : IDriverLicenseService
         };
     }
 
-    private static CustomerDriverLicenseDto ToDto(CustomerDriverLicense license)
+    private CustomerDriverLicenseDto ToDto(CustomerDriverLicense license)
     {
         return new CustomerDriverLicenseDto
         {
             VehicleType = license.VehicleType,
-            DriverLicenseNumber = license.LicenseNumber,
+            DriverLicenseNumber = _encryption.Decrypt(license.LicenseNumber),
             LicenseClass = license.LicenseClass,
             FrontImageUrl = license.FrontImageUrl,
             VerificationRequestId = license.VerificationRequestId,

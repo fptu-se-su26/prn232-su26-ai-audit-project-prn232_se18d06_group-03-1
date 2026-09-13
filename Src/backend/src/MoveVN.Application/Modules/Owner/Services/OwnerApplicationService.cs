@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
+using MoveVN.Application.Common.Encryption;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
@@ -33,6 +34,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly INationalIdVerificationLogService _nationalIdLogService;
     private readonly ILogger<OwnerApplicationService> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IEncryptionService _encryption;
 
     public OwnerApplicationService(
         ICurrentUserContext currentUserContext,
@@ -47,7 +49,8 @@ public class OwnerApplicationService : IOwnerApplicationService
         INationalIdVerificationClient nationalIdVerificationClient,
         INationalIdVerificationLogService nationalIdLogService,
         ILogger<OwnerApplicationService> logger,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IEncryptionService encryption)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
@@ -62,6 +65,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _nationalIdLogService = nationalIdLogService;
         _logger = logger;
         _unitOfWork = unitOfWork;
+        _encryption = encryption;
     }
 
     public async Task<CreateOwnerApplicationResponse> CreateApplicationAsync(CancellationToken cancellationToken = default)
@@ -140,7 +144,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             IsOwner = data?.IsOwner ?? false,
             NextStep = DetermineNextStep(data, data?.CustomerNationalIdVerified ?? false, bankInfoCompleted, data?.IsOwner ?? false),
             FullName = data?.UserFullName,
-            NationalIdNumber = data?.CustomerNationalId,
+            NationalIdNumber = _encryption.Decrypt(data?.CustomerNationalId),
             BankName = data?.BankName,
             BankAccountNumber = data?.BankAccountNumber,
             BankAccountHolderName = data?.BankAccountHolderName,
@@ -486,7 +490,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             verificationRequest.FrontImagePublicId = frontUpload.PublicId;
             verificationRequest.FrontImageUrl = frontUpload.Url;
             verificationRequest.ExternalProvider = "AI_VERIFICATION";
-            verificationRequest.ExternalResultJson = preVerifyResult.RawResponse;
+            verificationRequest.ExternalResultJson = FieldProtector.ToStoredJson(_encryption, preVerifyResult.RawResponse);
             verificationRequest.Confidence = (decimal)preVerifyResult.Confidence;
             verificationRequest.ProcessedAt = DateTime.UtcNow;
 
@@ -540,12 +544,12 @@ public class OwnerApplicationService : IOwnerApplicationService
                 verificationRequest.Status = "Verified";
                 verificationRequest.DecisionReason = "AI đã xác thực CCCD thành công.";
 
-                customerProfile.NationalId = preVerifyResult.NationalId;
+                customerProfile.NationalId = _encryption.Encrypt(preVerifyResult.NationalId);
                 customerProfile.NationalIdHash = nationalIdHash;
                 customerProfile.NationalIdMasked = MaskNationalId(preVerifyResult.NationalId);
                 if (preVerifyResult.DateOfBirth.HasValue)
                     customerProfile.DateOfBirth = DateOnly.FromDateTime(preVerifyResult.DateOfBirth.Value);
-                customerProfile.Address = preVerifyResult.Address;
+                customerProfile.Address = _encryption.Encrypt(preVerifyResult.Address);
                 customerProfile.NationalIdVerified = true;
                 _userRepository.UpdateCustomerProfile(customerProfile);
 

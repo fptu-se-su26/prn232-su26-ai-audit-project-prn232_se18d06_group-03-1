@@ -22,6 +22,7 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
     private readonly IAuthActivityLogger _activityLogger;
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IEncryptionService _encryption;
 
     public StaffOwnerApplicationService(
         ICurrentUserContext currentUserContext,
@@ -30,7 +31,8 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         ICloudinaryService cloudinaryService,
         IAuthActivityLogger activityLogger,
         INotificationService notificationService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IEncryptionService encryption)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
@@ -39,6 +41,7 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
         _activityLogger = activityLogger;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
+        _encryption = encryption;
     }
 
     public async Task<List<StaffOwnerApplicationListItem>> GetApplicationsAsync(
@@ -90,11 +93,11 @@ public class StaffOwnerApplicationService : IStaffOwnerApplicationService
             },
             CustomerProfile = new StaffCustomerProfileInfo
             {
-                NationalId = customerProfile?.NationalId,
+                NationalId = _encryption.Decrypt(customerProfile?.NationalId),
                 NationalIdMasked = customerProfile?.NationalIdMasked,
                 NationalIdVerified = customerProfile?.NationalIdVerified ?? false,
                 DateOfBirth = customerProfile?.DateOfBirth,
-                Address = customerProfile?.Address
+                Address = _encryption.Decrypt(customerProfile?.Address)
             },
             BankInfo = new StaffBankInfo
             {

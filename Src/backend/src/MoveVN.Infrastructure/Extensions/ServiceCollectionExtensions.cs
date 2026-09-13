@@ -64,6 +64,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddSingleton<IEncryptionService, AesEncryptionService>();
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();

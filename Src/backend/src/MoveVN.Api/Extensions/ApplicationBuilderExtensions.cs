@@ -23,16 +23,32 @@ public static class ApplicationBuilderExtensions
         var dbInitializer = scope.ServiceProvider.GetRequiredService<DbInitializer>();
         await dbInitializer.SeedAsync();
 
-        var mongoMigrationRunner = scope.ServiceProvider.GetService<MongoMigrationRunner>();
-        if (mongoMigrationRunner is not null)
+        var mongoMigrationRunner = default(MongoMigrationRunner);
+        try
         {
-            await mongoMigrationRunner.RunAsync();
+            mongoMigrationRunner = scope.ServiceProvider.GetService<MongoMigrationRunner>();
+            if (mongoMigrationRunner is not null)
+            {
+                await mongoMigrationRunner.RunAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Skipped MongoDB migration: MongoDB is unavailable.");
         }
 
-        var mongoIndexInitializer = scope.ServiceProvider.GetService<MongoIndexInitializer>();
-        if (mongoIndexInitializer is not null)
+        var mongoIndexInitializer = default(MongoIndexInitializer);
+        try
         {
-            await mongoIndexInitializer.CreateIndexesAsync();
+            mongoIndexInitializer = scope.ServiceProvider.GetService<MongoIndexInitializer>();
+            if (mongoIndexInitializer is not null)
+            {
+                await mongoIndexInitializer.CreateIndexesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Skipped MongoDB index creation: MongoDB is unavailable.");
         }
 
         return app;

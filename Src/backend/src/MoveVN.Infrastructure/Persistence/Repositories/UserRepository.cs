@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Admin.DTOs;
 using MoveVN.Application.Modules.Owner.DTOs;
@@ -10,10 +11,12 @@ namespace MoveVN.Infrastructure.Persistence.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _context;
+    private readonly IEncryptionService _encryption;
 
-    public UserRepository(AppDbContext context)
+    public UserRepository(AppDbContext context, IEncryptionService encryption)
     {
         _context = context;
+        _encryption = encryption;
     }
 
     public Task<User?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -199,31 +202,55 @@ public class UserRepository : IUserRepository
 
     public async Task<NationalIdVerificationDetailDto?> GetNationalIdVerificationDetailAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await _context.VerificationRequests
+        var item = await _context.VerificationRequests
             .AsNoTracking()
             .Where(x => x.Id == id && x.Type == "NationalId")
             .Join(_context.Users,
                 vr => vr.UserId,
                 u => u.Id,
-                (vr, u) => new NationalIdVerificationDetailDto
+                (vr, u) => new
                 {
-                    Id = vr.Id,
-                    UserId = vr.UserId,
-                    UserFullName = u.FullName,
-                    UserEmail = u.Email,
-                    Status = vr.Status,
-                    FrontImageUrl = vr.FrontImageUrl,
-                    ExternalProvider = vr.ExternalProvider,
-                    ExternalResultJson = vr.ExternalResultJson,
-                    Confidence = vr.Confidence,
-                    DecisionReason = vr.DecisionReason,
-                    ProcessedAt = vr.ProcessedAt,
-                    ReviewedBy = vr.ReviewedBy,
-                    ReviewedAt = vr.ReviewedAt,
-                    RejectionReason = vr.RejectionReason,
-                    CreatedAt = vr.CreatedAt
+                    vr.Id,
+                    vr.UserId,
+                    u.FullName,
+                    u.Email,
+                    vr.Status,
+                    vr.FrontImageUrl,
+                    vr.ExternalProvider,
+                    vr.ExternalResultJson,
+                    vr.Confidence,
+                    vr.DecisionReason,
+                    vr.ProcessedAt,
+                    vr.ReviewedBy,
+                    vr.ReviewedAt,
+                    vr.RejectionReason,
+                    vr.CreatedAt
                 })
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (item is null)
+        {
+            return null;
+        }
+
+        return new NationalIdVerificationDetailDto
+        {
+            Id = item.Id,
+            UserId = item.UserId,
+            UserFullName = item.FullName,
+            UserEmail = item.Email,
+            Status = item.Status,
+            FrontImageUrl = item.FrontImageUrl,
+            ExternalProvider = item.ExternalProvider,
+            ExternalResultJson = _encryption.Decrypt(item.ExternalResultJson),
+            Confidence = item.Confidence,
+            DecisionReason = item.DecisionReason,
+            ProcessedAt = item.ProcessedAt,
+            ReviewedBy = item.ReviewedBy,
+            ReviewedAt = item.ReviewedAt,
+            RejectionReason = item.RejectionReason,
+            CreatedAt = item.CreatedAt
+        };
     }
 
     public async Task<(List<AdminUserListItem> Items, int TotalCount)> GetAdminUserListAsync(

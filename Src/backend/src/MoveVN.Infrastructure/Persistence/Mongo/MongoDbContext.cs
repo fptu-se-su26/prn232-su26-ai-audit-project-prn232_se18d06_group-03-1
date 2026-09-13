@@ -8,30 +8,31 @@ namespace MoveVN.Infrastructure.Persistence.Mongo;
 
 public class MongoDbContext
 {
-    private readonly IMongoDatabase _database;
+    private readonly Lazy<IMongoDatabase> _databaseLazy;
 
     public MongoDbContext(IOptions<MongoDbSettings> settings)
     {
-        var client = new MongoClient(settings.Value.ConnectionString);
-        _database = client.GetDatabase(settings.Value.DatabaseName);
+        _databaseLazy = new Lazy<IMongoDatabase>(
+            () => new MongoClient(settings.Value.ConnectionString).GetDatabase(settings.Value.DatabaseName),
+            isThreadSafe: true);
     }
 
-    public IMongoDatabase Database => _database;
+    public IMongoDatabase Database => _databaseLazy.Value;
 
-    public IMongoCollection<ChatRoomDocument> ChatRooms => _database.GetCollection<ChatRoomDocument>("ChatRooms");
-    public IMongoCollection<ChatMessageDocument> ChatMessages => _database.GetCollection<ChatMessageDocument>("ChatMessages");
-    public IMongoCollection<NotificationQueueDocument> NotificationQueue => _database.GetCollection<NotificationQueueDocument>("NotificationQueue");
-    public IMongoCollection<PushTokenDocument> PushTokens => _database.GetCollection<PushTokenDocument>("PushTokens");
-    public IMongoCollection<PricingRuleDocument> PricingRules => _database.GetCollection<PricingRuleDocument>("pricing_rules");
-    public IMongoCollection<WeatherSnapshotDocument> WeatherSnapshots => _database.GetCollection<WeatherSnapshotDocument>("weather_snapshots");
-    public IMongoCollection<DemandSnapshotDocument> DemandSnapshots => _database.GetCollection<DemandSnapshotDocument>("demand_snapshots");
-    public IMongoCollection<PricingCalculationLogDocument> PricingCalculationLogs => _database.GetCollection<PricingCalculationLogDocument>("pricing_calculation_logs");
-    public IMongoCollection<VehicleVerificationLogDocument> VehicleVerificationLogs => _database.GetCollection<VehicleVerificationLogDocument>("vehicle_verification_logs");
-    public IMongoCollection<DriverLicenseVerificationLogDocument> DriverLicenseVerificationLogs => _database.GetCollection<DriverLicenseVerificationLogDocument>("driver_license_verification_logs");
-    public IMongoCollection<NationalIdVerificationLogDocument> NationalIdVerificationLogs => _database.GetCollection<NationalIdVerificationLogDocument>("national_id_verification_logs");
-    public IMongoCollection<UserActivityLogDocument> UserActivityLogs => _database.GetCollection<UserActivityLogDocument>("user_activity_logs");
-    public IMongoCollection<SearchLogDocument> SearchLogs => _database.GetCollection<SearchLogDocument>("search_logs");
-    public IMongoCollection<UserManagementAuditLogDocument> UserManagementAuditLogs => _database.GetCollection<UserManagementAuditLogDocument>("user_management_audit_logs");
-    public IMongoCollection<BroadcastNotificationLogDocument> BroadcastNotificationLogs => _database.GetCollection<BroadcastNotificationLogDocument>("broadcast_notification_logs");
-    public IMongoCollection<MongoMigrationHistory> MigrationHistory => _database.GetCollection<MongoMigrationHistory>("mongo_migrations");
+    public IMongoCollection<ChatRoomDocument> ChatRooms => Database.GetCollection<ChatRoomDocument>("ChatRooms");
+    public IMongoCollection<ChatMessageDocument> ChatMessages => Database.GetCollection<ChatMessageDocument>("ChatMessages");
+    public IMongoCollection<NotificationQueueDocument> NotificationQueue => Database.GetCollection<NotificationQueueDocument>("NotificationQueue");
+    public IMongoCollection<PushTokenDocument> PushTokens => Database.GetCollection<PushTokenDocument>("PushTokens");
+    public IMongoCollection<PricingRuleDocument> PricingRules => Database.GetCollection<PricingRuleDocument>("pricing_rules");
+    public IMongoCollection<WeatherSnapshotDocument> WeatherSnapshots => Database.GetCollection<WeatherSnapshotDocument>("weather_snapshots");
+    public IMongoCollection<DemandSnapshotDocument> DemandSnapshots => Database.GetCollection<DemandSnapshotDocument>("demand_snapshots");
+    public IMongoCollection<PricingCalculationLogDocument> PricingCalculationLogs => Database.GetCollection<PricingCalculationLogDocument>("pricing_calculation_logs");
+    public IMongoCollection<VehicleVerificationLogDocument> VehicleVerificationLogs => Database.GetCollection<VehicleVerificationLogDocument>("vehicle_verification_logs");
+    public IMongoCollection<DriverLicenseVerificationLogDocument> DriverLicenseVerificationLogs => Database.GetCollection<DriverLicenseVerificationLogDocument>("driver_license_verification_logs");
+    public IMongoCollection<NationalIdVerificationLogDocument> NationalIdVerificationLogs => Database.GetCollection<NationalIdVerificationLogDocument>("national_id_verification_logs");
+    public IMongoCollection<UserActivityLogDocument> UserActivityLogs => Database.GetCollection<UserActivityLogDocument>("user_activity_logs");
+    public IMongoCollection<SearchLogDocument> SearchLogs => Database.GetCollection<SearchLogDocument>("search_logs");
+    public IMongoCollection<UserManagementAuditLogDocument> UserManagementAuditLogs => Database.GetCollection<UserManagementAuditLogDocument>("user_management_audit_logs");
+    public IMongoCollection<BroadcastNotificationLogDocument> BroadcastNotificationLogs => Database.GetCollection<BroadcastNotificationLogDocument>("broadcast_notification_logs");
+    public IMongoCollection<MongoMigrationHistory> MigrationHistory => Database.GetCollection<MongoMigrationHistory>("mongo_migrations");
 }

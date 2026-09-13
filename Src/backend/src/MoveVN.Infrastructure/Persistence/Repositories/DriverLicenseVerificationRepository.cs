@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.DriverLicenses.DTOs;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
@@ -10,10 +11,12 @@ namespace MoveVN.Infrastructure.Persistence.Repositories;
 public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRepository
 {
     private readonly AppDbContext _context;
+    private readonly IEncryptionService _encryption;
 
-    public DriverLicenseVerificationRepository(AppDbContext context)
+    public DriverLicenseVerificationRepository(AppDbContext context, IEncryptionService encryption)
     {
         _context = context;
+        _encryption = encryption;
     }
 
     public Task<VerificationRequest?> GetLatestByUserIdAsync(long userId, CancellationToken cancellationToken = default)
@@ -123,11 +126,12 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
         var mapped = items.Select(x =>
         {
             string? licenseClass = null;
-            if (!string.IsNullOrWhiteSpace(x.ExternalResultJson))
+            var rawJson = _encryption.Decrypt(x.ExternalResultJson);
+            if (!string.IsNullOrWhiteSpace(rawJson))
             {
                 try
                 {
-                    using var doc = JsonDocument.Parse(x.ExternalResultJson);
+                    using var doc = JsonDocument.Parse(rawJson);
                     if (doc.RootElement.TryGetProperty("extracted", out var extracted)
                         && extracted.TryGetProperty("licenseClass", out var lc))
                     {
@@ -161,31 +165,57 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
         };
     }
 
-    public Task<DriverLicenseVerificationRequestDto?> GetDetailAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<DriverLicenseVerificationRequestDto?> GetDetailAsync(long id, CancellationToken cancellationToken = default)
     {
-        return (from request in _context.VerificationRequests.AsNoTracking()
+        var item = await (from request in _context.VerificationRequests.AsNoTracking()
                 join user in _context.Users.AsNoTracking() on request.UserId equals user.Id
                 where request.Id == id && request.Type == "DriverLicense"
-                select new DriverLicenseVerificationRequestDto
+                select new
                 {
-                    Id = request.Id,
-                    UserId = request.UserId,
-                    UserFullName = user.FullName,
-                    UserEmail = user.Email,
-                    Type = request.Type,
-                    Status = request.Status,
-                    FrontImageUrl = request.FrontImageUrl,
-                    RequestedVehicleType = request.RequestedVehicleType,
-                    ExternalProvider = request.ExternalProvider,
-                    ExternalResultJson = request.ExternalResultJson,
-                    Confidence = request.Confidence,
-                    DecisionReason = request.DecisionReason,
-                    ProcessedAt = request.ProcessedAt,
-                    ReviewedBy = request.ReviewedBy,
-                    ReviewedAt = request.ReviewedAt,
-                    RejectionReason = request.RejectionReason,
-                    CreatedAt = request.CreatedAt
+                    request.Id,
+                    request.UserId,
+                    user.FullName,
+                    user.Email,
+                    request.Type,
+                    request.Status,
+                    request.FrontImageUrl,
+                    request.RequestedVehicleType,
+                    request.ExternalProvider,
+                    request.ExternalResultJson,
+                    request.Confidence,
+                    request.DecisionReason,
+                    request.ProcessedAt,
+                    request.ReviewedBy,
+                    request.ReviewedAt,
+                    request.RejectionReason,
+                    request.CreatedAt
                 })
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (item is null)
+        {
+            return null;
+        }
+
+        return new DriverLicenseVerificationRequestDto
+        {
+            Id = item.Id,
+            UserId = item.UserId,
+            UserFullName = item.FullName,
+            UserEmail = item.Email,
+            Type = item.Type,
+            Status = item.Status,
+            FrontImageUrl = item.FrontImageUrl,
+            RequestedVehicleType = item.RequestedVehicleType,
+            ExternalProvider = item.ExternalProvider,
+            ExternalResultJson = _encryption.Decrypt(item.ExternalResultJson),
+            Confidence = item.Confidence,
+            DecisionReason = item.DecisionReason,
+            ProcessedAt = item.ProcessedAt,
+            ReviewedBy = item.ReviewedBy,
+            ReviewedAt = item.ReviewedAt,
+            RejectionReason = item.RejectionReason,
+            CreatedAt = item.CreatedAt
+        };
     }
 }
