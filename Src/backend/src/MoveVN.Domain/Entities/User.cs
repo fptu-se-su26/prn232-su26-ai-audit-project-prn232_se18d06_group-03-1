@@ -15,6 +15,10 @@ public class User
     public DateTime? LastLoginAt { get; set; }
     public DateTime? LastSeenAt { get; set; }
     public bool IsOnline { get; set; }
+    public string? SecurityPinHash { get; set; }
+    public bool IsPinSet { get; set; }
+    public int FailedPinAttempts { get; set; }
+    public DateTime? PinLockoutEnd { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

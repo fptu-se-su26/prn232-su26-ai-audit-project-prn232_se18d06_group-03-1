@@ -56,6 +56,8 @@ using MoveVN.Application.Modules.Promotions.Interfaces;
 using MoveVN.Application.Modules.Promotions.Services;
 using MoveVN.Application.Modules.VoucherClaims.Interfaces;
 using MoveVN.Application.Modules.VoucherClaims.Services;
+using MoveVN.Application.Modules.UserSecurity.Interfaces;
+using MoveVN.Application.Modules.UserSecurity.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
@@ -116,6 +118,7 @@ public static class DependencyInjection
         services.AddScoped<ICmsPageService, CmsPageService>();
         services.AddScoped<IPromotionService, PromotionService>();
         services.AddScoped<IVoucherClaimService, VoucherClaimService>();
+        services.AddScoped<IPinService, PinService>();
 
         return services;
     }

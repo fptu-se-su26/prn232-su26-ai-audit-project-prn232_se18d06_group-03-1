@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Encryption;
+using MoveVN.Application.Common.Security;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Interfaces;
@@ -82,7 +83,7 @@ public class DriverLicenseService : IDriverLicenseService
         {
             Verified = verifiedVehicleTypes.Count > 0 || profile?.DriverLicenseVerified == true,
             Status = latest?.Status ?? (verifiedVehicleTypes.Count > 0 || profile?.DriverLicenseVerified == true ? "Verified" : "None"),
-            DriverLicenseNumber = _encryption.Decrypt(latestLicense?.LicenseNumber),
+            DriverLicenseNumber = DocumentMask.Mask(_encryption.Decrypt(latestLicense?.LicenseNumber)),
             LicenseClass = latestLicense?.LicenseClass,
             VerifiedVehicleTypes = verifiedVehicleTypes,
             Licenses = licenseDtos,
@@ -604,7 +605,7 @@ public class DriverLicenseService : IDriverLicenseService
         return new CustomerDriverLicenseDto
         {
             VehicleType = license.VehicleType,
-            DriverLicenseNumber = _encryption.Decrypt(license.LicenseNumber),
+            DriverLicenseNumber = DocumentMask.Mask(_encryption.Decrypt(license.LicenseNumber)),
             LicenseClass = license.LicenseClass,
             FrontImageUrl = license.FrontImageUrl,
             VerificationRequestId = license.VerificationRequestId,

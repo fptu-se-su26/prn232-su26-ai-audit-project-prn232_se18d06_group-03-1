@@ -23,13 +23,7 @@ export default defineConfig({
     },
   },
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          'react-dev-locator',
-        ],
-      },
-    }),
+    react(),
     traeBadgePlugin({
       variant: 'dark',
       position: 'bottom-right',

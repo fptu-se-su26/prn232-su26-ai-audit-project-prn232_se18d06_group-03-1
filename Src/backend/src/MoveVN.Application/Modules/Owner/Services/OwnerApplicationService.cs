@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Encryption;
+using MoveVN.Application.Common.Security;
 using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Interfaces;
 using MoveVN.Application.Modules.Auth.Interfaces;
@@ -144,7 +145,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             IsOwner = data?.IsOwner ?? false,
             NextStep = DetermineNextStep(data, data?.CustomerNationalIdVerified ?? false, bankInfoCompleted, data?.IsOwner ?? false),
             FullName = data?.UserFullName,
-            NationalIdNumber = _encryption.Decrypt(data?.CustomerNationalId),
+            NationalIdNumber = DocumentMask.Mask(_encryption.Decrypt(data?.CustomerNationalId)),
             BankName = data?.BankName,
             BankAccountNumber = data?.BankAccountNumber,
             BankAccountHolderName = data?.BankAccountHolderName,

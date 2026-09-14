@@ -23,6 +23,7 @@ import StatusBadge from "@/components/dashboard/StatusBadge";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { useOwnerApplication } from "@/features/owner/hooks/useOwnerApplication";
 import { toApiError } from "@/features/auth/services/authService";
+import MaskedDocumentValue from "@/features/pin/components/MaskedDocumentValue";
 
 export default function CccdVerificationPage() {
   const navigate = useNavigate();
@@ -120,17 +121,14 @@ export default function CccdVerificationPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Họ và tên</p>
-                <p className="mt-1 flex items-center gap-2 font-semibold text-slate-950">
-                  <User className="h-4 w-4 text-slate-400" />
-                  {application?.fullName || user?.fullName || "-"}
-                </p>
+                <p className="mt-1 font-semibold text-slate-950">{application?.fullName ?? "-"}</p>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Số CCCD</p>
-                <p className="mt-1 flex items-center gap-2 font-semibold text-slate-950">
-                  <Hash className="h-4 w-4 text-slate-400" />
-                  {application?.nationalIdNumber || "-"}
-                </p>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Số CCCD</p>
+                    <p className="mt-1 flex items-center gap-2 font-semibold text-slate-950">
+                      <Hash className="h-4 w-4 text-slate-400" />
+                      <MaskedDocumentValue documentType="CCCD" value={application?.nationalIdNumber ?? null} />
+                    </p>
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Ngày xác thực</p>

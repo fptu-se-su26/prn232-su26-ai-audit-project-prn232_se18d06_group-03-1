@@ -74,6 +74,12 @@ public sealed class ErrorCode
     public static readonly ErrorCode OWNER_VERIFICATION_PROCESSING = new("OWNER_6013", "Yêu cầu xác thực CCCD đang được xử lý. Vui lòng đợi.", HttpStatusCode.Conflict);
     public static readonly ErrorCode OWNER_NATIONAL_ID_VERIFICATION_NOT_FOUND = new("OWNER_6014", "Không tìm thấy yêu cầu xác thực CCCD.", HttpStatusCode.NotFound);
     public static readonly ErrorCode OWNER_NATIONAL_ID_REVIEW_INVALID_STATE = new("OWNER_6015", "Yêu cầu xác thực CCCD không ở trạng thái chờ duyệt.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PIN_NOT_SET = new("PIN_1101", "Chưa thiết lập mã PIN.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PIN_ALREADY_SET = new("PIN_1102", "Mã PIN đã được thiết lập.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PIN_INVALID = new("PIN_1103", "Mã PIN không đúng.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode PIN_LOCKED = new("PIN_1104", "Mã PIN đã bị khoá tạm thời do nhập sai nhiều lần. Vui lòng thử lại sau.", HttpStatusCode.TooManyRequests);
+    public static readonly ErrorCode PIN_INVALID_FORMAT = new("PIN_1105", "Mã PIN phải là 6 chữ số.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode DOCUMENT_NOT_AVAILABLE = new("PIN_1106", "Giấy tờ chưa được xác thực.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode STAFF_APPLICATION_NOT_FOUND = new("STAFF_7001", "Không tìm thấy đơn đăng ký chủ xe.", HttpStatusCode.NotFound);
     public static readonly ErrorCode STAFF_APPROVE_INVALID_STATE = new("STAFF_7002", "Đơn phải ở trạng thái ReadyToSubmit hoặc ManualReview để duyệt.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode STAFF_REJECT_INVALID_STATE = new("STAFF_7003", "Đơn đã được duyệt hoặc từ chối.", HttpStatusCode.BadRequest);

@@ -80,6 +80,14 @@ export const endpoints = {
   owner: {
     dashboardStats: "/api/owner/dashboard/stats",
   },
+  userSecurity: {
+    pinStatus: "/api/v1/user/pin/status",
+    pinSetup: "/api/v1/user/pin/setup",
+    pinChange: "/api/v1/user/pin/change",
+    pinVerifyViewDocument: "/api/v1/user/pin/verify-view-document",
+    pinForgotRequestOtp: "/api/v1/user/pin/forgot/request-otp",
+    pinForgotReset: "/api/v1/user/pin/forgot/reset",
+  },
   favoriteVehicles: {
     list: "/api/customer/favorite-vehicles",
     ids: "/api/customer/favorite-vehicles/ids",

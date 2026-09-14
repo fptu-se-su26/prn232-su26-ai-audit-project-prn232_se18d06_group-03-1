@@ -13,6 +13,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import MaskedDocumentValue from "@/features/pin/components/MaskedDocumentValue";
 import Button from "@/components/common/Button";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import { Skeleton } from "@/components/common/Skeleton";
@@ -279,7 +280,9 @@ export default function DriverLicenseVerificationPage() {
                 <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-slate-500">Số GPLX</dt>
-                    <dd className="mt-1 font-semibold text-slate-950">{selectedDriverLicenseNumber ?? "-"}</dd>
+                    <dd className="mt-1 font-semibold text-slate-950">
+                      <MaskedDocumentValue documentType="GPLX" value={selectedDriverLicenseNumber ?? null} />
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-slate-500">Hạng bằng</dt>

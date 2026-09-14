@@ -8,6 +8,7 @@ namespace MoveVN.Application.Interfaces;
 public interface IUserRepository
 {
     Task<User?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<User?> GetByIdTrackedAsync(long id, CancellationToken cancellationToken = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<bool> ExistsByPhoneAsync(string phone, CancellationToken cancellationToken = default);
