@@ -27,6 +27,14 @@ public class DriverLicenseVerificationRepository : IDriverLicenseVerificationRep
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<VerificationRequest?> GetLatestByUserIdAndVehicleTypeAsync(long userId, string vehicleType, CancellationToken cancellationToken = default)
+    {
+        return _context.VerificationRequests
+            .Where(x => x.UserId == userId && x.Type == "DriverLicense" && x.RequestedVehicleType == vehicleType)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public Task<VerificationRequest?> GetLatestVerifiedByUserIdAsync(long userId, CancellationToken cancellationToken = default)
     {
         return _context.VerificationRequests

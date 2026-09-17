@@ -42,9 +42,21 @@ function formatDate(value?: string | null) {
   });
 }
 
-function canUpdateAfter(value?: string | null) {
-  if (!value) return true;
-  return new Date(value).getTime() <= Date.now();
+function formatCooldownDuration(totalSeconds: number): string {
+  const normalized = Math.max(0, Math.floor(totalSeconds));
+  const days = Math.floor(normalized / 86400);
+  const hours = Math.floor((normalized % 86400) / 3600);
+  const minutes = Math.floor((normalized % 3600) / 60);
+  if (days > 0) {
+    return `${days} ngày ${hours} giờ ${minutes} phút`;
+  }
+  if (hours > 0) {
+    return `${hours} giờ ${minutes} phút`;
+  }
+  if (minutes > 0) {
+    return `${minutes} phút`;
+  }
+  return `${normalized} giây`;
 }
 
 function vehicleTypeLabel(value?: string | null) {
@@ -73,6 +85,7 @@ export default function DriverLicenseVerificationPage() {
   const [licenseInfo, setLicenseInfo] = useState<DriverLicenseClassResponse | null>(null);
   const [compatibleClasses, setCompatibleClasses] = useState<DriverLicenseClassResponse[]>([]);
   const [isCompatibilityLoading, setIsCompatibilityLoading] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -102,6 +115,11 @@ export default function DriverLicenseVerificationPage() {
   }, []);
 
   useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     if (!file) {
       setPreviewUrl(null);
       return;
@@ -121,10 +139,8 @@ export default function DriverLicenseVerificationPage() {
       status?.latestRequest?.requestedVehicleType === requestedVehicleType &&
       (status.latestRequest.status === "Pending" || status.latestRequest.status === "Processing");
     if (hasPendingForSelectedType) return "Hồ sơ GPLX đang chờ xử lý.";
-    const selectedLicense = status?.licenses?.find((license) => license.vehicleType === requestedVehicleType);
-    if (selectedLicense && !canUpdateAfter(selectedLicense.canUpdateAfter)) {
-      return `Có thể cập nhật lại sau ${formatDate(selectedLicense.canUpdateAfter)}.`;
-    }
+    const selected = status?.licenses?.find((license) => license.vehicleType === requestedVehicleType);
+    if (selected && !selected.isAllowedToUpdate) return "GPLX đang trong thời gian chờ cập nhật.";
     return null;
   }, [requestedVehicleType, status]);
 
@@ -188,7 +204,13 @@ export default function DriverLicenseVerificationPage() {
   const selectedDriverLicenseNumber = selectedLicense?.driverLicenseNumber ?? (selectedTypeVerified ? status?.driverLicenseNumber : null);
   const selectedLicenseClass = selectedLicense?.licenseClass ?? (selectedTypeVerified ? status?.licenseClass : null);
   const selectedVerifiedAt = selectedLicense?.verifiedAt ?? (selectedTypeVerified ? status?.verifiedAt : null);
-  const selectedCanUpdateAfter = selectedLicense?.canUpdateAfter ?? (selectedTypeVerified ? status?.canUpdateAfter : null);
+  const cooldownTarget =
+    selectedLicense && !selectedLicense.isAllowedToUpdate
+      ? (selectedLicense.nextAllowedSubmitAt ?? selectedLicense.canUpdateAfter ?? null)
+      : null;
+  const cooldownRemainingSeconds =
+    cooldownTarget != null ? Math.max(0, Math.floor((new Date(cooldownTarget).getTime() - nowMs) / 1000)) : 0;
+  const isCooldownActive = cooldownTarget != null && cooldownRemainingSeconds > 0;
   const savedImageUrl = selectedLicense?.frontImageUrl ?? (selectedTypeHasLatestRequest ? status?.latestRequest?.frontImageUrl ?? null : null);
   const displayImageUrl = previewUrl ?? savedImageUrl;
 
@@ -306,7 +328,7 @@ export default function DriverLicenseVerificationPage() {
                   <div>
                     <dt className="text-slate-500">Cập nhật lại</dt>
                     <dd className="mt-1 font-semibold text-slate-950">
-                      {selectedTypeVerified ? formatDate(selectedCanUpdateAfter) : "Có thể gửi ngay"}
+                      {isCooldownActive && cooldownTarget ? formatDate(cooldownTarget) : "Có thể gửi ngay"}
                     </dd>
                   </div>
                 </dl>
@@ -361,6 +383,21 @@ export default function DriverLicenseVerificationPage() {
                 })}
               </div>
 
+              {isCooldownActive ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <p className="flex items-start gap-2 font-medium leading-6">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      Bạn vừa cập nhật GPLX. Bạn có thể gửi yêu cầu tiếp theo sau:{" "}
+                      <span className="font-bold tabular-nums">
+                        {formatCooldownDuration(cooldownRemainingSeconds)}
+                      </span>
+                      .
+                    </span>
+                  </p>
+                </div>
+              ) : null}
+
               <div className="relative overflow-hidden rounded-md border-2 border-dashed border-slate-300 bg-slate-50 transition hover:border-brand-400 hover:bg-brand-50/30">
                 {displayImageUrl ? (
                   <div className="relative">
@@ -369,16 +406,28 @@ export default function DriverLicenseVerificationPage() {
                       <button
                         type="button"
                         onClick={() => setPreviewOpen(true)}
+                        title="Xem ảnh lớn"
                         className="rounded-md bg-slate-950/70 p-2 text-white transition hover:bg-slate-950"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      {!file && !uploadDisabledReason ? (
+                        <button
+                          type="button"
+                          onClick={() => fileRef.current?.click()}
+                          title="Chọn ảnh khác để cập nhật"
+                          className="rounded-md bg-slate-950/70 p-2 text-white transition hover:bg-slate-950"
+                        >
+                          <Upload className="h-4 w-4" />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => {
                           setFile(null);
                           setPreviewUrl(null);
                         }}
+                        title="Bỏ ảnh đang chọn"
                         className="rounded-md bg-slate-950/70 p-2 text-white transition hover:bg-slate-950"
                       >
                         <X className="h-4 w-4" />

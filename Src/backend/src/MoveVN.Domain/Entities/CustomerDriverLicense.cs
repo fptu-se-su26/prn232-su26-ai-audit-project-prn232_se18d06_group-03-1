@@ -12,6 +12,7 @@ public class CustomerDriverLicense
     public long VerificationRequestId { get; set; }
     public decimal? OcrConfidence { get; set; }
     public DateTime VerifiedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastSubmittedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 }

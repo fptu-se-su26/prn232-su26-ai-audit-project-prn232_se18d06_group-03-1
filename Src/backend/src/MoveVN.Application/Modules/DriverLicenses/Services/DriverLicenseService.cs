@@ -20,7 +20,6 @@ namespace MoveVN.Application.Modules.DriverLicenses.Services;
 public class DriverLicenseService : IDriverLicenseService
 {
     private const string VerificationType = "DriverLicense";
-    private static readonly TimeSpan VerifiedUpdateCooldown = TimeSpan.FromDays(3);
 
     private readonly ICurrentUserContext _currentUserContext;
     private readonly IUserRepository _userRepository;
@@ -72,7 +71,16 @@ public class DriverLicenseService : IDriverLicenseService
         var profile = await _userRepository.GetCustomerProfileByUserIdAsync(userId, cancellationToken);
         var latest = await _verificationRepository.GetLatestByUserIdAsync(userId, cancellationToken);
         var licenses = await _customerDriverLicenseRepository.GetByUserIdAsync(userId, cancellationToken);
-        var licenseDtos = licenses.Select(ToDto).ToList();
+        var licenseDtos = new List<CustomerDriverLicenseDto>();
+        foreach (var license in licenses)
+        {
+            var dto = ToDto(license);
+            var cooldown = await BuildLicenseCooldownAsync(userId, license, cancellationToken);
+            dto.IsAllowedToUpdate = cooldown.IsAllowed;
+            dto.NextAllowedSubmitAt = cooldown.NextAllowedSubmitAt;
+            dto.RemainingCooldownSeconds = cooldown.RemainingCooldownSeconds;
+            licenseDtos.Add(dto);
+        }
         var verifiedVehicleTypes = licenseDtos
             .Select(x => x.VehicleType)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -88,9 +96,26 @@ public class DriverLicenseService : IDriverLicenseService
             VerifiedVehicleTypes = verifiedVehicleTypes,
             Licenses = licenseDtos,
             VerifiedAt = latestLicense?.VerifiedAt,
-            CanUpdateAfter = latestLicense?.VerifiedAt.Add(VerifiedUpdateCooldown),
+            CanUpdateAfter = latestLicense is null
+                ? null
+                : (latestLicense.LastSubmittedAt ?? latestLicense.VerifiedAt)
+                    .AddDays(DriverLicenseCooldown.DRIVER_LICENSE_COOLDOWN_DAYS),
             LatestRequest = latest is null ? null : ToDto(latest)
         };
+    }
+
+    private async Task<DriverLicenseCooldown.CooldownEvaluation> BuildLicenseCooldownAsync(
+        long userId,
+        CustomerDriverLicense license,
+        CancellationToken cancellationToken)
+    {
+        var pending = await _verificationRepository.GetPendingByUserIdAsync(userId, license.VehicleType, cancellationToken);
+        var latestRequest = await _verificationRepository.GetLatestByUserIdAndVehicleTypeAsync(userId, license.VehicleType, cancellationToken);
+        return DriverLicenseCooldown.Evaluate(
+            license.LastSubmittedAt,
+            latestRequest?.Status,
+            pending is not null,
+            DateTime.UtcNow);
     }
 
     public async Task<DriverLicenseSubmitResponse> SubmitAsync(Stream image, string fileName, string requestedVehicleType, CancellationToken cancellationToken = default)
@@ -122,11 +147,17 @@ public class DriverLicenseService : IDriverLicenseService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         var currentLicense = await _customerDriverLicenseRepository.GetByUserIdAndVehicleTypeAsync(userId, requestedVehicleType, cancellationToken);
-        if (currentLicense is not null
-            && currentLicense.VerifiedAt.Add(VerifiedUpdateCooldown) > DateTime.UtcNow)
+        var latestRequest = await _verificationRepository.GetLatestByUserIdAndVehicleTypeAsync(userId, requestedVehicleType, cancellationToken);
+        var evaluation = DriverLicenseCooldown.Evaluate(
+            currentLicense?.LastSubmittedAt,
+            latestRequest?.Status,
+            pending is not null,
+            DateTime.UtcNow);
+        if (!evaluation.IsAllowed && evaluation.NextAllowedSubmitAt is not null)
         {
+            var remaining = evaluation.RemainingCooldownSeconds ?? 0;
             throw new AppException(ErrorCode.DRIVER_LICENSE_UPDATE_TOO_SOON, [
-                $"GPLX chỉ có thể cập nhật lại sau ngày {currentLicense.VerifiedAt.Add(VerifiedUpdateCooldown):yyyy-MM-dd HH:mm:ss} UTC."
+                $"GPLX chỉ có thể cập nhật lại sau {DriverLicenseCooldown.FormatRemaining(remaining)} (sau ngày {evaluation.NextAllowedSubmitAt:yyyy-MM-dd HH:mm:ss} UTC)."
             ]);
         }
 
@@ -204,6 +235,12 @@ public class DriverLicenseService : IDriverLicenseService
                 OcrConfidence = aiResult.OcrConfidence,
                 Flags = aiResult.Flags
             };
+        }
+
+        if (currentLicense is not null)
+        {
+            currentLicense.LastSubmittedAt = DateTime.UtcNow;
+            _customerDriverLicenseRepository.Update(currentLicense);
         }
 
         var request = new VerificationRequest
@@ -440,7 +477,8 @@ public class DriverLicenseService : IDriverLicenseService
                 FrontImagePublicId = request.FrontImagePublicId,
                 VerificationRequestId = request.Id,
                 OcrConfidence = result.OcrConfidence,
-                VerifiedAt = DateTime.UtcNow
+                VerifiedAt = DateTime.UtcNow,
+                LastSubmittedAt = request.CreatedAt
             }, cancellationToken);
         }
         else
@@ -452,6 +490,7 @@ public class DriverLicenseService : IDriverLicenseService
             existing.VerificationRequestId = request.Id;
             existing.OcrConfidence = result.OcrConfidence;
             existing.VerifiedAt = DateTime.UtcNow;
+            existing.LastSubmittedAt ??= request.CreatedAt;
             existing.UpdatedAt = DateTime.UtcNow;
             _customerDriverLicenseRepository.Update(existing);
         }
@@ -611,7 +650,8 @@ public class DriverLicenseService : IDriverLicenseService
             VerificationRequestId = license.VerificationRequestId,
             OcrConfidence = license.OcrConfidence,
             VerifiedAt = license.VerifiedAt,
-            CanUpdateAfter = license.VerifiedAt.Add(VerifiedUpdateCooldown)
+            CanUpdateAfter = (license.LastSubmittedAt ?? license.VerifiedAt)
+                .AddDays(DriverLicenseCooldown.DRIVER_LICENSE_COOLDOWN_DAYS)
         };
     }
 

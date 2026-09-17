@@ -39,6 +39,9 @@ export type CustomerDriverLicense = {
   ocrConfidence?: number | null;
   verifiedAt: string;
   canUpdateAfter: string;
+  isAllowedToUpdate: boolean;
+  nextAllowedSubmitAt?: string | null;
+  remainingCooldownSeconds?: number | null;
 };
 
 export type DriverLicenseSubmitResponse = {

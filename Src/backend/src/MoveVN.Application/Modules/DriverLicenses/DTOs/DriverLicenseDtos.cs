@@ -25,6 +25,9 @@ public class CustomerDriverLicenseDto
     public decimal? OcrConfidence { get; set; }
     public DateTime VerifiedAt { get; set; }
     public DateTime CanUpdateAfter { get; set; }
+    public bool IsAllowedToUpdate { get; set; }
+    public DateTime? NextAllowedSubmitAt { get; set; }
+    public long? RemainingCooldownSeconds { get; set; }
 }
 
 public class DriverLicenseSubmitResponse

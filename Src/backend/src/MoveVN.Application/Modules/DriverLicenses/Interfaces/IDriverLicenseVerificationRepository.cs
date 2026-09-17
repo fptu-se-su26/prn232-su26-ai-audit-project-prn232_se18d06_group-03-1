@@ -7,6 +7,7 @@ namespace MoveVN.Application.Modules.DriverLicenses.Interfaces;
 public interface IDriverLicenseVerificationRepository
 {
     Task<VerificationRequest?> GetLatestByUserIdAsync(long userId, CancellationToken cancellationToken = default);
+    Task<VerificationRequest?> GetLatestByUserIdAndVehicleTypeAsync(long userId, string vehicleType, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetLatestVerifiedByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetPreviousVerifiedByUserIdAsync(long userId, long currentRequestId, string vehicleType, CancellationToken cancellationToken = default);
     Task<VerificationRequest?> GetPendingByUserIdAsync(long userId, string vehicleType, CancellationToken cancellationToken = default);
