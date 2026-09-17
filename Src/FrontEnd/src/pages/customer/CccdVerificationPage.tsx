@@ -11,7 +11,6 @@ import {
   Info,
   Lock,
   Shield,
-  User,
   X,
 } from "lucide-react";
 import Button from "@/components/common/Button";
@@ -20,14 +19,12 @@ import { Skeleton } from "@/components/common/Skeleton";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import SectionPanel from "@/components/dashboard/SectionPanel";
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { useAuthStore } from "@/features/auth/hooks/useAuth";
 import { useOwnerApplication } from "@/features/owner/hooks/useOwnerApplication";
 import { toApiError } from "@/features/auth/services/authService";
 import MaskedDocumentValue from "@/features/pin/components/MaskedDocumentValue";
 
 export default function CccdVerificationPage() {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
   const { application, isLoading, error, handleOcrVerification } = useOwnerApplication("upload");
   const [verified, setVerified] = useState(false);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);

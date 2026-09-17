@@ -63,9 +63,35 @@ public class PinService : IPinService
         };
     }
 
+    public async Task RequestSetupPinOtpAsync(CancellationToken cancellationToken = default)
+    {
+        var user = await GetTrackedUserAsync(cancellationToken);
+
+        if (user.IsPinSet)
+        {
+            throw new AppException(ErrorCode.PIN_ALREADY_SET);
+        }
+
+        var email = NormalizeEmail(user.Email);
+
+        try
+        {
+            await _otpService.CreateOtpAsync(email, OtpPurpose.SetupPin, user.Id, null, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (HttpRequestException)
+        {
+            throw new AppException(ErrorCode.EMAIL_SEND_FAILED);
+        }
+    }
+
     public async Task SetupPinAsync(SetupPinRequest request, CancellationToken cancellationToken = default)
     {
-        ValidatePinFormat(request.PinCode, request.ConfirmPinCode);
+        ValidatePinFormat(request.PinCode);
 
         var user = await GetTrackedUserAsync(cancellationToken);
 
@@ -73,6 +99,9 @@ public class PinService : IPinService
         {
             throw new AppException(ErrorCode.PIN_ALREADY_SET);
         }
+
+        var email = NormalizeEmail(user.Email);
+        await _otpService.VerifyOtpAsync(email, request.Otp, OtpPurpose.SetupPin, cancellationToken);
 
         user.SecurityPinHash = _passwordHasher.Hash(request.PinCode);
         user.IsPinSet = true;
@@ -112,6 +141,7 @@ public class PinService : IPinService
         CancellationToken cancellationToken = default)
     {
         var documentType = NormalizeDocumentType(request.DocumentType);
+        var vehicleType = documentType == "GPLX" ? NormalizeVehicleType(request.VehicleType) : null;
 
         var user = await GetTrackedUserAsync(cancellationToken);
         EnsurePinSet(user);
@@ -130,7 +160,7 @@ public class PinService : IPinService
 
         var response = documentType == "CCCD"
             ? await BuildCccdPlaintextAsync(user, cancellationToken)
-            : await BuildGplxPlaintextAsync(user, cancellationToken);
+            : await BuildGplxPlaintextAsync(user, vehicleType!, cancellationToken);
 
         _logger.LogInformation("Document plaintext requested for user {UserId} type {DocumentType}.", user.Id, response.DocumentType);
         return response;
@@ -256,24 +286,27 @@ public class PinService : IPinService
         };
     }
 
-    private async Task<ViewDocumentPlaintextResponse> BuildGplxPlaintextAsync(User user, CancellationToken cancellationToken)
+    private async Task<ViewDocumentPlaintextResponse> BuildGplxPlaintextAsync(
+        User user,
+        string vehicleType,
+        CancellationToken cancellationToken)
     {
-        var licenses = await _customerDriverLicenseRepository.GetByUserIdAsync(user.Id, cancellationToken);
-        var latest = licenses.OrderByDescending(x => x.VerifiedAt).FirstOrDefault();
-        if (latest is null)
+        var license = await _customerDriverLicenseRepository.GetByUserIdAndVehicleTypeAsync(
+            user.Id, vehicleType, cancellationToken);
+        if (license is null)
         {
             throw new AppException(ErrorCode.DOCUMENT_NOT_AVAILABLE,
-                ["Giấy phép lái xe chưa được xác thực."]);
+                [vehicleType == "Car" ? "GPLX ô tô chưa được xác minh." : "GPLX xe máy chưa được xác minh."]);
         }
 
         return new ViewDocumentPlaintextResponse
         {
             DocumentType = "GPLX",
-            DocumentNumber = _encryption.Decrypt(latest.LicenseNumber) ?? string.Empty,
+            DocumentNumber = _encryption.Decrypt(license.LicenseNumber) ?? string.Empty,
             FullName = user.FullName,
-            LicenseClass = latest.LicenseClass,
-            VehicleType = latest.VehicleType,
-            VerifiedAt = latest.VerifiedAt
+            LicenseClass = license.LicenseClass,
+            VehicleType = license.VehicleType,
+            VerifiedAt = license.VerifiedAt
         };
     }
 
@@ -305,6 +338,28 @@ public class PinService : IPinService
 
         throw new AppException(ErrorCode.VALIDATION_ERROR,
             ["DocumentType phải là CCCD hoặc GPLX."]);
+    }
+
+    private static string NormalizeVehicleType(string? vehicleType)
+    {
+        if (string.IsNullOrWhiteSpace(vehicleType))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR,
+                ["VehicleType là bắt buộc khi xem GPLX."]);
+        }
+
+        var normalized = vehicleType.Trim().Equals("Motorcycle", StringComparison.OrdinalIgnoreCase)
+            ? "Motorbike"
+            : vehicleType.Trim();
+
+        if (!normalized.Equals("Car", StringComparison.OrdinalIgnoreCase)
+            && !normalized.Equals("Motorbike", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_VEHICLE_TYPE_INVALID,
+                ["Loại xe cần xác minh chỉ hỗ trợ Ô tô hoặc Xe máy."]);
+        }
+
+        return normalized.Equals("Car", StringComparison.OrdinalIgnoreCase) ? "Car" : "Motorbike";
     }
 
     private static string NormalizeEmail(string? email)

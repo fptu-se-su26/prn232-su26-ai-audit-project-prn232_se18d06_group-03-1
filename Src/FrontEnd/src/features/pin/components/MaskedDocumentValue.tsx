@@ -5,14 +5,23 @@ import PinSetupModal from "@/features/pin/components/PinSetupModal";
 import PinVerifyModal from "@/features/pin/components/PinVerifyModal";
 import PinForgotModal from "@/features/pin/components/PinForgotModal";
 import { usePinReveal } from "@/features/pin/hooks/usePinReveal";
-import type { PinDocumentType } from "@/features/pin/types";
+import type { PinDocumentType, PinVehicleType } from "@/features/pin/types";
 
 interface MaskedDocumentValueProps {
   documentType: PinDocumentType;
   value: string | null;
+  vehicleType?: PinVehicleType;
+  revealDisabled?: boolean;
+  revealDisabledHint?: string;
 }
 
-export default function MaskedDocumentValue({ documentType, value }: MaskedDocumentValueProps) {
+export default function MaskedDocumentValue({
+  documentType,
+  value,
+  vehicleType,
+  revealDisabled = false,
+  revealDisabledHint,
+}: MaskedDocumentValueProps) {
   const [showForgot, setShowForgot] = useState(false);
   const {
     plaintext,
@@ -21,19 +30,27 @@ export default function MaskedDocumentValue({ documentType, value }: MaskedDocum
     isModalOpen,
     isPinSet,
     mode,
+    lockoutSeconds,
+    remainingAttempts,
     openModal,
     closeModal,
     handleVerified,
     handleSetupDone,
     hide,
-  } = usePinReveal(documentType);
+  } = usePinReveal(documentType, vehicleType);
+
+  const eyeTitle = revealDisabled
+    ? (revealDisabledHint ?? "Chưa có dữ liệu để hiển thị.")
+    : (isPinSet ? "Hiển thị bằng mã PIN" : "Thiết lập mã PIN để hiển thị");
 
   return (
     <span className="inline-flex items-center gap-2">
       {isRevealed && plaintext !== null ? (
         <>
-          <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{plaintext}</span>
-          <span className="text-xs tabular-nums text-slate-500 dark:text-gray-400">{secondsLeft}s</span>
+          <span className="font-mono font-semibold text-slate-900 dark:text-gray-100">{plaintext}</span>
+          <span className="text-xs font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
+            Đang hiển thị · {secondsLeft}s
+          </span>
           <Button variant="ghost" size="sm" onClick={hide} title="Ẩn" className="h-6 w-6 p-0">
             <EyeOff className="h-3.5 w-3.5" />
           </Button>
@@ -45,7 +62,8 @@ export default function MaskedDocumentValue({ documentType, value }: MaskedDocum
             variant="ghost"
             size="sm"
             onClick={openModal}
-            title={isPinSet ? "Hiển thị bằng mã PIN" : "Thiết lập mã PIN để hiển thị"}
+            disabled={revealDisabled}
+            title={eyeTitle}
             className="h-6 w-6 p-0"
           >
             <Eye className="h-3.5 w-3.5" />
@@ -67,6 +85,8 @@ export default function MaskedDocumentValue({ documentType, value }: MaskedDocum
           onClose={closeModal}
           onVerified={handleVerified}
           onForgotPin={() => setShowForgot(true)}
+          lockoutSeconds={lockoutSeconds}
+          remainingAttempts={remainingAttempts}
         />
       )}
 

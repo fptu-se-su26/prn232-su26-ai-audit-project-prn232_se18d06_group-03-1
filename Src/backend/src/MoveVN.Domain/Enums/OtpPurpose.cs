@@ -6,5 +6,6 @@ public enum OtpPurpose
     ForgotPassword = 2,
     VerifyEmail = 3,
     BankAccountUpdate = 4,
-    ForgotPin = 5
+    ForgotPin = 5,
+    SetupPin = 6
 }

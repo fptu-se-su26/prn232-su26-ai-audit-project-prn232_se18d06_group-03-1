@@ -11,7 +11,7 @@ public class PinStatusResponse
 public class SetupPinRequest
 {
     public string PinCode { get; set; } = string.Empty;
-    public string ConfirmPinCode { get; set; } = string.Empty;
+    public string Otp { get; set; } = string.Empty;
 }
 
 public class ChangePinRequest
@@ -24,6 +24,7 @@ public class VerifyPinViewDocumentRequest
 {
     public string PinCode { get; set; } = string.Empty;
     public string DocumentType { get; set; } = string.Empty;
+    public string? VehicleType { get; set; }
 }
 
 public class ViewDocumentPlaintextResponse

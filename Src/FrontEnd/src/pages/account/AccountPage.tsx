@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, CheckCircle2, CreditCard, FileBadge, IdCard, KeyRound, Landmark, Mail, Monitor } from "lucide-react";
+import { AlertCircle, CheckCircle2, CreditCard, FileBadge, IdCard, KeyRound, Landmark, Mail, Monitor, ShieldCheck } from "lucide-react";
 import Alert from "@/components/common/Alert";
 import PageLoader from "@/components/common/PageLoader";
 import { useAuthStore } from "@/features/auth/hooks/useAuth";
@@ -10,6 +10,10 @@ import { getMyDriverLicense } from "@/features/driverLicenses/services/driverLic
 import type { DriverLicenseStatusResponse } from "@/features/driverLicenses/types";
 import { getMyApplication } from "@/features/owner/services/ownerService";
 import type { OwnerApplicationDto } from "@/features/owner/types";
+import PinChangeModal from "@/features/pin/components/PinChangeModal";
+import PinSetupModal from "@/features/pin/components/PinSetupModal";
+import { getPinStatus } from "@/features/pin/services/pinService";
+import type { VerifyPinResult } from "@/features/pin/hooks/usePinReveal";
 
 const roleLabels: Record<string, string> = {
   Admin: "Quản trị",
@@ -42,6 +46,9 @@ export default function AccountPage() {
   const [isLoading, setIsLoading] = useState(!user);
   const [ownerApp, setOwnerApp] = useState<OwnerApplicationDto | null>(null);
   const [driverLicense, setDriverLicense] = useState<DriverLicenseStatusResponse | null>(null);
+  const [isPinSet, setIsPinSet] = useState<boolean | null>(null);
+  const [showChangePin, setShowChangePin] = useState(false);
+  const [showSetupPin, setShowSetupPin] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -67,11 +74,39 @@ export default function AccountPage() {
         if (!ignore) setDriverLicense(data);
       } catch { /* ignore */ }
     }
+    async function loadPinStatus() {
+      try {
+        const status = await getPinStatus();
+        if (!ignore) setIsPinSet(status.isPinSet);
+      } catch { /* ignore: fallback mở đổi PIN, backend báo PIN_NOT_SET nếu chưa có */ }
+    }
     void load();
     void loadOwnerApp();
     void loadDriverLicense();
+    void loadPinStatus();
     return () => { ignore = true; };
   }, [updateUser]);
+
+  async function refreshPinStatus() {
+    try {
+      const status = await getPinStatus();
+      setIsPinSet(status.isPinSet);
+    } catch { /* ignore */ }
+  }
+
+  function handlePinAction() {
+    if (isPinSet === false) {
+      setShowSetupPin(true);
+    } else {
+      setShowChangePin(true);
+    }
+  }
+
+  async function handleSetupDoneFromAccount(): Promise<VerifyPinResult> {
+    setShowSetupPin(false);
+    await refreshPinStatus();
+    return { ok: true };
+  }
 
   if (isLoading) {
     return <PageLoader label="Đang tải thông tin tài khoản..." />;
@@ -152,26 +187,50 @@ export default function AccountPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <QuickLink to="/account/wallet" icon={CreditCard} title="Ví của tôi" description="Quản lý số dư và giao dịch" color="emerald" />
         <QuickLink to="/account/security/password" icon={KeyRound} title="Đổi mật khẩu" description="Cập nhật mật khẩu tài khoản" color="orange" />
+        <QuickLink
+          icon={ShieldCheck}
+          title="Đổi mã PIN"
+          description="Cập nhật mã PIN bảo mật"
+          color="purple"
+          badge={isPinSet === false ? "Chưa thiết lập" : undefined}
+          onClick={handlePinAction}
+        />
         <QuickLink to="/account/security/sessions" icon={Monitor} title="Phiên đăng nhập" description="Quản lý thiết bị đã đăng nhập" color="blue" />
         <QuickLink to="/account/verification/cccd" icon={IdCard} title="Xác thực CCCD" description="Căn cước công dân" color="purple" />
         <QuickLink to="/account/bank" icon={Landmark} title="Thông tin ngân hàng" description="Quản lý tài khoản thụ hưởng" color="emerald" />
       </div>
+
+      <PinChangeModal
+        isOpen={showChangePin}
+        onClose={() => setShowChangePin(false)}
+        onSuccess={() => void refreshPinStatus()}
+      />
+      <PinSetupModal
+        documentType="CCCD"
+        open={showSetupPin}
+        onClose={() => setShowSetupPin(false)}
+        onSetupDone={handleSetupDoneFromAccount}
+      />
     </div>
   );
 }
 
 function QuickLink({
+  badge,
   color,
   description,
   icon: Icon,
   title,
   to,
+  onClick,
 }: {
+  badge?: string;
   color: "orange" | "blue" | "purple" | "emerald";
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   title: string;
-  to: string;
+  to?: string;
+  onClick?: () => void;
 }) {
   const colors = {
     orange: "bg-orange-100 text-orange-600",
@@ -179,15 +238,36 @@ function QuickLink({
     purple: "bg-purple-100 text-purple-600",
     emerald: "bg-emerald-100 text-emerald-600",
   };
-  return (
-    <Link to={to} className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm">
+  const className =
+    "group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-brand-200 hover:shadow-sm";
+  const content = (
+    <>
       <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${colors[color]}`}>
         <Icon className="h-6 w-6" />
       </div>
       <div>
-        <p className="font-semibold text-slate-900 group-hover:text-brand-700">{title}</p>
+        <p className="font-semibold text-slate-900 group-hover:text-brand-700">
+          {title}
+          {badge ? (
+            <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 align-middle text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200">
+              {badge}
+            </span>
+          ) : null}
+        </p>
         <p className="text-sm text-slate-500">{description}</p>
       </div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${className} w-full`}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <Link to={to ?? "#"} className={className}>
+      {content}
     </Link>
   );
 }

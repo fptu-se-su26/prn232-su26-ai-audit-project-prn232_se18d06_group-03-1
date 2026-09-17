@@ -24,6 +24,13 @@ public class UserSecurityController : BaseApiController
         return Success(result);
     }
 
+    [HttpPost("pin/setup/request-otp")]
+    public async Task<ActionResult<ApiResponse<bool>>> RequestSetupPinOtp(CancellationToken cancellationToken)
+    {
+        await _pinService.RequestSetupPinOtpAsync(cancellationToken);
+        return Success(true, "Mã OTP thiết lập mã PIN đã được gửi tới email của bạn.");
+    }
+
     [HttpPost("pin/setup")]
     public async Task<ActionResult<ApiResponse<bool>>> SetupPin(
         [FromBody] SetupPinRequest request,

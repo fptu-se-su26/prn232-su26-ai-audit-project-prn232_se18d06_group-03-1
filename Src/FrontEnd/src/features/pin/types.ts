@@ -1,15 +1,17 @@
 export type PinDocumentType = "CCCD" | "GPLX";
 
+export type PinVehicleType = "Motorbike" | "Car";
+
 export interface PinStatusResponse {
   isPinSet: boolean;
   failedPinAttempts: number;
   pinLockoutEnd: string | null;
-  lockoutRemainingSeconds: number;
+  lockoutRemainingSeconds: number | null;
 }
 
 export interface PinSetupRequest {
   pinCode: string;
-  confirmPinCode: string;
+  otp: string;
 }
 
 export interface PinChangeRequest {
@@ -20,6 +22,7 @@ export interface PinChangeRequest {
 export interface PinVerifyViewDocumentRequest {
   pinCode: string;
   documentType: PinDocumentType;
+  vehicleType?: PinVehicleType;
 }
 
 export interface ViewDocumentPlaintextResponse {

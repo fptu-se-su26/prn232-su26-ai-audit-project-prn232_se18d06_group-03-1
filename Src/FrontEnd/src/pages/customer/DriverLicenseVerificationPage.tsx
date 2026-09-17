@@ -281,7 +281,18 @@ export default function DriverLicenseVerificationPage() {
                   <div>
                     <dt className="text-slate-500">Số GPLX</dt>
                     <dd className="mt-1 font-semibold text-slate-950">
-                      <MaskedDocumentValue documentType="GPLX" value={selectedDriverLicenseNumber ?? null} />
+                      <MaskedDocumentValue
+                        key={requestedVehicleType}
+                        documentType="GPLX"
+                        vehicleType={requestedVehicleType}
+                        value={selectedDriverLicenseNumber ?? null}
+                        revealDisabled={!selectedTypeVerified}
+                        revealDisabledHint={
+                          requestedVehicleType === "Car"
+                            ? "Chưa có dữ liệu GPLX ô tô để hiển thị."
+                            : "Chưa có dữ liệu GPLX xe máy để hiển thị."
+                        }
+                      />
                     </dd>
                   </div>
                   <div>
