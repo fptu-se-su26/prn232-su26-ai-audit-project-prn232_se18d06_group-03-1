@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.DriverLicenses.DTOs;
 using MoveVN.Application.Modules.DriverLicenses.Interfaces;
@@ -55,5 +56,12 @@ public class DriverLicenseVerificationsController : BaseApiController
     {
         await _driverLicenseService.RequestMoreInfoAsync(id, request.Reason, cancellationToken);
         return Success<object>(null, "Requested more driver license information.");
+    }
+
+    [HttpPost("{id:long}/test-ocr")]
+    public async Task<ActionResult<ApiResponse<DriverLicenseVerificationResult>>> TestOcr(long id, CancellationToken cancellationToken = default)
+    {
+        var result = await _driverLicenseService.TestOcrAsync(id, cancellationToken);
+        return Success(result, "OCR test completed without changing verification status.");
     }
 }

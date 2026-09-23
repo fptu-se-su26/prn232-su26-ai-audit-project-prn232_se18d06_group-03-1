@@ -165,6 +165,34 @@ export async function requestVehicleDocumentMoreInfo(role: "staff" | "admin", ve
   await apiClient.post(`${base}/${vehicleId}/documents/${documentId}/request-more-info`, { reason });
 }
 
+export type VehicleDocumentOcrTestResult = {
+  valid: boolean;
+  documentType: string;
+  registrationVehicleType: string;
+  vehicleTypeMatchesExpected: boolean;
+  licensePlateMatchesExpected?: boolean | null;
+  brandMatchesExpected?: boolean | null;
+  modelMatchesExpected?: boolean | null;
+  ocrConfidence: number;
+  extracted?: {
+    licensePlate?: string | null;
+    ownerName?: string | null;
+    brand?: string | null;
+    model?: string | null;
+    engineNumber?: string | null;
+    chassisNumber?: string | null;
+  } | null;
+  flags: string[];
+  recommendation: string;
+  message?: string | null;
+};
+
+export async function testVehicleDocumentOcr(role: "staff" | "admin", vehicleId: number, documentId: number) {
+  const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
+  const res = await apiClient.post<ApiResponse<VehicleDocumentOcrTestResult>>(`${base}/${vehicleId}/documents/${documentId}/test-ocr`);
+  return res.data.data as VehicleDocumentOcrTestResult;
+}
+
 export async function approveVehicleListing(role: "staff" | "admin", vehicleId: number) {
   const base = role === "staff" ? endpoints.staff.vehicles : endpoints.admin.vehicles;
   await apiClient.post(`${base}/${vehicleId}/approve-listing`);

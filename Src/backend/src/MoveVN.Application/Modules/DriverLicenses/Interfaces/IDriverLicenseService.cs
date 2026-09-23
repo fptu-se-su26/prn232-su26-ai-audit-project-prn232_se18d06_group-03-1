@@ -1,3 +1,4 @@
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.DriverLicenses.DTOs;
 
@@ -14,6 +15,7 @@ public interface IDriverLicenseService
         int pageSize,
         CancellationToken cancellationToken = default);
     Task<DriverLicenseVerificationRequestDto> GetVerificationByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<DriverLicenseVerificationResult> TestOcrAsync(long id, CancellationToken cancellationToken = default);
     Task ApproveAsync(long id, DriverLicenseApproveRequest request, CancellationToken cancellationToken = default);
     Task RejectAsync(long id, string? reason, CancellationToken cancellationToken = default);
     Task RequestMoreInfoAsync(long id, string? reason, CancellationToken cancellationToken = default);

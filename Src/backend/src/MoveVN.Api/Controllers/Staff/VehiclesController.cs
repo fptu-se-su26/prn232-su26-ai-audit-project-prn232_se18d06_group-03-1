@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 using MoveVN.Application.Modules.Vehicles.Interfaces;
@@ -48,6 +49,13 @@ public class VehiclesController : BaseApiController
     {
         await _vehicleModerationService.ApproveDocumentAsync(id, documentId, cancellationToken);
         return Success<object>(null, "Vehicle document approved.");
+    }
+
+    [HttpPost("{id}/documents/{documentId}/test-ocr")]
+    public async Task<ActionResult<ApiResponse<VehicleRegistrationVerificationResult>>> TestDocumentOcr(long id, long documentId, CancellationToken cancellationToken = default)
+    {
+        var result = await _vehicleModerationService.TestDocumentOcrAsync(id, documentId, cancellationToken);
+        return Success(result, "OCR test completed without changing verification status.");
     }
 
     [HttpPost("{id}/documents/{documentId}/reject")]

@@ -31,6 +31,18 @@ export type NationalIdVerificationDetailDto = {
   createdAt: string;
 };
 
+export type NationalIdOcrTestResult = {
+  success: boolean;
+  confidence: number;
+  nationalId?: string | null;
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  address?: string | null;
+  flags: string[];
+  recommendation?: string | null;
+  rawResponse: string;
+};
+
 export type PagedResult<T> = {
   items: T[];
   totalCount: number;
@@ -79,4 +91,9 @@ export async function rejectNationalIdVerification(scope: "staff" | "admin", id:
 export async function requestMoreNationalIdInfo(scope: "staff" | "admin", id: number, reason: string): Promise<void> {
   const { data } = await apiClient.post<ApiResponse<object>>(`${baseUrl(scope)}/${id}/request-more-info`, { reason });
   unwrap(data);
+}
+
+export async function testNationalIdOcr(scope: "staff" | "admin", id: number): Promise<NationalIdOcrTestResult> {
+  const { data } = await apiClient.post<ApiResponse<NationalIdOcrTestResult>>(`${baseUrl(scope)}/${id}/test-ocr`);
+  return unwrap(data);
 }

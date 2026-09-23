@@ -1,3 +1,4 @@
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Vehicles.DTOs;
 
@@ -22,6 +23,7 @@ public interface IVehicleModerationService
     Task<VehicleModerationOverviewResponse> GetOverviewAsync(CancellationToken cancellationToken = default);
     Task<VehicleModerationDetailResponse> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task ApproveDocumentAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default);
+    Task<VehicleRegistrationVerificationResult> TestDocumentOcrAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default);
     Task RejectDocumentAsync(long vehicleId, long documentId, string reason, CancellationToken cancellationToken = default);
     Task RequestMoreInfoAsync(long vehicleId, long documentId, string reason, CancellationToken cancellationToken = default);
     Task ApproveListingAsync(long vehicleId, bool allowOverride, CancellationToken cancellationToken = default);

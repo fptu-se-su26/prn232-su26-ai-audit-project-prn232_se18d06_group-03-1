@@ -34,6 +34,7 @@ public class DriverLicenseService : IDriverLicenseService
     private readonly ILogger<DriverLicenseService> _logger;
     private readonly INotificationService _notificationService;
     private readonly IEncryptionService _encryption;
+    private readonly IImageDownloader _imageDownloader;
 
     public DriverLicenseService(
         ICurrentUserContext currentUserContext,
@@ -48,7 +49,8 @@ public class DriverLicenseService : IDriverLicenseService
         IUnitOfWork unitOfWork,
         ILogger<DriverLicenseService> logger,
         INotificationService notificationService,
-        IEncryptionService encryption)
+        IEncryptionService encryption,
+        IImageDownloader imageDownloader)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
@@ -63,6 +65,7 @@ public class DriverLicenseService : IDriverLicenseService
         _logger = logger;
         _notificationService = notificationService;
         _encryption = encryption;
+        _imageDownloader = imageDownloader;
     }
 
     public async Task<DriverLicenseStatusResponse> GetCurrentAsync(CancellationToken cancellationToken = default)
@@ -326,6 +329,43 @@ public class DriverLicenseService : IDriverLicenseService
     {
         return await _verificationRepository.GetDetailAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.DRIVER_LICENSE_VERIFICATION_NOT_FOUND);
+    }
+
+    /// <summary>
+    /// Re-runs OCR on the stored front image for diagnosis.
+    /// Read-only: never changes the verification request status.
+    /// </summary>
+    public async Task<DriverLicenseVerificationResult> TestOcrAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var request = await _verificationRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new AppException(ErrorCode.DRIVER_LICENSE_VERIFICATION_NOT_FOUND);
+        if (request.Type != "DriverLicense")
+        {
+            throw new AppException(ErrorCode.DRIVER_LICENSE_REVIEW_INVALID_STATE);
+        }
+        if (string.IsNullOrWhiteSpace(request.FrontImageUrl))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Hồ sơ chưa có ảnh mặt trước để chạy OCR."]);
+        }
+
+        var imageBytes = await _imageDownloader.DownloadAsync(request.FrontImageUrl, cancellationToken);
+        try
+        {
+            return await _verificationClient.VerifyAsync(new DriverLicenseVerificationFileRequest
+            {
+                FileStream = new MemoryStream(imageBytes),
+                FileName = $"driver-license-{id}.jpg",
+            }, cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OCR test failed for driver license verification {Id}.", id);
+            throw new AppException(ErrorCode.FPT_AI_VERIFICATION_FAILED, ["Không kết nối được tới dịch vụ OCR."]);
+        }
     }
 
     public async Task ApproveAsync(long id, DriverLicenseApproveRequest approveRequest, CancellationToken cancellationToken = default)

@@ -67,6 +67,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEncryptionService, AesEncryptionService>();
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IImageDownloader, HttpImageDownloader>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IUserManagementAuditLogService, UserManagementAuditLogService>();
         services.AddScoped<IAuthActivityLogger, AuthActivityLogger>();

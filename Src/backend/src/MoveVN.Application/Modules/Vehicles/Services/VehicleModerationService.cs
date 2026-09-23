@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MoveVN.Application.Common.Errors;
 using MoveVN.Application.Common.Exceptions;
 using MoveVN.Application.Common.Interfaces;
@@ -20,6 +21,9 @@ public class VehicleModerationService : IVehicleModerationService
     private readonly IVehicleVerificationLogService _logService;
     private readonly IVehicleDocumentUploadAttemptLimiter _uploadAttemptLimiter;
     private readonly ICurrentUserContext _currentUserContext;
+    private readonly IImageDownloader _imageDownloader;
+    private readonly IVehicleRegistrationVerificationService _registrationVerificationService;
+    private readonly ILogger<VehicleModerationService> _logger;
 
     public VehicleModerationService(
         IVehicleCatalogRepository repository,
@@ -27,7 +31,10 @@ public class VehicleModerationService : IVehicleModerationService
         IVehicleVerificationLogQueryService logQueryService,
         IVehicleVerificationLogService logService,
         IVehicleDocumentUploadAttemptLimiter uploadAttemptLimiter,
-        ICurrentUserContext currentUserContext)
+        ICurrentUserContext currentUserContext,
+        IImageDownloader imageDownloader,
+        IVehicleRegistrationVerificationService registrationVerificationService,
+        ILogger<VehicleModerationService> logger)
     {
         _repository = repository;
         _userRepository = userRepository;
@@ -35,6 +42,9 @@ public class VehicleModerationService : IVehicleModerationService
         _logService = logService;
         _uploadAttemptLimiter = uploadAttemptLimiter;
         _currentUserContext = currentUserContext;
+        _imageDownloader = imageDownloader;
+        _registrationVerificationService = registrationVerificationService;
+        _logger = logger;
     }
 
     public async Task<PagedResult<VehicleModerationListItem>> GetVehiclesAsync(
@@ -255,6 +265,44 @@ public class VehicleModerationService : IVehicleModerationService
         await _repository.SaveChangesAsync(cancellationToken);
         await _uploadAttemptLimiter.RegisterAcceptedAsync(vehicle.OwnerId, cancellationToken);
         await LogManualDecisionAsync(vehicle, document, "Approve", "Pass", "Nhân viên đã duyệt cà vẹt xe.", cancellationToken);
+    }
+
+    /// <summary>
+    /// Re-runs registration OCR on the stored document file for diagnosis.
+    /// Read-only: never changes the document verification status.
+    /// Only vehicle registration documents (cavet) are supported.
+    /// </summary>
+    public async Task<VehicleRegistrationVerificationResult> TestDocumentOcrAsync(long vehicleId, long documentId, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await GetVehicleAsync(vehicleId, cancellationToken);
+        var document = await GetDocumentAsync(vehicleId, documentId, cancellationToken);
+        if (!string.Equals(document.DocType, "Registration", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Chỉ hỗ trợ chạy thử OCR cho giấy đăng ký xe (cavet)."]);
+        }
+        if (string.IsNullOrWhiteSpace(document.FileUrl))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Tài liệu chưa có file ảnh để chạy OCR."]);
+        }
+
+        try
+        {
+            return await _registrationVerificationService.VerifyAsync(new VehicleRegistrationVerificationRequest
+            {
+                ExpectedVehicleType = vehicle.VehicleType,
+                ExpectedLicensePlate = vehicle.LicensePlate,
+                FileUrl = document.FileUrl,
+            }, cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OCR test failed for vehicle {VehicleId} document {DocumentId}.", vehicleId, documentId);
+            throw new AppException(ErrorCode.FPT_AI_VERIFICATION_FAILED, ["Không kết nối được tới dịch vụ OCR."]);
+        }
     }
 
     public async Task RejectDocumentAsync(long vehicleId, long documentId, string reason, CancellationToken cancellationToken = default)

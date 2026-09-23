@@ -76,8 +76,35 @@ export async function rejectDriverLicenseVerification(scope: "staff" | "admin", 
   unwrap(data);
 }
 
+export type DriverLicenseOcrTestResult = {
+  valid: boolean;
+  recommendation: string;
+  message?: string | null;
+  ocrConfidence: number;
+  flags: string[];
+  extracted?: {
+    fullName?: string | null;
+    driverLicenseNumber?: string | null;
+    licenseClass?: string | null;
+    dateOfBirth?: string | null;
+    issueDate?: string | null;
+    expiryDate?: string | null;
+  } | null;
+  nameMatch?: {
+    provided?: boolean;
+    matched?: boolean | null;
+    score?: number | null;
+  } | null;
+};
+
 export async function requestMoreDriverLicenseInfo(scope: "staff" | "admin", id: number, reason: string): Promise<void> {
   const base = scope === "admin" ? endpoints.admin.driverLicenseVerifications : endpoints.staff.driverLicenseVerifications;
   const { data } = await apiClient.post<ApiResponse<object>>(`${base}/${id}/request-more-info`, { reason });
   unwrap(data);
+}
+
+export async function testDriverLicenseOcr(scope: "staff" | "admin", id: number): Promise<DriverLicenseOcrTestResult> {
+  const base = scope === "admin" ? endpoints.admin.driverLicenseVerifications : endpoints.staff.driverLicenseVerifications;
+  const { data } = await apiClient.post<ApiResponse<DriverLicenseOcrTestResult>>(`${base}/${id}/test-ocr`);
+  return unwrap(data);
 }

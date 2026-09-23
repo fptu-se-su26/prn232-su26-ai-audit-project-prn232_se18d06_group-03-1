@@ -1,10 +1,11 @@
-import { ArrowLeft, BarChart3, Car, Check, ChevronDown, ClipboardList, Eye, FileBadge, FileText, Gauge, Image as ImageIcon, MapPin, Search, ShieldAlert, SlidersHorizontal, X, CheckCircle, AlertCircle, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, BarChart3, Car, Check, ChevronDown, ClipboardList, Eye, FileBadge, FileText, FlaskConical, Gauge, Image as ImageIcon, MapPin, Search, ShieldAlert, SlidersHorizontal, X, CheckCircle, AlertCircle, Clock, XCircle } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import type { ImagePreviewItem } from "@/components/common/ImagePreviewModal";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Modal from "@/components/common/Modal";
+import { getApiErrorMessage } from "@/services/apiClient";
 import { Skeleton } from "@/components/common/Skeleton";
 import useClickOutside from "@/hooks/useClickOutside";
 import {
@@ -19,6 +20,8 @@ import {
   rejectVehicleDocument,
   rejectVehicleListing,
   requestVehicleDocumentMoreInfo,
+  testVehicleDocumentOcr,
+  type VehicleDocumentOcrTestResult,
 } from "@/features/vehicles/services/vehicleService";
 import type { CatalogBrand, CatalogModel, VehicleModerationChartPoint, VehicleModerationDetailResponse, VehicleModerationListItem, VehicleModerationOverviewResponse } from "@/features/vehicles/types";
 
@@ -1074,6 +1077,9 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
   const [reasonModal, setReasonModal] = useState<{ title: string; confirmLabel: string; confirmColor: "red" | "orange"; action: (reason: string) => Promise<void> } | null>(null);
   const [reasonText, setReasonText] = useState("");
   const [isSubmittingReason, setIsSubmittingReason] = useState(false);
+  const [ocrTest, setOcrTest] = useState<VehicleDocumentOcrTestResult | null>(null);
+  const [isOcrTesting, setIsOcrTesting] = useState(false);
+  const [ocrTestError, setOcrTestError] = useState<string | null>(null);
   const currentDocument = vehicle?.documents.find((doc) => doc.isCurrent) ?? vehicle?.documents[0];
   const latestLog = vehicle?.verificationLogs[vehicle?.verificationLogs.length - 1];
 
@@ -1081,6 +1087,8 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
     setLoading(true);
     const data = await getModerationVehicleById(role, id);
     setVehicle(data ?? null);
+    setOcrTest(null);
+    setOcrTestError(null);
     setLoading(false);
   }
 
@@ -1098,6 +1106,20 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
       await reload();
     } finally {
       setIsSubmittingReason(false);
+    }
+  }
+
+  async function runOcrTest() {
+    if (!vehicle || !currentDocument || isOcrTesting) return;
+    setIsOcrTesting(true);
+    setOcrTestError(null);
+    try {
+      const result = await testVehicleDocumentOcr(role, vehicle.id, currentDocument.id);
+      setOcrTest(result);
+    } catch (error) {
+      setOcrTestError(getApiErrorMessage(error, "Test OCR thất bại."));
+    } finally {
+      setIsOcrTesting(false);
     }
   }
 
@@ -1317,7 +1339,51 @@ function VehicleModerationDetail({ role, mode, id }: { role: Role; mode?: Modera
                       <button type="button" onClick={() => setReasonModal({ title: "Yêu cầu bổ sung", confirmLabel: "Gửi yêu cầu", confirmColor: "orange", action: (reason) => requestVehicleDocumentMoreInfo(role, vehicle.id, currentDocument.id, reason) })} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50">Bổ sung</button>
                     </>
                   )}
+                  {currentDocument.docType === "Registration" && (
+                    <button
+                      type="button"
+                      onClick={() => void runOcrTest()}
+                      disabled={isOcrTesting}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FlaskConical className="h-4 w-4" />{isOcrTesting ? "Đang chạy OCR..." : "Test OCR"}
+                    </button>
+                  )}
                 </div>
+                {ocrTestError && (
+                  <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                    <p className="text-sm text-red-700">{ocrTestError}</p>
+                  </div>
+                )}
+                {ocrTest && (
+                  <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-slate-700">Kết quả OCR mới nhất</p>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ocrTest.valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                        {ocrTest.valid ? "Hợp lệ" : "Không hợp lệ"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><span className="text-xs font-medium text-slate-400">Biển số</span><p className="mt-0.5 font-medium text-slate-800">{ocrTest.extracted?.licensePlate ?? "-"}</p></div>
+                      <div><span className="text-xs font-medium text-slate-400">Chủ xe</span><p className="mt-0.5 font-medium text-slate-800">{ocrTest.extracted?.ownerName ?? "-"}</p></div>
+                      <div><span className="text-xs font-medium text-slate-400">Hãng</span><p className="mt-0.5 font-medium text-slate-800">{ocrTest.extracted?.brand ?? "-"}</p></div>
+                      <div><span className="text-xs font-medium text-slate-400">Độ tin cậy</span><p className="mt-0.5 font-medium text-slate-800">{Math.round(ocrTest.ocrConfidence * 100)}%</p></div>
+                    </div>
+                    {ocrTest.recommendation && (
+                      <p className="text-xs text-slate-500">Đánh giá AI: {recommendationLabels[ocrTest.recommendation] ?? ocrTest.recommendation}</p>
+                    )}
+                    {ocrTest.message && (
+                      <p className="text-xs text-slate-500">{ocrTest.message}</p>
+                    )}
+                    {visibleLogFlags(ocrTest.recommendation, ocrTest.flags).length > 0 && (
+                      <p className="text-xs text-amber-800">
+                        Cảnh báo: {visibleLogFlags(ocrTest.recommendation, ocrTest.flags).map((flag) => flagLabels[flag] ?? flag).join(", ")}
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-400">Chạy lại OCR không thay đổi trạng thái hồ sơ.</p>
+                  </div>
+                )}
               </div>
             ) : <p className="p-5 text-sm text-slate-400">Chưa có cavet.</p>}
           </div>

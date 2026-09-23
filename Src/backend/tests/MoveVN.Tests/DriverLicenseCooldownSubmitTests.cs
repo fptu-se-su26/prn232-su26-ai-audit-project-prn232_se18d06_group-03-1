@@ -231,6 +231,12 @@ public class DriverLicenseCooldownSubmitTests
                 : cipherTextBase64;
     }
 
+    private sealed class FakeImageDownloader : IImageDownloader
+    {
+        public Task<byte[]> DownloadAsync(string url, CancellationToken cancellationToken = default)
+            => Task.FromResult<byte[]>([1, 2, 3]);
+    }
+
     private sealed class Fixture : IDisposable
     {
         public AppDbContext Context { get; }
@@ -271,7 +277,8 @@ public class DriverLicenseCooldownSubmitTests
                 new TestUnitOfWork(Context),
                 NullLogger<DriverLicenseService>.Instance,
                 new FakeNotificationService(),
-                new FakeEncryption());
+                new FakeEncryption(),
+                new FakeImageDownloader());
         }
 
         public void Dispose() => Context.Dispose();

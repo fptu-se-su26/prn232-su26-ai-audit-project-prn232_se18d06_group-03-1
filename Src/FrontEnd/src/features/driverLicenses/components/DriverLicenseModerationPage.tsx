@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
-import { AlertCircle, BarChart3, Check, CheckCircle, ChevronDown, Clock, Eye, FileBadge, FileText, RefreshCw, Search, ShieldAlert, ThumbsUp, ThumbsDown, X, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, Check, CheckCircle, ChevronDown, Clock, Eye, FileBadge, FileText, FlaskConical, RefreshCw, Search, ShieldAlert, ThumbsUp, ThumbsDown, X, XCircle } from "lucide-react";
 import Button from "@/components/common/Button";
 import EmptyState from "@/components/common/EmptyState";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import { Skeleton } from "@/components/common/Skeleton";
 import { showToast } from "@/components/common/toastStore";
+import { getApiErrorMessage } from "@/services/apiClient";
 import useClickOutside from "@/hooks/useClickOutside";
 import {
   driverLicenseStatusLabel,
@@ -17,6 +18,8 @@ import {
   getDriverLicenseVerifications,
   rejectDriverLicenseVerification,
   requestMoreDriverLicenseInfo,
+  testDriverLicenseOcr,
+  type DriverLicenseOcrTestResult,
 } from "@/features/driverLicenses/services/driverLicenseService";
 import type { DriverLicenseAiResult, DriverLicenseApproveRequest, DriverLicenseVerificationListItem, DriverLicenseVerificationRequestDto } from "@/features/driverLicenses/types";
 
@@ -220,6 +223,8 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
   const [actionReason, setActionReason] = useState("");
   const [manualForm, setManualForm] = useState<DriverLicenseApproveRequest>(emptyManualForm);
   const [isActing, setIsActing] = useState(false);
+  const [ocrTest, setOcrTest] = useState<DriverLicenseOcrTestResult | null>(null);
+  const [isOcrTesting, setIsOcrTesting] = useState(false);
   const [overview, setOverview] = useState<{ pending: number; verified: number; needMoreInfo: number; rejected: number; failed: number } | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [allItems, setAllItems] = useState<DriverLicenseVerificationListItem[]>([]);
@@ -284,8 +289,22 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
       setDetail(data);
       setActionReason("");
       setManualForm(emptyManualForm);
+      setOcrTest(null);
     } catch (error) {
       showToast({ type: "error", title: "Không tải được chi tiết", message: error instanceof Error ? translateDriverLicenseMessage(error.message) : "Vui lòng thử lại." });
+    }
+  }
+
+  async function runOcrTest() {
+    if (!detail || isOcrTesting) return;
+    setIsOcrTesting(true);
+    try {
+      const result = await testDriverLicenseOcr(scope, detail.id);
+      setOcrTest(result);
+    } catch (error) {
+      showToast({ type: "error", title: "Test OCR thất bại", message: getApiErrorMessage(error, "Vui lòng thử lại.") });
+    } finally {
+      setIsOcrTesting(false);
     }
   }
 
@@ -609,6 +628,40 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
                 </div>
                 {aiFlags.length > 0 && <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Lý do cần kiểm tra: {aiFlags.join(", ")}</div>}
                 {detail.decisionReason && <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">{translateDriverLicenseMessage(detail.decisionReason)}</div>}
+                <div className="rounded-md border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-slate-700">Kiểm tra OCR</p>
+                    <Button type="button" variant="secondary" size="sm" isLoading={isOcrTesting} onClick={() => void runOcrTest()}>
+                      <FlaskConical className="h-4 w-4" />Test OCR
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">Chạy lại OCR trên ảnh đã lưu, không thay đổi trạng thái hồ sơ.</p>
+                  {ocrTest && (
+                    <div className="mt-3 space-y-2 rounded-md bg-slate-50 p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-slate-700">Kết quả OCR mới nhất</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ocrTest.valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                          {ocrTest.valid ? "Hợp lệ" : "Không hợp lệ"}
+                        </span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Info label="Số GPLX" value={ocrTest.extracted?.driverLicenseNumber} />
+                        <Info label="Tên OCR" value={ocrTest.extracted?.fullName} />
+                        <Info label="Hạng bằng" value={ocrTest.extracted?.licenseClass} />
+                        <Info label="Độ tin cậy" value={`${Math.round(ocrTest.ocrConfidence * 100)}%`} />
+                      </div>
+                      {ocrTest.recommendation && (
+                        <p className="text-xs text-slate-500">Đánh giá AI: {driverLicenseStatusLabel[ocrTest.recommendation] ?? ocrTest.recommendation}</p>
+                      )}
+                      {ocrTest.message && (
+                        <p className="text-xs text-slate-500">{ocrTest.message}</p>
+                      )}
+                      {ocrTest.flags.length > 0 && (
+                        <p className="text-xs text-amber-800">Cảnh báo: {formatDriverLicenseFlags(ocrTest.flags).join(", ")}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <textarea value={actionReason} onChange={(event) => setActionReason(event.target.value)} rows={3} placeholder="Lý do nếu từ chối hoặc yêu cầu bổ sung" className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
                 {allowManualOverride && (
                   <div className="rounded-md border border-amber-200 bg-amber-50 p-3">

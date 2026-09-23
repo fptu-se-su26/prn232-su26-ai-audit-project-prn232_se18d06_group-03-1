@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, BarChart3, Check, CheckCircle, ChevronDown, Eye, FileText, RefreshCw, Search, ShieldAlert, X, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, Check, CheckCircle, ChevronDown, Eye, FileText, FlaskConical, RefreshCw, Search, ShieldAlert, X, XCircle } from "lucide-react";
 import Button from "@/components/common/Button";
 import EmptyState from "@/components/common/EmptyState";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
 import { Skeleton } from "@/components/common/Skeleton";
 import { showToast } from "@/components/common/toastStore";
+import { getApiErrorMessage } from "@/services/apiClient";
 import useClickOutside from "@/hooks/useClickOutside";
+import { driverLicenseStatusLabel, formatDriverLicenseFlags } from "@/features/driverLicenses/driverLicenseDisplay";
 import {
   getNationalIdVerifications,
   getNationalIdVerificationById,
   approveNationalIdVerification,
   rejectNationalIdVerification,
   requestMoreNationalIdInfo,
+  testNationalIdOcr,
+  type NationalIdOcrTestResult,
   type NationalIdVerificationListItem,
   type NationalIdVerificationDetailDto,
 } from "@/features/owner/services/nationalIdReviewService";
@@ -167,6 +171,8 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
   const [imageOpen, setImageOpen] = useState(false);
   const [actionReason, setActionReason] = useState("");
   const [isActing, setIsActing] = useState(false);
+  const [ocrTest, setOcrTest] = useState<NationalIdOcrTestResult | null>(null);
+  const [isOcrTesting, setIsOcrTesting] = useState(false);
   const [overview, setOverview] = useState<{ pending: number; verified: number; needMoreInfo: number; rejected: number; failed: number } | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
 
@@ -222,6 +228,7 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
       const data = await getNationalIdVerificationById(scope, id);
       setDetail(data);
       setActionReason("");
+      setOcrTest(null);
     } catch (error) {
       showToast({ type: "error", title: "Không tải được chi tiết", message: error instanceof Error ? error.message : "Vui lòng thử lại." });
     }
@@ -252,6 +259,19 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
     if (!detail?.externalResultJson) return null;
     try { return JSON.parse(detail.externalResultJson); } catch { return null; }
   }, [detail]);
+
+  async function runOcrTest() {
+    if (!detail || isOcrTesting) return;
+    setIsOcrTesting(true);
+    try {
+      const result = await testNationalIdOcr(scope, detail.id);
+      setOcrTest(result);
+    } catch (error) {
+      showToast({ type: "error", title: "Test OCR thất bại", message: getApiErrorMessage(error, "Vui lòng thử lại.") });
+    } finally {
+      setIsOcrTesting(false);
+    }
+  }
 
   const aiFlags: string[] = rawJson?.flags ?? [];
   const workload = (overview?.pending ?? 0) + (overview?.needMoreInfo ?? 0) + (overview?.failed ?? 0);
@@ -432,6 +452,37 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
                 {detail.decisionReason && (
                   <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700">{detail.decisionReason}</div>
                 )}
+                <div className="rounded-md border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-slate-700">Kiểm tra OCR</p>
+                    <Button type="button" variant="secondary" size="sm" isLoading={isOcrTesting} onClick={() => void runOcrTest()}>
+                      <FlaskConical className="h-4 w-4" />Test OCR
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">Chạy lại OCR trên ảnh đã lưu, không thay đổi trạng thái hồ sơ.</p>
+                  {ocrTest && (
+                    <div className="mt-3 space-y-2 rounded-md bg-slate-50 p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-slate-700">Kết quả OCR mới nhất</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ocrTest.success ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                          {ocrTest.success ? "Thành công" : "Thất bại"}
+                        </span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Info label="Số CCCD" value={ocrTest.nationalId} />
+                        <Info label="Họ tên" value={ocrTest.fullName} />
+                        <Info label="Ngày sinh" value={ocrTest.dateOfBirth} />
+                        <Info label="Độ tin cậy" value={`${Math.round(ocrTest.confidence * 100)}%`} />
+                      </div>
+                      {ocrTest.recommendation && (
+                        <p className="text-xs text-slate-500">Đánh giá AI: {driverLicenseStatusLabel[ocrTest.recommendation] ?? ocrTest.recommendation}</p>
+                      )}
+                      {ocrTest.flags.length > 0 && (
+                        <p className="text-xs text-amber-800">Cảnh báo: {formatDriverLicenseFlags(ocrTest.flags).join(", ")}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <textarea
                   value={actionReason}
                   onChange={(event) => setActionReason(event.target.value)}

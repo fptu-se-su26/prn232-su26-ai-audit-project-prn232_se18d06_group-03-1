@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -22,19 +23,28 @@ public class NationalIdReviewService : INationalIdReviewService
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryption;
+    private readonly IImageDownloader _imageDownloader;
+    private readonly INationalIdVerificationClient _verificationClient;
+    private readonly ILogger<NationalIdReviewService> _logger;
 
     public NationalIdReviewService(
         ICurrentUserContext currentUserContext,
         IUserRepository userRepository,
         INotificationService notificationService,
         IUnitOfWork unitOfWork,
-        IEncryptionService encryption)
+        IEncryptionService encryption,
+        IImageDownloader imageDownloader,
+        INationalIdVerificationClient verificationClient,
+        ILogger<NationalIdReviewService> logger)
     {
         _currentUserContext = currentUserContext;
         _userRepository = userRepository;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
         _encryption = encryption;
+        _imageDownloader = imageDownloader;
+        _verificationClient = verificationClient;
+        _logger = logger;
     }
 
     public async Task<PagedResult<NationalIdVerificationListItem>> GetListAsync(
@@ -54,6 +64,39 @@ public class NationalIdReviewService : INationalIdReviewService
     {
         return await _userRepository.GetNationalIdVerificationDetailAsync(id, cancellationToken)
             ?? throw new AppException(ErrorCode.OWNER_NATIONAL_ID_VERIFICATION_NOT_FOUND);
+    }
+
+    /// <summary>
+    /// Re-runs OCR on the stored front image for diagnosis.
+    /// Read-only: never changes the verification request status.
+    /// </summary>
+    public async Task<NationalIdPreVerifyResult?> TestOcrAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var request = await _userRepository.GetVerificationRequestByIdAsync(id, cancellationToken)
+            ?? throw new AppException(ErrorCode.OWNER_NATIONAL_ID_VERIFICATION_NOT_FOUND);
+        if (request.Type != "NationalId")
+        {
+            throw new AppException(ErrorCode.OWNER_NATIONAL_ID_REVIEW_INVALID_STATE);
+        }
+        if (string.IsNullOrWhiteSpace(request.FrontImageUrl))
+        {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, ["Hồ sơ chưa có ảnh mặt trước để chạy OCR."]);
+        }
+
+        var imageBytes = await _imageDownloader.DownloadAsync(request.FrontImageUrl, cancellationToken);
+        try
+        {
+            return await _verificationClient.PreVerifyAsync(imageBytes, $"national-id-{id}.jpg", cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OCR test failed for national ID verification {Id}.", id);
+            throw new AppException(ErrorCode.FPT_AI_VERIFICATION_FAILED, ["Không kết nối được tới dịch vụ OCR."]);
+        }
     }
 
     public async Task ApproveAsync(long id, CancellationToken cancellationToken = default)

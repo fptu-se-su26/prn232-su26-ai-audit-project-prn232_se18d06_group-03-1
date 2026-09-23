@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MoveVN.Application.Common.Interfaces;
 using MoveVN.Application.Common.Models;
 using MoveVN.Application.Modules.Owner.DTOs;
 using MoveVN.Application.Modules.Owner.Interfaces;
@@ -55,5 +56,12 @@ public class NationalIdVerificationsController : BaseApiController
     {
         await _nationalIdReviewService.RequestMoreInfoAsync(id, request.Reason, cancellationToken);
         return Success<object>(null, "Requested more national ID information.");
+    }
+
+    [HttpPost("{id:long}/test-ocr")]
+    public async Task<ActionResult<ApiResponse<NationalIdPreVerifyResult>>> TestOcr(long id, CancellationToken cancellationToken = default)
+    {
+        var result = await _nationalIdReviewService.TestOcrAsync(id, cancellationToken);
+        return Success(result, "OCR test completed without changing verification status.");
     }
 }
