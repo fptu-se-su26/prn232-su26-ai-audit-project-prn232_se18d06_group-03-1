@@ -19,8 +19,10 @@ import {
   rejectDriverLicenseVerification,
   requestMoreDriverLicenseInfo,
   testDriverLicenseOcr,
+  testDriverLicenseOcrUpload,
   type DriverLicenseOcrTestResult,
 } from "@/features/driverLicenses/services/driverLicenseService";
+import TestOcrModal from "@/components/verification/TestOcrModal";
 import type { DriverLicenseAiResult, DriverLicenseApproveRequest, DriverLicenseVerificationListItem, DriverLicenseVerificationRequestDto } from "@/features/driverLicenses/types";
 
 type Scope = "staff" | "admin";
@@ -225,6 +227,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
   const [isActing, setIsActing] = useState(false);
   const [ocrTest, setOcrTest] = useState<DriverLicenseOcrTestResult | null>(null);
   const [isOcrTesting, setIsOcrTesting] = useState(false);
+  const [ocrUploadOpen, setOcrUploadOpen] = useState(false);
   const [overview, setOverview] = useState<{ pending: number; verified: number; needMoreInfo: number; rejected: number; failed: number } | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [allItems, setAllItems] = useState<DriverLicenseVerificationListItem[]>([]);
@@ -479,6 +482,7 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
           </div>
           <FilterDropdown label="Trạng thái" value={status} onChange={setStatus} options={statusOptions} />
           <Button type="button" variant="secondary" onClick={() => void load(1)}><RefreshCw className="h-4 w-4" />Lọc</Button>
+          <Button type="button" variant="secondary" onClick={() => setOcrUploadOpen(true)}><FlaskConical className="h-4 w-4" />Test OCR</Button>
         </div>
 
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
@@ -691,6 +695,14 @@ export default function DriverLicenseModerationPage({ scope }: { scope: Scope })
           {detail.frontImageUrl && <ImagePreviewModal isOpen={imageOpen} src={detail.frontImageUrl} title="GPLX" onClose={() => setImageOpen(false)} />}
         </div>
       )}
+
+      <TestOcrModal
+        open={ocrUploadOpen}
+        onClose={() => setOcrUploadOpen(false)}
+        mode="gplx"
+        title="Test OCR GPLX"
+        runTest={(file, fullName) => testDriverLicenseOcrUpload(scope, file, fullName)}
+      />
     </div>
   );
 }

@@ -64,4 +64,30 @@ public class DriverLicenseVerificationsController : BaseApiController
         var result = await _driverLicenseService.TestOcrAsync(id, cancellationToken);
         return Success(result, "OCR test completed without changing verification status.");
     }
+
+    [HttpPost("test-ocr-upload")]
+    public async Task<ActionResult<ApiResponse<DriverLicenseVerificationResult>>> TestOcrUpload(IFormFile image, [FromForm] string? fullName, CancellationToken cancellationToken = default)
+    {
+        if (image is null || image.Length == 0)
+        {
+            return BadRequest(ApiResponse<DriverLicenseVerificationResult>.Failed("LICENSE_8302", "Vui lòng upload ảnh để test OCR."));
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        if (!allowedExtensions.Contains(Path.GetExtension(image.FileName).ToLowerInvariant()))
+        {
+            return BadRequest(ApiResponse<DriverLicenseVerificationResult>.Failed("LICENSE_8302", "Chỉ chấp nhận file JPG, PNG hoặc WebP."));
+        }
+
+        const int maxSize = 5 * 1024 * 1024;
+        if (image.Length > maxSize)
+        {
+            return BadRequest(ApiResponse<DriverLicenseVerificationResult>.Failed("LICENSE_8302", "Kích thước file tối đa là 5MB."));
+        }
+
+        using var stream = new MemoryStream();
+        await image.CopyToAsync(stream, cancellationToken);
+        var result = await _driverLicenseService.TestOcrUploadAsync(stream.ToArray(), image.FileName, fullName, cancellationToken);
+        return Success(result, "OCR test completed without changing verification status.");
+    }
 }

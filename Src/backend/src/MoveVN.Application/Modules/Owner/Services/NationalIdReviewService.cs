@@ -99,6 +99,27 @@ public class NationalIdReviewService : INationalIdReviewService
         }
     }
 
+    /// <summary>
+    /// Runs OCR on an arbitrary uploaded image for diagnosis (staff tool).
+    /// Read-only: never creates a verification request.
+    /// </summary>
+    public async Task<NationalIdPreVerifyResult?> TestOcrUploadAsync(byte[] imageBytes, string fileName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _verificationClient.PreVerifyAsync(imageBytes, fileName, cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OCR upload test failed for file {FileName}.", fileName);
+            throw new AppException(ErrorCode.FPT_AI_VERIFICATION_FAILED, ["Không kết nối được tới dịch vụ OCR."]);
+        }
+    }
+
     public async Task ApproveAsync(long id, CancellationToken cancellationToken = default)
     {
         var reviewerId = GetCurrentUserId();

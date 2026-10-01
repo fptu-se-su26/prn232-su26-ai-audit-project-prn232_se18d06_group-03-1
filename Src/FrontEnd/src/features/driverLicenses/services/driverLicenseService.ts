@@ -81,6 +81,7 @@ export type DriverLicenseOcrTestResult = {
   recommendation: string;
   message?: string | null;
   ocrConfidence: number;
+  licenseVehicleType?: string | null;
   flags: string[];
   extracted?: {
     fullName?: string | null;
@@ -106,5 +107,18 @@ export async function requestMoreDriverLicenseInfo(scope: "staff" | "admin", id:
 export async function testDriverLicenseOcr(scope: "staff" | "admin", id: number): Promise<DriverLicenseOcrTestResult> {
   const base = scope === "admin" ? endpoints.admin.driverLicenseVerifications : endpoints.staff.driverLicenseVerifications;
   const { data } = await apiClient.post<ApiResponse<DriverLicenseOcrTestResult>>(`${base}/${id}/test-ocr`);
+  return unwrap(data);
+}
+
+export async function testDriverLicenseOcrUpload(scope: "staff" | "admin", file: File, fullName?: string): Promise<DriverLicenseOcrTestResult> {
+  const base = scope === "admin" ? endpoints.admin.driverLicenseVerifications : endpoints.staff.driverLicenseVerifications;
+  const formData = new FormData();
+  formData.append("image", file, file.name);
+  if (fullName?.trim()) {
+    formData.append("fullName", fullName.trim());
+  }
+  const { data } = await apiClient.post<ApiResponse<DriverLicenseOcrTestResult>>(`${base}/test-ocr-upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return unwrap(data);
 }

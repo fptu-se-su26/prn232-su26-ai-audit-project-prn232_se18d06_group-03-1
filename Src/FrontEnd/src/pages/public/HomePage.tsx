@@ -23,9 +23,6 @@ import heroBg from "@/assets/hero-movevn-light.png";
 import heroAirportTransfer from "@/assets/hero-airport-transfer.png";
 import heroCoastalSuv from "@/assets/hero-coastal-suv.png";
 import heroMistyScooters from "@/assets/hero-misty-scooters.png";
-import promotionEarlyBooking from "@/assets/promotion-early-booking.png";
-import promotionWeekendRoadtrip from "@/assets/promotion-weekend-roadtrip.png";
-import promotionScooterEscape from "@/assets/promotion-scooter-escape.png";
 import featureSafety from "@/assets/feature-safety.png";
 import featureBooking from "@/assets/feature-booking.png";
 import featureDigitalPaperwork from "@/assets/feature-digital-paperwork.png";
@@ -33,24 +30,10 @@ import featurePayment from "@/assets/feature-payment.png";
 import featureDelivery from "@/assets/feature-delivery.png";
 import featureVehicleVariety from "@/assets/feature-vehicle-variety.png";
 import HomeChatWidget from "@/components/chat/HomeChatWidget";
+import PromotionCarousel, { type PromotionSlide } from "@/components/home/PromotionCarousel";
+import { getHomepageBanners } from "@/features/banners/services/bannerService";
 
-const promotions = [
-  {
-    image: promotionEarlyBooking,
-    title: "Đặt sớm cho hành trình trọn vẹn",
-    caption: "Lên lịch trước, nhận xe thật nhẹ nhàng",
-  },
-  {
-    image: promotionWeekendRoadtrip,
-    title: "Cuối tuần lên đường theo cách của bạn",
-    caption: "Chọn chiếc xe phù hợp cho những cung đường xa",
-  },
-  {
-    image: promotionScooterEscape,
-    title: "Xe máy linh hoạt cho mọi điểm đến",
-    caption: "Sẵn sàng cho chuyến đi ngắn đầy cảm hứng",
-  },
-];
+
 
 const destinations = [
   {
@@ -171,6 +154,7 @@ export default function HomePage() {
   const [vehicles, setVehicles] = useState<VehicleListItemResponse[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [areas, setAreas] = useState<CatalogArea[]>([]);
+  const [promoSlides, setPromoSlides] = useState<PromotionSlide[]>([]);
 
   const matchingAreas = useMemo(() => {
     const query = searchLoc.trim().toLocaleLowerCase("vi-VN");
@@ -206,6 +190,45 @@ export default function HomePage() {
 
   useEffect(() => {
     getCatalogAreas().then(setAreas).catch(() => setAreas([]));
+  }, []);
+
+  const [promoLoading, setPromoLoading] = useState(true);
+  // Banner homepage do Admin quản lý tại /admin/banners: thứ tự và visibility do backend quyết định,
+  // frontend render đúng thứ tự API trả về, không filter/sort lại.
+  useEffect(() => {
+    let cancelled = false;
+    setPromoLoading(true);
+    getHomepageBanners()
+      .then((items) => {
+        if (cancelled || !items || items.length === 0) return;
+        setPromoSlides(
+          items.map((b) => ({
+            id: b.id,
+            image: b.imageUrl,
+            title: b.title,
+            promotionId: b.promotionId ?? null,
+            code: b.promotionCode ?? undefined,
+            ctaLabel: "Xem ngay",
+            popupTitle: b.popupTitle,
+            popupDescription: b.popupDescription,
+            popupCtaLabel: b.popupCtaLabel,
+            promotionName: b.promotionName,
+            discountType: b.discountType,
+            discountValue: b.discountValue,
+            vehicleType: b.vehicleType,
+            endAt: b.endAt,
+          })),
+        );
+      })
+      .catch(() => {
+        // API lỗi: ẩn section để không hiện ảnh tĩnh cũ.
+      })
+      .finally(() => {
+        if (!cancelled) setPromoLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSearch = () => {
@@ -512,41 +535,46 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 2. PROMOTIONS CAROUSEL */}
+      {/* 2. PROMOTIONS CAROUSEL — chỉ hiện khi có banner thật từ API, không fallback ảnh tĩnh */}
+      {(promoLoading || promoSlides.length > 0) && (
       <section className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Chương Trình Khuyến Mãi
-          </h2>
-          <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto font-normal">
-            Khám phá các ưu đãi đặc quyền từ MoveVN cho chuyến đi sắp tới.
-          </p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="text-center sm:text-left">
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-brand-500 dark:text-brand-400">
+              Ưu đãi nổi bật
+            </span>
+            <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Chương Trình Khuyến Mãi
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md font-normal">
+              Khám phá các ưu đãi đặc quyền từ MoveVN cho chuyến đi sắp tới.
+            </p>
+          </div>
+          <Link
+            to="/customer/voucher-hunt"
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider text-brand-600 transition hover:text-brand-500 dark:text-brand-400 sm:justify-end"
+          >
+            <TicketPercent className="h-4 w-4" />
+            Săn tất cả voucher
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {promotions.map((promo) => (
-            <div
-              key={promo.title}
-              className="group relative aspect-[16/10] min-w-0 overflow-hidden rounded-2xl border border-slate-200/60 shadow-sm transition-transform duration-300 hover:-translate-y-1 dark:border-neutral-800"
-            >
-              <img
-                src={promo.image}
-                alt={promo.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        {promoLoading && promoSlides.length === 0 ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-label="Đang tải khuyến mãi">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={`aspect-[16/9] animate-pulse rounded-2xl bg-slate-200 dark:bg-neutral-800 ${
+                  i === 0 ? "" : i === 1 ? "hidden sm:block" : "hidden lg:block"
+                }`}
               />
-              <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/85 via-black/25 to-transparent p-5">
-                <div>
-                  <span className="block text-base font-bold tracking-tight text-white sm:text-lg">
-                    {promo.title}
-                  </span>
-                  <span className="mt-0.5 inline-block text-[11px] font-bold uppercase tracking-wider text-brand-300">
-                    {promo.caption}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <PromotionCarousel slides={promoSlides} intervalMs={5000} />
+        )}
       </section>
+      )}
 
       {/* 3. DESTINATIONS */}
       <section className="border-y border-slate-200/70 bg-white py-20 dark:border-neutral-800/80 dark:bg-surface-subtle">

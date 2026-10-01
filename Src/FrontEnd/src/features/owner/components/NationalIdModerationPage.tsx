@@ -15,10 +15,12 @@ import {
   rejectNationalIdVerification,
   requestMoreNationalIdInfo,
   testNationalIdOcr,
+  testNationalIdOcrUpload,
   type NationalIdOcrTestResult,
   type NationalIdVerificationListItem,
   type NationalIdVerificationDetailDto,
 } from "@/features/owner/services/nationalIdReviewService";
+import TestOcrModal from "@/components/verification/TestOcrModal";
 
 type Scope = "staff" | "admin";
 
@@ -173,6 +175,7 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
   const [isActing, setIsActing] = useState(false);
   const [ocrTest, setOcrTest] = useState<NationalIdOcrTestResult | null>(null);
   const [isOcrTesting, setIsOcrTesting] = useState(false);
+  const [ocrUploadOpen, setOcrUploadOpen] = useState(false);
   const [overview, setOverview] = useState<{ pending: number; verified: number; needMoreInfo: number; rejected: number; failed: number } | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
 
@@ -323,6 +326,7 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
           </div>
           <FilterDropdown label="Trạng thái" value={status} onChange={setStatus} options={statusOptions} />
           <Button type="button" variant="secondary" onClick={() => void load(1)}><RefreshCw className="h-4 w-4" />Lọc</Button>
+          <Button type="button" variant="secondary" onClick={() => setOcrUploadOpen(true)}><FlaskConical className="h-4 w-4" />Test OCR</Button>
         </div>
 
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
@@ -503,6 +507,14 @@ export default function NationalIdModerationPage({ scope }: { scope: Scope }) {
           {detail.frontImageUrl && <ImagePreviewModal isOpen={imageOpen} src={detail.frontImageUrl} title="CCCD" onClose={() => setImageOpen(false)} />}
         </div>
       )}
+
+      <TestOcrModal
+        open={ocrUploadOpen}
+        onClose={() => setOcrUploadOpen(false)}
+        mode="cccd"
+        title="Test OCR CCCD"
+        runTest={(file) => testNationalIdOcrUpload(scope, file)}
+      />
     </div>
   );
 }

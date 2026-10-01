@@ -33,6 +33,7 @@ public class OwnerApplicationService : IOwnerApplicationService
     private readonly INotificationService _notificationService;
     private readonly INationalIdVerificationClient _nationalIdVerificationClient;
     private readonly INationalIdVerificationLogService _nationalIdLogService;
+    private readonly INationalIdUploadAttemptLimiter _uploadAttemptLimiter;
     private readonly ILogger<OwnerApplicationService> _logger;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryption;
@@ -49,6 +50,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         INotificationService notificationService,
         INationalIdVerificationClient nationalIdVerificationClient,
         INationalIdVerificationLogService nationalIdLogService,
+        INationalIdUploadAttemptLimiter uploadAttemptLimiter,
         ILogger<OwnerApplicationService> logger,
         IUnitOfWork unitOfWork,
         IEncryptionService encryption)
@@ -64,6 +66,7 @@ public class OwnerApplicationService : IOwnerApplicationService
         _notificationService = notificationService;
         _nationalIdVerificationClient = nationalIdVerificationClient;
         _nationalIdLogService = nationalIdLogService;
+        _uploadAttemptLimiter = uploadAttemptLimiter;
         _logger = logger;
         _unitOfWork = unitOfWork;
         _encryption = encryption;
@@ -425,6 +428,14 @@ public class OwnerApplicationService : IOwnerApplicationService
             throw new AppException(ErrorCode.OWNER_VERIFICATION_PROCESSING);
         }
 
+        var attemptState = await _uploadAttemptLimiter.GetStateAsync(userId, cancellationToken);
+        if (attemptState.IsLocked)
+        {
+            throw new AppException(ErrorCode.NATIONAL_ID_UPLOAD_LOCKED, [
+                $"Bạn đã gửi ảnh CCCD không đạt quá nhiều lần. Vui lòng thử lại sau {attemptState.LockedUntil:yyyy-MM-dd HH:mm:ss} UTC."
+            ]);
+        }
+
         var verificationRequest = new VerificationRequest
         {
             UserId = userId,
@@ -563,6 +574,7 @@ public class OwnerApplicationService : IOwnerApplicationService
                 _userRepository.UpdateOwnerApplication(application);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _uploadAttemptLimiter.RegisterAcceptedAsync(userId, cancellationToken);
 
                 var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
                 await _activityLogger.LogAsync(userId, user?.Email, AuthEventType.NationalIdVerified, null, null, cancellationToken: cancellationToken);
@@ -591,6 +603,7 @@ public class OwnerApplicationService : IOwnerApplicationService
                 application.UpdatedAt = DateTime.UtcNow;
                 _userRepository.UpdateOwnerApplication(application);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _uploadAttemptLimiter.RegisterAcceptedAsync(userId, cancellationToken);
 
                 await LogAiResultAsync(userId, verificationRequest, preVerifyResult, cancellationToken);
 
@@ -611,6 +624,7 @@ public class OwnerApplicationService : IOwnerApplicationService
             application.UpdatedAt = DateTime.UtcNow;
             _userRepository.UpdateOwnerApplication(application);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _uploadAttemptLimiter.RegisterFailureAsync(userId, cancellationToken);
 
             await LogAiResultAsync(userId, verificationRequest, preVerifyResult, cancellationToken);
 

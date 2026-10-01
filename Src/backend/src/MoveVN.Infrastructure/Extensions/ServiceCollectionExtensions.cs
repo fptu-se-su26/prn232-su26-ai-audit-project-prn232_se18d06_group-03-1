@@ -85,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICloudinaryService, CloudinaryService>();
         services.AddSingleton<IRedisLockService, RedisLockService>();
         services.AddSingleton<IDriverLicenseUploadAttemptLimiter, RedisDriverLicenseUploadAttemptLimiter>();
+        services.AddSingleton<INationalIdUploadAttemptLimiter, RedisNationalIdUploadAttemptLimiter>();
         services.AddSingleton<IVehicleDocumentUploadAttemptLimiter, RedisVehicleDocumentUploadAttemptLimiter>();
         services.AddScoped<IFptAiService, FptAiService>();
         services.AddScoped<IPresenceService, RedisPresenceService>();
@@ -105,6 +106,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<MoveVN.Application.Modules.Promotions.Interfaces.IPromotionRepository, MoveVN.Infrastructure.Persistence.Repositories.PromotionRepository>();
         services.AddScoped<MoveVN.Application.Modules.VoucherClaims.Interfaces.IVoucherClaimRepository, MoveVN.Infrastructure.Persistence.Repositories.VoucherClaimRepository>();
+        services.AddScoped<MoveVN.Application.Modules.Banners.Interfaces.IBannerRepository, MoveVN.Infrastructure.Persistence.Repositories.BannerRepository>();
 
         // PayOS Payment Gateway
         services.Configure<PayOsSettings>(settings =>

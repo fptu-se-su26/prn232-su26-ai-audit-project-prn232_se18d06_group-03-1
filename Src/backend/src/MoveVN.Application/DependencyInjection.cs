@@ -52,6 +52,8 @@ using MoveVN.Application.Modules.AuditLogs.Interfaces;
 using MoveVN.Application.Modules.AuditLogs.Services;
 using MoveVN.Application.Modules.Withdrawals.Interfaces;
 using MoveVN.Application.Modules.Withdrawals.Services;
+using MoveVN.Application.Modules.Banners.Interfaces;
+using MoveVN.Application.Modules.Banners.Services;
 using MoveVN.Application.Modules.Promotions.Interfaces;
 using MoveVN.Application.Modules.Promotions.Services;
 using MoveVN.Application.Modules.VoucherClaims.Interfaces;
@@ -117,6 +119,7 @@ public static class DependencyInjection
         services.AddScoped<IDisputeService, DisputeService>();
         services.AddScoped<ICmsPageService, CmsPageService>();
         services.AddScoped<IPromotionService, PromotionService>();
+        services.AddScoped<IBannerService, BannerService>();
         services.AddScoped<IVoucherClaimService, VoucherClaimService>();
         services.AddScoped<IPinService, PinService>();
 

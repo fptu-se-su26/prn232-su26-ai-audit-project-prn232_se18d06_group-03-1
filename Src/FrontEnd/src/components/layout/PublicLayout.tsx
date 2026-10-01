@@ -351,7 +351,7 @@ export default function PublicLayout() {
                 <a href="tel:19006868" className="hover:text-brand-600 dark:hover:text-brand-300">
                   1900 6868
                 </a>
-                <span>TP. Hồ Chí Minh, Việt Nam</span>
+                <span>Đà Nẵng, Việt Nam</span>
               </div>
             </div>
           </div>

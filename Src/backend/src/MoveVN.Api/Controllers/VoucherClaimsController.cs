@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoveVN.Application.Common.Models;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.VoucherClaims.DTOs;
 using MoveVN.Application.Modules.VoucherClaims.Interfaces;
 
@@ -12,10 +13,15 @@ namespace MoveVN.Api.Controllers;
 public class VoucherClaimsController : ControllerBase
 {
     private readonly IVoucherClaimService _svc;
+    private readonly ICurrentUserContext _currentUser;
 
-    public VoucherClaimsController(IVoucherClaimService svc) => _svc = svc;
+    public VoucherClaimsController(IVoucherClaimService svc, ICurrentUserContext currentUser)
+    {
+        _svc = svc;
+        _currentUser = currentUser;
+    }
 
-    private long GetUserId() => long.Parse(User.FindFirst("sub")?.Value ?? "0");
+    private long GetUserId() => _currentUser.UserId ?? 0;
 
     [HttpGet("hunt")]
     public async Task<ActionResult<ApiResponse<List<VoucherHuntItem>>>> Hunt(CancellationToken ct)

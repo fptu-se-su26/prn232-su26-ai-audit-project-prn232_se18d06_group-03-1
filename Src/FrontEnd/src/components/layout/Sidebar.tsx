@@ -89,6 +89,11 @@ const adminPostMgmtItems = [
   { to: "/admin/posts/owners", label: "Xe của chủ xe", icon: Car },
 ];
 
+const adminMarketingItems = [
+  { to: "/admin/banners", label: "Banners", icon: Megaphone },
+  { to: "/admin/cms-pages", label: "Trang CMS", icon: FileText },
+];
+
 const staffModerationItems = [
   { to: "/staff/vehicle-documents", label: "Duyệt hồ sơ xe", icon: FileBadge },
   { to: "/staff/vehicle-listings", label: "Duyệt bài đăng xe", icon: ClipboardList },
@@ -171,6 +176,7 @@ const navIconToneByPath: Record<string, string> = {
   "/owner/bookings": "text-sky-600 dark:text-sky-400",
   "/owner/disputes": "text-rose-600 dark:text-rose-400",
   "/owner/promotions": "text-amber-600 dark:text-amber-400",
+  "/admin/banners": "text-fuchsia-600 dark:text-fuchsia-400",
   "/owner/vehicles/car": "text-blue-600 dark:text-blue-400",
   "/owner/vehicles/motorbike": "text-emerald-600 dark:text-emerald-400",
   "/": "text-sky-600 dark:text-sky-400",
@@ -229,6 +235,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const [walletOpen, setWalletOpen] = useState(isWalletPath);
   const isPostMgmtPath = location.pathname.startsWith("/admin/posts");
   const [postMgmtOpen, setPostMgmtOpen] = useState(isPostMgmtPath);
+  const isMarketingPath = adminMarketingItems.some((item) => location.pathname.startsWith(item.to));
+  const [marketingOpen, setMarketingOpen] = useState(isMarketingPath);
 
   useEffect(() => {
     if (isVehicleCatalogPath) setVehicleCatalogOpen(true);
@@ -240,7 +248,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     if (isStaffUserMgmtPath) setStaffUserMgmtOpen(true);
     if (isWalletPath) setWalletOpen(true);
     if (isPostMgmtPath) setPostMgmtOpen(true);
-  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isStaffUserMgmtPath, isWalletPath, isPostMgmtPath]);
+    if (isMarketingPath) setMarketingOpen(true);
+  }, [isVehicleCatalogPath, isVehiclePricingPath, isAdminModerationPath, isStaffModerationPath, isOwnerVehiclePath, isAdminUserMgmtPath, isStaffUserMgmtPath, isWalletPath, isPostMgmtPath, isMarketingPath]);
 
   const mainItems = [
     { to: getDashboardPath([primaryRole]), label: roleLabels[primaryRole] ?? "Khu vực của tôi", icon: RoleIcon },
@@ -526,6 +535,59 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
             <>
               {!collapsed && <span className="my-1 block border-t border-slate-100" />}
               <NavItem collapsed={collapsed} to="/admin/broadcast" label="Gửi thông báo" icon={Megaphone} />
+            </>
+          )}
+
+          {primaryRole === "Admin" && !isOwnerVerificationSection && (
+            <>
+              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
+              <button
+                type="button"
+                onClick={() => {
+                  setMarketingOpen(true);
+                  navigate("/admin/banners");
+                }}
+                className={[
+                  navBaseClass,
+                  "w-full",
+                  collapsed ? "justify-center" : "gap-3 px-3",
+                  isMarketingPath ? navActiveClass : navInactiveClass,
+                ].join(" ")}
+                title="Marketing"
+              >
+                <Megaphone className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Marketing</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setMarketingOpen((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setMarketingOpen((prev) => !prev);
+                        }
+                      }}
+                      className={expandButtonClass}
+                      aria-label="Mở marketing"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${marketingOpen ? "rotate-180" : ""}`} />
+                    </span>
+                  </>
+                )}
+              </button>
+              {!collapsed && marketingOpen && (
+                <div className={nestedNavClass}>
+                  {adminMarketingItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} to={item.to} label={item.label} icon={item.icon} />
+                  ))}
+                </div>
+              )}
             </>
           )}
 
@@ -894,8 +956,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 </div>
               )}
 
-              {!collapsed && <span className="my-1 block border-t border-slate-100" />}
-              <NavItem collapsed={collapsed} to="/admin/cms-pages" label="Trang CMS" icon={FileText} />
             </>
           )}
         </div>

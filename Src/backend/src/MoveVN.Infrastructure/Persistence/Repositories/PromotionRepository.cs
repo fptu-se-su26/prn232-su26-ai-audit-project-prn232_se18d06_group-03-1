@@ -17,6 +17,9 @@ public class PromotionRepository : IPromotionRepository
     public async Task<Promotion?> GetByIdAsync(long id, CancellationToken ct = default)
         => await _ctx.Promotions.FindAsync(new object[] { id }, ct);
 
+    public async Task<List<Promotion>> GetByIdsAsync(IEnumerable<long> ids, CancellationToken ct = default)
+        => await _ctx.Promotions.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+
     public async Task<Promotion?> GetByCodeAsync(string code, CancellationToken ct = default)
         => await _ctx.Promotions.FirstOrDefaultAsync(p => p.Code == code, ct);
 

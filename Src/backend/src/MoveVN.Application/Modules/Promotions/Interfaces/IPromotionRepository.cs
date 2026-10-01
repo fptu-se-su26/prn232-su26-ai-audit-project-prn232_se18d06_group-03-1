@@ -5,6 +5,7 @@ namespace MoveVN.Application.Modules.Promotions.Interfaces;
 public interface IPromotionRepository
 {
     Task<Promotion?> GetByIdAsync(long id, CancellationToken ct = default);
+    Task<List<Promotion>> GetByIdsAsync(IEnumerable<long> ids, CancellationToken ct = default);
     Task<Promotion?> GetByCodeAsync(string code, CancellationToken ct = default);
     Task<List<Promotion>> GetListAsync(string? keyword, bool? isActive, int page, int pageSize, CancellationToken ct = default);
     Task<int> GetListCountAsync(string? keyword, bool? isActive, CancellationToken ct = default);

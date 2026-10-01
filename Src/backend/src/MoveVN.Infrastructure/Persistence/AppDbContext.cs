@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     }
 
     public DbSet<Area> Area => Set<Area>();
+    public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CmsPage> CmsPages => Set<CmsPage>();
     public DbSet<BlockedDate> BlockedDates => Set<BlockedDate>();
@@ -117,6 +118,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<WithdrawalRequest>();
         builder.Entity<VoucherClaim>().HasIndex(vc => new { vc.CustomerId, vc.PromotionId }).IsUnique();
         builder.Entity<VoucherClaim>().ToTable("voucher_claims");
+        builder.Entity<Banner>().HasIndex(b => new { b.IsActive, b.StartAt, b.EndAt, b.DisplayOrder });
+        builder.Entity<Banner>().Property(b => b.ClickAction).HasDefaultValue("Link");
+        builder.Entity<Banner>().Property(b => b.PopupCtaLabel).HasDefaultValue("Nhận voucher");
         builder.Entity<CarDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<MotorbikeDetail>().HasKey(entity => entity.VehicleId);
         builder.Entity<DriverLicenseClass>().HasIndex(entity => entity.Code).IsUnique();

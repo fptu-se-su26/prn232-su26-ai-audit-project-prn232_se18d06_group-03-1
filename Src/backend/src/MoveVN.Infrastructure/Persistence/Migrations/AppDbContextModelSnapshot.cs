@@ -236,6 +236,99 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("MoveVN.Domain.Entities.Banner", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ClickAction")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("Link")
+                        .HasColumnName("click_action");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CreatedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at");
+
+                    b.Property<string>("ImagePublicId")
+                        .HasColumnType("text")
+                        .HasColumnName("image_public_id");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("PopupCtaLabel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("popup_cta_label");
+
+                    b.Property<string>("PopupCtaUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("popup_cta_url");
+
+                    b.Property<string>("PopupDescription")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("popup_description");
+
+                    b.Property<string>("PopupTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("popup_title");
+
+                    b.Property<long?>("PromotionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("promotion_id");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_at");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("target_url");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive", "StartAt", "EndAt", "DisplayOrder");
+
+                    b.ToTable("Banners");
+                });
+
             modelBuilder.Entity("MoveVN.Domain.Entities.BlockedDate", b =>
                 {
                     b.Property<long>("Id")
@@ -693,6 +786,10 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("front_image_url");
 
+                    b.Property<DateTime?>("LastSubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_submitted_at");
+
                     b.Property<string>("LicenseClass")
                         .HasColumnType("text")
                         .HasColumnName("license_class");
@@ -700,10 +797,6 @@ namespace MoveVN.Infrastructure.Persistence.Migrations
                     b.Property<string>("LicenseNumber")
                         .HasColumnType("text")
                         .HasColumnName("license_number");
-
-                    b.Property<DateTime?>("LastSubmittedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_submitted_at");
 
                     b.Property<decimal?>("OcrConfidence")
                         .HasPrecision(15, 2)

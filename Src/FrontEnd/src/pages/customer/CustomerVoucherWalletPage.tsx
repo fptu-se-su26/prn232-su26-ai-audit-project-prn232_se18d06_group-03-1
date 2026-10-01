@@ -1,4 +1,4 @@
-import { Wallet, TicketPercent, Clock, CheckCircle, Copy, Check, Sparkles } from "lucide-react";
+import { Wallet, Clock, CheckCircle, Copy, Check, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -34,12 +34,13 @@ function WalletCard({ voucher }: { voucher: VoucherClaimResponse }) {
   }
 
   return (
-    <div className={`relative flex rounded-2xl border bg-white shadow-sm overflow-hidden ${
-      isUsed ? "border-slate-200 opacity-60" : "border-brand-200"
+    <div className={`relative flex rounded-2xl border bg-white shadow-sm overflow-hidden dark:bg-neutral-900 ${
+      isUsed ? "border-slate-200 opacity-60 dark:border-neutral-800" : "border-brand-200 dark:border-brand-800"
     }`}>
-      <div className="flex flex-col items-center justify-center px-5 py-5 bg-gradient-to-b from-brand-50 to-brand-100/50 min-w-[110px]">
-        <TicketPercent className="h-6 w-6 text-brand-600 mb-1.5" />
-        <span className="text-xl font-extrabold text-brand-700 leading-tight">
+      <div className="relative flex w-24 shrink-0 flex-col items-center justify-center gap-0.5 overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 px-2 py-5 text-white sm:w-28">
+        <div className="pointer-events-none absolute -left-8 -top-8 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Giảm</span>
+        <span className="text-2xl font-black tracking-tight drop-shadow-sm sm:text-3xl">
           {voucher.discountType === "Fixed" ? (
             <>{(voucher.discountValue / 1000).toFixed(0)}k</>
           ) : (
@@ -48,9 +49,13 @@ function WalletCard({ voucher }: { voucher: VoucherClaimResponse }) {
         </span>
       </div>
 
-      <div className="absolute left-[101px] top-0 bottom-0 w-px border-l-2 border-dashed border-slate-200" />
+      <div aria-hidden="true" className="relative flex w-0 flex-col items-stretch justify-between py-2">
+        <span className="absolute -top-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rounded-full border-b border-slate-200 bg-slate-50 dark:border-neutral-800 dark:bg-neutral-950" />
+        <span className="mx-auto w-px flex-1 border-l-2 border-dashed border-slate-200 dark:border-neutral-700" />
+        <span className="absolute -bottom-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rounded-full border-t border-slate-200 bg-slate-50 dark:border-neutral-800 dark:bg-neutral-950" />
+      </div>
 
-      <div className="flex-1 p-4 pl-6 space-y-2">
+      <div className="flex-1 p-4 pl-4 space-y-2 min-w-0">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-bold text-slate-900 leading-tight">{voucher.name}</h3>

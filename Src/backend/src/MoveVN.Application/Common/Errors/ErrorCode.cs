@@ -74,6 +74,7 @@ public sealed class ErrorCode
     public static readonly ErrorCode OWNER_VERIFICATION_PROCESSING = new("OWNER_6013", "Yêu cầu xác thực CCCD đang được xử lý. Vui lòng đợi.", HttpStatusCode.Conflict);
     public static readonly ErrorCode OWNER_NATIONAL_ID_VERIFICATION_NOT_FOUND = new("OWNER_6014", "Không tìm thấy yêu cầu xác thực CCCD.", HttpStatusCode.NotFound);
     public static readonly ErrorCode OWNER_NATIONAL_ID_REVIEW_INVALID_STATE = new("OWNER_6015", "Yêu cầu xác thực CCCD không ở trạng thái chờ duyệt.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode NATIONAL_ID_UPLOAD_LOCKED = new("OWNER_6017", "Tải lên CCCD tạm thời bị khoá.", HttpStatusCode.TooManyRequests);
     public static readonly ErrorCode PIN_NOT_SET = new("PIN_1101", "Chưa thiết lập mã PIN.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode PIN_ALREADY_SET = new("PIN_1102", "Mã PIN đã được thiết lập.", HttpStatusCode.BadRequest);
     public static readonly ErrorCode PIN_INVALID = new("PIN_1103", "Mã PIN không đúng.", HttpStatusCode.BadRequest);
@@ -136,6 +137,17 @@ public sealed class ErrorCode
     public static readonly ErrorCode NOTIFICATION_NOT_FOUND = new("NOTIFICATION_10001", "Không tìm thấy thông báo.", HttpStatusCode.NotFound);
     public static readonly ErrorCode CMS_PAGE_NOT_FOUND = new("CMS_11001", "Không tìm thấy trang.", HttpStatusCode.NotFound);
     public static readonly ErrorCode CMS_PAGE_DUPLICATED = new("CMS_11002", "Slug đã tồn tại.", HttpStatusCode.BadRequest);
+
+    public static readonly ErrorCode BANNER_NOT_FOUND = new("BANNER_12001", "Không tìm thấy banner.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode BANNER_PROMOTION_NOT_FOUND = new("BANNER_12002", "Không tìm thấy khuyến mãi.", HttpStatusCode.NotFound);
+    public static readonly ErrorCode BANNER_PROMOTION_NOT_APPROVED = new("BANNER_12003", "Chỉ được quảng bá khuyến mãi đã được duyệt.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_IMAGE_REQUIRED = new("BANNER_12004", "Banner phải có ảnh.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_DATE_RANGE_INVALID = new("BANNER_12005", "StartAt phải trước EndAt.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_IMAGE_INVALID = new("BANNER_12007", "Ảnh banner không hợp lệ. Chỉ chấp nhận JPG/PNG/WebP dưới 5MB.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_DISPLAY_ORDER_INVALID = new("BANNER_12008", "DisplayOrder phải lớn hơn hoặc bằng 0.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_POPUP_TITLE_REQUIRED = new("BANNER_12010", "Popup banner phải có tiêu đề.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_POPUP_DESCRIPTION_REQUIRED = new("BANNER_12011", "Popup banner phải có nội dung.", HttpStatusCode.BadRequest);
+    public static readonly ErrorCode BANNER_POPUP_CTA_LABEL_REQUIRED = new("BANNER_12013", "Popup banner phải có tên nút.", HttpStatusCode.BadRequest);
 
     public override string ToString() => $"{Code}: {Message}";
 }

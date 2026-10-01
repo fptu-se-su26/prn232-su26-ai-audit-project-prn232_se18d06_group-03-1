@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoveVN.Application.Common.Models;
+using MoveVN.Application.Modules.Auth.Interfaces;
 using MoveVN.Application.Modules.Promotions.DTOs;
 using MoveVN.Application.Modules.Promotions.Interfaces;
 
@@ -12,14 +13,21 @@ namespace MoveVN.Api.Controllers;
 public class PromotionsController : ControllerBase
 {
     private readonly IPromotionService _svc;
+    private readonly ICurrentUserContext _currentUser;
 
-    public PromotionsController(IPromotionService svc) => _svc = svc;
+    public PromotionsController(IPromotionService svc, ICurrentUserContext currentUser)
+    {
+        _svc = svc;
+        _currentUser = currentUser;
+    }
+
+    private long GetUserId() => _currentUser.UserId ?? 0;
 
     [HttpPost]
     [Authorize(Roles = "Admin,Owner")]
     public async Task<ActionResult<ApiResponse<PromotionResponse>>> Create([FromBody] CreatePromotionRequest req, CancellationToken ct)
     {
-        var ownerId = User.IsInRole("Owner") ? long.Parse(User.FindFirst("sub")?.Value ?? "0") : req.OwnerId;
+        var ownerId = User.IsInRole("Owner") ? GetUserId() : req.OwnerId;
         var result = await _svc.CreateAsync(req, ownerId, ct);
         return Ok(ApiResponse<PromotionResponse>.Succeeded(result));
     }
@@ -70,7 +78,7 @@ public class PromotionsController : ControllerBase
     [Authorize(Roles = "Admin,Customer")]
     public async Task<ActionResult<ApiResponse<ApplyPromotionResponse>>> Validate([FromBody] ApplyPromotionRequest req, CancellationToken ct)
     {
-        var userId = long.Parse(User.FindFirst("sub")?.Value ?? "0");
+        var userId = GetUserId();
         var result = await _svc.ValidateAndCalculateAsync(req, userId, ct);
         if (!result.Success)
             return Ok(ApiResponse<ApplyPromotionResponse>.Failed("PROMO_INVALID", result.Message!));
@@ -97,7 +105,7 @@ public class PromotionsController : ControllerBase
     [Authorize(Roles = "Owner")]
     public async Task<ActionResult<ApiResponse<PromotionResponse>>> Approve(long id, CancellationToken ct)
     {
-        var ownerId = long.Parse(User.FindFirst("sub")?.Value ?? "0");
+        var ownerId = GetUserId();
         var result = await _svc.ApproveAsync(id, ownerId, ct);
         return Ok(ApiResponse<PromotionResponse>.Succeeded(result));
     }
@@ -122,7 +130,7 @@ public class PromotionsController : ControllerBase
     [Authorize(Roles = "Owner")]
     public async Task<ActionResult<ApiResponse<PromotionResponse>>> Reject(long id, CancellationToken ct)
     {
-        var ownerId = long.Parse(User.FindFirst("sub")?.Value ?? "0");
+        var ownerId = GetUserId();
         var result = await _svc.RejectAsync(id, ownerId, ct);
         return Ok(ApiResponse<PromotionResponse>.Succeeded(result));
     }
@@ -131,7 +139,7 @@ public class PromotionsController : ControllerBase
     [Authorize(Roles = "Owner")]
     public async Task<ActionResult<ApiResponse<List<PromotionResponse>>>> GetPending(CancellationToken ct)
     {
-        var ownerId = long.Parse(User.FindFirst("sub")?.Value ?? "0");
+        var ownerId = GetUserId();
         var result = await _svc.GetPendingForOwnerAsync(ownerId, ct);
         return Ok(ApiResponse<List<PromotionResponse>>.Succeeded(result));
     }
@@ -140,7 +148,7 @@ public class PromotionsController : ControllerBase
     [Authorize(Roles = "Owner")]
     public async Task<ActionResult<ApiResponse<List<PromotionResponse>>>> GetMy(CancellationToken ct)
     {
-        var ownerId = long.Parse(User.FindFirst("sub")?.Value ?? "0");
+        var ownerId = GetUserId();
         var result = await _svc.GetMyPromotionsAsync(ownerId, ct);
         return Ok(ApiResponse<List<PromotionResponse>>.Succeeded(result));
     }

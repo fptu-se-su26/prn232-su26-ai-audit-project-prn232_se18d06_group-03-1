@@ -368,6 +368,34 @@ public class DriverLicenseService : IDriverLicenseService
         }
     }
 
+    /// <summary>
+    /// Runs OCR on an arbitrary uploaded image for diagnosis (staff tool).
+    /// Read-only: never creates a verification request. When fullName is
+    /// provided, it is forwarded to the AI for name matching; otherwise the
+    /// AI skips it (nameMatch.provided will be false).
+    /// </summary>
+    public async Task<DriverLicenseVerificationResult> TestOcrUploadAsync(byte[] imageBytes, string fileName, string? fullName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _verificationClient.VerifyAsync(new DriverLicenseVerificationFileRequest
+            {
+                FileStream = new MemoryStream(imageBytes),
+                FileName = fileName,
+                FullName = string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim(),
+            }, cancellationToken);
+        }
+        catch (AppException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OCR upload test failed for file {FileName}.", fileName);
+            throw new AppException(ErrorCode.FPT_AI_VERIFICATION_FAILED, ["Không kết nối được tới dịch vụ OCR."]);
+        }
+    }
+
     public async Task ApproveAsync(long id, DriverLicenseApproveRequest approveRequest, CancellationToken cancellationToken = default)
     {
         approveRequest ??= new DriverLicenseApproveRequest();

@@ -56,7 +56,13 @@ public class NationalIdVerificationClient : INationalIdVerificationClient
 
         var recommendation = raw.TryGetProperty("recommendation", out var rec) ? rec.GetString() : null;
 
-        if (!valid && recommendation is not ("ManualReview" or "NeedMoreInfo"))
+        // Only discard results the AI did not actually evaluate. An evaluated
+        // REJECT means the AI examined the image and found the submission
+        // unacceptable, so it must flow through to the service (Rejected branch
+        // + upload-failure counting) instead of being treated as an
+        // infrastructure failure. Mirrors the driver-license client, which never
+        // discards evaluated results and lets the service decide.
+        if (!valid && recommendation is not ("ManualReview" or "NeedMoreInfo" or "Reject"))
         {
             _logger.LogWarning("AI national ID verification failed: {Body}", responseBody);
             return null;

@@ -97,3 +97,12 @@ export async function testNationalIdOcr(scope: "staff" | "admin", id: number): P
   const { data } = await apiClient.post<ApiResponse<NationalIdOcrTestResult>>(`${baseUrl(scope)}/${id}/test-ocr`);
   return unwrap(data);
 }
+
+export async function testNationalIdOcrUpload(scope: "staff" | "admin", file: File): Promise<NationalIdOcrTestResult> {
+  const formData = new FormData();
+  formData.append("image", file, file.name);
+  const { data } = await apiClient.post<ApiResponse<NationalIdOcrTestResult>>(`${baseUrl(scope)}/test-ocr-upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return unwrap(data);
+}
